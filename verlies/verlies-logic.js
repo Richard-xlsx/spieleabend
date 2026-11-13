@@ -92,6 +92,36 @@
     ]
   };
   const TRANK = { id: "trank", name: "Heiltrank", ziel: null, text: "+14 Leben für dich" };
+
+  // ---------- Erfahrung, Stufen, Ränge ----------
+  // EP_STUFEN[i] = EP, ab denen Stufe i+1 erreicht ist. Jede neue Stufe: +3 Höchstleben und 1 Fähigkeitspunkt.
+  const EP_STUFEN = [0, 15, 35, 60, 90, 125, 165, 210];
+  const MAX_STUFE = EP_STUFEN.length;
+  const MAX_RANG = 3;
+  // Was ein Rang bringt: schaden = +n Schaden je Rang über I, heil = +n Leben, cd = Abklingzeit −1, gift = +1 Gift je Runde
+  const RANG = {
+    schlag: ["schaden", 2], vernichten: ["schaden", 3], dolch: ["schaden", 2], stab: ["schaden", 2], funken: ["schaden", 2],
+    pfeil: ["schaden", 2], hammer: ["schaden", 2], eis: ["schaden", 2], markieren: ["schaden", 2], taschendieb: ["schaden", 2],
+    wirbel: ["schaden", 2], feuerball: ["schaden", 2], meteor: ["schaden", 3], licht: ["schaden", 2], doppel: ["schaden", 1], hagel: ["schaden", 1],
+    heilen: ["heil", 3], handauflegen: ["heil", 3], kraeuter: ["heil", 3], segen: ["heil", 2], laeutern: ["heil", 2],
+    gift: ["gift", 1],
+    schild: ["cd"], verstecken: ["cd"], rauch: ["cd"], arkan: ["cd"], beschuetzen: ["cd"], fels: ["cd"], kriegsschrei: ["cd"], wiedergeburt: ["cd"]
+  };
+  const rangVon = (h, id) => (h.rang && h.rang[id]) || 1;
+  const rangPlus = (h, id, art) => { const r = RANG[id]; return r && r[0] === art ? (rangVon(h, id) - 1) * (r[1] || 1) : 0; };
+  function cdVon(h, a) {
+    if (!a.cd) return 0;
+    return RANG[a.id] && RANG[a.id][0] === "cd" ? Math.max(1, a.cd - (rangVon(h, a.id) - 1)) : a.cd;
+  }
+  // Text für den nächsten Rang (oder null, wenn es keinen gibt)
+  function rangText(h, a) {
+    const r = RANG[a.id]; if (!r) return null;
+    if (r[0] === "schaden") return `+${r[1]} Schaden${a.id === "doppel" || a.id === "hagel" ? " je Pfeil" : ""}`;
+    if (r[0] === "heil") return `+${r[1]} Leben`;
+    if (r[0] === "gift") return "+1 Gift je Runde";
+    return cdVon(h, a) > 1 ? "1 Runde schneller wieder bereit" : null;
+  }
+  function stufeAus(ep) { let st = 1; for (let i = 0; i < EP_STUFEN.length; i++) if (ep >= EP_STUFEN[i]) st = i + 1; return st; }
   const alleAktionen = rolle => AKTIONEN[rolle].concat(LERNBAR[rolle]);
   function aktionenVon(h) {
     const l = AKTIONEN[h.rolle].concat(LERNBAR[h.rolle].filter(a => h.gelernt.includes(a.id)));
@@ -114,13 +144,13 @@
 
   // ---------- Gegner ----------
   const GEGNER = {
-    ratte: { name: "Riesenratte", hp: 15, dmg: [3, 4] },
-    goblin: { name: "Goblin", hp: 19, dmg: [3, 5] },
-    spinne: { name: "Höhlenspinne", hp: 19, dmg: [3, 4], gift: true },
-    skelett: { name: "Skelett", hp: 27, dmg: [4, 6] },
-    schamane: { name: "Goblin-Schamane", hp: 20, dmg: [3, 4], heiler: true },
-    ork: { name: "Ork", hp: 42, dmg: [6, 8] },
-    koenig: { name: "Der Knochenkönig", hp: 175, dmg: [8, 12], boss: true }
+    ratte: { name: "Riesenratte", hp: 15, dmg: [3, 4], ep: 8 },
+    goblin: { name: "Goblin", hp: 19, dmg: [3, 5], ep: 10 },
+    spinne: { name: "Höhlenspinne", hp: 19, dmg: [3, 4], gift: true, ep: 11 },
+    skelett: { name: "Skelett", hp: 30, dmg: [5, 7], ep: 15 },
+    schamane: { name: "Goblin-Schamane", hp: 20, dmg: [3, 4], heiler: true, ep: 14 },
+    ork: { name: "Ork", hp: 48, dmg: [7, 9], ep: 22 },
+    koenig: { name: "Der Knochenkönig", hp: 260, dmg: [9, 13], boss: true, ep: 0 }
   };
   const GRUPPEN = [
     [["ratte", "ratte"], ["goblin", "ratte"], ["spinne", "ratte"]],
@@ -129,7 +159,8 @@
   ];
   const stufe = nr => (nr <= 3 ? 0 : nr <= 5 ? 1 : 2);
   function gegnerErzeugen(S, art) {
-    const g = GEGNER[art], f = S.teilnehmer.length === 2 ? 0.55 : 1;
+    // zu zweit schwächer; je tiefer, desto zäher (Helden steigen ja auch auf)
+    const g = GEGNER[art], f = (S.teilnehmer.length === 2 ? 0.55 : 1) * (g.boss ? 1 : 1 + 0.06 * Math.max(0, S.raumNr - 1));
     const hp = Math.max(4, Math.round(g.hp * f));
     S.gegnerNr = (S.gegnerNr || 0) + 1;
     return { id: "g" + S.gegnerNr, art, name: g.name, hp, max: hp, gift: 0, giftR: 0, starr: 0, markiert: 0 };
@@ -395,7 +426,8 @@
   function rundeAuswerten(S) {
     const log = [], k = S.kampf;
     const reihe = S.teilnehmer.filter(p => S.helden[p].hp > 0 && k.wahl[p]);
-    const cd = (h, w) => { const a = alleAktionen(h.rolle).find(x => x.id === w.a); if (a && a.cd) h.cd[a.id] = a.cd; };
+    const cd = (h, w) => { const a = alleAktionen(h.rolle).find(x => x.id === w.a); if (a && a.cd) h.cd[a.id] = cdVon(h, a); };
+    const rs = (h, id) => rangPlus(h, id, "schaden"), rh = (h, id) => rangPlus(h, id, "heil");
     // 1. Schutz, Heilung und Vorbereitung zuerst, damit sie noch in dieser Runde wirken
     for (const p of reihe) {
       const h = S.helden[p], w = k.wahl[p], n = heldName(S, p);
@@ -406,11 +438,11 @@
         case "verstecken": h.versteckt = true; h.lauer = true; log.push(`${n} verschwindet in den Schatten.`); break;
         case "rauch": k.nebel = true; log.push(`${n} wirft eine Rauchbombe. Die Gegner sehen kaum noch etwas.`); break;
         case "trank": { h.traenke -= 1; const e = heldHeilen(S, p, 14); log.push(`${n} trinkt einen Heiltrank: +${e} Leben.`); break; }
-        case "heilen": heilenAuf(S, p, w.ziel, 10, log, "heilt"); break;
-        case "handauflegen": heilenAuf(S, p, w.ziel, 8, log, "legt die Hände auf"); break;
-        case "kraeuter": { const z = S.helden[w.ziel]; z.gift = 0; z.giftR = 0; heilenAuf(S, p, w.ziel, 9, log, "versorgt mit Kräutern"); break; }
-        case "segen": alleHeilen(S, p, 6); for (const q of lebend(S)) S.helden[q].segen = 1; log.push(`${n} spricht einen Segen: alle +6 Leben, nächster Angriff +3.`); break;
-        case "laeutern": alleHeilen(S, p, 6); for (const q of S.teilnehmer) { S.helden[q].gift = 0; S.helden[q].giftR = 0; } log.push(`${n} läutert die Gruppe: alle +6 Leben, kein Gift mehr.`); break;
+        case "heilen": heilenAuf(S, p, w.ziel, 10 + rh(h, "heilen"), log, "heilt"); break;
+        case "handauflegen": heilenAuf(S, p, w.ziel, 8 + rh(h, "handauflegen"), log, "legt die Hände auf"); break;
+        case "kraeuter": { const z = S.helden[w.ziel]; z.gift = 0; z.giftR = 0; heilenAuf(S, p, w.ziel, 9 + rh(h, "kraeuter"), log, "versorgt mit Kräutern"); break; }
+        case "segen": { const x = 6 + rh(h, "segen"); alleHeilen(S, p, x); for (const q of lebend(S)) S.helden[q].segen = 1; log.push(`${n} spricht einen Segen: alle +${x} Leben, nächster Angriff +3.`); break; }
+        case "laeutern": { const x = 6 + rh(h, "laeutern"); alleHeilen(S, p, x); for (const q of S.teilnehmer) { S.helden[q].gift = 0; S.helden[q].giftR = 0; } log.push(`${n} läutert die Gruppe: alle +${x} Leben, kein Gift mehr.`); break; }
         case "wiedergeburt": {
           const weg = S.teilnehmer.filter(q => S.helden[q].hp <= 0);
           for (const q of S.teilnehmer) { const z = S.helden[q]; h.stats.geheilt += heldHeilen(S, q, z.hp <= 0 ? Math.ceil(z.max / 2) : 5); }
@@ -427,14 +459,14 @@
       if (!gegnerLebend(S).length) break;
       const h = S.helden[p], w = k.wahl[p], ziel = S.gegner.find(g => g.id === w.ziel);
       switch (w.a) {
-        case "schlag": schadenAnGegner(S, p, ziel, wurf(S, 6, 8), log, "trifft"); break;
-        case "vernichten": schadenAnGegner(S, p, ziel, wurf(S, 13, 17), log, "spaltet"); break;
-        case "stab": schadenAnGegner(S, p, ziel, wurf(S, 4, 6), log, "brennt Licht in"); break;
-        case "funken": schadenAnGegner(S, p, ziel, wurf(S, 5, 7), log, "schleudert Funken auf"); break;
-        case "pfeil": schadenAnGegner(S, p, ziel, wurf(S, 6, 8), log, "schießt auf"); break;
-        case "hammer": schadenAnGegner(S, p, ziel, wurf(S, 5, 7), log, "schmettert den Hammer auf"); break;
+        case "schlag": schadenAnGegner(S, p, ziel, wurf(S, 6, 8) + rs(h, "schlag"), log, "trifft"); break;
+        case "vernichten": schadenAnGegner(S, p, ziel, wurf(S, 13, 17) + rs(h, "vernichten"), log, "spaltet"); break;
+        case "stab": schadenAnGegner(S, p, ziel, wurf(S, 4, 6) + rs(h, "stab"), log, "brennt Licht in"); break;
+        case "funken": schadenAnGegner(S, p, ziel, wurf(S, 5, 7) + rs(h, "funken"), log, "schleudert Funken auf"); break;
+        case "pfeil": schadenAnGegner(S, p, ziel, wurf(S, 6, 8) + rs(h, "pfeil"), log, "schießt auf"); break;
+        case "hammer": schadenAnGegner(S, p, ziel, wurf(S, 5, 7) + rs(h, "hammer"), log, "schmettert den Hammer auf"); break;
         case "dolch": {
-          let d = wurf(S, 6, 8), wie = "sticht";
+          let d = wurf(S, 6, 8) + rs(h, "dolch"), wie = "sticht";
           if (h.lauer) { d *= 3; h.lauer = false; wie = "springt aus dem Schatten auf"; }
           else if (chance(S, 0.33)) { d *= 2; wie = "trifft genau"; }
           schadenAnGegner(S, p, ziel, d, log, wie); break;
@@ -442,32 +474,32 @@
         case "gift": {
           const z = ziel && ziel.hp > 0 ? ziel : gegnerLebend(S)[0];
           schadenAnGegner(S, p, z, 3, log, "vergiftet");
-          if (z && z.hp > 0) { z.gift = 3; z.giftR = 3; }
+          if (z && z.hp > 0) { z.gift = 3 + rangPlus(h, "gift", "gift"); z.giftR = 3; }
           break;
         }
         case "taschendieb": {
           const z = ziel && ziel.hp > 0 ? ziel : gegnerLebend(S)[0];
-          schadenAnGegner(S, p, z, 4, log, "rempelt");
+          schadenAnGegner(S, p, z, 4 + rs(h, "taschendieb"), log, "rempelt");
           const g = wurf(S, 6, 10); h.gold += g; log.push(`${heldName(S, p)} erbeutet dabei ${g} Gold.`); break;
         }
         case "eis": {
           const z = ziel && ziel.hp > 0 ? ziel : gegnerLebend(S)[0];
-          schadenAnGegner(S, p, z, wurf(S, 7, 9), log, "durchbohrt mit Eis");
+          schadenAnGegner(S, p, z, wurf(S, 7, 9) + rs(h, "eis"), log, "durchbohrt mit Eis");
           if (z && z.hp > 0) { z.starr = 1; log.push(`${z.name} erstarrt.`); }
           break;
         }
         case "markieren": {
           const z = ziel && ziel.hp > 0 ? ziel : gegnerLebend(S)[0];
-          schadenAnGegner(S, p, z, 4, log, "markiert und trifft");
+          schadenAnGegner(S, p, z, 4 + rs(h, "markieren"), log, "markiert und trifft");
           if (z && z.hp > 0) z.markiert = 4;          // zählt am Rundenende herunter: 3 volle Runden
           break;
         }
-        case "wirbel": flaeche(S, p, 4, log, "wirbelt herum"); break;
-        case "feuerball": flaeche(S, p, 5, log, "wirft einen Feuerball"); break;
-        case "meteor": flaeche(S, p, 11, log, "ruft einen Meteor herab"); break;
-        case "licht": flaeche(S, p, 5, log, "lässt heiliges Licht strahlen (alle Helden +4)"); break;
-        case "doppel": pfeile(S, p, 2, 5, log, "schießt zwei Pfeile"); break;
-        case "hagel": pfeile(S, p, 4, 5, log, "lässt Pfeile regnen"); break;
+        case "wirbel": flaeche(S, p, 4 + rs(h, "wirbel"), log, "wirbelt herum"); break;
+        case "feuerball": flaeche(S, p, 5 + rs(h, "feuerball"), log, "wirft einen Feuerball"); break;
+        case "meteor": flaeche(S, p, 11 + rs(h, "meteor"), log, "ruft einen Meteor herab"); break;
+        case "licht": flaeche(S, p, 5 + rs(h, "licht"), log, "lässt heiliges Licht strahlen (alle Helden +4)"); break;
+        case "doppel": pfeile(S, p, 2, 5 + rs(h, "doppel"), log, "schießt zwei Pfeile"); break;
+        case "hagel": pfeile(S, p, 4, 5 + rs(h, "hagel"), log, "lässt Pfeile regnen"); break;
       }
     }
     // 3. Gift auf Gegnern
@@ -537,9 +569,25 @@
     log.push((von ? `${von} trifft ${wer}: ` : `${wer}: `) + `−${n} Leben${h.hp <= 0 ? ". " + wer + " bricht zusammen!" : "."}`);
     if (h.hp <= 0) h.stats.umgefallen += 1;
   }
+  // EP für alle Helden; gibt Texte zu Stufenaufstiegen zurück
+  function erfahrung(S, ep) {
+    const t = [];
+    if (ep <= 0) return t;
+    t.push(`+${ep} Erfahrung für jeden.`);
+    for (const p of S.teilnehmer) {
+      const h = S.helden[p], vorher = h.stufe;
+      h.ep += ep;
+      h.stufe = stufeAus(h.ep);
+      for (let st = vorher + 1; st <= h.stufe; st++) { h.max += 3; h.hp = Math.min(h.max, h.hp + 3); h.punkte += 1; }
+      if (h.stufe > vorher) t.push(`${heldName(S, p)} erreicht Stufe ${h.stufe}: +${3 * (h.stufe - vorher)} Höchstleben, ${h.stufe - vorher === 1 ? "1 Fähigkeitspunkt" : (h.stufe - vorher) + " Fähigkeitspunkte"}.`);
+    }
+    return t;
+  }
+
   function kampfGewonnen(S) {
     const boss = S.gegner.some(g => g.art === "koenig");
     const t = [];
+    const ep = S.gegner.reduce((a, g) => a + (GEGNER[g.art].ep || 0), 0);
     S.kampf = null;
     for (const p of S.teilnehmer) {
       const h = S.helden[p]; h.gift = 0; h.giftR = 0; h.segen = 0; h.lauer = false;
@@ -552,7 +600,7 @@
       return;
     }
     const s = stufe(S.raumNr);
-    S.seite = { bild: "sieg", titel: `Raum ${S.raumNr}: geschafft`, text: ["Alle Gegner sind besiegt. " + goldFuerJeden(S, 9 + 9 * s, 13 + 11 * s)].concat(t, beute(S, 0.4, 0.15)) };
+    S.seite = { bild: "sieg", titel: `Raum ${S.raumNr}: geschafft`, text: ["Alle Gegner sind besiegt. " + goldFuerJeden(S, 9 + 9 * s, 13 + 11 * s)].concat(erfahrung(S, ep), t, beute(S, 0.4, 0.15)) };
     S.phase = "erkunden";
     entscheiden(S, "weiter", "", [{ text: "Weiterziehen" }]);
   }
@@ -567,6 +615,7 @@
     if (e.art === "tuer") { raumBetreten(S, e.optionen[wahl].typ); return; }
     if (e.art === "weiter") { weiterziehen(S); return; }
     const t = e.art === "truhe" ? truheOeffnen(S, wahl) : ereignisAusfuehren(S, e.id, wahl);
+    t.push(...erfahrung(S, 8));            // auch Truhen und Ereignisse bringen etwas Erfahrung
     S.seite = Object.assign({}, S.seite, { text: S.seite.text.concat([`Ihr entscheidet: ${e.optionen[wahl].text}.`], t) });
     entscheiden(S, "weiter", "", [{ text: "Weiterziehen" }]);
   }
@@ -616,6 +665,7 @@
           const r = ROLLEN[S.rollen[p]];
           S.helden[p] = { rolle: S.rollen[p], hp: r.hp, max: r.hp, traenke: 1, waffe: 0, ruestung: 0, leben: 0, gold: 10, gelernt: [], cd: {},
             schild: false, versteckt: false, lauer: false, segen: 0, gift: 0, giftR: 0, immun: false, fels: false, beschuetzt: null,
+            ep: 0, stufe: 1, punkte: 0, rang: {},
             stats: { schaden: 0, geheilt: 0, umgefallen: 0 } };
         }
         Object.assign(S, { raumNr: 0, gegner: [], kampf: null, lager: null, lagerBesucht: [], log: [], benutzt: [], ergebnis: null, gegnerNr: 0, spielNr: (S.spielNr || 0) + 1 });
@@ -663,6 +713,15 @@
         rundeAuswerten(S);
         break;
       }
+      case "verbessern": {               // Fähigkeitspunkt ausgeben (nicht im Kampf)
+        const h = S.helden[pid];
+        if (!h || S.phase === "kampf" || S.phase === "lobby" || S.phase === "ende" || h.punkte < 1 || m.nr !== S.spielNr) return S0;
+        const a = aktionenVon(h).find(x => x.id === m.id);
+        if (!a || a.id === "trank" || rangVon(h, a.id) >= MAX_RANG || !rangText(h, a)) return S0;
+        h.rang[a.id] = rangVon(h, a.id) + 1;
+        h.punkte -= 1;
+        break;
+      }
       case "neustart": {
         if (!istHost) return S0;
         Object.assign(S, { phase: "lobby", teilnehmer: [], helden: {}, gegner: [], kampf: null, lager: null, entscheidung: null, seite: null, log: [], ergebnis: null, spielNr: (S.spielNr || 0) + 1 });
@@ -674,5 +733,6 @@
     return S;
   }
 
-  window.VL = { RAEUME, MAX_HELDEN, LAGER_NACH, ROLLEN, ROLLEN_REIHE, AKTIONEN, LERNBAR, TRANK, GEGNER, neu, aktion, aktionenVon, angebot, standardWahl, lebend, gegnerLebend, goldSumme };
+  window.VL = { RAEUME, MAX_HELDEN, LAGER_NACH, ROLLEN, ROLLEN_REIHE, AKTIONEN, LERNBAR, TRANK, GEGNER, EP_STUFEN, MAX_STUFE, MAX_RANG,
+    neu, aktion, aktionenVon, angebot, standardWahl, lebend, gegnerLebend, goldSumme, rangVon, rangText, cdVon };
 })();

@@ -142,9 +142,14 @@ button:focus-visible,input:focus-visible,a:focus-visible{outline:3px solid var(-
 .ware .preis{grid-row:span 2;grid-column:2;font-family:var(--display);font-weight:600;color:var(--karte-gelb);white-space:nowrap}
 .ware.faehigkeit{border-color:#5B4A9E}
 .ware:disabled{opacity:.4;cursor:default}
+.ware.faehigkeit:disabled{opacity:.85}
+.ware.faehigkeit:disabled .preis{opacity:1}
 .ware.aus .preis{color:var(--gut)}
 .ausruestung{display:flex;flex-wrap:wrap;gap:6px}
 .kaeufe{font-size:.85rem;color:var(--leise);margin:0}
+.preis.rang{display:flex;gap:4px}
+.preis.rang i{width:12px;height:12px;border-radius:3px;background:#15132A;border:1px solid var(--linie);transform:rotate(45deg)}
+.preis.rang i.an{background:var(--karte-gelb);border-color:var(--karte-gelb)}
 
 /* Ende */
 .werte{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}

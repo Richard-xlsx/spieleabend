@@ -23,6 +23,7 @@
   const conns = new Map();
   let retryTimer = null, token = 0, versuch = 0, letzteSig = "";
   let auswahl = null;            // gewählte Aktion, die noch ein Ziel braucht
+  let zeigeFaehigkeiten = false; // eigener Bildschirm zum Verbessern (nur außerhalb des Kampfes)
 
   const hostId = ep => PREFIX + code + "-" + ep;
   const link = () => location.origin + location.pathname + "?raum=" + code;
@@ -161,6 +162,13 @@
   const online = p => !!(S && S.online && S.online.includes(p));
   const ich = () => S && S.helden && S.helden[PID];
   const mitspieler = () => S && S.teilnehmer.includes(PID);
+  const ROEM = ["", "", " II", " III"];
+  const mitRang = (h, a) => a.name + (a.id === "trank" ? "" : ROEM[V.rangVon(h, a.id)] || "");
+  function faehigkeitenKnopf() {
+    if (!mitspieler()) return "";
+    const h = ich();
+    return `<button class="knopf ${h.punkte ? "" : "zweit"}" id="faehigkeiten">${h.punkte ? `Fähigkeiten verbessern (${h.punkte} ${h.punkte === 1 ? "Punkt" : "Punkte"})` : `Stufe ${h.stufe} · Fähigkeiten ansehen`}</button>`;
+  }
   function balken(hp, max) {
     const q = max ? hp / max : 0;
     return `<div class="balken ${q <= 0.3 ? "knapp" : q <= 0.6 ? "mittel" : ""}"><i style="width:${Math.max(0, Math.round(q * 100))}%"></i></div>`;
@@ -181,13 +189,14 @@
   function sig() {
     if (!rolle) return "start:" + (code ? "name" : "neu");
     if (rolle === "pruefen" || !S) return "warte";
-    return [S.phase, S.spielNr, S.aenderung, auswahl ? auswahl.id : ""].join(":");
+    return [S.phase, S.spielNr, S.aenderung, auswahl ? auswahl.id : "", zeigeFaehigkeiten ? "f" : ""].join(":");
   }
   let letzteRunde = "";
   function render() {
     // wechselt die Runde (oder das Spiel), ist eine halb gewählte Aktion hinfällig
     const r = S && S.kampf ? S.spielNr + ":" + S.kampf.runde : "";
     if (r !== letzteRunde) { letzteRunde = r; auswahl = null; }
+    if (S && S.phase !== "erkunden" && S.phase !== "lager") zeigeFaehigkeiten = false;
     const s = sig();
     if (s !== letzteSig) { letzteSig = s; baue(); }
     aktualisiere();
@@ -210,6 +219,7 @@
     let h = `<div class="status" id="status" hidden><span></span><button id="uebernehmen" hidden>Spielleitung übernehmen</button></div>`;
     if (!rolle) h += code ? bildschirmName() : bildschirmStart();
     else if (rolle === "pruefen" || !S) h += `<div class="mitte"><p class="leise">Verbinde …</p></div>`;
+    else if (zeigeFaehigkeiten && mitspieler() && (S.phase === "erkunden" || S.phase === "lager")) h += bildschirmFaehigkeiten();
     else h += ({ lobby: bildschirmLobby, erkunden: bildschirmErkunden, lager: bildschirmLager, kampf: bildschirmKampf, ende: bildschirmEnde }[S.phase] || (() => ""))();
     const y = window.scrollY;
     app.innerHTML = h;
@@ -271,7 +281,7 @@
     const marken = imKampf ? [x.hp <= 0 ? `<span class="marke">bewusstlos</span>` : "", x.giftR > 0 && x.hp > 0 ? `<span class="marke gift">vergiftet</span>` : "",
       x.lauer ? `<span class="marke schatten">lauert</span>` : "", x.segen ? `<span class="marke">gesegnet</span>` : "",
       k && k.wahl[p] ? `<span class="marke ok">bereit</span>` : ""].join("") : "";
-    const unter = `${V.ROLLEN[x.rolle].name}${online(p) ? "" : " · nicht verbunden"}${imKampf ? "" : ` · ${x.gold} Gold · ${x.traenke} ${x.traenke === 1 ? "Trank" : "Tränke"}`}`;
+    const unter = `${V.ROLLEN[x.rolle].name} · Stufe ${x.stufe}${online(p) ? "" : " · nicht verbunden"}${imKampf ? "" : ` · ${x.gold} Gold · ${x.traenke} ${x.traenke === 1 ? "Trank" : "Tränke"}`}`;
     return `<button class="heldzeile ${x.hp <= 0 && !ziel ? "weg" : ""} ${ziel ? "ziel" : ""}" ${ziel ? `data-ziel="${p}"` : "disabled"}>
       ${VB.held(x.rolle)}<span class="mitte-sp"><span class="kopfzeile"><b>${esc(sp(p).name)}</b><small>${unter}</small></span>${balken(x.hp, x.max)}${marken ? `<span class="marken">${marken}</span>` : ""}</span>
       <span class="hp">${x.hp}<small>/${x.max}</small></span></button>`;
@@ -295,7 +305,7 @@
       <p class="leise klein mitte">${offen.length ? "Warte auf: " + offen.map(p => esc(sp(p).name)).join(", ") : ""}${e.optionen.length > 1 ? " · Bei Gleichstand entscheidet das Los." : ""}</p>
       ${rolle === "host" && offen.length && Object.keys(e.stimmen).length ? `<button class="link" id="beenden">Nicht warten, jetzt entscheiden</button>` : ""}`;
     }
-    h += `<h3>Gruppe</h3>${heldenLeiste(false, false)}`;
+    h += faehigkeitenKnopf() + `<h3>Gruppe</h3>${heldenLeiste(false, false)}`;
     return h;
   }
 
@@ -321,7 +331,7 @@
     if (!mitspieler()) h += `<p class="leise mitte">Du schaust zu.</p>`;
     else if (!lebt) h += `<div class="hinweis">Du bist bewusstlos. Nur eine heilende Fähigkeit kann dich zurückholen.</div>`;
     else if (meineWahl && !auswahl) {
-      const a = V.aktionenVon(mh).find(x => x.id === meineWahl.a) || { name: meineWahl.a };
+      const a0 = V.aktionenVon(mh).find(x => x.id === meineWahl.a), a = a0 ? { name: mitRang(mh, a0) } : { name: meineWahl.a };
       const zn = meineWahl.ziel ? (S.gegner.find(g => g.id === meineWahl.ziel) || {}).name || sp(meineWahl.ziel).name : "";
       h += `<div class="karte"><p class="etikett">Dein Zug</p><h2>${esc(a.name)}${zn ? " → " + esc(zn) : ""}</h2><button class="knopf zweit" id="aendern">Ändern</button></div>`;
     } else {
@@ -329,7 +339,7 @@
       h += `<p class="etikett">Dein Zug</p><div class="aktionen">${V.aktionenVon(mh).map(a => {
         const cd = a.cd ? (mh.cd[a.id] || 0) : 0;
         const ohneZiel = a.ziel === "anderer" && !S.teilnehmer.some(p => p !== PID && S.helden[p].hp > 0);
-        return `<button class="aktion ${auswahl && auswahl.id === a.id ? "an" : ""}" data-aktion="${a.id}" ${cd || ohneZiel ? "disabled" : ""}><b>${esc(a.name)}${a.id === "trank" ? ` (${mh.traenke})` : ""}</b><small>${cd ? `Wieder bereit in ${cd} ${cd === 1 ? "Runde" : "Runden"}` : esc(a.text)}</small></button>`;
+        return `<button class="aktion ${auswahl && auswahl.id === a.id ? "an" : ""}" data-aktion="${a.id}" ${cd || ohneZiel ? "disabled" : ""}><b>${esc(mitRang(mh, a))}${a.id === "trank" ? ` (${mh.traenke})` : ""}</b><small>${cd ? `Wieder bereit in ${cd} ${cd === 1 ? "Runde" : "Runden"}` : esc(a.text) + rangZusatz(mh, a)}</small></button>`;
       }).join("")}</div>
       ${auswahl ? `<button class="link" id="abbrechen">Abbrechen</button>` : ""}`;
     }
@@ -337,6 +347,32 @@
     if (fehlen.length) h += `<p class="leise klein mitte">Warte auf: ${fehlen.map(p => esc(sp(p).name)).join(", ")}</p>`;
     if (rolle === "host" && fehlen.some(p => !online(p))) h += `<button class="link" id="auto">Für nicht Verbundene automatisch ziehen</button>`;
     return h;
+  }
+
+  // was die bisherigen Ränge schon bringen, als kurzer Zusatz zum Grundtext
+  function rangZusatz(h, a) {
+    const r = V.rangVon(h, a.id); if (a.id === "trank" || r <= 1) return "";
+    const t = V.rangText(h, Object.assign({}, a)) || "";
+    const m = t.match(/^\+(\d+) (.*)$/);
+    if (m) return ` · Rang${ROEM[r]}: +${(r - 1) * +m[1]} ${m[2]}`;
+    return a.cd ? ` · alle ${V.cdVon(h, a) + 1} Runden` : "";
+  }
+  function bildschirmFaehigkeiten() {
+    const h = ich(), st = h.stufe, naechste = V.EP_STUFEN[st];
+    const von = V.EP_STUFEN[st - 1], q = naechste ? (h.ep - von) / (naechste - von) : 1;
+    const liste = V.aktionenVon(h).filter(a => a.id !== "trank");
+    return `<header class="titel"><p class="etikett">${V.ROLLEN[h.rolle].name} · ${esc(name)}</p><h1>Stufe ${st}</h1>
+        <div class="balken"><i style="width:${Math.round(q * 100)}%"></i></div>
+        <p class="leise klein">${naechste ? `${h.ep} von ${naechste} Erfahrung bis Stufe ${st + 1}` : `Höchste Stufe erreicht (${h.ep} Erfahrung)`} · Jede Stufe: +3 Höchstleben und 1 Fähigkeitspunkt.</p></header>
+      <div class="hinweis">${h.punkte ? `Du hast ${h.punkte} ${h.punkte === 1 ? "Fähigkeitspunkt" : "Fähigkeitspunkte"}. Jeder hebt eine Fähigkeit um einen Rang.` : "Keine Punkte frei. Neue gibt es mit der nächsten Stufe."}</div>
+      <div class="waren">${liste.map(a => {
+        const r = V.rangVon(h, a.id), next = V.rangText(h, a), voll = r >= V.MAX_RANG || !next;
+        const pips = [1, 2, 3].map(i => `<i class="${i <= r ? "an" : ""}"></i>`).join("");
+        return `<button class="ware faehigkeit ${voll ? "aus" : ""}" data-verbessern="${a.id}" ${voll || !h.punkte ? "disabled" : ""}>
+          <b>${esc(mitRang(h, a))}</b><span class="preis rang">${pips}</span>
+          <small>${esc(a.text)}${rangZusatz(h, a)}${voll ? (r >= V.MAX_RANG ? " · höchster Rang" : "") : ` · Nächster Rang: ${esc(next)}`}</small></button>`;
+      }).join("")}</div>
+      <div class="unten"><button class="knopf" id="zurueck-f">Zurück</button></div>`;
   }
 
   function bildschirmLager() {
@@ -353,6 +389,7 @@
         <p class="leise klein mitte">${offen.length ? "Noch beim Händler: " + offen.map(p => esc(sp(p).name)).join(", ") : ""}</p>
         ${rolle === "host" && offen.length && offen.length < S.teilnehmer.length ? `<button class="link" id="beenden">Nicht warten, weiterziehen</button>` : ""}</div>`;
     } else h += `<p class="leise mitte">Die Helden kaufen ein. Noch beim Händler: ${offen.map(p => esc(sp(p).name)).join(", ")}</p>`;
+    h += faehigkeitenKnopf();
     if (L.kaeufe.length) h += `<p class="kaeufe">${L.kaeufe.slice(-6).map(k => `${esc(sp(k.pid).name)}: ${esc(k.name)}`).join(" · ")}</p>`;
     h += `<h3>Gruppe</h3>${heldenLeiste(false, null)}`;
     return h;
@@ -363,7 +400,7 @@
     return `<p class="etikett mitte">${sieg ? "Sieg" : "Niederlage"} · Raum ${S.raumNr} von ${V.RAEUME}</p>${buchseite(S.seite)}
       <div class="karte"><h2>Die Helden</h2>
         <table class="werte"><tr><th>Held</th><th>Schaden</th><th>Geheilt</th><th>K.&nbsp;o.</th><th>Gold</th></tr>
-        ${S.teilnehmer.map(p => { const x = S.helden[p]; return `<tr><td>${esc(sp(p).name)}<br><span class="leise klein">${V.ROLLEN[x.rolle].name}</span></td><td>${x.stats.schaden}</td><td>${x.stats.geheilt}</td><td>${x.stats.umgefallen}</td><td>${x.gold}</td></tr>`; }).join("")}</table></div>
+        ${S.teilnehmer.map(p => { const x = S.helden[p]; return `<tr><td>${esc(sp(p).name)}<br><span class="leise klein">${V.ROLLEN[x.rolle].name} · Stufe ${x.stufe}</span></td><td>${x.stats.schaden}</td><td>${x.stats.geheilt}</td><td>${x.stats.umgefallen}</td><td>${x.gold}</td></tr>`; }).join("")}</table></div>
       ${rolle === "host" ? `<div class="unten"><button class="knopf" id="nochmal">Nochmal hinab</button><button class="knopf zweit" id="lobby">Rollen neu wählen</button></div>` : `<p class="leise mitte">${esc(sp(S.host).name)} kann eine neue Runde starten.</p>`}
       <button class="link" id="verlassen">Raum verlassen</button>`;
   }
@@ -390,6 +427,9 @@
     document.querySelectorAll("[data-stimme]").forEach(b => b.onclick = () => tun({ t: "stimme", i: +b.dataset.stimme, nr: S.spielNr }));
     if ($("beenden")) $("beenden").onclick = () => tun({ t: "beenden" });
     document.querySelectorAll("[data-kauf]").forEach(b => b.onclick = () => tun({ t: "kaufen", id: b.dataset.kauf, nr: S.spielNr }));
+    if ($("faehigkeiten")) $("faehigkeiten").onclick = () => { zeigeFaehigkeiten = true; letzteSig = ""; window.scrollTo(0, 0); render(); };
+    if ($("zurueck-f")) $("zurueck-f").onclick = () => { zeigeFaehigkeiten = false; letzteSig = ""; window.scrollTo(0, 0); render(); };
+    document.querySelectorAll("[data-verbessern]").forEach(b => b.onclick = () => tun({ t: "verbessern", id: b.dataset.verbessern, nr: S.spielNr }));
     if ($("fertig")) $("fertig").onclick = () => tun({ t: "fertig", wert: !S.lager.fertig[PID], nr: S.spielNr });
     if ($("auto")) $("auto").onclick = () => tun({ t: "auto" });
     // Kampf
