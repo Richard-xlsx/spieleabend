@@ -87,9 +87,10 @@ button:focus-visible,input:focus-visible,a:focus-visible{outline:3px solid var(-
 .hand{position:relative;height:150px;margin:0 auto}
 .handkarte{appearance:none;border:0;background:none;padding:0;position:absolute;bottom:4px;width:76px;transform-origin:50% 130%;cursor:pointer;transition:bottom .15s}
 .handkarte svg{width:100%;height:auto;display:block;filter:drop-shadow(-2px 3px 0 rgba(0,0,0,.28))}
-.handkarte.spielbar{bottom:24px}
-.handkarte.spielbar svg{filter:drop-shadow(0 0 3px var(--gelb)) drop-shadow(0 0 3px var(--gelb))}
-.handkarte.passt-nicht svg{filter:brightness(.72) drop-shadow(-2px 3px 0 rgba(0,0,0,.28))}
+.handkarte.gewaehlt{bottom:28px;z-index:2}
+.handkarte.gewaehlt svg{filter:drop-shadow(0 6px 0 rgba(0,0,0,.35))}
+.gegner .erwischt{appearance:none;margin-top:4px;border:1px solid var(--linie);background:transparent;color:var(--leise);border-radius:999px;padding:3px 8px;font:600 .72rem var(--fliess);cursor:pointer;align-self:flex-start}
+.gegner .erwischt:active{background:var(--gelb);color:var(--bg)}
 .unten{position:sticky;bottom:0;padding-block:10px calc(4px + env(safe-area-inset-bottom));background:linear-gradient(transparent,var(--bg) 30%);display:flex;flex-direction:column;gap:8px;z-index:3}
 .unten.knoepfe{flex-direction:row}
 .knopf.mau{background:var(--akzent)}

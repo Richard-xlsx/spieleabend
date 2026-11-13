@@ -22,7 +22,7 @@
   let code = (params.get("raum") || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
   let rolle = null, S = null, H = M.leerH(), hand = [], peer = null, hostConn = null, verbunden = false, offlineSeit = null, fehlerText = "";
   const conns = new Map();
-  let retryTimer = null, token = 0, versuch = 0, wunschFuer = null, hinweis = "", hinweisTimer = null;
+  let retryTimer = null, token = 0, versuch = 0, wunschFuer = null, hinweis = "", hinweisTimer = null, auswahl = null;
 
   const hostId = ep => PREFIX + code + "-" + ep;
   const link = () => location.origin + location.pathname + "?raum=" + code;
@@ -163,11 +163,17 @@
     hostStarten({ S: M.neu(code, PID, name, { runden }), H: M.leerH() });
   }
   function verlassen() { ls.del("mm:host:" + code); ls.del("mm:kopie:" + code); location.href = location.pathname + (params.get("test") ? "?test=" + params.get("test") : ""); }
+  // Erster Tipp wählt eine Karte aus (hebt sie an, ohne zu verraten, ob sie passt), zweiter Tipp oder „Legen“ legt sie.
   function karteTippen(k) {
-    if (!S || S.phase !== "spiel" || S.dran !== PID) return;
-    if (!M.erlaubt(S, k)) { zeigeHinweis(S.zieh > 0 ? "Du musst eine 7 legen oder " + S.zieh + " ziehen." : S.wunsch ? "Gewünscht ist " + FARBNAME[S.wunsch] + "." : "Die Karte passt nicht."); return; }
-    if (M.teile(k).w === "B") { wunschFuer = k; render(); return; }
-    tun({ t: "legen", karte: k });
+    if (!S || S.phase !== "spiel") return;
+    if (auswahl !== k || S.dran !== PID) { auswahl = auswahl === k ? null : k; render(); return; }
+    legen();
+  }
+  function legen() {
+    const k = auswahl; if (!k || S.dran !== PID) return;
+    auswahl = null;
+    if (M.teile(k).w === "B" && M.erlaubt(S, k)) { wunschFuer = k; render(); return; }
+    tun({ t: "legen", karte: k }); render();
   }
 
   // ---------- Oberfläche ----------
@@ -221,10 +227,13 @@
       <div class="karte-box"><h2>Regeln</h2>
         <ul class="regeln"><li><b>7:</b> Der Nächste zieht 2. Wer selbst eine 7 hat, gibt weiter.</li><li><b>8:</b> Der Nächste setzt aus.</li>
         <li><b>Bube:</b> passt auf alles außer auf einen Buben. Du wünschst dir eine Farbe.</li><li><b>Ass:</b> ${S.regeln.ass ? "Du bist gleich noch einmal dran." : "keine Sonderregel"}</li>
-        <li><b>Mau:</b> Vor der letzten Karte auf „Mau“ tippen, sonst können dich die anderen erwischen: 2 Strafkarten.</li>
+        <li><b>Mau:</b> Wer nur noch eine Karte hat, muss vorher „Mau“ getippt haben. Merkt das jemand und tippt bei dir „Erwischt?“, ziehst du 2. Zu frühes Mau (mehr als 2 Karten) kostet 1 Strafkarte, falscher Alarm beim Erwischen auch.</li>
+        <li><b>Falsche Karte:</b> ${S.regeln.strafe === false ? "wird einfach nicht angenommen." : "Wer eine unpassende Karte legt, nimmt sie zurück und zieht 1 Strafkarte."}</li>
+        <li><b>Legen:</b> Karte antippen, dann „Legen“ (oder die Karte noch einmal antippen).</li>
         <li><b>Punkte:</b> Wer fertig ist, bekommt 0. Alle anderen bekommen Minuspunkte für ihre Karten (Ass 11, Bilder und 10 je 10, sonst der Wert). Nach ${S.runden} Runden gewinnt, wer die wenigsten hat.</li></ul>
         ${host ? `<div class="wahl" id="wRunden2">${[3, 5, 8].map(r => `<button data-runden="${r}" class="${r === S.runden ? "an" : ""}">${r} Runden</button>`).join("")}</div>
-          <label class="schalter"><input type="checkbox" id="assregel" ${S.regeln.ass ? "checked" : ""}> Ass: nochmal dran</label>` : ""}</div>
+          <label class="schalter"><input type="checkbox" id="assregel" ${S.regeln.ass ? "checked" : ""}> Ass: nochmal dran</label>
+          <label class="schalter"><input type="checkbox" id="strafregel" ${S.regeln.strafe === false ? "" : "checked"}> Strafkarte für falsche Karte</label>` : ""}</div>
       ${host ? `<div class="unten"><button class="knopf" id="start" ${da.length < 2 ? "disabled" : ""}>${da.length < 2 ? "Warte auf Mitspieler …" : "Spiel starten"}</button></div>`
         : `<p class="leise mitte">Warte, bis ${esc(sp(S.host).name)} das Spiel startet.</p>`}
       <button class="link" id="verlassen">Raum verlassen</button>`;
@@ -236,11 +245,10 @@
     let schritt = n > 1 ? Math.min(42, (nutzbar - kw) / (n - 1)) : 0, scroll = false;
     if (n > 1 && schritt < 22) { schritt = 22; scroll = true; }
     const gesamt = kw + schritt * (n - 1), start = scroll ? 4 : (breite - gesamt) / 2, dreh = scroll ? 0 : Math.min(2, 12 / Math.max(n, 1));
-    return `<div class="handscroll${scroll ? " scroll" : ""}"><div class="hand" style="width:${scroll ? gesamt + 8 : breite}px">${karten.map((k, j) => {
-      const ok = meinZug && M.erlaubt(S, k);
-      return `<button class="handkarte${ok ? " spielbar" : ""}${meinZug && !ok ? " passt-nicht" : ""}" data-karte="${k}" aria-label="${esc(kartenText(k))}${ok ? ", spielbar" : ""}"
-        style="left:${(start + j * schritt).toFixed(1)}px;transform:rotate(${((j - (n - 1) / 2) * dreh).toFixed(1)}deg)">${kartenSvg(k)}</button>`;
-    }).join("")}</div></div>`;
+    if (auswahl && !karten.includes(auswahl)) auswahl = null;
+    return `<div class="handscroll${scroll ? " scroll" : ""}"><div class="hand" style="width:${scroll ? gesamt + 8 : breite}px">${karten.map((k, j) =>
+      `<button class="handkarte${k === auswahl ? " gewaehlt" : ""}" data-karte="${k}" aria-pressed="${k === auswahl}" aria-label="${esc(kartenText(k))}"
+        style="left:${(start + j * schritt).toFixed(1)}px;transform:rotate(${((j - (n - 1) / 2) * dreh).toFixed(1)}deg)">${kartenSvg(k)}</button>`).join("")}</div></div>`;
   }
   function bildschirmSpiel() {
     if (!S.teilnehmer.includes(PID)) return `<header class="titel"><h2>Hier läuft gerade eine Runde</h2><p class="leise">${esc(S.meldung)}</p><p class="leise">Ab dem nächsten Spiel bist du dabei.</p></header>`;
@@ -248,9 +256,9 @@
     const andere = Array.from({ length: n - 1 }, (_, k) => S.teilnehmer[(i + 1 + k) % n]);
     const gegner = andere.map(p => `<div class="gegner ${p === S.dran ? "dran" : ""} ${online(p) ? "" : "weg"}"><b>${esc(sp(p).name)}</b>
         <span class="anz"><i class="mini"></i>${S.anzahl[p] || 0}${S.mau[p] ? ` <em class="maubadge">Mau</em>` : ""}</span>
-        <small>${p === S.dran ? "ist dran" : online(p) ? "" : "nicht verbunden"}</small></div>`).join("");
-    const erwischen = Object.keys(S.offenMau || {}).filter(p => p !== PID).map(p => `<button class="knopf erwischt" data-erwischt="${p}">Erwischt! ${esc(sp(p).name)} hat nicht Mau gesagt</button>`).join("");
-    const meinMau = (S.offenMau || {})[PID] ? `<p class="warnung">Du hast nur noch eine Karte: schnell „Mau“ tippen!</p>` : "";
+        <small>${p === S.dran ? "ist dran" : online(p) ? "" : "nicht verbunden"}</small>
+        <button class="erwischt" data-erwischt="${p}" aria-label="Erwischt: ${esc(sp(p).name)} hat nicht Mau gesagt">Erwischt?</button></div>`).join("");
+    const erwischen = "", meinMau = "";
     const dranOffline = rolle === "host" && S.dran !== PID && !online(S.dran);
     return `<div class="gegnerreihe">${gegner}</div>
       <p class="meldung">${esc(S.meldung)}</p>
@@ -261,12 +269,12 @@
           ${S.zieh > 0 ? `<div class="zieh">+${S.zieh}</div>` : ""}</div>
       </div>
       ${erwischen}${meinMau}
-      <p class="zug ${meinZug ? "du" : ""}">${meinZug ? (S.zieh > 0 ? `Du bist dran: lege eine 7 oder ziehe ${S.zieh}.` : S.gezogen ? "Leg eine passende Karte oder tippe auf „Weiter“." : "Du bist dran.") : esc(sp(S.dran).name) + " ist dran."}</p>
+      <p class="zug ${meinZug ? "du" : ""}">${meinZug ? (S.zieh > 0 ? `Du bist dran. Auf dem Tisch liegt +${S.zieh}.` : S.gezogen ? "Du hast gezogen. Legen oder „Weiter“." : "Du bist dran.") : esc(sp(S.dran).name) + " ist dran."}</p>
       ${handHtml(meinZug)}
       <div class="unten knoepfe">
         <button class="knopf zweit" id="ziehen" ${meinZug && (!S.gezogen || S.zieh > 0) ? "" : "disabled"}>${S.zieh > 0 && meinZug ? S.zieh + " ziehen" : "Ziehen"}</button>
-        ${meinZug && S.gezogen && !S.zieh ? `<button class="knopf zweit" id="weiter">Weiter</button>` : ""}
-        <button class="knopf mau" id="mau" ${hand.length <= 2 && !S.mau[PID] ? "" : "disabled"}>${S.mau[PID] ? "Mau ✓" : "Mau!"}</button>
+        ${meinZug && auswahl ? `<button class="knopf" id="legen">Legen</button>` : meinZug && S.gezogen && !S.zieh ? `<button class="knopf zweit" id="weiter">Weiter</button>` : ""}
+        <button class="knopf mau" id="mau" ${S.mau[PID] ? "disabled" : ""}>${S.mau[PID] ? "Mau gesagt" : "Mau!"}</button>
       </div>
       ${dranOffline ? `<button class="link" id="auslassen">${esc(sp(S.dran).name)} ist nicht verbunden: auslassen</button>` : ""}`;
   }
@@ -313,6 +321,8 @@
     if ($("stapel")) $("stapel").onclick = () => tun({ t: "ziehen" });
     if ($("ziehen")) $("ziehen").onclick = () => tun({ t: "ziehen" });
     if ($("weiter")) $("weiter").onclick = () => tun({ t: "weiter" });
+    if ($("legen")) $("legen").onclick = legen;
+    if ($("strafregel")) $("strafregel").onchange = () => tun({ t: "einstellungen", strafe: $("strafregel").checked });
     if ($("mau")) $("mau").onclick = () => tun({ t: "mau" });
     if ($("auslassen")) $("auslassen").onclick = () => tun({ t: "auslassen", ziel: S.dran });
     document.querySelectorAll("[data-karte]").forEach(b => b.onclick = () => karteTippen(b.dataset.karte));

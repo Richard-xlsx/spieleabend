@@ -31,7 +31,11 @@ Mau-Mau (2 bis 8 Spieler)
   Ass mit Strahlenkranz, König/Dame/Bube gezeichnet, Rückseite schwarz. 32 Karten, ab 6 Spielern zwei Blätter. Jeder bekommt 5.
   Regeln: Farbe oder Wert passt · 7: der Nächste zieht 2, eine 7 gibt weiter (4, 6 …) · 8: der Nächste setzt aus ·
   Bube passt auf alles außer Bube, man wünscht eine Farbe · Ass: nochmal dran (abschaltbar) · nichts Passendes: 1 ziehen,
-  dann legen oder „Weiter“ · vor der letzten Karte „Mau“ tippen, sonst können andere „Erwischt“ tippen: 2 Strafkarten.
+  dann legen oder „Weiter“.
+  Ohne Hilfen (Wunsch vom 13.11.2026): passende Karten werden nicht hervorgehoben. Karte antippen, dann „Legen“.
+  Falsche Karte: Karte zurück, 1 Strafkarte, weiter am Zug (abschaltbar). „Mau“ ist immer tippbar: mit mehr als 2 Karten
+  1 Strafkarte. Wer mit einer Karte ohne Mau dasteht, kann über „Erwischt?“ beim Mitspieler erwischt werden: 2 Strafkarten;
+  falscher Alarm kostet den Rufer 1 Karte.
   Wertung: Wer fertig ist, 0; alle anderen Minuspunkte für ihre Karten (Ass 11, 10/B/D/K je 10, sonst Wert). 3, 5 oder 8 Runden,
   die wenigsten Minuspunkte gewinnen. Handkarten gehen nur an ihren Besitzer, die anderen sehen nur die Anzahl.
   Fällt der Spielleiter ganz aus und jemand übernimmt, wird die laufende Runde neu gegeben (die Karten kannte nur sein Handy);

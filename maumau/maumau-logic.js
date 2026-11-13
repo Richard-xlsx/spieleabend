@@ -8,12 +8,14 @@
   const SPECIAL = ["7", "8", "B", "A"];
   const kopie = x => JSON.parse(JSON.stringify(x));
   const teile = k => { const [f, w] = k.split(":"); return { f, w }; };
+  const FARBNAME = { kreuz: "Kreuz", pik: "Pik", herz: "Herz", karo: "Karo" }, WERTNAME = { B: "Bube", D: "Dame", K: "König", A: "Ass" };
+  const kartenName = k => { const { f, w } = teile(k); return FARBNAME[f] + " " + (WERTNAME[w] || w); };
 
   function neu(code, hostPid, hostName, einst) {
     einst = einst || {};
     return {
       v: 1, spiel: "maumau", code, epoch: 0, host: hostPid, phase: "lobby", spielNr: 0,
-      runden: [3, 5, 8].includes(einst.runden) ? einst.runden : 5, runde: 0, regeln: { ass: true },
+      runden: [3, 5, 8].includes(einst.runden) ? einst.runden : 5, runde: 0, regeln: { ass: true, strafe: true },
       spieler: { [hostPid]: { name: hostName, punkte: 0 } }, reihenfolge: [hostPid], teilnehmer: [],
       dran: null, oben: null, wunsch: null, zieh: 0, gezogen: false, anzahl: {}, stapelAnzahl: 0,
       mau: {}, offenMau: {}, meldung: "", ergebnis: null, aenderung: Date.now()
@@ -94,6 +96,7 @@
         if (!istHost || S.phase !== "lobby") return nein("nur in der Lobby");
         if ([3, 5, 8].includes(m.runden)) S.runden = m.runden;
         if (typeof m.ass === "boolean") S.regeln.ass = m.ass;
+        if (typeof m.strafe === "boolean") S.regeln.strafe = m.strafe;
         break;
       case "start": {
         if (!istHost) return nein("nur Spielleiter");
@@ -115,7 +118,12 @@
         if (!istDran) return nein("nicht dran");
         const hand = H.hand[pid] || [], i = hand.indexOf(m.karte);
         if (i < 0) return nein("Karte nicht auf der Hand");
-        if (!erlaubt(S, m.karte)) return nein("Karte passt nicht");
+        if (!erlaubt(S, m.karte)) {
+          if (S.regeln.strafe === false) return nein("Karte passt nicht");
+          ziehen(S, H, pid, 1, rnd);                // wie am Tisch: Karte zurück, eine Strafkarte, weiter am Zug
+          S.meldung = name(S, pid) + " wollte " + kartenName(m.karte) + " legen. Passt nicht: Strafkarte.";
+          break;
+        }
         const { w } = teile(m.karte);
         if (w === "B" && !FARBEN.includes(m.wunsch)) return nein("Farbe wünschen");
         hand.splice(i, 1); H.ablage.push(m.karte); S.oben = m.karte;
@@ -124,7 +132,7 @@
         if (!hand.length) { zaehlen(S, H); rundeEnde(S, H, pid); break; }
         if (hand.length === 1 && !S.mau[pid]) S.offenMau[pid] = true;
         if (hand.length > 2) delete S.mau[pid];
-        let txt = name(S, pid) + " legt " + (w === "B" ? "einen Buben und wünscht sich " + m.wunsch : m.karte.split(":").slice(0, 2).join(" "));
+        let txt = name(S, pid) + " legt " + (w === "B" ? kartenName(m.karte) + " und wünscht sich " + FARBNAME[m.wunsch] : kartenName(m.karte));
         if (w === "8") { weiterGeben(S, 2); txt += ". " + name(S, S.teilnehmer[(S.teilnehmer.indexOf(S.dran) - 1 + S.teilnehmer.length) % S.teilnehmer.length]) + " setzt aus"; }
         else if (w === "A" && S.regeln.ass) { S.gezogen = false; txt += " und ist nochmal dran"; }
         else weiterGeben(S, 1);
@@ -148,12 +156,23 @@
         S.meldung = name(S, pid) + " setzt aus."; weiterGeben(S, 1);
         break;
       case "mau":
-        if (S.phase !== "spiel" || !S.teilnehmer.includes(pid) || (H.hand[pid] || []).length > 2) return nein("zu viele Karten");
+        if (S.phase !== "spiel" || !S.teilnehmer.includes(pid)) return nein("geht gerade nicht");
+        if (S.mau[pid]) return nein("schon gesagt");
+        if ((H.hand[pid] || []).length > 2) {     // zu früh: Strafkarte
+          ziehen(S, H, pid, 1, rnd);
+          S.meldung = name(S, pid) + " sagt Mau, hat aber noch zu viele Karten: Strafkarte.";
+          break;
+        }
         S.mau[pid] = true; delete S.offenMau[pid];
         S.meldung = name(S, pid) + " sagt Mau!";
         break;
       case "erwischt": {
-        if (S.phase !== "spiel" || !S.offenMau[m.ziel] || m.ziel === pid || !S.teilnehmer.includes(pid)) return nein("nichts zu erwischen");
+        if (S.phase !== "spiel" || m.ziel === pid || !S.teilnehmer.includes(pid) || !S.teilnehmer.includes(m.ziel)) return nein("geht nicht");
+        if (!S.offenMau[m.ziel]) {                 // falscher Alarm: wer ruft, zieht selbst
+          ziehen(S, H, pid, 1, rnd);
+          S.meldung = name(S, pid) + " ruft „Erwischt!“ bei " + name(S, m.ziel) + ". Falscher Alarm: Strafkarte für " + name(S, pid) + ".";
+          break;
+        }
         delete S.offenMau[m.ziel];
         const n = ziehen(S, H, m.ziel, 2, rnd);
         S.meldung = name(S, pid) + " hat " + name(S, m.ziel) + " erwischt: " + n + " Strafkarten.";
