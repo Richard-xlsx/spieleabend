@@ -32,7 +32,10 @@
     // Helden
     kaempfer: `<path d="M60 20h80v40q0 36-40 52-40-16-40-52z" ${F("#D9583B")}/><path d="M100 26v80M66 56h68" ${L} stroke="#F3E6CC" stroke-width="5"/>`,
     dieb: `<path d="M48 54q52-34 104 0-52 30-104 0z" ${F("#8E7CF0")}/><circle cx="80" cy="54" r="7" fill="#F3E6CC" stroke="${T}" stroke-width="3"/><circle cx="120" cy="54" r="7" fill="#F3E6CC" stroke="${T}" stroke-width="3"/><path d="M90 92l40-40M124 52l10-4-4 10" ${L} stroke-width="4"/>`,
-    heilerin: `<path d="M100 112V38" ${L} stroke-width="5"/><path d="M100 40q-30-6-30-28 26-2 30 22 4-24 30-22 0 22-30 28z" ${F("#4FB98A")}/><circle cx="100" cy="40" r="8" ${F("#F5CF4A")}/>`
+    heilerin: `<path d="M100 112V38" ${L} stroke-width="5"/><path d="M100 40q-30-6-30-28 26-2 30 22 4-24 30-22 0 22-30 28z" ${F("#4FB98A")}/><circle cx="100" cy="40" r="8" ${F("#F5CF4A")}/>`,
+    magierin: `<path d="M64 108l36-92 36 92z" ${F("#3E5BB8")}/><path d="M76 78h48" ${L} stroke="#F5CF4A" stroke-width="4"/><path d="M98 44l4 8 8 1-6 6 2 8-8-4-8 4 2-8-6-6 8-1z" fill="#F5CF4A" stroke="${T}" stroke-width="2"/>`,
+    waldlaeufer: `<path d="M74 16q44 44 0 92" ${L} stroke-width="5"/><path d="M74 16v92" ${L} stroke-width="1.5"/><path d="M66 62h70" ${L} stroke-width="3"/><path d="M136 62l-12-8M136 62l-12 8" ${L}/><path d="M66 62l-8-6M66 62l-8 6" ${L} stroke="#3E7A55"/>`,
+    paladin: `<path d="M82 108l8-60h20l8 60z" ${F("#8A6A44")}/><rect x="64" y="20" width="72" height="34" rx="6" ${F("#C9CCD6")}/><path d="M100 26v22M90 37h20" ${L} stroke="#C99A2E" stroke-width="5"/>`
   };
 
   window.VB = {

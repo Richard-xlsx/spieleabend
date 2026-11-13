@@ -169,7 +169,7 @@
     let h = "";
     const hier = S.entscheidung && S.entscheidung.art === "tuer" ? S.raumNr + 1 : S.raumNr;
     for (let i = 1; i <= V.RAEUME; i++) h += `<i class="${i < hier ? "da" : i === hier ? "hier" : ""} ${i === V.RAEUME ? "boss" : ""}"></i>`;
-    return `<div class="kopf"><div class="fortschritt" aria-label="Raum ${S.raumNr} von ${V.RAEUME}">${h}</div><span class="gold">${S.gold} Gold</span></div>`;
+    return `<div class="kopf"><div class="fortschritt" aria-label="Raum ${S.raumNr} von ${V.RAEUME}">${h}</div><span class="gold">${mitspieler() ? ich().gold + " Gold" : V.goldSumme(S) + " Gold gesamt"}</span></div>`;
   }
   function buchseite(seite) {
     if (!seite) return "";
@@ -210,7 +210,7 @@
     let h = `<div class="status" id="status" hidden><span></span><button id="uebernehmen" hidden>Spielleitung übernehmen</button></div>`;
     if (!rolle) h += code ? bildschirmName() : bildschirmStart();
     else if (rolle === "pruefen" || !S) h += `<div class="mitte"><p class="leise">Verbinde …</p></div>`;
-    else h += ({ lobby: bildschirmLobby, erkunden: bildschirmErkunden, kampf: bildschirmKampf, ende: bildschirmEnde }[S.phase] || (() => ""))();
+    else h += ({ lobby: bildschirmLobby, erkunden: bildschirmErkunden, lager: bildschirmLager, kampf: bildschirmKampf, ende: bildschirmEnde }[S.phase] || (() => ""))();
     const y = window.scrollY;
     app.innerHTML = h;
     window.scrollTo(0, y);
@@ -218,7 +218,7 @@
   }
 
   function bildschirmStart() {
-    return `<header class="titel"><h1>Verlies zu dritt</h1><p class="leise">Kämpfer, Dieb und Heilerin steigen gemeinsam hinab. Acht Räume, ein Knochenkönig. Jeder spielt auf seinem Handy, gewonnen wird zusammen.</p></header>
+    return `<header class="titel"><h1>Verlies zu dritt</h1><p class="leise">Drei Helden steigen gemeinsam hinab: acht Räume, ein Händler mit Waffen und neuen Fähigkeiten, und ganz unten der Knochenkönig. Jeder spielt auf seinem Handy, gewonnen wird zusammen.</p></header>
       <label class="feld">Dein Name<input id="name" maxlength="20" value="${esc(name)}" autocomplete="nickname" placeholder="z. B. Richard"></label>
       <div class="karte"><h2>Neues Spiel</h2><p class="leise klein">Für 3 Leute gedacht, geht auch zu zweit (dann schwerer). Etwa 25 Minuten. Runde für Runde, ohne Zeitdruck.</p>
         <button class="knopf" id="neu">Raum erstellen</button></div>
@@ -234,14 +234,14 @@
   }
 
   function rollenKarten() {
+    const voll = Object.keys(S.rollen).filter(p => S.spieler[p] && (online(p) || p === PID)).length >= V.MAX_HELDEN;
     return `<div class="rollen">${V.ROLLEN_REIHE.map(r => {
       const R = V.ROLLEN[r];
       const wer = Object.keys(S.rollen).find(p => S.rollen[p] === r && S.spieler[p] && (online(p) || p === PID));
-      const meins = wer === PID, belegt = wer && !meins;
-      const fk = V.AKTIONEN[r].map(a => a.name).join(" · ");
-      return `<button class="rolle ${meins ? "meins" : ""} ${belegt ? "belegt" : ""}" data-rolle="${r}" ${belegt ? "disabled" : ""}>
-        ${VB.held(r)}<b>${R.name}</b><small>${R.hp} Leben · ${fk}</small>
-        <span class="wer">${meins ? "Das bist du ✓" : belegt ? esc(sp(wer).name) : "frei"}</span></button>`;
+      const meins = wer === PID, belegt = wer && !meins, gesperrt = belegt || (!S.rollen[PID] && voll);
+      return `<button class="rolle ${meins ? "meins" : ""} ${gesperrt ? "belegt" : ""}" data-rolle="${r}" ${gesperrt ? "disabled" : ""}>
+        ${VB.held(r)}<b>${R.name}</b><small>${R.hp} Leben · ${R.kurz}</small>
+        <span class="wer">${meins ? "Das bist du ✓" : belegt ? esc(sp(wer).name) : voll ? "" : "frei"}</span></button>`;
     }).join("")}</div>`;
   }
   function startbereit() {
@@ -257,9 +257,9 @@
     return `<header class="titel"><p class="etikett">Verlies · Raumcode</p><div class="code">${esc(code)}</div></header>
       ${qr ? `<div class="qr">${qr}</div>` : ""}
       <div class="reihe"><button class="knopf zweit" id="teilen">Link teilen</button><button class="knopf zweit" id="kopieren">Link kopieren</button></div>
-      <div class="karte"><h2>Wähle deine Rolle</h2>${rollenKarten()}
+      <div class="karte"><h2>Wähle deine Rolle</h2><p class="leise klein">Sechs Rollen, drei gehen hinab. Jede Rolle kann beim Händler zwei weitere Fähigkeiten lernen.</p>${rollenKarten()}
         ${ohneRolle.length ? `<p class="leise klein">Noch ohne Rolle: ${ohneRolle.map(p => esc(sp(p).name)).join(", ")}${leute.length > 3 ? ". Wer keine Rolle hat, schaut zu." : ""}</p>` : ""}</div>
-      <div class="karte"><h3>So geht's</h3><p class="leise klein">Vor jedem Raum stimmt ihr ab, welche Tür ihr nehmt. Im Kampf wählt jeder in Ruhe seinen Zug, ausgeführt wird, wenn alle gewählt haben. Bewusstlose kann die Heilerin zurückholen. Wenn alle fallen, ist das Spiel verloren.</p></div>
+      <div class="karte"><h3>So geht's</h3><p class="leise klein">Vor jedem Raum stimmt ihr ab, welche Tür ihr nehmt. Im Kampf wählt jeder in Ruhe seinen Zug, ausgeführt wird, wenn alle gewählt haben. Heilende Fähigkeiten holen Bewusstlose zurück. Nach Raum 2, 4 und 7 wartet ein Händler: Jeder kauft mit seinem eigenen Gold. Wenn alle fallen, ist das Spiel verloren.</p></div>
       ${host ? `<div class="unten"><button class="knopf" id="start" ${startbereit() ? "" : "disabled"}>${startbereit() ? "Abstieg beginnen" : "Mindestens 2 brauchen eine Rolle …"}</button></div>`
         : `<p class="leise mitte">Warte, bis ${esc(sp(S.host).name)} das Spiel startet.</p>`}
       <button class="link" id="verlassen">Raum verlassen</button>`;
@@ -271,12 +271,16 @@
     const marken = imKampf ? [x.hp <= 0 ? `<span class="marke">bewusstlos</span>` : "", x.giftR > 0 && x.hp > 0 ? `<span class="marke gift">vergiftet</span>` : "",
       x.lauer ? `<span class="marke schatten">lauert</span>` : "", x.segen ? `<span class="marke">gesegnet</span>` : "",
       k && k.wahl[p] ? `<span class="marke ok">bereit</span>` : ""].join("") : "";
-    const unter = `${V.ROLLEN[x.rolle].name}${online(p) ? "" : " · nicht verbunden"}${imKampf ? "" : ` · ${x.traenke} ${x.traenke === 1 ? "Trank" : "Tränke"}`}`;
+    const unter = `${V.ROLLEN[x.rolle].name}${online(p) ? "" : " · nicht verbunden"}${imKampf ? "" : ` · ${x.gold} Gold · ${x.traenke} ${x.traenke === 1 ? "Trank" : "Tränke"}`}`;
     return `<button class="heldzeile ${x.hp <= 0 && !ziel ? "weg" : ""} ${ziel ? "ziel" : ""}" ${ziel ? `data-ziel="${p}"` : "disabled"}>
       ${VB.held(x.rolle)}<span class="mitte-sp"><span class="kopfzeile"><b>${esc(sp(p).name)}</b><small>${unter}</small></span>${balken(x.hp, x.max)}${marken ? `<span class="marken">${marken}</span>` : ""}</span>
       <span class="hp">${x.hp}<small>/${x.max}</small></span></button>`;
   }
-  function heldenLeiste(imKampf, ziel) { return `<div class="heldenliste">${S.teilnehmer.map(p => heldZeile(p, imKampf, ziel)).join("")}</div>`; }
+  // zielArt: "held" (jeder), "anderer" (lebende andere) oder nichts
+  function heldenLeiste(imKampf, zielArt) {
+    const istZiel = p => zielArt === "held" || (zielArt === "anderer" && p !== PID && S.helden[p].hp > 0);
+    return `<div class="heldenliste">${S.teilnehmer.map(p => heldZeile(p, imKampf, istZiel(p))).join("")}</div>`;
+  }
 
   function bildschirmErkunden() {
     const e = S.entscheidung;
@@ -307,24 +311,25 @@
       const ziel = zielModus === "gegner" && g.hp > 0;
       return `<button class="figur ${g.hp <= 0 ? "weg" : ""} ${ziel ? "ziel" : ""}" ${ziel ? `data-ziel="${g.id}"` : "disabled"} aria-label="${esc(g.name)}">
         ${VB.bild(g.art, "kbild")}<b>${esc(g.name)}</b>${balken(g.hp, g.max)}<span class="zahl">${g.hp <= 0 ? "besiegt" : g.hp + " / " + g.max}</span>
-        <span class="marken">${g.giftR > 0 && g.hp > 0 ? `<span class="marke gift">Gift ${g.giftR}</span>` : ""}</span></button>`;
+        <span class="marken">${g.hp > 0 ? (g.giftR > 0 ? `<span class="marke gift">Gift ${g.giftR}</span>` : "") + (g.markiert > 0 ? `<span class="marke schild">markiert</span>` : "") : ""}</span></button>`;
     }).join("")}</div>`;
     // Was zuletzt geschah
     if (S.log && S.log.length) h += `<div class="chronik"><p class="etikett">Runde ${k.runde - 1}</p>${S.log.map(t => `<p>${esc(t)}</p>`).join("")}</div>`;
     // Helden
-    h += `<h3>Gruppe</h3>${heldenLeiste(true, zielModus === "held")}`;
+    h += `<h3>Gruppe</h3>${heldenLeiste(true, zielModus === "gegner" ? null : zielModus)}`;
     // Eigene Wahl
     if (!mitspieler()) h += `<p class="leise mitte">Du schaust zu.</p>`;
-    else if (!lebt) h += `<div class="hinweis">Du bist bewusstlos. Nur die Heilerin kann dich zurückholen.</div>`;
+    else if (!lebt) h += `<div class="hinweis">Du bist bewusstlos. Nur eine heilende Fähigkeit kann dich zurückholen.</div>`;
     else if (meineWahl && !auswahl) {
       const a = V.aktionenVon(mh).find(x => x.id === meineWahl.a) || { name: meineWahl.a };
       const zn = meineWahl.ziel ? (S.gegner.find(g => g.id === meineWahl.ziel) || {}).name || sp(meineWahl.ziel).name : "";
       h += `<div class="karte"><p class="etikett">Dein Zug</p><h2>${esc(a.name)}${zn ? " → " + esc(zn) : ""}</h2><button class="knopf zweit" id="aendern">Ändern</button></div>`;
     } else {
-      if (zielModus) h += `<div class="hinweis">${esc(auswahl.name)}: Tippe oben auf ${zielModus === "gegner" ? "einen Gegner" : "einen Helden"}.</div>`;
+      if (zielModus) h += `<div class="hinweis">${esc(auswahl.name)}: Tippe oben auf ${zielModus === "gegner" ? "einen Gegner" : zielModus === "anderer" ? "einen anderen Helden" : "einen Helden"}.</div>`;
       h += `<p class="etikett">Dein Zug</p><div class="aktionen">${V.aktionenVon(mh).map(a => {
         const cd = a.cd ? (mh.cd[a.id] || 0) : 0;
-        return `<button class="aktion ${auswahl && auswahl.id === a.id ? "an" : ""}" data-aktion="${a.id}" ${cd ? "disabled" : ""}><b>${esc(a.name)}${a.id === "trank" ? ` (${mh.traenke})` : ""}</b><small>${cd ? `Wieder bereit in ${cd} ${cd === 1 ? "Runde" : "Runden"}` : esc(a.text)}</small></button>`;
+        const ohneZiel = a.ziel === "anderer" && !S.teilnehmer.some(p => p !== PID && S.helden[p].hp > 0);
+        return `<button class="aktion ${auswahl && auswahl.id === a.id ? "an" : ""}" data-aktion="${a.id}" ${cd || ohneZiel ? "disabled" : ""}><b>${esc(a.name)}${a.id === "trank" ? ` (${mh.traenke})` : ""}</b><small>${cd ? `Wieder bereit in ${cd} ${cd === 1 ? "Runde" : "Runden"}` : esc(a.text)}</small></button>`;
       }).join("")}</div>
       ${auswahl ? `<button class="link" id="abbrechen">Abbrechen</button>` : ""}`;
     }
@@ -334,12 +339,31 @@
     return h;
   }
 
+  function bildschirmLager() {
+    const L = S.lager, mh = ich(), fertig = L.fertig[PID];
+    const offen = S.teilnehmer.filter(p => !L.fertig[p]);
+    let h = fortschritt() + buchseite(S.seite);
+    if (mitspieler()) {
+      const gelernt = V.LERNBAR[mh.rolle].filter(a => mh.gelernt.includes(a.id)).map(a => a.name);
+      h += `<div class="karte"><div class="kopf"><h2>Dein Einkauf</h2><span class="gold">${mh.gold} Gold</span></div>
+        <div class="ausruestung"><span class="marke">Waffe +${mh.waffe}</span><span class="marke">Rüstung −${mh.ruestung}</span><span class="marke">${mh.hp}/${mh.max} Leben</span><span class="marke">${mh.traenke} ${mh.traenke === 1 ? "Trank" : "Tränke"}</span>${gelernt.map(n => `<span class="marke schatten">${esc(n)}</span>`).join("")}</div>
+        <div class="waren">${V.angebot(mh).map(w => `<button class="ware ${w.faehigkeit ? "faehigkeit" : ""} ${w.aus ? "aus" : ""}" data-kauf="${w.id}" ${w.aus || w.preis > mh.gold || fertig ? "disabled" : ""}>
+          <b>${esc(w.name)}</b><span class="preis">${w.aus ? "✓" : w.preis + " G"}</span><small>${esc(w.text)}</small></button>`).join("")}</div></div>`;
+      h += `<div class="unten"><button class="knopf ${fertig ? "zweit" : ""}" id="fertig">${fertig ? "Doch noch einkaufen" : "Fertig, weiterziehen"}</button>
+        <p class="leise klein mitte">${offen.length ? "Noch beim Händler: " + offen.map(p => esc(sp(p).name)).join(", ") : ""}</p>
+        ${rolle === "host" && offen.length && offen.length < S.teilnehmer.length ? `<button class="link" id="beenden">Nicht warten, weiterziehen</button>` : ""}</div>`;
+    } else h += `<p class="leise mitte">Die Helden kaufen ein. Noch beim Händler: ${offen.map(p => esc(sp(p).name)).join(", ")}</p>`;
+    if (L.kaeufe.length) h += `<p class="kaeufe">${L.kaeufe.slice(-6).map(k => `${esc(sp(k.pid).name)}: ${esc(k.name)}`).join(" · ")}</p>`;
+    h += `<h3>Gruppe</h3>${heldenLeiste(false, null)}`;
+    return h;
+  }
+
   function bildschirmEnde() {
     const sieg = S.ergebnis === "sieg";
     return `<p class="etikett mitte">${sieg ? "Sieg" : "Niederlage"} · Raum ${S.raumNr} von ${V.RAEUME}</p>${buchseite(S.seite)}
-      <div class="karte"><h2>${S.gold} Gold erbeutet</h2>
-        <table class="werte"><tr><th>Held</th><th>Schaden</th><th>Geheilt</th><th>K.&nbsp;o.</th></tr>
-        ${S.teilnehmer.map(p => { const x = S.helden[p]; return `<tr><td>${esc(sp(p).name)} <span class="leise klein">${V.ROLLEN[x.rolle].name}</span></td><td>${x.stats.schaden}</td><td>${x.stats.geheilt}</td><td>${x.stats.umgefallen}</td></tr>`; }).join("")}</table></div>
+      <div class="karte"><h2>Die Helden</h2>
+        <table class="werte"><tr><th>Held</th><th>Schaden</th><th>Geheilt</th><th>K.&nbsp;o.</th><th>Gold</th></tr>
+        ${S.teilnehmer.map(p => { const x = S.helden[p]; return `<tr><td>${esc(sp(p).name)}<br><span class="leise klein">${V.ROLLEN[x.rolle].name}</span></td><td>${x.stats.schaden}</td><td>${x.stats.geheilt}</td><td>${x.stats.umgefallen}</td><td>${x.gold}</td></tr>`; }).join("")}</table></div>
       ${rolle === "host" ? `<div class="unten"><button class="knopf" id="nochmal">Nochmal hinab</button><button class="knopf zweit" id="lobby">Rollen neu wählen</button></div>` : `<p class="leise mitte">${esc(sp(S.host).name)} kann eine neue Runde starten.</p>`}
       <button class="link" id="verlassen">Raum verlassen</button>`;
   }
@@ -365,6 +389,8 @@
     if ($("verlassen")) $("verlassen").onclick = verlassen;
     document.querySelectorAll("[data-stimme]").forEach(b => b.onclick = () => tun({ t: "stimme", i: +b.dataset.stimme, nr: S.spielNr }));
     if ($("beenden")) $("beenden").onclick = () => tun({ t: "beenden" });
+    document.querySelectorAll("[data-kauf]").forEach(b => b.onclick = () => tun({ t: "kaufen", id: b.dataset.kauf, nr: S.spielNr }));
+    if ($("fertig")) $("fertig").onclick = () => tun({ t: "fertig", wert: !S.lager.fertig[PID], nr: S.spielNr });
     if ($("auto")) $("auto").onclick = () => tun({ t: "auto" });
     // Kampf
     const waehlen = (a, ziel) => { auswahl = null; tun({ t: "wahl", runde: S.kampf.runde, a, ziel }); letzteSig = ""; render(); };
@@ -374,6 +400,8 @@
       if (!a.ziel) { waehlen(a.id, null); return; }
       const lebendeGegner = V.gegnerLebend(S);
       if (a.ziel === "gegner" && lebendeGegner.length === 1) { waehlen(a.id, lebendeGegner[0].id); return; }
+      const andere = S.teilnehmer.filter(p => p !== PID && S.helden[p].hp > 0);
+      if (a.ziel === "anderer" && andere.length === 1) { waehlen(a.id, andere[0]); return; }
       auswahl = a; letzteSig = ""; render();
     });
     document.querySelectorAll("[data-ziel]").forEach(b => b.onclick = () => { if (auswahl) waehlen(auswahl.id, b.dataset.ziel); });

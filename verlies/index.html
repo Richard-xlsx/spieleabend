@@ -54,10 +54,10 @@ button:focus-visible,input:focus-visible,a:focus-visible{outline:3px solid var(-
 .status button{appearance:none;border:0;background:var(--bg);color:var(--text);border-radius:999px;padding:8px 14px;font:600 .9rem var(--fliess);cursor:pointer}
 
 /* Rollenwahl */
-.rollen{display:flex;flex-direction:column;gap:10px}
-.rolle{appearance:none;text-align:left;display:grid;grid-template-columns:64px 1fr;gap:4px 14px;align-items:center;background:var(--flaeche2);border:2px solid var(--linie);border-radius:16px;padding:12px;color:var(--text);font:inherit;cursor:pointer}
-.rolle .heldbild{grid-row:span 3;width:64px;height:58px;background:var(--pergament);border-radius:12px;padding:4px}
-.rolle b{font-family:var(--display);font-size:1rem}
+.rollen{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.rolle{appearance:none;text-align:left;display:flex;flex-direction:column;gap:4px;background:var(--flaeche2);border:2px solid var(--linie);border-radius:16px;padding:10px;color:var(--text);font:inherit;cursor:pointer}
+.rolle .heldbild{width:52px;height:46px;background:var(--pergament);border-radius:10px;padding:4px}
+.rolle b{font-family:var(--display);font-size:.92rem}
 .rolle small{color:var(--leise);font-size:.82rem;line-height:1.35}
 .rolle .wer{font-weight:600;font-size:.85rem}
 .rolle.meins{border-color:var(--karte-gelb);background:#3A355F}
@@ -133,6 +133,18 @@ button:focus-visible,input:focus-visible,a:focus-visible{outline:3px solid var(-
 .heldzeile .hp small{font-family:var(--fliess);font-weight:500}
 .heldzeile.ziel{border-color:var(--karte-gelb);cursor:pointer;box-shadow:0 0 0 3px rgba(255,212,71,.25)}
 .heldzeile.weg{opacity:.45}
+
+/* Händlerlager */
+.waren{display:flex;flex-direction:column;gap:8px}
+.ware{appearance:none;display:grid;grid-template-columns:1fr auto;gap:2px 12px;align-items:center;text-align:left;background:var(--flaeche2);border:2px solid var(--linie);border-radius:14px;padding:12px 14px;color:var(--text);font:inherit;cursor:pointer}
+.ware b{font-size:.98rem}
+.ware small{color:var(--leise);font-size:.82rem;grid-column:1}
+.ware .preis{grid-row:span 2;grid-column:2;font-family:var(--display);font-weight:600;color:var(--karte-gelb);white-space:nowrap}
+.ware.faehigkeit{border-color:#5B4A9E}
+.ware:disabled{opacity:.4;cursor:default}
+.ware.aus .preis{color:var(--gut)}
+.ausruestung{display:flex;flex-wrap:wrap;gap:6px}
+.kaeufe{font-size:.85rem;color:var(--leise);margin:0}
 
 /* Ende */
 .werte{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
