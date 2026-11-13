@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Spieleabend">
+<meta name="theme-color" content="#1C1A33">
+<title>Spieleabend</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@600;800&family=Inter:wght@400;500;600;700&display=swap">
+<style>
+/* Startseite der Spielesammlung: dieselbe Familie wie die Spiele, jedes Spiel als große Karte mit eigenem Zeichen */
+:root{
+  --bg:#1C1A33; --flaeche:#272447; --flaeche2:#322E5A; --text:#F3F0FF; --leise:#A8A2CC; --linie:#3D3868;
+  --akzent:#FF6B57; --akzent-text:#1C1A33; --karte-gelb:#FFD447; --herz:#FF7FB0;
+  --display:"Unbounded","Segoe UI",system-ui,sans-serif; --fliess:"Inter","Segoe UI",system-ui,sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);font:16px/1.45 var(--fliess);-webkit-text-size-adjust:100%}
+body{padding:max(20px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) max(24px,env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left))}
+main{max-width:520px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+h1,h2{font-family:var(--display);margin:0;letter-spacing:-.01em;text-wrap:balance}
+h1{font-size:2.2rem;line-height:1.05;font-weight:800}
+h2{font-size:1.2rem;font-weight:800}
+.leise{color:var(--leise);margin:0}
+.etikett{font-size:.72rem;text-transform:uppercase;letter-spacing:.1em;color:var(--leise);font-weight:600;margin:0}
+.spiel{display:grid;grid-template-columns:auto 1fr;gap:6px 16px;align-items:center;text-decoration:none;color:var(--text);
+  background:var(--flaeche);border:1px solid var(--linie);border-radius:20px;padding:18px}
+.spiel:hover,.spiel:focus-visible{border-color:var(--akzent)}
+.spiel:focus-visible{outline:3px solid var(--karte-gelb);outline-offset:2px}
+.zeichen{grid-row:span 2;width:72px;height:84px;border-radius:14px;display:grid;place-items:center;font-family:var(--display);font-weight:800;font-size:2.4rem;
+  box-shadow:0 5px 0 rgba(0,0,0,.25);transform:rotate(-4deg)}
+.zeichen.b{background:var(--karte-gelb);color:var(--bg)}
+.zeichen.s{background:#fff;color:var(--bg);transform:rotate(3deg)}
+.zeichen.s svg{width:52px;height:52px}
+.spiel p{margin:0;color:var(--leise);font-size:.92rem}
+.spiel .los{grid-column:1/-1;margin-top:10px;background:var(--akzent);color:var(--akzent-text);border-radius:12px;padding:12px;text-align:center;font-weight:700}
+.tipps{background:var(--flaeche2);border-radius:16px;padding:14px 16px;display:flex;flex-direction:column;gap:6px;font-size:.92rem}
+.tipps ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px}
+</style>
+</head>
+<body>
+<main>
+  <header><p class="etikett">Für 2 bis 8 Leute · jeder am eigenen Handy</p><h1>Spieleabend</h1></header>
+
+  <a class="spiel" href="buchstabenbattle/">
+    <div class="zeichen b" aria-hidden="true">B</div>
+    <h2>Buchstabenbattle</h2>
+    <p>Ein Buchstabe, fünf Kategorien: Song, Promi, Film, Ausrede fürs Zuspätkommen, was man um 3 Uhr nachts googelt. Ab 2 Spielern.</p>
+    <span class="los">Spielen</span>
+  </a>
+
+  <a class="spiel" href="stillepost/">
+    <div class="zeichen s" aria-hidden="true"><svg viewBox="0 0 52 52" fill="none" stroke="#1C1A33" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><path d="M8 40c6-10 10-14 14-12s2 10 8 8 8-18 14-22"/><circle cx="40" cy="14" r="3" fill="#FF6B57" stroke="none"/></svg></div>
+    <h2>Stille Post mit Bildern</h2>
+    <p>Satz, Bild, Satz, Bild: Jeder malt, was der andere geschrieben hat. Am Ende die Diashow. Ab 3 Spielern.</p>
+    <span class="los">Spielen</span>
+  </a>
+
+  <div class="tipps">
+    <b>So geht's</b>
+    <ul>
+      <li>Einer öffnet ein Spiel und tippt auf „Raum erstellen“.</li>
+      <li>Die anderen scannen den QR-Code oder öffnen den geteilten Link. Ein Konto braucht niemand.</li>
+      <li>Am besten sind alle im selben WLAN.</li>
+    </ul>
+  </div>
+</main>
+</body>
+</html>
