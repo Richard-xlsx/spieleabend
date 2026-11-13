@@ -2,17 +2,23 @@
 // S = kleiner Zustand (wird jede Sekunde an alle geschickt), K = Ketten-Einträge (werden einzeln verschickt).
 // Jeder Teilnehmer beginnt eine Kette. In Schritt k arbeitet Teilnehmer i an Kette (i - k) mod n.
 // Gerade Schritte: Text (0 = Startsatz, danach Beschreibung des Bildes), ungerade Schritte: Bild malen.
+// Durchgänge: 0 = automatisch (so viele Schritte wie Teilnehmer, jeder einmal an jeder Kette),
+// sonst 1 bis 4 Mal „Bild → Satz“ nach dem Startsatz, also 1 + 2 × Durchgänge Schritte.
 (function () {
   const TEMPO = { entspannt: [60, 120], normal: [40, 80], schnell: [30, 60], test: [15, 15] };
   const MAX_PUNKTE = 4000;            // Zeichenpunkte je Bild (hält Nachrichten klein)
   const kopie = x => JSON.parse(JSON.stringify(x));
   const key = (c, k) => c + ":" + k;
   const typVon = k => (k % 2 === 0 ? "text" : "bild");
+  const DURCHGAENGE = [0, 1, 2, 3, 4];
+  const durchgaengeAus = x => (DURCHGAENGE.includes(+x) ? +x : 0);
+  const schritteFuer = (S, n) => (S.durchgaenge ? 1 + 2 * S.durchgaenge : n);
 
   function neu(code, hostPid, hostName, einst) {
     return {
       v: 1, spiel: "stillepost", code, epoch: 0, host: hostPid, phase: "lobby",
       tempo: (einst && TEMPO[einst.tempo]) ? einst.tempo : "normal",
+      durchgaenge: durchgaengeAus(einst && einst.durchgaenge),
       spieler: { [hostPid]: { name: hostName } }, reihenfolge: [hostPid],
       teilnehmer: [], schritt: 0, schritte: 0, rest: null, abgegeben: [], show: null, herzen: {}, aenderung: Date.now()
     };
@@ -68,13 +74,15 @@
         break;
       }
       case "einstellungen":
-        if (!istHost || S.phase !== "lobby" || !TEMPO[m.tempo]) return unveraendert;
-        S.tempo = m.tempo; break;
+        if (!istHost || S.phase !== "lobby") return unveraendert;
+        if (TEMPO[m.tempo]) S.tempo = m.tempo;
+        if (m.durchgaenge !== undefined) S.durchgaenge = durchgaengeAus(m.durchgaenge);
+        break;
       case "start": {
         if (!istHost || !(S.phase === "lobby" || S.phase === "ende")) return unveraendert;
         const t = (m.teilnehmer || S.reihenfolge).filter(p => S.spieler[p]);
         if (t.length < 3) return unveraendert;
-        Object.assign(S, { teilnehmer: t, schritt: 0, schritte: t.length, phase: "runde", abgegeben: [], show: null, herzen: {}, spielNr: (S.spielNr || 0) + 1 });
+        Object.assign(S, { teilnehmer: t, schritt: 0, schritte: schritteFuer(S, t.length), phase: "runde", abgegeben: [], show: null, herzen: {}, spielNr: (S.spielNr || 0) + 1 });
         S.rest = zeit(S, 0);
         for (const k in K) delete K[k];
         break;
@@ -128,5 +136,5 @@
     return z;
   }
 
-  window.SP = { TEMPO, MAX_PUNKTE, key, typVon, neu, aufgabe, aktion, tick, herzenJeSpieler, bereinigen };
+  window.SP = { TEMPO, MAX_PUNKTE, DURCHGAENGE, key, typVon, neu, aufgabe, aktion, tick, herzenJeSpieler, bereinigen };
 })();

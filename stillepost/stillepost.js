@@ -202,10 +202,10 @@
     letzteAbgabe = { nr: S.spielNr, schritt: a.schritt, inhalt }; ls.set("sp:letzte:" + code, letzteAbgabe);
     tun({ t: "abgabe", schritt: a.schritt, inhalt });
   }
-  function neuesSpiel(tempo) {
+  function neuesSpiel(tempo, durchgaenge) {
     code = Array.from({ length: 4 }, () => ZEICHEN[Math.floor(Math.random() * ZEICHEN.length)]).join("");
     history.replaceState(null, "", "?raum=" + code + testTeil());
-    hostStarten({ S: P.neu(code, PID, name, { tempo }), K: {} });
+    hostStarten({ S: P.neu(code, PID, name, { tempo, durchgaenge }), K: {} });
   }
   function verlassen() {
     for (const k of ["sp:host:", "sp:kopie:", "sp:entwurf:", "sp:letzte:"]) ls.del(k + code);
@@ -282,6 +282,8 @@
   const online = p => !!(S && S.online && S.online.includes(p));
   const zeit = s => s == null ? "" : Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0");
   const tempoText = { entspannt: "Entspannt", normal: "Normal", schnell: "Schnell", test: "Test" };
+  const durchgangText = d => (d ? d + "×" : "Auto");
+  const ablaufText = d => (d ? "Satz" + " → Bild → Satz".repeat(d) : "Jeder ist bei jeder Kette einmal dran");
 
   function sig() {
     if (!rolle) return "start:" + (code ? "name" : "neu");
@@ -343,6 +345,9 @@
       <div class="karte"><h2>Neues Spiel</h2>
         <div class="wahl" id="wTempo">${["entspannt", "normal", "schnell"].map(t => `<button data-v="${t}" class="${t === "normal" ? "an" : ""}">${tempoText[t]}</button>`).join("")}</div>
         <p class="leise klein">Normal: 40 Sekunden zum Schreiben, 80 zum Malen. Für 3 bis 8 Leute.</p>
+        <p class="etikett">Wie oft Bild → Satz?</p>
+        <div class="wahl" id="wDurchgaenge" style="gap:6px">${P.DURCHGAENGE.map(d => `<button data-v="${d}" class="${d === 0 ? "an" : ""}" style="padding:8px 4px">${durchgangText(d)}</button>`).join("")}</div>
+        <p class="leise klein" id="ablauf">${ablaufText(0)}</p>
         <button class="knopf" id="neu">Raum erstellen</button></div>
       <div class="karte"><h2>Mitspielen</h2>
         <label class="feld">Raumcode<input id="code" maxlength="4" autocapitalize="characters" placeholder="z. B. K7M2"></label>
@@ -362,7 +367,7 @@
       ${qr ? `<div class="qr">${qr}</div>` : ""}
       <div class="reihe"><button class="knopf zweit" id="teilen">Link teilen</button><button class="knopf zweit" id="kopieren">Link kopieren</button></div>
       <div class="karte"><h2>Im Raum (${n})</h2><ul class="spieler" id="spielerliste"></ul></div>
-      <div class="karte"><h2>So geht's</h2><p class="leise klein">Jeder schreibt einen Satz. Der Nächste malt ihn, der Nächste beschreibt das Bild, und so weiter, bis jede Kette einmal herum ist. Danach zeigt die Diashow, was aus euren Sätzen geworden ist. Tempo: ${tempoText[S.tempo]}.</p></div>
+      <div class="karte"><h2>So geht's</h2><p class="leise klein">Jeder schreibt einen Satz. Der Nächste malt ihn, der Nächste beschreibt das Bild, und so weiter, ${S.durchgaenge ? `bis jede Kette ${S.durchgaenge}× „Bild → Satz“ hinter sich hat (${ablaufText(S.durchgaenge)}).` : "bis jede Kette einmal herum ist."} Danach zeigt die Diashow, was aus euren Sätzen geworden ist. Tempo: ${tempoText[S.tempo]}.</p></div>
       ${host ? `<div class="unten"><button class="knopf" id="start" ${n < 3 ? "disabled" : ""}>${n < 3 ? "Warte auf Mitspieler (mind. 3) …" : "Spiel starten"}</button></div>`
         : `<p class="leise mitte">Warte, bis ${esc(sp(S.host).name)} das Spiel startet.</p>`}
       <button class="link" id="verlassen">Raum verlassen</button>`;
@@ -429,7 +434,8 @@
     const nameAus = () => { const n = ($("name").value || "").trim().slice(0, 20); if (!n) { $("name").focus(); return null; } name = n; ls.set("slf:name", n); return n; };
     if ($("uebernehmen")) $("uebernehmen").onclick = uebernehmen;
     document.querySelectorAll(".wahl").forEach(w => w.querySelectorAll("button").forEach(b => b.onclick = () => { w.querySelectorAll("button").forEach(x => x.classList.remove("an")); b.classList.add("an"); }));
-    if ($("neu")) $("neu").onclick = () => { if (nameAus()) neuesSpiel(document.querySelector("#wTempo .an").dataset.v); };
+    if ($("wDurchgaenge")) $("wDurchgaenge").querySelectorAll("button").forEach(b => b.addEventListener("click", () => { $("ablauf").textContent = ablaufText(+b.dataset.v); }));
+    if ($("neu")) $("neu").onclick = () => { if (nameAus()) neuesSpiel(document.querySelector("#wTempo .an").dataset.v, +document.querySelector("#wDurchgaenge .an").dataset.v); };
     if ($("beitreten")) $("beitreten").onclick = () => {
       if (!nameAus()) return;
       const c = ($("code").value || "").toUpperCase().replace(/[^A-Z0-9]/g, ""); if (c.length !== 4) { $("code").focus(); return; }
