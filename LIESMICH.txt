@@ -10,6 +10,8 @@ Aufbau
   buchstabenbattle/               index.html, logic.js (Regeln und Punkte), app.js (Verbindung und Bildschirme)
   stillepost/                     index.html, stillepost-logic.js, stillepost.js
   maumau/                         index.html, maumau-logic.js, maumau.js, holzschnitt.js, figuren2.js (Karten)
+  verlies/                        index.html, verlies-logic.js (Regeln, Kampf, Zufall), verlies.js (Verbindung und Bildschirme),
+                                  bilder.js (Tuschezeichnungen für Räume, Gegner, Helden)
   _entwurf/                       Kartenentwürfe, wird nicht hochgeladen
 
 Buchstabenbattle (ab 2 Spielern)
@@ -43,6 +45,23 @@ Mau-Mau (2 bis 8 Spieler)
   die wenigsten Minuspunkte gewinnen. Handkarten gehen nur an ihren Besitzer, die anderen sehen nur die Anzahl.
   Fällt der Spielleiter ganz aus und jemand übernimmt, wird die laufende Runde neu gegeben (die Karten kannte nur sein Handy);
   die Punkte bleiben. Ist jemand nicht verbunden und dran, kann der Spielleiter ihn auslassen.
+
+Verlies zu dritt (2 bis 3 Spieler, Stufe 1 vom 14.11.2026)
+  Gemeinsam gegen das Spiel. Jeder wählt eine Rolle: Kämpfer (34 Leben; Schwerthieb, Schildwall, Wirbelschlag),
+  Dieb (27; Dolchstich, Giftklinge, In die Schatten), Heilerin (26; Lichtstab, Heilen, Segen). Jeder startet mit 1 Heiltrank.
+  8 Räume: Vor jedem Raum Abstimmung über zwei Türen mit Hinweis (Kampf, Truhe, Rast oder Ereignis), Raum 8 ist der Knochenkönig.
+  Gleichstand: das Los. Der Spielleiter kann eine Abstimmung beenden, ohne auf alle zu warten.
+  Kampf rundenweise ohne Zeitdruck: Jeder wählt Zug und Ziel, ausgeführt wird, wenn alle Lebenden gewählt haben
+  (zuerst Schutz und Heilung, dann Angriffe, dann Gift, dann die Gegner). Bewusstlose holt nur die Heilerin zurück,
+  nach dem Kampf stehen sie mit 5 Leben wieder auf. Fallen alle, ist das Spiel verloren. Fähigkeiten haben Abklingzeiten.
+  Ist jemand nicht verbunden, kann der Spielleiter für ihn automatisch ziehen lassen.
+  Gegner: Riesenratte, Goblin, Höhlenspinne (Gift), Skelett, Goblin-Schamane (heilt), Ork; Knochenkönig mit 120 Leben,
+  Beben in jeder 3. Runde, ruft bei halben Leben zwei Skelette. Zu zweit haben Gegner 55 % der Leben.
+  Ereignisse: Brunnen, schlafender Troll, Händler (Trank 12 Gold), Altar (20 Gold für +5 Höchstleben), Brücke.
+  Zufall steckt im Spielstand (S.rng), eine Übernahme der Spielleitung würfelt also genau so weiter.
+  Simuliert (je 2000 Partien): zu dritt gewinnt kluges Spiel rund 90 %, reines Draufhauen rund 45 %.
+  Zu zweit: Kämpfer+Heilerin rund 50 %, Dieb+Heilerin rund 35 %, ohne Heilerin rund 20 % (bei klugem Spiel).
+  Noch nicht drin (Stufe 2/3): Fallen- und Rätselräume, mehrere Ebenen, Schwierigkeitsstufen, Freischaltungen.
 
 Verbindung (Handy des Spielleiters ist der Server, gilt für alle Spiele)
   - Die Handys verbinden sich direkt miteinander. Zum Finden nutzt die Seite den kostenlosen Vermittlungsdienst PeerJS
