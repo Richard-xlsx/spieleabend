@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Mau-Mau">
+<meta name="theme-color" content="#1C1A33">
+<title>Mau-Mau</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@600;800&family=Inter:wght@400;500;600;700&display=swap">
+<style>
+/* Spieleabend-Familie: Tintenblau, Korall, gelbe Markierung; der Tisch als grüner Filz, die Karten im Holzschnitt-Stil */
+:root{
+  --bg:#1C1A33; --flaeche:#272447; --flaeche2:#322E5A; --text:#F3F0FF; --leise:#A8A2CC; --linie:#3D3868;
+  --akzent:#FF6B57; --akzent-text:#1C1A33; --gelb:#FFD447; --gut:#5BD69A; --rot:#E2453A; --filz:#1E5B45; --filz2:#257055;
+  --display:"Unbounded","Segoe UI",system-ui,sans-serif; --fliess:"Inter","Segoe UI",system-ui,sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--bg);color:var(--text);font:16px/1.45 var(--fliess);-webkit-text-size-adjust:100%}
+body{padding:max(12px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) max(16px,env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left))}
+#app{max-width:520px;margin:0 auto;display:flex;flex-direction:column;gap:12px}
+h1,h2{font-family:var(--display);margin:0;letter-spacing:-.01em;text-wrap:balance}
+h1{font-size:1.9rem;line-height:1.1;font-weight:800}
+h2{font-size:1.05rem;font-weight:600}
+.titel{display:flex;flex-direction:column;gap:6px;padding-top:6px}
+.leise{color:var(--leise);margin:0}
+.mitte{text-align:center}
+.etikett{font-size:.72rem;text-transform:uppercase;letter-spacing:.1em;color:var(--leise);font-weight:600;margin:0}
+.karte-box{background:var(--flaeche);border:1px solid var(--linie);border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:12px}
+.feld{display:flex;flex-direction:column;gap:6px;font-size:.85rem;color:var(--leise);font-weight:500}
+.feld input{font:500 1.05rem var(--fliess);color:var(--text);background:var(--flaeche2);border:1px solid var(--linie);border-radius:12px;padding:13px 14px;width:100%;outline:none}
+.feld input:focus{border-color:var(--akzent)}
+.knopf{appearance:none;border:0;border-radius:14px;padding:14px 16px;font:700 1rem var(--fliess);background:var(--akzent);color:var(--akzent-text);width:100%;cursor:pointer}
+.knopf.zweit{background:transparent;color:var(--text);border:1px solid var(--linie)}
+.knopf:disabled{opacity:.4;cursor:default}
+button:focus-visible,input:focus-visible,a:focus-visible{outline:3px solid var(--gelb);outline-offset:2px}
+.reihe{display:flex;gap:10px}
+.wahl{display:flex;gap:8px}
+.wahl button,.klein{appearance:none;border:1px solid var(--linie);background:var(--flaeche2);color:var(--text);border-radius:999px;padding:8px 14px;font:600 .9rem var(--fliess);cursor:pointer}
+.wahl button{flex:1}
+.wahl button.an{background:var(--text);color:var(--bg);border-color:var(--text)}
+.schalter{display:flex;align-items:center;gap:10px;font-weight:600}
+.schalter input{width:20px;height:20px;accent-color:var(--akzent)}
+.link{background:none;border:0;color:var(--leise);text-decoration:underline;font:inherit;cursor:pointer;padding:8px;align-self:center}
+.code{font-family:var(--display);font-weight:800;font-size:3.4rem;letter-spacing:.12em;line-height:1}
+.qr{background:#fff;border-radius:16px;padding:10px;width:200px;max-width:60%;align-self:center}
+.qr svg{display:block;width:100%;height:auto}
+.spieler{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.spieler li{display:flex;align-items:center;gap:10px;font-weight:600}
+.spieler small{color:var(--leise);font-weight:500}
+.punkt{width:10px;height:10px;border-radius:50%;background:var(--linie);display:inline-block}
+.punkt.an{background:var(--gut)}
+.regeln{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px;font-size:.92rem;color:var(--leise)}
+.regeln b{color:var(--text)}
+.status{position:sticky;top:0;z-index:5;background:var(--gelb);color:var(--bg);border-radius:12px;padding:10px 12px;font-weight:600;font-size:.9rem;display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.status .klein{background:var(--bg);color:var(--text);border-color:var(--bg)}
+.gegnerreihe{display:flex;gap:8px;overflow-x:auto;padding-bottom:2px}
+.gegner{flex:1 0 88px;background:var(--flaeche);border:1px solid var(--linie);border-radius:12px;padding:7px 9px;display:flex;flex-direction:column;gap:2px;font-size:.85rem;min-width:0}
+.gegner b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gegner.dran{border-color:var(--gelb);box-shadow:0 0 0 1px var(--gelb)}
+.gegner.weg{opacity:.5}
+.gegner small{color:var(--leise);min-height:1.1em}
+.anz{display:flex;align-items:center;gap:6px;font-weight:700;font-variant-numeric:tabular-nums}
+.mini{width:11px;height:15px;border-radius:2px;background:#22202A;border:1px solid var(--leise);display:inline-block}
+.maubadge{font-style:normal;background:var(--akzent);color:var(--bg);border-radius:6px;padding:0 5px;font-size:.72rem}
+.meldung{margin:0;color:var(--leise);font-size:.9rem;min-height:1.4em}
+.tisch{background:radial-gradient(circle at 50% 40%,var(--filz2),var(--filz));border-radius:22px;padding:18px 12px;display:flex;align-items:center;justify-content:center;gap:28px;min-height:190px}
+.stapel{appearance:none;border:0;background:none;padding:0;position:relative;cursor:pointer;width:96px}
+.stapel:disabled{cursor:default;opacity:.85}
+.stapel svg,.ablage svg{width:100%;height:auto;display:block;filter:drop-shadow(0 4px 0 rgba(0,0,0,.3))}
+.stapel span{position:absolute;right:-8px;top:-8px;background:var(--bg);color:var(--text);border-radius:999px;font-size:.75rem;font-weight:700;padding:2px 8px}
+.stapel:not(:disabled) svg{outline:3px solid var(--gelb);outline-offset:2px;border-radius:9px}
+.ablage{position:relative;width:104px;transform:rotate(4deg)}
+.wunsch,.zieh{position:absolute;left:50%;transform:translateX(-50%) rotate(-4deg);bottom:-16px;background:var(--bg);color:var(--text);border:2px solid var(--gelb);border-radius:999px;padding:3px 10px;font-weight:700;font-size:.8rem;display:flex;align-items:center;gap:5px;white-space:nowrap}
+.wunsch .sym{width:16px;height:16px;fill:var(--text)}
+.wunsch.rot .sym{fill:var(--rot)}
+.zieh{bottom:auto;top:-14px;background:var(--akzent);color:var(--bg);border-color:var(--akzent);font-family:var(--display)}
+.zug{margin:4px 0 0;text-align:center;font-weight:600;color:var(--leise)}
+.zug.du{color:var(--gelb)}
+.warnung{margin:0;background:var(--akzent);color:var(--bg);border-radius:12px;padding:10px 12px;font-weight:700;text-align:center}
+.knopf.erwischt{background:var(--gelb);color:var(--bg)}
+.handscroll{width:100%}
+.handscroll.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.hand{position:relative;height:150px;margin:0 auto}
+.handkarte{appearance:none;border:0;background:none;padding:0;position:absolute;bottom:4px;width:76px;transform-origin:50% 130%;cursor:pointer;transition:bottom .15s}
+.handkarte svg{width:100%;height:auto;display:block;filter:drop-shadow(-2px 3px 0 rgba(0,0,0,.28))}
+.handkarte.spielbar{bottom:24px}
+.handkarte.spielbar svg{filter:drop-shadow(0 0 3px var(--gelb)) drop-shadow(0 0 3px var(--gelb))}
+.handkarte.passt-nicht svg{filter:brightness(.72) drop-shadow(-2px 3px 0 rgba(0,0,0,.28))}
+.unten{position:sticky;bottom:0;padding-block:10px calc(4px + env(safe-area-inset-bottom));background:linear-gradient(transparent,var(--bg) 30%);display:flex;flex-direction:column;gap:8px;z-index:3}
+.unten.knoepfe{flex-direction:row}
+.knopf.mau{background:var(--akzent)}
+.rang{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.rang li{display:flex;align-items:center;gap:12px;background:var(--flaeche);border:1px solid var(--linie);border-radius:14px;padding:12px 14px;font-variant-numeric:tabular-nums}
+.rang .platz{font-family:var(--display);font-weight:800;width:1.5em;color:var(--leise)}
+.rang li:first-child .platz{color:var(--gelb)}
+.rang .n{flex:1;font-weight:600}
+.rang .plus{color:var(--akzent);font-weight:600}
+.rang b{font-family:var(--display);font-size:1.1rem}
+.rest{display:flex;flex-direction:column;gap:4px}
+.rest small{color:var(--leise)}
+.restkarten{display:flex;gap:4px;flex-wrap:wrap}
+.restkarte{width:44px}
+.restkarte svg{width:100%;height:auto;display:block}
+.toast{position:fixed;left:50%;bottom:calc(90px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--text);color:var(--bg);font-weight:600;padding:10px 16px;border-radius:12px;z-index:20;max-width:90vw;text-align:center;box-shadow:0 8px 20px rgba(0,0,0,.4)}
+.modal{position:fixed;inset:0;background:rgba(10,9,20,.7);display:grid;place-items:center;z-index:30;padding:16px}
+.modalbox{background:var(--flaeche);border:1px solid var(--linie);border-radius:20px;padding:20px;display:flex;flex-direction:column;gap:14px;width:min(360px,100%)}
+.wunschwahl{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.wunschwahl button{appearance:none;border:1px solid var(--linie);background:#FFFDF7;color:#22202A;border-radius:14px;padding:14px 8px;display:flex;flex-direction:column;align-items:center;gap:6px;font:700 .95rem var(--fliess);cursor:pointer}
+.wunschwahl .sym.gross{width:40px;height:40px;fill:#22202A}
+.wunschwahl button.rot .sym.gross{fill:#C8282B}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<main id="app" aria-live="polite"><p class="leise">Lädt …</p></main>
+<script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+<script src="figuren2.js"></script>
+<script src="holzschnitt.js"></script>
+<script src="maumau-logic.js"></script>
+<script src="maumau.js"></script>
+</body>
+</html>

@@ -9,6 +9,8 @@ Aufbau
   index.html                      Startseite: Spiel auswählen
   buchstabenbattle/               index.html, logic.js (Regeln und Punkte), app.js (Verbindung und Bildschirme)
   stillepost/                     index.html, stillepost-logic.js, stillepost.js
+  maumau/                         index.html, maumau-logic.js, maumau.js, holzschnitt.js, figuren2.js (Karten)
+  _entwurf/                       Kartenentwürfe, wird nicht hochgeladen
 
 Buchstabenbattle (ab 2 Spielern)
   Ein Buchstabe, fünf Kategorien: Song, Promi, Film, Ausrede fürs Zuspätkommen, Was man um 3 Uhr nachts googelt.
@@ -24,7 +26,18 @@ Stille Post mit Bildern (ab 3 Spielern)
   Danach Diashow, die der Spielleiter durchblättert; Bilder malen sich dabei neu auf. ♥ für Lieblingssätze und -bilder,
   am Ende gewinnt, wer die meisten Herzen hat. Bilder werden als Striche gespeichert (höchstens 4000 Punkte je Bild).
 
-Verbindung (Handy des Spielleiters ist der Server, gilt für beide Spiele)
+Mau-Mau (2 bis 8 Spieler)
+  Eigenes Blatt im Holzschnitt-Stil (maumau/holzschnitt.js + figuren2.js): Zahlenkarten als Medaille mit Symbolkranz,
+  Ass mit Strahlenkranz, König/Dame/Bube gezeichnet, Rückseite schwarz. 32 Karten, ab 6 Spielern zwei Blätter. Jeder bekommt 5.
+  Regeln: Farbe oder Wert passt · 7: der Nächste zieht 2, eine 7 gibt weiter (4, 6 …) · 8: der Nächste setzt aus ·
+  Bube passt auf alles außer Bube, man wünscht eine Farbe · Ass: nochmal dran (abschaltbar) · nichts Passendes: 1 ziehen,
+  dann legen oder „Weiter“ · vor der letzten Karte „Mau“ tippen, sonst können andere „Erwischt“ tippen: 2 Strafkarten.
+  Wertung: Wer fertig ist, 0; alle anderen Minuspunkte für ihre Karten (Ass 11, 10/B/D/K je 10, sonst Wert). 3, 5 oder 8 Runden,
+  die wenigsten Minuspunkte gewinnen. Handkarten gehen nur an ihren Besitzer, die anderen sehen nur die Anzahl.
+  Fällt der Spielleiter ganz aus und jemand übernimmt, wird die laufende Runde neu gegeben (die Karten kannte nur sein Handy);
+  die Punkte bleiben. Ist jemand nicht verbunden und dran, kann der Spielleiter ihn auslassen.
+
+Verbindung (Handy des Spielleiters ist der Server, gilt für alle Spiele)
   - Die Handys verbinden sich direkt miteinander. Zum Finden nutzt die Seite den kostenlosen Vermittlungsdienst PeerJS
     (0.peerjs.com), ohne Konto. Bibliotheken kommen von cdn.jsdelivr.net (peerjs 1.5.4, qrcode-generator 1.4.4).
   - Am besten sind alle im selben WLAN. Klappt über Mobilfunk keine direkte Verbindung, leitet PeerJS die (verschlüsselten)
@@ -41,5 +54,7 @@ Wenn etwas ausfällt
   - Der Spielleiter kommt gar nicht zurück: Nach 20 Sekunden erscheint bei allen „Spielleitung übernehmen“.
     Wer tippt, führt das Spiel mit dem letzten Stand weiter.
 
-Getestet am 13.11.2026 mit drei simulierten Spielern im Browser (beide Spiele: ganze Runde, Punkte bzw. Ketten und Herzen,
+Mau-Mau zusätzlich: Regeltests (7er-Kette, Bube und Wunsch, 8, Ass, Mau/Erwischt, Wertung) und 300 Zufallsspiele mit 2 bis 8
+Spielern (rund 47.000 Züge), dabei nie eine Karte verloren oder doppelt.
+Getestet am 13.11.2026 mit drei simulierten Spielern im Browser (alle Spiele: ganze Runde, Punkte bzw. Ketten und Herzen,
 Neuladen eines Mitspielers, Neuladen der Spielleiterin, Übernahme der Spielleitung). Noch nicht auf echten Handys.
