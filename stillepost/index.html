@@ -41,9 +41,9 @@ button:focus-visible,input:focus-visible,a:focus-visible{outline:3px solid var(-
 .reihe{display:flex;gap:10px}
 .unten.reihe{flex-direction:row}
 .wahl{display:flex;gap:8px}
-.wahl button,.klein{appearance:none;border:1px solid var(--linie);background:var(--flaeche2);color:var(--text);border-radius:999px;padding:8px 14px;font:600 .9rem var(--fliess);cursor:pointer}
+.wahl button,button.klein{appearance:none;border:1px solid var(--linie);background:var(--flaeche2);color:var(--text);border-radius:999px;padding:8px 14px;font:600 .9rem var(--fliess);cursor:pointer}
 .wahl button{flex:1}
-.wahl button.an,.klein.an{background:var(--text);color:var(--bg);border-color:var(--text)}
+.wahl button.an,button.klein.an{background:var(--text);color:var(--bg);border-color:var(--text)}
 .link{background:none;border:0;color:var(--leise);text-decoration:underline;font:inherit;cursor:pointer;padding:8px;align-self:center}
 .code{font-family:var(--display);font-weight:800;font-size:3.4rem;letter-spacing:.12em;line-height:1}
 .qr{background:#fff;border-radius:16px;padding:10px;width:200px;max-width:60%;align-self:center}
@@ -54,7 +54,7 @@ button:focus-visible,input:focus-visible,a:focus-visible{outline:3px solid var(-
 .punkt{width:10px;height:10px;border-radius:50%;background:var(--linie);display:inline-block}
 .punkt.an{background:var(--gut)}
 .status{position:sticky;top:0;z-index:5;background:var(--karte-gelb);color:var(--bg);border-radius:12px;padding:10px 12px;font-weight:600;font-size:.9rem;display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
-.status .klein{background:var(--bg);color:var(--text);border-color:var(--bg)}
+.status button.klein{background:var(--bg);color:var(--text);border-color:var(--bg)}
 .spielkopf{display:flex;align-items:center;justify-content:space-between;gap:16px}
 .zeit{font-family:var(--display);font-size:1.8rem;font-weight:600;font-variant-numeric:tabular-nums}
 .zeit.knapp{color:var(--akzent)}
