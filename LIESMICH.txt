@@ -49,7 +49,9 @@ Mau-Mau (2 bis 8 Spieler)
 
 Viererkette (2 bis 3 Spieler; vom 14.11.2026)
   Steine fallen in die gewählte Spalte, wer zuerst vier eigene in einer Reihe hat (waagrecht, senkrecht, schräg), gewinnt
-  die Runde; volles Brett = unentschieden. Zu zweit 7 × 6, zu dritt 9 × 7 Felder. Farben Koralle, Gelb, Flieder.
+  die Runde; volles Brett = unentschieden. Zu zweit 7 × 6, zu dritt 9 × 7 Felder.
+  Steine: jeder wählt in der Lobby einen von fünf (Koralle/Punkt, Gelb/Stern, Flieder/Streifen, Himmelblau/Kreuz,
+  Creme/Raute); Farbe und Muster unterscheiden sich, ein Stein pro Person. Doppelte werden beim Start aufgelöst.
   Spalte antippen zeigt den Stein darüber, nochmal antippen oder „Einwerfen“ wirft ihn ein (kein versehentlicher Zug).
   Siege werden gezählt, jede Runde beginnt der Nächste. Wer als Vierter oder später kommt, schaut zu. Spielleiter kann
   nicht verbundene Spieler auslassen; die Spielleitung lässt sich wie bei den anderen Spielen übernehmen.

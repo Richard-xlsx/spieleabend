@@ -14,7 +14,25 @@
   };
   const esc = s => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   // Steinfarben in Spielreihenfolge
-  const FARBE = [{ name: "Koralle", f: "#FF6B57", r: "#B83E2E" }, { name: "Gelb", f: "#FFD447", r: "#B8921A" }, { name: "Flieder", f: "#B9A6FF", r: "#6E5BC4" }];
+  // Fünf Steine: jede Farbe hat ihr eigenes Muster, damit man sie auch ohne Farbsehen unterscheidet
+  const STEIN = [
+    { name: "Koralle", muster: "Punkt", f: "#FF6B57", r: "#9E3326" },
+    { name: "Gelb", muster: "Stern", f: "#FFD447", r: "#8F6E0E" },
+    { name: "Flieder", muster: "Streifen", f: "#B9A6FF", r: "#5B48B0" },
+    { name: "Himmelblau", muster: "Kreuz", f: "#62C6F5", r: "#1E6F99" },
+    { name: "Creme", muster: "Raute", f: "#F5EBD6", r: "#7A6A4E" }
+  ];
+  // Stein n als SVG-Gruppe, Mittelpunkt (cx, cy), Radius rr
+  function steinGrafik(n, cx, cy, rr, extra) {
+    const t = STEIN[n] || STEIN[0], k = rr / 21, P = (x, y) => `${(cx + x * k).toFixed(1)} ${(cy + y * k).toFixed(1)}`;
+    let m = "";
+    if (n === 0) m = `<circle cx="${cx}" cy="${cy}" r="${7 * k}" fill="${t.r}"/>`;
+    else if (n === 1) m = `<path d="M${[...Array(10)].map((_, i) => { const w = -Math.PI / 2 + i * Math.PI / 5, d = i % 2 ? 5 : 12; return P(d * Math.cos(w), d * Math.sin(w)); }).join("L")}z" fill="${t.r}"/>`;
+    else if (n === 2) m = [-8, 0, 8].map(d => { const h = Math.sqrt(13 * 13 - d * d) / Math.SQRT2, ox = d / Math.SQRT2; return `<path d="M${P(ox - h, -ox - h)}L${P(ox + h, -ox + h)}" stroke="${t.r}" stroke-width="${3.6 * k}" stroke-linecap="round"/>`; }).join("");
+    else if (n === 3) m = `<path d="M${P(0, -11)}L${P(0, 11)}M${P(-11, 0)}L${P(11, 0)}" stroke="${t.r}" stroke-width="${5.5 * k}" stroke-linecap="round"/>`;
+    else m = `<path d="M${P(0, -12)}L${P(10, 0)}L${P(0, 12)}L${P(-10, 0)}z" fill="${t.r}"/>`;
+    return `<g ${extra || ""}><circle cx="${cx}" cy="${cy}" r="${rr}" fill="${t.f}" stroke="${t.r}" stroke-width="${4 * k}"/>${m}</g>`;
+  }
 
   let PID = ls.get("slf:pid"); if (!PID) { PID = Math.random().toString(36).slice(2, 10); ls.set("slf:pid", PID); }
   let name = ls.get("slf:name") || "";
@@ -165,8 +183,8 @@
   // ---------- Oberfläche ----------
   const sp = p => (S && S.spieler[p]) || { name: "?", siege: 0 };
   const online = p => !!(S && S.online && S.online.includes(p));
-  const farbeVon = p => FARBE[S.teilnehmer.indexOf(p)] || FARBE[0];
-  const stein = (f, extra) => `<span class="stein" style="--f:${f.f};--r:${f.r}" ${extra || ""}></span>`;
+  const steinVon = p => { const n = S.stein && S.stein[p]; return n === undefined || n === null ? Math.max(0, S.teilnehmer.indexOf(p)) : n; };
+  const stein = (n, gross) => `<svg class="stein${gross ? " gross" : ""}" viewBox="0 0 48 48" aria-hidden="true">${steinGrafik(n, 24, 24, 21)}</svg>`;
   function statusZeile() {
     if (rolle === "host") return verbunden ? "" : (fehlerText || "Raum wird geöffnet …");
     if (rolle === "client" && !verbunden) return S ? "Verbindung zum Spielleiter weg, verbinde neu …" : (fehlerText || "Verbinde mit Raum " + code + " …");
@@ -186,15 +204,15 @@
 
   // Kleines Titelbild: ein Spielbrett mit einer fertigen Reihe
   function titelbild() {
-    const B = 7, H = 4, Z = 34, steine = { "1,0": 0, "2,1": 0, "3,2": 0, "4,3": 0, "0,0": 1, "2,0": 1, "3,0": 2, "4,0": 1, "5,0": 2, "3,1": 1, "4,1": 2, "4,2": 1, "1,1": 2, "6,0": 0 };
+    const B = 7, H = 4, Z = 34, steine = { "1,0": 0, "2,1": 0, "3,2": 0, "4,3": 0, "0,0": 1, "2,0": 3, "3,0": 2, "4,0": 1, "5,0": 4, "3,1": 1, "4,1": 2, "4,2": 3, "1,1": 2, "6,0": 3, "5,1": 4 };
     let s = `<rect x="6" y="20" width="${B * Z + 8}" height="${H * Z + 8}" rx="14" fill="#1F6F64" stroke="#0F3A34" stroke-width="3"/>`;
     for (let x = 0; x < B; x++) for (let y = 0; y < H; y++) {
-      const w = steine[x + "," + y], cx = 10 + x * Z + Z / 2, cy = 24 + (H - 1 - y) * Z + Z / 2, f = w === undefined ? null : FARBE[w];
-      s += f ? `<circle cx="${cx}" cy="${cy}" r="13" fill="${f.f}" stroke="${f.r}" stroke-width="3"/>` : `<circle cx="${cx}" cy="${cy}" r="13" fill="#1C1A33"/>`;
+      const w = steine[x + "," + y], cx = 10 + x * Z + Z / 2, cy = 24 + (H - 1 - y) * Z + Z / 2;
+      s += w !== undefined ? steinGrafik(w, cx, cy, 13.5) : `<circle cx="${cx}" cy="${cy}" r="13" fill="#1C1A33"/>`;
     }
     // die schräge Viererreihe in Koralle
     s += `<path d="M${10 + 1.5 * Z} ${24 + 3.5 * Z} L${10 + 4.5 * Z} ${24 + 0.5 * Z}" stroke="#F3F0FF" stroke-width="4" stroke-linecap="round" stroke-dasharray="2 8" opacity=".9"/>`;
-    s += `<circle class="tb-fall" cx="${10 + 5.5 * Z}" cy="10" r="13" fill="${FARBE[1].f}" stroke="${FARBE[1].r}" stroke-width="3"/>`;
+    s += steinGrafik(1, 10 + 5.5 * Z, 6, 13.5, 'class="tb-fall"');
     return `<svg class="titelbild" viewBox="0 -14 ${B * Z + 22} ${H * Z + 50}" role="img" aria-label="Spielbrett mit vier Steinen in einer Reihe">${s}</svg>`;
   }
   function bildschirmStart() {
@@ -221,8 +239,9 @@
       <div class="reihe"><button class="knopf zweit" id="teilen">Link teilen</button><button class="knopf zweit" id="kopieren">Link kopieren</button></div>
       <div class="karte-box"><h2>Im Raum (${da.length})</h2><ul class="spieler">${S.reihenfolge.filter(p => S.spieler[p]).map(p => {
         const i = da.indexOf(p);
-        return `<li>${i >= 0 && i < V.MAX ? stein(FARBE[i]) : `<i class="punkt ${online(p) ? "an" : ""}"></i>`}${esc(sp(p).name)}${p === S.host ? " <small>Spielleiter</small>" : ""}${p === PID ? " <small>du</small>" : ""}${i >= V.MAX ? " <small>schaut zu</small>" : ""}</li>`; }).join("")}</ul>
+        return `<li>${online(p) && S.stein && S.stein[p] !== undefined ? stein(S.stein[p]) : `<i class="punkt ${online(p) ? "an" : ""}"></i>`}${esc(sp(p).name)}${p === S.host ? " <small>Spielleiter</small>" : ""}${p === PID ? " <small>du</small>" : ""}${i >= V.MAX ? " <small>schaut zu</small>" : ""}</li>`; }).join("")}</ul>
         <p class="leise klein">${n >= 3 ? "Zu dritt: großes Brett mit 9 × 7 Feldern." : "Zu zweit: Brett mit 7 × 6 Feldern. Kommt noch jemand dazu, wird es größer."} Höchstens ${V.MAX} spielen, alle weiteren schauen zu.</p></div>
+      ${steinWahl()}
       <div class="karte-box"><h2>So geht's</h2><ul class="regeln">
         <li>Wer dran ist, tippt auf eine Spalte. Der Stein schwebt darüber. Noch einmal tippen (oder „Einwerfen“) lässt ihn fallen.</li>
         <li>Wer zuerst <b>vier eigene Steine in einer Reihe</b> hat, waagrecht, senkrecht oder schräg, gewinnt die Runde.</li>
@@ -231,6 +250,15 @@
       ${host ? `<div class="unten"><button class="knopf" id="start" ${da.length < 2 ? "disabled" : ""}>${da.length < 2 ? "Warte auf Mitspieler …" : `Spiel starten (${f.breite} × ${f.hoehe})`}</button></div>`
         : `<p class="leise mitte">Warte, bis ${esc(sp(S.host).name)} das Spiel startet.</p>`}
       <button class="link" id="verlassen">Raum verlassen</button>`;
+  }
+  // Jeder wählt seinen Stein; was ein anderer schon hat, ist gesperrt
+  function steinWahl() {
+    const frei = V.freieSteine(S, PID), mein = S.stein ? S.stein[PID] : undefined;
+    const wer = n => Object.keys(S.stein || {}).find(p => p !== PID && S.stein[p] === n && online(p));
+    return `<div class="karte-box"><h2>Dein Stein</h2><div class="steinwahl">${STEIN.map((t, n) => {
+      const an = mein === n, weg = !an && !frei.includes(n);
+      return `<button class="steinknopf ${an ? "an" : ""}" data-stein="${n}" ${weg ? "disabled" : ""} aria-pressed="${an}" aria-label="${t.name} mit ${t.muster}${weg ? ", hat " + esc(sp(wer(n)).name) : ""}">${stein(n, true)}<small>${weg ? esc(sp(wer(n)).name) : t.name}</small></button>`;
+    }).join("")}</div><p class="leise klein">Jede Farbe hat ihr eigenes Muster: ${STEIN.map(t => t.name + " " + t.muster).join(", ")}.</p></div>`;
   }
   // Das Brett als SVG: eine Zeile Platz oben für den schwebenden Stein, Spalten zum Antippen
   function brett() {
@@ -243,9 +271,9 @@
     // Steine (hinter dem Brett, damit sie durch die Löcher schauen)
     for (let x = 0; x < B; x++) for (let y = 0; y < H; y++) {
       const w = S.feld[y * B + x]; if (w === null) continue;
-      const f = FARBE[w], cx = rand + x * Z + Z / 2, cy = oben + rand + (H - 1 - y) * Z + Z / 2;
+      const n = steinVon(S.teilnehmer[w]), cx = rand + x * Z + Z / 2, cy = oben + rand + (H - 1 - y) * Z + Z / 2;
       const istNeu = fallen && S.letzter.x === x && S.letzter.y === y, aus = S.linie && !linie.has(x + "," + y);
-      s += `<g class="${istNeu ? "fall" : ""}" style="${istNeu ? `--h:${cy}px` : ""}" opacity="${aus ? .45 : 1}"><circle cx="${cx}" cy="${cy}" r="21" fill="${f.f}" stroke="${f.r}" stroke-width="4"/><circle cx="${cx}" cy="${cy}" r="12" fill="none" stroke="${f.r}" stroke-width="2" opacity=".5"/></g>`;
+      s += `<g class="${istNeu ? "fall" : ""}" style="${istNeu ? `--h:${cy}px` : ""}" opacity="${aus ? .45 : 1}">${steinGrafik(n, cx, cy, 21)}</g>`;
     }
     s += `<rect x="0" y="${oben}" width="${W}" height="${H * Z + 2 * rand}" rx="16" fill="#1F6F64" mask="url(#loecher)"/>`;
     for (let x = 0; x < B; x++) for (let y = 0; y < H; y++) s += `<circle cx="${rand + x * Z + Z / 2}" cy="${oben + rand + (H - 1 - y) * Z + Z / 2}" r="20" fill="none" stroke="#0F3A34" stroke-width="2.5"/>`;
@@ -257,7 +285,7 @@
     }
     // schwebender Stein und Spalten zum Antippen
     const mz = meinZug();
-    if (mz && wahl !== null) { const f = farbeVon(PID); s += `<circle class="schwebt" cx="${rand + wahl * Z + Z / 2}" cy="${Z / 2}" r="21" fill="${f.f}" stroke="${f.r}" stroke-width="4"/>`; s += `<rect x="${rand + wahl * Z + 2}" y="${oben + 2}" width="${Z - 4}" height="${H * Z + 2 * rand - 4}" rx="10" fill="#fff" opacity=".1" pointer-events="none"/>`; }
+    if (mz && wahl !== null) { s += steinGrafik(steinVon(PID), rand + wahl * Z + Z / 2, Z / 2, 21, 'class="schwebt"'); s += `<rect x="${rand + wahl * Z + 2}" y="${oben + 2}" width="${Z - 4}" height="${H * Z + 2 * rand - 4}" rx="10" fill="#fff" opacity=".1" pointer-events="none"/>`; }
     if (mz) for (let x = 0; x < B; x++) { const frei = V.spalteFrei(S, x); s += `<rect data-spalte="${x}" x="${rand + x * Z}" y="0" width="${Z}" height="${Hh}" fill="#fff" fill-opacity=".001" ${frei ? 'role="button" tabindex="0"' : ""} aria-label="Spalte ${x + 1}${frei ? "" : ", voll"}" style="cursor:${frei ? "pointer" : "default"}"/>`; }
     if (fallen) gefallen = neuKey;
     return `<svg class="brett" viewBox="0 0 ${W} ${Hh}" role="group" aria-label="Spielbrett ${B} mal ${H}">${s}</svg>`;
@@ -265,11 +293,11 @@
   function bildschirmSpiel() {
     const host = rolle === "host", dran = S.teilnehmer[S.dran], ende = S.phase === "ende", dabei = S.teilnehmer.includes(PID);
     if (wahl !== null && (!meinZug() || !V.spalteFrei(S, wahl))) wahl = null;
-    const kopf = `<div class="leiste">${S.teilnehmer.map((p, i) => `<div class="mitspieler ${!ende && i === S.dran ? "dran" : ""} ${online(p) ? "" : "weg"}">${stein(FARBE[i])}<b>${esc(sp(p).name)}${p === PID ? " <small>du</small>" : ""}</b><span class="siege">${sp(p).siege}</span></div>`).join("")}</div>`;
+    const kopf = `<div class="leiste">${S.teilnehmer.map((p, i) => `<div class="mitspieler ${!ende && i === S.dran ? "dran" : ""} ${online(p) ? "" : "weg"}"><span class="oben">${stein(steinVon(p))}<span class="siege">${sp(p).siege}</span></span><b>${esc(sp(p).name)}</b></div>`).join("")}</div>`;
     let zeile;
-    if (ende) zeile = S.sieger ? `${stein(farbeVon(S.sieger))}<span><b>${S.sieger === PID ? "Du gewinnst" : esc(sp(S.sieger).name) + " gewinnt"}</b> die Runde ${S.runde}!</span>` : `<span>Das Brett ist voll: unentschieden.</span>`;
-    else if (meinZug()) zeile = `${stein(farbeVon(PID))}<span><b>Du bist dran.</b> ${wahl === null ? "Tippe auf eine Spalte." : "Nochmal tippen oder „Einwerfen“."}</span>`;
-    else zeile = `${stein(farbeVon(dran))}<span>${esc(sp(dran).name)} ist dran${online(dran) ? "" : " (nicht verbunden)"}.</span>`;
+    if (ende) zeile = S.sieger ? `${stein(steinVon(S.sieger))}<span><b>${S.sieger === PID ? "Du gewinnst" : esc(sp(S.sieger).name) + " gewinnt"}</b> die Runde ${S.runde}!</span>` : `<span>Das Brett ist voll: unentschieden.</span>`;
+    else if (meinZug()) zeile = `${stein(steinVon(PID))}<span><b>Du bist dran.</b> ${wahl === null ? "Tippe auf eine Spalte." : "Nochmal tippen oder „Einwerfen“."}</span>`;
+    else zeile = `${stein(steinVon(dran))}<span>${esc(sp(dran).name)} ist dran${online(dran) ? "" : " (nicht verbunden)"}.</span>`;
     return `<p class="etikett mitte">Runde ${S.runde}${dabei ? "" : " · du schaust zu"}</p>${kopf}
       <p class="zug ${meinZug() || (ende && S.sieger === PID) ? "du" : ""}" aria-live="polite">${zeile}</p>
       <div class="brettrahmen">${brett()}</div>
@@ -298,6 +326,7 @@
     if ($("lobby")) $("lobby").onclick = () => tun({ t: "lobby" });
     if ($("verlassen")) $("verlassen").onclick = verlassen;
     if ($("einwerfen")) $("einwerfen").onclick = einwerfen;
+    document.querySelectorAll("[data-stein]").forEach(b => b.onclick = () => tun({ t: "stein", n: +b.dataset.stein }));
     if ($("auslassen")) $("auslassen").onclick = () => tun({ t: "auslassen", ziel: S.teilnehmer[S.dran] });
     document.querySelectorAll("[data-spalte]").forEach(r => {
       r.onclick = () => spalteTippen(+r.dataset.spalte);

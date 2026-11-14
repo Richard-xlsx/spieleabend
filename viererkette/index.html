@@ -65,12 +65,20 @@ button:focus-visible,input:focus-visible,a:focus-visible{outline:3px solid var(-
 .titelbild{display:block;width:100%;height:auto;max-width:360px;align-self:center;margin:4px 0 8px}
 .tb-fall{animation:tb-fall 2.8s infinite cubic-bezier(.5,0,.75,1)}
 @keyframes tb-fall{0%,20%{transform:translateY(0);opacity:1}55%,85%{transform:translateY(-6px);opacity:1}100%{opacity:1}}
-.stein{display:inline-block;width:18px;height:18px;border-radius:50%;background:var(--f);border:3px solid var(--r);flex:none;vertical-align:-3px}
+.stein{display:inline-block;width:24px;height:24px;flex:none;vertical-align:-6px}
+.stein.gross{width:44px;height:44px}
+.steinwahl{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.steinknopf{appearance:none;border:2px solid var(--linie);background:var(--flaeche2);color:var(--text);border-radius:14px;padding:8px 2px 6px;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;font:600 .7rem var(--fliess);min-width:0}
+.steinknopf small{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.steinknopf.an{border-color:var(--gelb);box-shadow:0 0 0 3px rgba(255,212,71,.2)}
+.steinknopf:disabled{opacity:.4;cursor:default}
 .leiste{display:flex;gap:8px}
-.mitspieler{flex:1;min-width:0;display:flex;align-items:center;gap:8px;background:var(--flaeche);border:2px solid var(--linie);border-radius:14px;padding:8px 10px}
-.mitspieler b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.92rem}
+.mitspieler{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:3px;background:var(--flaeche);border:2px solid var(--linie);border-radius:14px;padding:7px 6px}
+.mitspieler .oben{display:flex;align-items:center;gap:8px}
+.mitspieler .stein{width:22px;height:22px}
+.mitspieler b{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.88rem}
 .mitspieler b small{color:var(--leise);font-weight:500}
-.mitspieler .siege{font:800 1.1rem var(--display)}
+.mitspieler .siege{font:800 1rem var(--display)}
 .mitspieler.dran{border-color:var(--gelb);box-shadow:0 0 0 3px rgba(255,212,71,.18)}
 .mitspieler.weg{opacity:.55}
 .zug{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;min-height:2.6em}
