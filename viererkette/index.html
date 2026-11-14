@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Viererkette">
+<meta name="theme-color" content="#1C1A33">
+<title>Viererkette</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@600;800&family=Inter:wght@400;500;600;700&display=swap">
+<style>
+/* Spieleabend-Familie: Tintenblau, Korall, gelbe Markierung; das Brett in Tannengrün */
+:root{
+  --bg:#1C1A33; --flaeche:#272447; --flaeche2:#322E5A; --text:#F3F0FF; --leise:#A8A2CC; --linie:#3D3868;
+  --akzent:#FF6B57; --akzent-text:#1C1A33; --gelb:#FFD447; --gut:#5BD69A; --rot:#E2453A; 
+  --display:"Unbounded","Segoe UI",system-ui,sans-serif; --fliess:"Inter","Segoe UI",system-ui,sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--bg);color:var(--text);font:16px/1.45 var(--fliess);-webkit-text-size-adjust:100%}
+body{padding:max(12px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) max(16px,env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left))}
+#app{max-width:520px;margin:0 auto;display:flex;flex-direction:column;gap:12px}
+h1,h2{font-family:var(--display);margin:0;letter-spacing:-.01em;text-wrap:balance}
+h1{font-size:1.9rem;line-height:1.1;font-weight:800}
+h2{font-size:1.05rem;font-weight:600}
+.titel{display:flex;flex-direction:column;gap:6px;padding-top:6px}
+.leise{color:var(--leise);margin:0}
+.mitte{text-align:center}
+.etikett{font-size:.72rem;text-transform:uppercase;letter-spacing:.1em;color:var(--leise);font-weight:600;margin:0}
+.karte-box{background:var(--flaeche);border:1px solid var(--linie);border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:12px}
+.feld{display:flex;flex-direction:column;gap:6px;font-size:.85rem;color:var(--leise);font-weight:500}
+.feld input{font:500 1.05rem var(--fliess);color:var(--text);background:var(--flaeche2);border:1px solid var(--linie);border-radius:12px;padding:13px 14px;width:100%;outline:none}
+.feld input:focus{border-color:var(--akzent)}
+.knopf{appearance:none;border:0;border-radius:14px;padding:14px 16px;font:700 1rem var(--fliess);background:var(--akzent);color:var(--akzent-text);width:100%;cursor:pointer}
+.knopf.zweit{background:transparent;color:var(--text);border:1px solid var(--linie)}
+.knopf:disabled{opacity:.4;cursor:default}
+button:focus-visible,input:focus-visible,a:focus-visible{outline:3px solid var(--gelb);outline-offset:2px}
+.reihe{display:flex;gap:10px}
+.wahl{display:flex;gap:8px}
+.wahl button,button.klein{appearance:none;border:1px solid var(--linie);background:var(--flaeche2);color:var(--text);border-radius:999px;padding:8px 14px;font:600 .9rem var(--fliess);cursor:pointer}
+.wahl button{flex:1}
+.wahl button.an{background:var(--text);color:var(--bg);border-color:var(--text)}
+.schalter{display:flex;align-items:center;gap:10px;font-weight:600}
+.schalter input{width:20px;height:20px;accent-color:var(--akzent)}
+.link{background:none;border:0;color:var(--leise);text-decoration:underline;font:inherit;cursor:pointer;padding:8px;align-self:center}
+.code{font-family:var(--display);font-weight:800;font-size:3.4rem;letter-spacing:.12em;line-height:1}
+.qr{background:#fff;border-radius:16px;padding:10px;width:200px;max-width:60%;align-self:center}
+.qr svg{display:block;width:100%;height:auto}
+.spieler{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.spieler li{display:flex;align-items:center;gap:10px;font-weight:600}
+.spieler small{color:var(--leise);font-weight:500}
+.punkt{width:10px;height:10px;border-radius:50%;background:var(--linie);display:inline-block}
+.punkt.an{background:var(--gut)}
+.regeln{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px;font-size:.92rem;color:var(--leise)}
+.regeln b{color:var(--text)}
+.status{position:sticky;top:0;z-index:5;background:var(--gelb);color:var(--bg);border-radius:12px;padding:10px 12px;font-weight:600;font-size:.9rem;display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.status button.klein{background:var(--bg);color:var(--text);border-color:var(--bg)}
+.zug{margin:4px 0 0;text-align:center;font-weight:600;color:var(--leise)}
+.zug.du{color:var(--gelb)}
+.unten{position:sticky;bottom:0;padding-block:10px calc(4px + env(safe-area-inset-bottom));background:linear-gradient(transparent,var(--bg) 30%);display:flex;flex-direction:column;gap:8px;z-index:3}
+.toast{position:fixed;left:50%;bottom:calc(90px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--text);color:var(--bg);font-weight:600;padding:10px 16px;border-radius:12px;z-index:20;max-width:90vw;text-align:center;box-shadow:0 8px 20px rgba(0,0,0,.4)}
+.klein{font-size:.88rem}
+.titelbild{display:block;width:100%;height:auto;max-width:360px;align-self:center;margin:4px 0 8px}
+.tb-fall{animation:tb-fall 2.8s infinite cubic-bezier(.5,0,.75,1)}
+@keyframes tb-fall{0%,20%{transform:translateY(0);opacity:1}55%,85%{transform:translateY(-6px);opacity:1}100%{opacity:1}}
+.stein{display:inline-block;width:18px;height:18px;border-radius:50%;background:var(--f);border:3px solid var(--r);flex:none;vertical-align:-3px}
+.leiste{display:flex;gap:8px}
+.mitspieler{flex:1;min-width:0;display:flex;align-items:center;gap:8px;background:var(--flaeche);border:2px solid var(--linie);border-radius:14px;padding:8px 10px}
+.mitspieler b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.92rem}
+.mitspieler b small{color:var(--leise);font-weight:500}
+.mitspieler .siege{font:800 1.1rem var(--display)}
+.mitspieler.dran{border-color:var(--gelb);box-shadow:0 0 0 3px rgba(255,212,71,.18)}
+.mitspieler.weg{opacity:.55}
+.zug{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;min-height:2.6em}
+.brettrahmen{display:flex;justify-content:center}
+.brett{display:block;width:100%;height:auto;max-height:64vh;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.brett .fall{animation:fall .55s cubic-bezier(.45,0,.9,.6) both}
+@keyframes fall{0%{transform:translateY(calc(-1 * var(--h)))}78%{transform:translateY(0)}88%{transform:translateY(-7px)}100%{transform:translateY(0)}}
+.brett .schwebt{animation:schweben 1.4s infinite ease-in-out}
+@keyframes schweben{50%{transform:translateY(-4px)}}
+.brett .gewinn{stroke-dasharray:400;animation:strich .7s .4s both ease-out}
+@keyframes strich{from{stroke-dashoffset:400}to{stroke-dashoffset:0}}
+@media (prefers-reduced-motion:reduce){.brett .fall,.brett .schwebt,.brett .gewinn,.tb-fall{animation:none}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+<script src="viererkette-logic.js"></script>
+<script src="viererkette.js"></script>
+</body>
+</html>
