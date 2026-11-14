@@ -200,13 +200,13 @@
   }
   // Die Hand nutzt den freien Platz unter dem Tisch: Kartenbreite aus der verbleibenden Bildschirmhöhe
   let kartenBreite = 76;
-  const handHoehe = kw => Math.round(kw * 1.4 * (GROSS + .05) + HEBEN + 6);
-  const GROSS = 1.15, HEBEN = 22;              // ausgewählte Karte: so viel größer und so weit angehoben
+  const HEBEN = .3;                            // ausgewählte Karte wird um 30 % der Kartenbreite angehoben (nicht vergrößert)
+  const handHoehe = kw => Math.round(kw * (1.4 + HEBEN) + 10);
   function handAnpassen() {
     const hand = document.querySelector(".hand"); if (!hand) return;
     const ohneHand = document.body.offsetHeight - hand.offsetHeight;   // body: Inhaltshöhe (das html-Element ist mindestens so hoch wie der Bildschirm)
     const frei = window.innerHeight - ohneHand;
-    const kw = Math.round(Math.max(76, Math.min(150, (frei - HEBEN - 6) / (1.4 * (GROSS + .05)))));
+    const kw = Math.round(Math.max(76, Math.min(150, (frei - 10) / (1.4 + HEBEN))));
     if (Math.abs(kw - kartenBreite) < 3) return;
     kartenBreite = kw; render();
   }
@@ -262,9 +262,7 @@
     if (n > 1 && schritt < minSchritt) { schritt = minSchritt; scroll = true; }
     const gesamt = kw + schritt * (n - 1), start = scroll ? 4 : (breite - gesamt) / 2, dreh = scroll ? 0 : Math.min(2, 12 / Math.max(n, 1));
     if (auswahl && !karten.includes(auswahl)) auswahl = null;
-    // die ausgewählte Karte wächst in den Platz über der Hand hinein (bei vielen Karten mehr)
-    const gross = Math.max(GROSS, Math.min(1.25, (handHoehe(kartenBreite) - HEBEN - 8) / (kw * 1.4))).toFixed(2);
-    return `<div class="handscroll${scroll ? " scroll" : ""}"><div class="hand" style="width:${scroll ? gesamt + 8 : breite}px;height:${handHoehe(kartenBreite)}px;--kw:${kw}px;--gross:${gross}">${karten.map((k, j) =>
+    return `<div class="handscroll${scroll ? " scroll" : ""}"><div class="hand" style="width:${scroll ? gesamt + 8 : breite}px;height:${handHoehe(kartenBreite)}px;--kw:${kw}px">${karten.map((k, j) =>
       `<button class="handkarte${k === auswahl ? " gewaehlt" : ""}" data-karte="${k}" aria-pressed="${k === auswahl}" aria-label="${esc(kartenText(k))}"
         style="left:${(start + j * schritt).toFixed(1)}px;transform:rotate(${((j - (n - 1) / 2) * dreh).toFixed(1)}deg)">${kartenSvg(k)}</button>`).join("")}</div></div>`;
   }

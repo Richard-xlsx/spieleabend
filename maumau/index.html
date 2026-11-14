@@ -85,9 +85,9 @@ button:focus-visible,input:focus-visible,a:focus-visible{outline:3px solid var(-
 .handscroll{width:100%}
 .handscroll.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
 .hand{position:relative;height:150px;margin:0 auto;--kw:76px}
-.handkarte{appearance:none;border:0;background:none;padding:0;position:absolute;bottom:4px;width:var(--kw);transform-origin:50% 130%;cursor:pointer;transition:bottom .15s,scale .15s}
+.handkarte{appearance:none;border:0;background:none;padding:0;position:absolute;bottom:4px;width:var(--kw);transform-origin:50% 130%;cursor:pointer;transition:bottom .15s}
 .handkarte svg{width:100%;height:auto;display:block;filter:drop-shadow(-2px 3px 0 rgba(0,0,0,.28))}
-.handkarte.gewaehlt{bottom:22px;z-index:2;scale:var(--gross,1.15);transform-origin:50% 100%}
+.handkarte.gewaehlt{bottom:calc(4px + var(--kw) * .3);z-index:2}
 .handkarte.gewaehlt svg{filter:drop-shadow(0 6px 0 rgba(0,0,0,.35))}
 .gegner .erwischt{appearance:none;margin-top:4px;border:1px solid var(--linie);background:transparent;color:var(--leise);border-radius:999px;padding:3px 8px;font:600 .72rem var(--fliess);cursor:pointer;align-self:flex-start}
 .gegner .erwischt:active{background:var(--gelb);color:var(--bg)}
