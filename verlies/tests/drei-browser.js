@@ -39,7 +39,7 @@ const OUT = path.join(AUS, (process.argv[3] || 'b') + '-');
       await h.waitForFunction(() => window.__vl.S.online.length === 3, null, { timeout: 40000 });
       console.log('Spielleiter neu geladen, alle wieder da');
     }
-    for (const p of pages) {
+    for (const p of pages) { try {
       const ue = await p.$('#ueberspringen');
       if (ue) {
         shots.wiedergaben = (shots.wiedergaben || 0) + (p === h ? 1 : 0);
@@ -76,7 +76,7 @@ const OUT = path.join(AUS, (process.argv[3] || 'b') + '-');
         const z = await p.$$('[data-ziel]');
         if (z.length) { const held = await p.$('.heldzeile.ziel'); const key = held ? 'zielheld' : 'ziel'; if (!shots[key]) { shots[key] = 1; await p.screenshot({ path: OUT + '3-' + key + '.png', fullPage: true }); } await z[Math.floor(Math.random() * z.length)].click(); }
       }
-    }
+    } catch (x) { if (!/not attached|detached/i.test(x.message)) throw x; } }   // Knopf wurde gerade neu gezeichnet
     await h.waitForTimeout(300);
   }
   await h.waitForTimeout(1500);
