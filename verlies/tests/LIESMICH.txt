@@ -8,7 +8,8 @@ Ohne Browser (nur Node.js):
   node simulation.js [Partien]       Alle 20 Dreiergruppen und drei Zweiergruppen, je „klug“ (Fähigkeiten, Einkaufen,
                                      Talente; jeder Held folgt einem zufälligen Ast) und „simpel“ (nur Grundangriff). Zeigt Siegquoten, Ø Stufe, Ø Gold, die Siegquote je Ast und wo verloren wird.
                                      Standard 300 Partien je Gruppe; für einen schnellen Blick 50 bis 100.
-                                     Partielänge über EBENEN=1, 2 (Standard) oder 3, z. B. EBENEN=3 node simulation.js 20.
+                                     Partielänge über EBENEN=1, 2 (Standard), 3 oder 4 (die Tiefe, endlos;
+                                     zeigt, bis zu welcher Ebene die Gruppen kommen; BIS=14 bricht danach ab), z. B. EBENEN=3 node simulation.js 20.
                                      Schwierigkeit über SCHWERE=1 (Wanderer) bis 4 (Legende), Standard 2; Gruppengröße über GRUPPE=2, 3
                                      (Standard) bis 6, dann alle Gruppen dieser Größe. Flüche über FLUECHE=zaeh,wild,regen,dornen,rache,verstaerkung. Ein Kampf, der nicht endet, bricht mit „endet nicht“ ab.
   node rundenaufzeichnung.js         400 zufällige Partien mit 2 bis 6 Helden, allen Schwierigkeiten und zufälligen Flüchen (je ein Drittel beginnt in Ebene 1, 2 und 3): Ausgangslage + Ereignisse in S.letzte müssen genau das

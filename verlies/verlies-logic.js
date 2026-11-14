@@ -108,7 +108,20 @@
     ["sonnenstrahl", "Sonnenstrahl", null, 3, "6 Schaden an allen Gegnern"],
     ["erloesung", "Erlösung", null, 0, "Alle Helden voll geheilt, Bewusstlose stehen auf", 1],
     ["heiligtum", "Heiligtum", null, 0, "Alle +10 Leben, in den nächsten zwei Runden je +8", 1],
-    ["sonnenzorn", "Sonnenzorn", null, 0, "15 Schaden an allen Gegnern, alle Helden +5", 1]
+    ["sonnenzorn", "Sonnenzorn", null, 0, "15 Schaden an allen Gegnern, alle Helden +5", 1],
+    // Aufstieg (ab Stufe 20): zweite Meisterfähigkeit, je Spezialisierung eine
+    ["ansturm", "Ansturm", null, 0, "12 Schaden an allen Gegnern, nächster Angriff aller +4", 1],
+    ["klingensturm", "Klingensturm", null, 0, "Fünf Hiebe auf zufällige Gegner, je 9 Schaden", 1],
+    ["feuerweihe", "Läuterndes Feuer", null, 0, "18 heiliger Schaden an allen Gegnern (Untote doppelt), alle Helden +6", 1],
+    ["ewigschild", "Ewiger Schild", null, 0, "Diese und die nächste Runde nimmt die ganze Gruppe nur halben Schaden", 1],
+    ["schattentanz", "Schattentanz", null, 0, "Vier Dolchstöße auf zufällige Gegner, je 11 Schaden, dann verschwindest du in den Schatten", 1],
+    ["schwarztod", "Schwarzer Tod", null, 0, "8 Schaden an allen, dann 3 Runden je 8 Gift", 1],
+    ["sternschuss", "Sternschuss", "gegner", 0, "40 Schaden an einem Gegner", 1],
+    ["wildnis", "Ruf der Wildnis", null, 0, "Tiere greifen sechsmal zufällige Gegner an, je 9 Schaden, alle Helden +6", 1],
+    ["sternenfall", "Sternenfall", null, 0, "28 Schaden an allen Gegnern", 1],
+    ["zeitstillstand", "Zeitstillstand", null, 0, "8 Schaden an allen, alle Gegner erstarren diese und nächste Runde", 1],
+    ["gnade", "Göttliche Gnade", null, 0, "Alle voll geheilt, Bewusstlose stehen auf, kein Gift, nächster Angriff aller +4", 1],
+    ["lebensquell", "Lebensquell", null, 0, "Alle +12 Leben (weckt Bewusstlose), in den nächsten drei Runden je +10", 1]
   ].forEach(([id, name, ziel, cd, text, meister]) => { NEUE[id] = Object.assign({ id, name, ziel, text }, cd ? { cd } : {}, meister ? { meister: true } : {}); });
   const TRANK = { id: "trank", name: "Heiltrank", ziel: null, text: "+14 Leben für dich" };
   const BEFREIEN = { id: "befreien", name: "Aus dem Netz befreien", ziel: null, text: "Du hängst im Netz fest und setzt diese Runde aus." };
@@ -256,24 +269,118 @@
         ["Sonnenzorn", "Meisterfähigkeit: 15 Schaden an allen Gegnern, alle Helden +5.", { meister: "sonnenzorn" }]]]
     ]
   };
+  // Aufstieg ab Stufe 20: je Rolle zwei Spezialisierungen mit 4 Knoten, bezahlt mit Ruhmespunkten.
+  // Man wählt nur eine; ihr letzter Knoten ist eine zweite Meisterfähigkeit.
+  const AUFSTIEG = {
+    kaempfer: [
+      ["kriegsherr", "Kriegsherr", "Führt die Gruppe an", [
+        ["Feldzeichen", "Immer: Alle Helden +1 Schaden mit allen Angriffen.", { passiv: "aura", n: 1 }],
+        ["Eiserner Wille", "Immer: +10 Höchstleben.", { passiv: "leben", n: 10 }],
+        ["Sammelruf", "Immer: Nach jedem Kampf alle +6 Leben.", { passiv: "siegheil", n: 6 }],
+        ["Ansturm", "Zweite Meisterfähigkeit: 12 Schaden an allen, nächster Angriff aller +4.", { meister: "ansturm" }]]],
+      ["klingentaenzer", "Klingentänzer", "Wirbelt durch die Gegner", [
+        ["Klingenwirbel", "Wirbelschlag +4 Schaden.", { plus: "wirbel", schaden: 4 }],
+        ["Tänzelnd", "Wirbelschlag ist 1 Runde früher wieder bereit.", { plus: "wirbel", cd: 1 }],
+        ["Todeskreisel", "Immer: Einzelangriffe treffen 15 % öfter doppelt.", { passiv: "krit", n: 15 }],
+        ["Klingensturm", "Zweite Meisterfähigkeit: Fünf Hiebe, je 9 Schaden.", { meister: "klingensturm" }]]]
+    ],
+    paladin: [
+      ["kreuzritter", "Kreuzritter", "Heiliger Zorn", [
+        ["Weihehammer", "Hammerschlag +4 Schaden.", { plus: "hammer", schaden: 4 }],
+        ["Bannstrahl", "Immer: +4 Schaden gegen Untote.", { passiv: "untot", n: 4 }],
+        ["Glaubensstärke", "Immer: +1 Schaden mit allen Angriffen.", { passiv: "schaden", n: 1 }],
+        ["Läuterndes Feuer", "Zweite Meisterfähigkeit: 18 heiliger Schaden an allen, alle Helden +6.", { meister: "feuerweihe" }]]],
+      ["hueter", "Hüter", "Ein Schild für alle", [
+        ["Dicke Platte", "Immer: −1 Schaden pro Treffer.", { passiv: "ruestung", n: 1 }],
+        ["Schutzkreis", "Immer: Alle anderen Helden nehmen 1 Schaden weniger pro Treffer.", { passiv: "schutzaura", n: 1 }],
+        ["Bollwerk aus Stahl", "Immer: +10 Höchstleben.", { passiv: "leben", n: 10 }],
+        ["Ewiger Schild", "Zweite Meisterfähigkeit: Zwei Runden lang nur halber Schaden für die Gruppe.", { meister: "ewigschild" }]]]
+    ],
+    dieb: [
+      ["schattenklinge", "Schattenklinge", "Aus dem Dunkel zuschlagen", [
+        ["Giftzahn", "Dolchstich +3 Schaden.", { plus: "dolch", schaden: 3 }],
+        ["Lücke finden", "Immer: Einzelangriffe treffen 15 % öfter doppelt.", { passiv: "krit", n: 15 }],
+        ["Erster Stich", "Immer: In der ersten Runde jedes Kampfes +6 Schaden.", { passiv: "erste", n: 6 }],
+        ["Schattentanz", "Zweite Meisterfähigkeit: Vier Dolchstöße, je 11 Schaden, dann versteckt.", { meister: "schattentanz" }]]],
+      ["pestbringer", "Pestbringer", "Gift, das alles zerfrisst", [
+        ["Faulgift", "Immer: Dein Gift +2 Schaden je Runde.", { passiv: "giftplus", n: 2 }],
+        ["Dicker Nebel", "Giftwolke +3 Schaden.", { plus: "giftwolke", schaden: 3 }],
+        ["Schnelle Klinge", "Giftklinge ist 1 Runde früher wieder bereit.", { plus: "gift", cd: 1 }],
+        ["Schwarzer Tod", "Zweite Meisterfähigkeit: 8 Schaden an allen, dann 3 Runden je 8 Gift.", { meister: "schwarztod" }]]]
+    ],
+    waldlaeufer: [
+      ["meisterschuetze", "Meisterschütze", "Jeder Pfeil ein Treffer", [
+        ["Kriegsbogen", "Pfeilschuss +3 Schaden.", { plus: "pfeil", schaden: 3 }],
+        ["Falkenblick", "Immer: Einzelangriffe treffen 15 % öfter doppelt.", { passiv: "krit", n: 15 }],
+        ["Schnelle Sehne", "Kopfschuss ist 1 Runde früher wieder bereit.", { plus: "kopfschuss", cd: 1 }],
+        ["Sternschuss", "Zweite Meisterfähigkeit: 40 Schaden an einem Gegner.", { meister: "sternschuss" }]]],
+      ["tierfreund", "Tierfreund", "Die Wildnis kämpft mit", [
+        ["Bärenkraft", "Immer: +8 Höchstleben.", { passiv: "leben", n: 8 }],
+        ["Rastplatz", "Immer: Nach jedem Kampf alle +5 Leben.", { passiv: "siegheil", n: 5 }],
+        ["Heilmoos", "Kräuterkunde +5 Leben.", { plus: "kraeuter", heil: 5 }],
+        ["Ruf der Wildnis", "Zweite Meisterfähigkeit: Sechs Tierangriffe, je 9 Schaden, alle Helden +6.", { meister: "wildnis" }]]]
+    ],
+    magierin: [
+      ["erzmagierin", "Erzmagierin", "Rohe Zauberkraft", [
+        ["Feuersturm", "Feuerball +3 Schaden.", { plus: "feuerball", schaden: 3 }],
+        ["Machtwort", "Immer: +2 Schaden mit allen Angriffen.", { passiv: "schaden", n: 2 }],
+        ["Flammenfluss", "Feuerball ist 1 Runde früher wieder bereit.", { plus: "feuerball", cd: 1 }],
+        ["Sternenfall", "Zweite Meisterfähigkeit: 28 Schaden an allen Gegnern.", { meister: "sternenfall" }]]],
+      ["chronomantin", "Chronomantin", "Hält die Zeit an", [
+        ["Zeitdehnung", "Eislanze ist 1 Runde früher wieder bereit.", { plus: "eis", cd: 1 }],
+        ["Zeitpanzer", "Immer: −1 Schaden pro Treffer.", { passiv: "ruestung", n: 1 }],
+        ["Langes Leben", "Immer: +8 Höchstleben.", { passiv: "leben", n: 8 }],
+        ["Zeitstillstand", "Zweite Meisterfähigkeit: 8 Schaden an allen, alle Gegner erstarren zwei Runden.", { meister: "zeitstillstand" }]]]
+    ],
+    heilerin: [
+      ["hohepriesterin", "Hohepriesterin", "Heilung ohne Grenzen", [
+        ["Heilige Hände", "Heilen +6 Leben.", { plus: "heilen", heil: 6 }],
+        ["Gnadenreich", "Immer: Deine Heilungen auf einen Helden +3.", { passiv: "heilplus", n: 3 }],
+        ["Rascher Segen", "Segen ist 1 Runde früher wieder bereit.", { plus: "segen", cd: 1 }],
+        ["Göttliche Gnade", "Zweite Meisterfähigkeit: Alle voll geheilt, kein Gift, nächster Angriff aller +4.", { meister: "gnade" }]]],
+      ["lebensweberin", "Lebensweberin", "Heilt über viele Runden", [
+        ["Lebensfaden", "Segen +4 Leben.", { plus: "segen", heil: 4 }],
+        ["Ruhepol", "Immer: Nach jedem Kampf alle +6 Leben.", { passiv: "siegheil", n: 6 }],
+        ["Wurzelkraft", "Immer: +8 Höchstleben.", { passiv: "leben", n: 8 }],
+        ["Lebensquell", "Zweite Meisterfähigkeit: Alle +12 Leben, drei Runden lang je +10.", { meister: "lebensquell" }]]]
+    ]
+  };
+  const AUFSTIEG_STUFE = 20;
+  // Ruhmesboni: ab Stufe 20 bringt jede Stufe einen Ruhmespunkt; jeder Bonus lässt sich mehrmals kaufen
+  const RUHM = {
+    leben: { name: "Lebenskraft", text: "+5 Höchstleben", max: 99 },
+    kraft: { name: "Kraft", text: "+1 Schaden mit allen Angriffen", max: 10 },
+    haut: { name: "Hornhaut", text: "−1 Schaden pro Treffer", max: 5 },
+    heil: { name: "Heilkraft", text: "Deine Heilungen auf einen Helden +2", max: 5 },
+    trank: { name: "Gürteltasche", text: "Ein Heiltrank mehr tragen", max: 2 }
+  };
   const TALENT = {};          // Knoten-ID (z. B. "berserker3") → Knoten
   const AESTE = {};           // Rolle → [{ id, name, kurz, knoten: [IDs] }]
-  for (const rolle in TALENTE) AESTE[rolle] = TALENTE[rolle].map(([ast, name, kurz, knoten]) => ({ id: ast, name, kurz,
-    knoten: knoten.map(([kn, text, e], i) => { const id = ast + (i + 1); TALENT[id] = { id, rolle, ast, i, name: kn, text, e }; return id; }) }));
+  const AUFSTIEG_AESTE = {};  // Rolle → zwei Spezialisierungen, gleicher Aufbau
+  const aesteBauen = (Q, Z, extra) => { for (const rolle in Q) Z[rolle] = Q[rolle].map(([ast, name, kurz, knoten]) => ({ id: ast, name, kurz,
+    knoten: knoten.map(([kn, text, e], i) => { const id = ast + (i + 1); TALENT[id] = Object.assign({ id, rolle, ast, i, name: kn, text, e }, extra); return id; }) })); };
+  aesteBauen(TALENTE, AESTE, {});
+  aesteBauen(AUFSTIEG, AUFSTIEG_AESTE, { aufstieg: true });
   const talenteVon = h => (h.talente || []).map(id => TALENT[id]).filter(Boolean);
-  const passiv = (h, art) => talenteVon(h).reduce((a, t) => a + (t.e.passiv === art ? t.e.n : 0), 0);
+  const RUHM_PASSIV = { schaden: ["kraft", 1], ruestung: ["haut", 1], heilplus: ["heil", 2] };
+  const ruhmVon = (h, id) => (h.ruhmBoni && h.ruhmBoni[id]) || 0;
+  const passiv = (h, art) => talenteVon(h).reduce((a, t) => a + (t.e.passiv === art ? t.e.n : 0), 0)
+    + (RUHM_PASSIV[art] ? ruhmVon(h, RUHM_PASSIV[art][0]) * RUHM_PASSIV[art][1] : 0);
   const plusVon = (h, id, art) => talenteVon(h).reduce((a, t) => a + (t.e.plus === id ? t.e[art] || 0 : 0), 0);
   function talentWaehlbar(h, id) {
     const t = TALENT[id];
     if (!t || t.rolle !== h.rolle || h.talente.includes(id)) return false;
     if (t.i > 0 && !h.talente.includes(t.ast + t.i)) return false;
-    if (t.e.meister && talenteVon(h).some(x => x.e.meister)) return false;
+    if (t.aufstieg) return h.stufe >= AUFSTIEG_STUFE && !talenteVon(h).some(x => x.aufstieg && x.ast !== t.ast);
+    if (t.e.meister && talenteVon(h).some(x => x.e.meister && !x.aufstieg)) return false;
     return true;
   }
   // Hauptast eines Helden (für die Gruppenanzeige): der mit den meisten Talenten
   function hauptast(h) {
     let best = null;
     for (const a of AESTE[h.rolle]) { const n = a.knoten.filter(id => h.talente.includes(id)).length; if (n && (!best || n > best.n)) best = { name: a.name, n }; }
+    const auf = (AUFSTIEG_AESTE[h.rolle] || []).find(a => a.knoten.some(id => h.talente.includes(id)));
+    if (auf) return { name: auf.name, n: 99 };
     return best;
   }
 
@@ -282,9 +389,16 @@
   // Stufe 5 und 20: +1 Schaden, Stufe 10: −1 Schaden pro Treffer, Stufe 15: ein Trankplatz mehr.
   const EP_STUFEN = [0, 15, 35, 60, 90, 125, 165, 210, 260, 315, 375, 440, 510, 585, 665, 750, 840, 935, 1035, 1140];
   const MAX_STUFE = EP_STUFEN.length;
-  const STUFENBONUS = { 5: "+1 Schaden mit allen Angriffen", 10: "−1 Schaden pro Treffer", 15: "ein Trankplatz mehr", 20: "+1 Schaden mit allen Angriffen" };
+  const STUFENBONUS = { 5: "+1 Schaden mit allen Angriffen", 10: "−1 Schaden pro Treffer", 15: "ein Trankplatz mehr", 20: "+1 Schaden mit allen Angriffen und der Aufstieg" };
   const stufeBonus = h => ({ schaden: (h.stufe >= 5 ? 1 : 0) + (h.stufe >= 20 ? 1 : 0), ruestung: h.stufe >= 10 ? 1 : 0, traenke: h.stufe >= 15 ? 1 : 0 });
-  function stufeAus(ep) { let st = 1; for (let i = 0; i < EP_STUFEN.length; i++) if (ep >= EP_STUFEN[i]) st = i + 1; return st; }
+  // Ab Stufe 21 geht es ohne Grenze weiter, jede Stufe braucht 10 Erfahrung mehr als die vorige
+  function epFuer(st) {
+    if (st <= EP_STUFEN.length) return EP_STUFEN[st - 1];
+    let ep = EP_STUFEN[EP_STUFEN.length - 1];
+    for (let j = EP_STUFEN.length + 1; j <= st; j++) ep += 105 + 10 * (j - EP_STUFEN.length);
+    return ep;
+  }
+  function stufeAus(ep) { let st = 1; while (ep >= epFuer(st + 1)) st++; return st; }
   const aktionDef = (rolle, id) => AKTIONEN[rolle].find(a => a.id === id) || NEUE[id] || (id === "trank" ? TRANK : null);
   function cdVon(h, a) {
     if (a.meister) return 99;                 // einmal pro Kampf (wird bei Kampfbeginn zurückgesetzt)
@@ -310,7 +424,7 @@
 
   // ---------- Händler ----------
   const MAX = { waffe: 6, ruestung: 5, leben: 5, traenke: 3 };
-  const trankMax = h => MAX.traenke + stufeBonus(h).traenke;
+  const trankMax = h => MAX.traenke + stufeBonus(h).traenke + ruhmVon(h, "trank");
   function angebot(h) {
     const l = [
       { id: "waffe", name: "Waffe schärfen", text: `+1 Schaden bei jedem Angriff (jetzt +${h.waffe})`, preis: 15 + 15 * h.waffe, aus: h.waffe >= MAX.waffe },
@@ -418,8 +532,22 @@
   ];
   // Stärke je Ebene: Leben und Schaden der Gegner, Erfahrung und Gold
   const STAERKE = [{ hp: 1, dmg: 1, ep: 1, gold: 1 }, { hp: 2.8, dmg: 1.9, ep: 2, gold: 1.4 }, { hp: 3.4, dmg: 2.2, ep: 2.8, gold: 1.8 }];
-  const ebeneVon = S => EBENEN[(S.ebene || 1) - 1];
-  const staerke = S => STAERKE[(S.ebene || 1) - 1];
+  // Die Tiefe (Partielänge „endlos“): Nach dem Glutschlund beginnt es wieder beim Kerker, jede Ebene stärker
+  const TIEFE = { hp: 1.3, dmg: 1.12, ep: 1.12, gold: 1.15 };
+  const endlos = S => S.ebenen === 0;
+  const ebeneVon = S => EBENEN[((S.ebene || 1) - 1) % EBENEN.length];
+  const staerke = S => {
+    const e = S.ebene || 1;
+    if (e <= STAERKE.length) return STAERKE[e - 1];
+    const k = e - STAERKE.length, b = STAERKE[STAERKE.length - 1];
+    return { hp: b.hp * TIEFE.hp ** k, dmg: b.dmg * TIEFE.dmg ** k, ep: b.ep * TIEFE.ep ** k, gold: b.gold * TIEFE.gold ** k };
+  };
+  // In der Tiefe kommt jede dritte Gruppe aus einer anderen Gegend
+  function gruppeFuer(S, st) {
+    const E = ebeneVon(S);
+    if ((S.ebene || 1) > EBENEN.length && chance(S, 1 / 3)) return eins(S, eins(S, EBENEN.filter(x => x !== E)).gruppen[st]);
+    return eins(S, E.gruppen[st]);
+  }
   // Schwierigkeitsstufen (in der Lobby wählbar): Gegner-Leben und -Schaden, Gold, Rast, Elite-Räume
   const SCHWERE = {
     1: { name: "Wanderer", kurz: "Zum Reinkommen", hp: 0.75, dmg: 0.75, gold: 1.2, rast: 0.6, elite: 1 },
@@ -442,10 +570,10 @@
     rache: { stufe: 3, name: "Rachsucht", text: "Jeder gefallene Gegner macht die übrigen in diesem Kampf wütender: +1 Schaden, tiefer mehr (höchstens dreimal)." },
     verstaerkung: { stufe: 1, name: "Verstärkung", text: "In jedem Kampf außer gegen Endgegner steht ein Gegner mehr (höchstens 4)." }
   };
-  const fluch = (S, id) => (S.flueche || []).includes(id);
+  const fluch = (S, id) => (S.flueche || []).includes(id) || S.tiefenFluch === id;
   const gdmg = (S, n) => Math.round(n * staerke(S).dmg * schwere(S).dmg * gruppe(S).dmg * (fluch(S, "wild") ? 1.15 : 1));
   const racheBonus = S => fluch(S, "rache") && S.kampf ? gdmg(S, Math.min(3, S.kampf.rache || 0)) : 0;
-  const LAENGEN = { 1: "Kurz", 2: "Normal", 3: "Lang" };
+  const LAENGEN = { 1: "Kurz", 2: "Normal", 3: "Lang", 4: "Die Tiefe" };
   const stufe = nr => (nr <= 3 ? 0 : nr <= 5 ? 1 : 2);
   function gegnerErzeugen(S, art) {
     // zu zweit schwächer; je tiefer, desto zäher (Helden steigen ja auch auf)
@@ -544,7 +672,7 @@
     const eltern = id => Object.values(K.knoten).filter(k => k.nach.includes(id));
     const kand = inReihen(5, 6).filter(k => k.typ !== "haendler" && k.typ !== "elite" && k.typ !== "schrein" && eltern(k.id).every(e => e.nach.length >= 2));
     if (kand.length) eins(S, kand).typ = "kammer";
-    for (const k of Object.values(K.knoten)) if (k.typ === "elite") k.elite = eins(S, ebeneVon(S).eliten);
+    for (const k of Object.values(K.knoten)) if (k.typ === "elite") k.elite = eins(S, (S.ebene || 1) > EBENEN.length ? EBENEN.flatMap(x => x.eliten) : ebeneVon(S).eliten);
     return K;
   }
   // Wie weit die Gruppe auf der Karte sieht: 2 Reihen, mit Waldläufer oder Dieb 3
@@ -618,6 +746,14 @@
     S.karte = karteErzeugen(S);
     S.phase = "erkunden";
     S.seite = { bild: "eingang", titel: `Ebene ${S.ebene}: ${ebeneVon(S).name}`, text: [ebeneVon(S).abstieg] };
+    if (S.ebene > EBENEN.length) {
+      // Tiefe: die Gegenden wiederholen sich, stärker, mit gemischten Gegnern und einem eigenen Fluch je Ebene
+      const frei = Object.keys(FLUECHE).filter(f => !(S.flueche || []).includes(f));
+      S.tiefenFluch = frei.length ? eins(S, frei) : null;
+      S.seite = { bild: "eingang", titel: `Ebene ${S.ebene}: ${ebeneVon(S).name} der Tiefe`,
+        text: [`Noch tiefer. Die Gänge erinnern an ${ebeneVon(S).name.replace(/^Der /, "den ").replace(/^Die /, "die ")}, aber hier unten ist alles älter, und was hier lebt, ist stärker als alles darüber. Auch Wesen aus anderen Gegenden haben sich hierher verirrt.`]
+          .concat(S.tiefenFluch ? [`Fluch der Tiefe auf dieser Ebene: ${FLUECHE[S.tiefenFluch].name}. ${FLUECHE[S.tiefenFluch].text}`] : []) };
+    }
     entscheiden(S, "weiter", "", [{ text: "Hinabsteigen" }]);
   }
   function weiterziehen(S) {
@@ -650,7 +786,7 @@
       S.seite = { bild: E.bild, titel: E.bossTitel, text: [E.bossText] };
       kampfStarten(S, [E.boss]);
     } else if (typ === "kampf") {
-      kampfRaum(S, eins(S, ebeneVon(S).gruppen[stufe(n)]), `Raum ${n}`, eins(S, TEXTE.kampf));
+      kampfRaum(S, gruppeFuer(S, stufe(n)), `Raum ${n}`, eins(S, TEXTE.kampf));
     } else if (typ === "elite") {
       const e = GEGNER[k.elite];
       kampfRaum(S, [k.elite, e.begleiter], `Raum ${n}: ${e.name}`, `${e.name} versperrt den Weg. Irgendwo an ihm glänzt ein schwerer Schlüssel.`);
@@ -687,7 +823,7 @@
     } else {
       // Unbekannt: Hinterhalt, Fundstück oder eines der Ereignisse
       const frei = EREIGNISSE_FREI(S), r = zufall(S);
-      if (r < 0.22 || !frei.length) kampfRaum(S, eins(S, ebeneVon(S).gruppen[stufe(n)]), `Raum ${n}: Ein Hinterhalt!`, "Kaum seid ihr drin, fällt hinter euch ein Gitter herab. Aus den Schatten kommen sie.");
+      if (r < 0.22 || !frei.length) kampfRaum(S, gruppeFuer(S, stufe(n)), `Raum ${n}: Ein Hinterhalt!`, "Kaum seid ihr drin, fällt hinter euch ein Gitter herab. Aus den Schatten kommen sie.");
       else if (r < 0.32) {
         const t = ["Zwischen alten Knochen liegt ein Lederbeutel.", goldFuerJeden(S, 6, 10)];
         if (!K.schluessel && Object.values(K.knoten).some(x => x.typ === "kammer" && x.r > n)) { K.schluessel += 1; t.push("Darin: ein schwerer, alter Schlüssel."); }
@@ -858,7 +994,8 @@
   }
 
   // Bonus eines Helden auf jeden Angriff: Waffe, Segen, Talente, Stufe
-  const angriffsBonus = (S, h) => h.waffe + (h.segen || 0) + passiv(h, "schaden") + stufeBonus(h).schaden
+  const gruppenPassiv = (S, art, ausser) => S.teilnehmer.reduce((a, q) => a + (q !== ausser && !S.helden[q].gefallen ? passiv(S.helden[q], art) : 0), 0);
+  const angriffsBonus = (S, h) => h.waffe + (h.segen || 0) + passiv(h, "schaden") + stufeBonus(h).schaden + gruppenPassiv(S, "aura")
     + (h.hp < h.max / 2 ? passiv(h, "blutrausch") : 0) + (S.kampf && S.kampf.runde === 1 ? passiv(h, "erste") : 0);
   // Bonus gegen ein bestimmtes Ziel: Markierung (Jagdinstinkt gilt für alle), Untotenjäger
   const markPlus = S => Math.max(0, ...S.teilnehmer.map(p => passiv(S.helden[p], "markplus")));
@@ -868,10 +1005,11 @@
     stab: "licht", licht: "licht", sonnenstrahl: "licht", sonnenzorn: "licht", gottesurteil: "licht", heilen: "licht",
     funken: "magie", feuerball: "magie", eis: "magie", meteor: "magie", inferno: "magie", winter: "magie", ranken: "magie",
     pfeil: "fern", doppel: "fern", hagel: "fern", markieren: "fern", kopfschuss: "fern", durchschuss: "fern", treibjagd: "fern",
-    giftwolke: "gift", seuche: "gift", dolch: "stich", todesstoss: "stich"
+    giftwolke: "gift", seuche: "gift", dolch: "stich", todesstoss: "stich",
+    feuerweihe: "licht", schwarztod: "gift", schattentanz: "stich", sternschuss: "fern", wildnis: "fern", sternenfall: "magie", zeitstillstand: "magie"
   };
   let angriffsart = "nah", feuerangriff = false, dornenSchon = false;
-  const FEUER = { funken: 1, feuerball: 1, meteor: 1, inferno: 1 };
+  const FEUER = { funken: 1, feuerball: 1, meteor: 1, inferno: 1, sternenfall: 1 };
   // Endgegner wechseln in Phasen: Königin fliegt ab Phase 2, der Drache nur in Phase 1 und wird in Phase 3 schnell
   const istFliegend = (S, g) => !!GEGNER[g.art].fliegend || !!(S.kampf && ((g.art === "koenigin" && S.kampf.bossPhase >= 2) || (g.art === "drache" && S.kampf.bossPhase < 2)));
   const istSchnell = (S, g) => !!GEGNER[g.art].schnell || !!(g.art === "drache" && S.kampf && S.kampf.bossPhase >= 3);
@@ -1042,6 +1180,12 @@
         case "obhut": S.helden[w.ziel].immun = true; log.push(`${n} nimmt ${w.ziel === p ? "sich selbst" : heldName(S, w.ziel)} in Obhut.`); break;
         case "erloesung": { for (const q of S.teilnehmer) { const z = S.helden[q]; h.stats.geheilt += heldHeilen(S, q, z.max); } log.push(`${n} spricht die Erlösung: Alle sind voll geheilt.`); break; }
         case "heiligtum": { alleHeilen(S, p, 10); k.heiligtum = { von: p, runden: 2 }; log.push(`${n} weiht den Boden: alle +10 Leben, und das Licht bleibt noch zwei Runden.`); break; }
+        case "lebensquell": { alleHeilen(S, p, 12, true); k.heiligtum = { von: p, runden: 3, n: 10 }; log.push(`${n} öffnet einen Lebensquell: alle +12 Leben, drei Runden lang je +10.`); break; }
+        case "gnade": {
+          for (const q of S.teilnehmer) { const z = S.helden[q]; if (z.gefallen) continue; h.stats.geheilt += heldHeilen(S, q, z.max); z.gift = 0; z.giftR = 0; z.segen = Math.max(z.segen || 0, 4); }
+          log.push(`${n} ruft die göttliche Gnade herab: Alle sind voll geheilt, das Gift ist fort, nächster Angriff +4.`); break;
+        }
+        case "ewigschild": k.bollwerk = true; k.bollwerkNoch = 1; log.push(`${n} hebt den ewigen Schild: Zwei Runden lang nimmt die Gruppe nur halben Schaden.`); break;
         case "arkan": S.helden[w.ziel].immun = true; log.push(`${n} legt einen arkanen Schild um ${w.ziel === p ? "sich" : heldName(S, w.ziel)}.`); break;
         case "beschuetzen": S.helden[w.ziel].beschuetzt = p; log.push(`${n} stellt sich vor ${heldName(S, w.ziel)}.`); break;
         case "licht": alleHeilen(S, p, 4); break;     // Schaden folgt unten
@@ -1104,6 +1248,15 @@
         case "giftwolke": { const x = 3 + passiv(h, "giftplus"); for (const g of flaeche(S, p, 2 + rs(h, "giftwolke"), log, "wirft eine Giftwolke")) vergiften(g, x, 3); break; }
         case "seuche": { const x = 5 + passiv(h, "giftplus"); for (const g of flaeche(S, p, 5, log, "verbreitet eine Seuche")) vergiften(g, x, 3); break; }
         case "raserei": pfeile(S, p, 3, 10, log, "rast und schlägt dreimal zu"); break;
+        case "ansturm": { flaeche(S, p, 12, log, "führt den Ansturm an"); for (const q of lebend(S)) S.helden[q].segen = Math.max(S.helden[q].segen || 0, 4); log.push("Alle: nächster Angriff +4."); break; }
+        case "klingensturm": pfeile(S, p, 5, 9, log, "wird zum Klingensturm"); break;
+        case "feuerweihe": { flaeche(S, p, 18, log, "entfacht läuterndes Feuer"); alleHeilen(S, p, 6); log.push("Alle Helden +6 Leben."); break; }
+        case "schattentanz": { pfeile(S, p, 4, 11, log, "tanzt durch die Schatten"); h.versteckt = true; log.push(`${heldName(S, p)} verschwindet in den Schatten.`); break; }
+        case "schwarztod": { const x = 8 + passiv(h, "giftplus"); for (const g of flaeche(S, p, 8, log, "bringt den schwarzen Tod")) vergiften(g, x, 3); break; }
+        case "sternschuss": schadenAnGegner(S, p, ziel, 40, log, "schießt einen Sternschuss auf"); break;
+        case "wildnis": { pfeile(S, p, 6, 9, log, "ruft die Wildnis"); alleHeilen(S, p, 6); log.push("Alle Helden +6 Leben."); break; }
+        case "sternenfall": brand(h, flaeche(S, p, 28, log, "lässt Sterne fallen")); break;
+        case "zeitstillstand": { flaeche(S, p, 8, log, "hält die Zeit an"); for (const g of gegnerLebend(S)) g.starr = 2; if (gegnerLebend(S).length) log.push("Alle Gegner erstarren für zwei Runden."); break; }
         case "wolfsrudel": pfeile(S, p, 3, 10, log, "lässt die Wölfe los"); break;
         case "kopfschuss": schadenAnGegner(S, p, ziel, wurf(S, 12, 15) + rs(h, "kopfschuss"), log, "zielt genau auf"); break;
         case "ranken": {
@@ -1308,9 +1461,10 @@
     if (k.heiligtum && k.heiligtum.runden > 0 && lebend(S).length) {
       beginn();
       const von = k.heiligtum.von;
-      for (const q of lebend(S)) S.helden[von].stats.geheilt += heldHeilen(S, q, 8);
+      const x = k.heiligtum.n || 8;
+      for (const q of lebend(S)) S.helden[von].stats.geheilt += heldHeilen(S, q, x);
       k.heiligtum.runden -= 1;
-      log.push("Das Heiligtum leuchtet: alle +8 Leben.");
+      log.push(k.heiligtum.n ? `Der Lebensquell sprudelt: alle +${x} Leben.` : `Das Heiligtum leuchtet: alle +${x} Leben.`);
       ende({ von, a: "heiligtumTick" });
     }
     // Regeneration (Feuer stoppt sie); der Fluch gibt jedem Gegner 5 % seiner Leben dazu
@@ -1325,7 +1479,7 @@
       ende({ von: g.id, a: "regen" });
     }
     for (const g of S.gegner) { if (g.starr > 0) g.starr -= 1; if (g.markiert > 0) g.markiert -= 1; if (g.feuer > 0) g.feuer -= 1; g.spott = null; }
-    k.nebel = false; k.frost = 0; k.bollwerk = false;
+    k.nebel = false; k.frost = 0; k.bollwerk = (k.bollwerkNoch || 0) > 0; if (k.bollwerkNoch) k.bollwerkNoch -= 1;
     S.log = log;
     S.letzte = { id: `${S.spielNr}:${S.raumNr}:${k.runde}`, runde: k.runde, titel: S.seite ? S.seite.titel : "", start, ev };
     k.wahl = {};
@@ -1339,7 +1493,7 @@
   function treffer(S, p, n, log, von, g) {
     const h = S.helden[p], wer = heldName(S, p);
     if (h.immun) { log.push(von ? `${von} trifft ${wer}, doch der Schlag prallt ab.` : `${wer} bleibt unversehrt.`); return; }
-    n = Math.max(1, n - h.ruestung - passiv(h, "ruestung") - stufeBonus(h).ruestung);
+    n = Math.max(1, n - h.ruestung - passiv(h, "ruestung") - stufeBonus(h).ruestung - gruppenPassiv(S, "schutzaura", p));
     if (h.schild) n = Math.ceil(n / 2);
     if (S.kampf && S.kampf.bollwerk) n = Math.ceil(n / 2);
     const echt = Math.min(n, h.hp);
@@ -1363,8 +1517,16 @@
       h.ep += ep;
       h.stufe = stufeAus(h.ep);
       const bonus = [];
-      for (let st = vorher + 1; st <= h.stufe; st++) { h.max += 3; h.hp = Math.min(h.max, h.hp + 3); h.punkte += 1; if (STUFENBONUS[st]) bonus.push(STUFENBONUS[st]); }
-      if (h.stufe > vorher) t.push(`${heldName(S, p)} erreicht Stufe ${h.stufe}: +${3 * (h.stufe - vorher)} Höchstleben, ${h.stufe - vorher === 1 ? "1 Talentpunkt" : (h.stufe - vorher) + " Talentpunkte"}${bonus.map(b => ", " + b).join("")}.`);
+      let tp = 0, rp = 0;
+      for (let st = vorher + 1; st <= h.stufe; st++) {
+        h.max += 3; h.hp = Math.min(h.max, h.hp + 3);
+        if (st <= AUFSTIEG_STUFE) tp++;
+        if (st >= AUFSTIEG_STUFE) rp++;
+        if (STUFENBONUS[st]) bonus.push(STUFENBONUS[st]);
+      }
+      h.punkte += tp; h.ruhm = (h.ruhm || 0) + rp;
+      const pk = [tp ? (tp === 1 ? "1 Talentpunkt" : tp + " Talentpunkte") : "", rp ? (rp === 1 ? "1 Ruhmespunkt" : rp + " Ruhmespunkte") : ""].filter(Boolean).join(", ");
+      if (h.stufe > vorher) t.push(`${heldName(S, p)} erreicht Stufe ${h.stufe}: +${3 * (h.stufe - vorher)} Höchstleben, ${pk}${bonus.map(b => ", " + b).join("")}.`);
     }
     return t;
   }
@@ -1385,7 +1547,7 @@
     if (sammeln) { for (const p of S.teilnehmer) heldHeilen(S, p, sammeln); t.push(`Ihr sammelt euch: alle +${sammeln} Leben.`); }
     if (boss) {
       const E = ebeneVon(S), g = goldFuerJeden(S, 40, 50);
-      if (S.ebene >= (S.ebenen || 1)) {
+      if (!endlos(S) && S.ebene >= (S.ebenen || 1)) {
         S.phase = "ende"; S.ergebnis = "sieg";
         S.seite = { bild: "krone", titel: E.siegTitel, text: [E.siegText, g].concat(t) };
         return;
@@ -1431,6 +1593,13 @@
     entscheiden(S, "weiter", "", [{ text: "Weiterziehen" }]);
   }
 
+  // Talente neu verteilen: am Schrein gegen Gold, in der Tiefe im Lager zwischen zwei Ebenen kostenlos; sonst null
+  function umverteilenPreis(S) {
+    const e = S.entscheidung;
+    if (S.phase === "erkunden" && e && e.art === "schrein") return UMVERTEILEN;
+    if (S.phase === "lager" && endlos(S) && S.ebeneFertig) return 0;
+    return null;
+  }
   function kaufen(S, pid, id) {
     const h = S.helden[pid];
     const w = angebot(h).find(x => x.id === id);
@@ -1475,11 +1644,11 @@
           const r = ROLLEN[S.rollen[p]];
           S.helden[p] = { rolle: S.rollen[p], hp: r.hp, max: r.hp, traenke: 1, waffe: 0, ruestung: 0, leben: 0, gold: 10, cd: {},
             schild: false, versteckt: false, lauer: false, segen: 0, gift: 0, giftR: 0, immun: false, fels: false, beschuetzt: null,
-            ep: 0, stufe: 1, punkte: 0, talente: [],
+            ep: 0, stufe: 1, punkte: 0, talente: [], ruhm: 0, ruhmBoni: {},
             stats: { schaden: 0, geheilt: 0, umgefallen: 0 } };
         }
         Object.assign(S, { raumNr: 0, gegner: [], kampf: null, lager: null, lagerBesucht: [], log: [], benutzt: [], ergebnis: null, gegnerNr: 0, letzte: null, spielNr: (S.spielNr || 0) + 1,
-          ebene: 1, ebenen: S.laenge || 2, ebeneFertig: false });
+          ebene: 1, ebenen: S.laenge === 4 ? 0 : S.laenge || 2, ebeneFertig: false, tiefenFluch: null });
         S.karte = karteErzeugen(S);
         S.phase = "erkunden";
         S.seite = { bild: "eingang", titel: "Der Abstieg", text: [EBENEN[0].abstieg] };
@@ -1543,19 +1712,28 @@
       }
       case "talent": {                   // Talentpunkt ausgeben (nicht im Kampf)
         const h = S.helden[pid];
-        if (!h || S.phase === "kampf" || S.phase === "lobby" || S.phase === "ende" || h.punkte < 1 || m.nr !== S.spielNr || !talentWaehlbar(h, m.id)) return S0;
-        h.talente.push(m.id); h.punkte -= 1;
         const t = TALENT[m.id];
+        if (!h || !t || S.phase === "kampf" || S.phase === "lobby" || S.phase === "ende" || m.nr !== S.spielNr || !talentWaehlbar(h, m.id)) return S0;
+        if (t.aufstieg ? (h.ruhm || 0) < 1 : h.punkte < 1) return S0;
+        h.talente.push(m.id);
+        if (t.aufstieg) h.ruhm -= 1; else h.punkte -= 1;
         if (t.e.passiv === "leben") { h.max += t.e.n; h.hp += t.e.n; }
         break;
       }
-      case "umverteilen": {                // am Schrein: alle Fähigkeitspunkte zurück, kostet Gold
-        const h = S.helden[pid], e = S.entscheidung;
-        if (!h || S.phase !== "erkunden" || !e || e.art !== "schrein" || m.nr !== S.spielNr || h.gold < UMVERTEILEN) return S0;
-        const zurueck = h.talente.length;
-        if (!zurueck) return S0;
+      case "ruhm": {                       // Ruhmespunkt für einen Ruhmesbonus ausgeben
+        const h = S.helden[pid], R = RUHM[m.id];
+        if (!h || !R || S.phase === "kampf" || S.phase === "lobby" || S.phase === "ende" || m.nr !== S.spielNr || (h.ruhm || 0) < 1 || ruhmVon(h, m.id) >= R.max) return S0;
+        h.ruhm -= 1; h.ruhmBoni = h.ruhmBoni || {}; h.ruhmBoni[m.id] = ruhmVon(h, m.id) + 1;
+        if (m.id === "leben") { h.max += 5; h.hp += 5; }
+        break;
+      }
+      case "umverteilen": {                // am Schrein (Gold) oder im Lager der Tiefe (kostenlos): alle Talente zurück
+        const h = S.helden[pid], preis = umverteilenPreis(S);
+        if (!h || preis === null || m.nr !== S.spielNr || h.gold < preis) return S0;
+        const zurueck = talenteVon(h).filter(t => !t.aufstieg).length, ruhmZurueck = talenteVon(h).filter(t => t.aufstieg).length;
+        if (!zurueck && !ruhmZurueck) return S0;
         const leben = passiv(h, "leben");
-        h.gold -= UMVERTEILEN; h.talente = []; h.punkte += zurueck;
+        h.gold -= preis; h.talente = []; h.punkte += zurueck; h.ruhm = (h.ruhm || 0) + ruhmZurueck;
         h.max -= leben; h.hp = Math.max(1, Math.min(h.hp, h.max));
         for (const id in h.cd) if (!AKTIONEN[h.rolle].some(a => a.id === id)) delete h.cd[id];
         break;
@@ -1572,7 +1750,7 @@
     return S;
   }
 
-  window.VL = { zustand, SCHWERE, GRUPPE, FLUECHE, BEFREIEN, EBENEN, LAENGEN, ebeneVon, EIGENSCHAFTEN, eigenschaften, knochenschild, RAEUME, REIHEN, RAUMNAME, SEGEN, UMVERTEILEN, sicht, MAX_HELDEN, LAGER_NACH, ROLLEN, ROLLEN_REIHE, AKTIONEN, NEUE, TRANK, GEGNER, EP_STUFEN, MAX_STUFE, STUFENBONUS,
+  window.VL = { zustand, SCHWERE, GRUPPE, FLUECHE, AUFSTIEG_AESTE, AUFSTIEG_STUFE, RUHM, ruhmVon, epFuer, endlos, umverteilenPreis, staerke, BEFREIEN, EBENEN, LAENGEN, ebeneVon, EIGENSCHAFTEN, eigenschaften, knochenschild, RAEUME, REIHEN, RAUMNAME, SEGEN, UMVERTEILEN, sicht, MAX_HELDEN, LAGER_NACH, ROLLEN, ROLLEN_REIHE, AKTIONEN, NEUE, TRANK, GEGNER, EP_STUFEN, MAX_STUFE, STUFENBONUS,
     AESTE, TALENT, talenteVon, talentWaehlbar, hauptast, passiv, stufeBonus, trankMax, aktionZusatz,
     neu, aktion, aktionenVon, angebot, standardWahl, lebend, gegnerLebend, goldSumme, cdVon };
 })();

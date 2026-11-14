@@ -171,8 +171,8 @@
 
   function faehigkeitenKnopf() {
     if (!mitspieler()) return "";
-    const h = ich();
-    return `<button class="knopf ${h.punkte ? "" : "zweit"}" id="faehigkeiten">${h.punkte ? `Talentbaum (${h.punkte} ${h.punkte === 1 ? "Punkt" : "Punkte"} frei)` : `Stufe ${h.stufe} · Talentbaum ansehen`}</button>`;
+    const h = ich(), n = h.punkte + (h.ruhm || 0);
+    return `<button class="knopf ${n ? "" : "zweit"}" id="faehigkeiten">${n ? `Talentbaum (${n} ${n === 1 ? "Punkt" : "Punkte"} frei)` : `Stufe ${h.stufe} · Talentbaum ansehen`}</button>`;
   }
   function balken(hp, max) {
     const q = max ? hp / max : 0;
@@ -183,7 +183,7 @@
     const hier = S.entscheidung && S.entscheidung.art === "karte" ? S.raumNr + 1 : S.raumNr;
     for (let i = 1; i <= V.RAEUME; i++) h += `<i class="${i < hier ? "da" : i === hier ? "hier" : ""} ${i === V.RAEUME ? "boss" : ""}"></i>`;
     const sl = S.karte && S.karte.schluessel ? `<span class="marke schluessel">${S.karte.schluessel === 1 ? "1 Schlüssel" : S.karte.schluessel + " Schlüssel"}</span>` : "";
-    const eb = (S.ebenen || 1) > 1 ? `<span class="marke ebene">Ebene ${S.ebene}/${S.ebenen}</span>` : "";
+    const eb = V.endlos(S) ? `<span class="marke ebene">Tiefe ${S.ebene}</span>` : (S.ebenen || 1) > 1 ? `<span class="marke ebene">Ebene ${S.ebene}/${S.ebenen}</span>` : "";
     return `<div class="kopf">${eb}<div class="fortschritt" aria-label="Ebene ${S.ebene || 1}, Raum ${S.raumNr} von ${V.RAEUME}">${h}</div>${sl}<span class="gold">${mitspieler() ? ich().gold + " Gold" : V.goldSumme(S) + " Gold gesamt"}</span></div>`;
   }
   // Karte: zum Abstimmen groß, sonst zum Aufklappen
@@ -233,6 +233,7 @@
     const r = S && S.kampf ? S.spielNr + ":" + S.kampf.runde : "";
     if (r !== letzteRunde) { letzteRunde = r; auswahl = null; }
     if (S && S.phase !== "erkunden" && S.phase !== "lager") zeigeFaehigkeiten = false;
+    tiefeMerken();
     const s = sig();
     if (s !== letzteSig) { letzteSig = s; baue(); }
     aktualisiere();
@@ -344,10 +345,27 @@
   }
   // Partielänge: der Spielleiter wählt, alle sehen die Wahl
   function laengeHtml(host) {
-    const DAUER = { 1: "1 Ebene, etwa 30 Minuten", 2: "2 Ebenen, etwa 1 Stunde", 3: "3 Ebenen, etwa 1½ Stunden" };
+    const DAUER = { 1: "1 Ebene, etwa 30 Minuten", 2: "2 Ebenen, etwa 1 Stunde", 3: "3 Ebenen, etwa 1½ Stunden", 4: "endlos: wie tief kommt ihr?" };
     const n = S.laenge || 2;
-    return `<div class="karte"><h3>Partielänge</h3><div class="laengen">${[1, 2, 3].map(i => `<button class="laenge ${i === n ? "an" : ""}" data-laenge="${i}" ${host ? "" : "disabled"} aria-pressed="${i === n}"><b>${V.LAENGEN[i]}</b><small>${DAUER[i]}</small></button>`).join("")}</div>
-      <p class="leise klein">${V.EBENEN.slice(0, n).map(e => esc(e.name)).join(" → ")}${host ? "" : ` · wählt ${esc(sp(S.host).name)}`}</p></div>`;
+    const weg = n === 4 ? `${V.EBENEN.map(e => esc(e.name)).join(" → ")} → immer tiefer. Ab Ebene 4 wiederholen sich die Gegenden, stärker, mit gemischten Gegnern und einem Fluch je Ebene. Zwischen den Ebenen dürft ihr eure Talente kostenlos neu verteilen. Ab Stufe 20: Aufstieg und Ruhmespunkte.`
+      : V.EBENEN.slice(0, n).map(e => esc(e.name)).join(" → ");
+    return `<div class="karte"><h3>Partielänge</h3><div class="laengen vier">${[1, 2, 3, 4].map(i => `<button class="laenge ${i === n ? "an" : ""}" data-laenge="${i}" ${host ? "" : "disabled"} aria-pressed="${i === n}"><b>${V.LAENGEN[i]}</b><small>${DAUER[i]}</small></button>`).join("")}</div>
+      <p class="leise klein">${weg}${host ? "" : ` · wählt ${esc(sp(S.host).name)}`}</p>${n === 4 ? bestenlisteHtml() : ""}</div>`;
+  }
+  // Bestenliste der Tiefe: liegt nur auf dem Handy des Spielleiters
+  const bestenliste = () => (ls.get("vl:tiefe") || []).filter(x => x && x.ebene);
+  function tiefeMerken() {
+    if (rolle !== "host" || !S || S.phase !== "ende" || !V.endlos(S)) return;
+    const l = bestenliste(), id = `${code}:${S.spielNr}`;
+    if (l.some(x => x.id === id)) return;
+    l.push({ id, ebene: S.ebene, raum: S.raumNr, namen: S.teilnehmer.map(p => sp(p).name), schwere: S.schwere || 2, flueche: (S.flueche || []).length, datum: Date.now() });
+    l.sort((a, b) => b.ebene - a.ebene || b.raum - a.raum || a.datum - b.datum);
+    ls.set("vl:tiefe", l.slice(0, 10));
+  }
+  function bestenlisteHtml() {
+    const l = bestenliste();
+    if (!l.length || rolle !== "host") return "";
+    return `<h3>Bestenliste der Tiefe</h3><ol class="bestenliste">${l.slice(0, 5).map(x => `<li><b>Ebene ${x.ebene}</b>, Raum ${x.raum} · ${esc(x.namen.join(", "))} <span class="leise klein">· ${esc(V.SCHWERE[x.schwere].name)}${x.flueche ? ` · ${x.flueche} ☠` : ""} · ${new Date(x.datum).toLocaleDateString("de-DE")}</span></li>`).join("")}</ol>`;
   }
   // Schwierigkeit: ebenso vom Spielleiter gewählt
   function schwereHtml(host) {
@@ -435,7 +453,7 @@
     // Was die Gegner besonders macht (Erklärung zu den Schildern auf der Bühne)
     const zst = V.gegnerLebend(S).flatMap(g => V.zustand(S, g));
     const eig = [...new Set(V.gegnerLebend(S).flatMap(g => V.eigenschaften(g.art)).concat(zst.includes("fliegt") ? ["fliegend"] : [], zst.includes("Wut") ? ["schnell"] : []))], schild = S.gegner.some(g => V.knochenschild(S, g));
-    const fl = S.flueche || [];
+    const fl = (S.flueche || []).concat(S.tiefenFluch && !(S.flueche || []).includes(S.tiefenFluch) ? [S.tiefenFluch] : []);
     if (eig.length || schild || fl.length) h += `<details class="chronik gegnerkunde"${k.runde === 1 || schild ? " open" : ""}><summary class="etikett">Gegner-Eigenschaften</summary>${schild ? `<p><b>Knochenschild:</b> Der Knochenkönig nimmt nur halben Schaden, solange ein Skelett steht.</p>` : ""}${eig.map(e => { const [n, t] = V.EIGENSCHAFTEN[e]; return `<p><b>${esc(n.charAt(0).toUpperCase() + n.slice(1))}:</b> ${esc(t)}</p>`; }).join("")}${fl.map(f => `<p><b>☠ Fluch ${esc(V.FLUECHE[f].name)}:</b> ${esc(V.FLUECHE[f].text)}</p>`).join("")}</details>`;
     if (S.log && S.log.length) h += `<details class="chronik"><summary class="etikett">Was in Runde ${k.runde - 1} geschah</summary>${S.log.map(t => `<p>${esc(t)}</p>`).join("")}</details>`;
     // Eigene Wahl
@@ -485,8 +503,8 @@
     return s + `</svg>`;
   }
   function bildschirmFaehigkeiten() {
-    const h = ich(), st = h.stufe, naechste = V.EP_STUFEN[st];
-    const von = V.EP_STUFEN[st - 1], q = naechste ? (h.ep - von) / (naechste - von) : 1;
+    const h = ich(), st = h.stufe, naechste = V.epFuer(st + 1);
+    const von = V.epFuer(st), q = (h.ep - von) / (naechste - von);
     const aeste = V.AESTE[h.rolle];
     if (talentAst === null) { const ha = V.hauptast(h); talentAst = ha ? Math.max(0, aeste.findIndex(a => a.name === ha.name)) : 0; }
     const ast = aeste[talentAst];
@@ -494,7 +512,7 @@
     const boni = Object.keys(V.STUFENBONUS).filter(x => st >= +x).map(x => V.STUFENBONUS[x]);
     return `<header class="titel"><p class="etikett">${V.ROLLEN[h.rolle].name} · ${esc(name)}</p><h1>Stufe ${st}</h1>
         <div class="balken"><i style="width:${Math.round(q * 100)}%"></i></div>
-        <p class="leise klein">${naechste ? `${h.ep} von ${naechste} Erfahrung bis Stufe ${st + 1}` : `Höchste Stufe erreicht (${h.ep} Erfahrung)`} · Jede Stufe: +3 Höchstleben und 1 Talentpunkt. Stufe 5, 10, 15 und 20 bringen noch etwas extra.${boni.length ? " Du hast: " + boni.join(", ") + "." : ""}</p></header>
+        <p class="leise klein">${h.ep} von ${naechste} Erfahrung bis Stufe ${st + 1} · Jede Stufe: +3 Höchstleben und ${st < V.AUFSTIEG_STUFE ? "1 Talentpunkt" : "1 Ruhmespunkt"}. Stufe 5, 10, 15 und 20 bringen noch etwas extra, ab Stufe 20 gibt es Ruhmespunkte.${boni.length ? " Du hast: " + boni.join(", ") + "." : ""}</p></header>
       <div class="hinweis">${h.punkte ? `Du hast ${h.punkte} ${h.punkte === 1 ? "Talentpunkt" : "Talentpunkte"}. Tippe eine Raute an, nochmal antippen lernt sie.` : "Keine Punkte frei. Neue gibt es mit der nächsten Stufe oder beim Üben an der Rast."}</div>
       <div class="seite talentblatt">${talentBaumSvg(h)}</div>
       <div class="ast-reiter">${aeste.map((a, i) => `<button class="${i === talentAst ? "an" : ""}" data-tast="${i}">${esc(a.name)}<small>${a.knoten.filter(id => h.talente.includes(id)).length}/6</small></button>`).join("")}</div>
@@ -505,17 +523,40 @@
         return `<button class="ware talent ${hat ? "gelernt" : ""} ${talentFokus === id ? "fokus" : ""} ${t.e.meister ? "meister" : ""}" data-talent="${id}" ${frei && h.punkte ? "" : "disabled"}>
           <b>${i + 1}. ${t.e.meister ? "★ " : ""}${esc(t.name)}</b><span class="preis ${hat || (frei && h.punkte) ? "" : "leise-preis"}">${grund}</span><small>${esc(t.text)}${i === 5 && meisterGewaehlt && !hat ? ` Du hast schon ${esc(meisterGewaehlt.name)} als Meisterfähigkeit.` : ""}</small></button>`;
       }).join("")}</div>
+      ${aufstiegHtml(h)}
       <h3>Deine Fähigkeiten</h3>
       <div class="faehigkeitsliste">${V.aktionenVon(h).filter(a => a.id !== "trank").map(a => `<p><b>${a.meister ? "★ " : ""}${esc(a.name)}</b> <span class="leise">${esc(a.text)}${esc(V.aktionZusatz(h, a))}</span></p>`).join("")}</div>
-      ${amSchrein() ? umverteilenHtml(h) : ""}
+      ${V.umverteilenPreis(S) !== null ? umverteilenHtml(h) : ""}
       <div class="unten"><button class="knopf" id="zurueck-f">Zurück</button></div>`;
   }
-  const amSchrein = () => S.phase === "erkunden" && S.entscheidung && S.entscheidung.art === "schrein";
+  // Aufstieg (ab Stufe 20, zwei Spezialisierungen, nur eine wählbar) und Ruhmesboni, bezahlt mit Ruhmespunkten
+  function aufstiegHtml(h) {
+    const spez = V.AUFSTIEG_AESTE[h.rolle], ab = h.stufe >= V.AUFSTIEG_STUFE, r = h.ruhm || 0;
+    const gewaehlt = spez.find(a => a.knoten.some(id => h.talente.includes(id)));
+    let x = `<div class="karte aufstieg"><h2>Aufstieg${ab ? ` <small class="leise">${r} ${r === 1 ? "Ruhmespunkt" : "Ruhmespunkte"}</small>` : ""}</h2>
+      <p class="leise klein">${ab ? "Wähle eine Spezialisierung. Ihre Knoten kosten je 1 Ruhmespunkt, der letzte ist eine zweite Meisterfähigkeit." : `Ab Stufe ${V.AUFSTIEG_STUFE} wählst du eine von zwei Spezialisierungen. Jede Stufe danach bringt einen Ruhmespunkt.`}</p>`;
+    for (const a of spez) {
+      if (gewaehlt && gewaehlt !== a) continue;
+      x += `<h3>${esc(a.name)} <small class="leise">${esc(a.kurz)}</small></h3><div class="waren">${a.knoten.map((id, i) => {
+        const t = V.TALENT[id], hat = h.talente.includes(id), frei = !hat && V.talentWaehlbar(h, id);
+        const grund = hat ? "✓" : frei ? (r ? "1 Ruhm" : "kein Punkt") : ab ? "gesperrt" : `ab Stufe ${V.AUFSTIEG_STUFE}`;
+        return `<button class="ware talent ${hat ? "gelernt" : ""} ${t.e.meister ? "meister" : ""}" data-talent="${id}" ${frei && r ? "" : "disabled"}>
+          <b>${i + 1}. ${t.e.meister ? "★ " : ""}${esc(t.name)}</b><span class="preis ${hat || (frei && r) ? "" : "leise-preis"}">${grund}</span><small>${esc(t.text)}</small></button>`;
+      }).join("")}</div>`;
+    }
+    if (ab) {
+      x += `<h3>Ruhmesboni</h3><p class="leise klein">Lassen sich mehrmals kaufen und bleiben für die ganze Partie.</p><div class="waren">${Object.keys(V.RUHM).map(id => {
+        const R = V.RUHM[id], n = V.ruhmVon(h, id), voll = n >= R.max;
+        return `<button class="ware" data-ruhm="${id}" ${!voll && r ? "" : "disabled"}><b>${esc(R.name)}${n ? ` ×${n}` : ""}</b><span class="preis ${!voll && r ? "" : "leise-preis"}">${voll ? "voll" : "1 Ruhm"}</span><small>${esc(R.text)}${R.max < 99 ? ` (höchstens ${R.max}×)` : ""}</small></button>`;
+      }).join("")}</div>`;
+    }
+    return x + `</div>`;
+  }
   function umverteilenHtml(h) {
-    const vergeben = h.talente.length;
-    return `<div class="karte"><h2>Am Schrein</h2><p class="leise klein">Alle Talente vergessen: Du bekommst deine ${vergeben} Punkte zurück und verteilst sie neu.</p>
-      <button class="knopf zweit" id="umverteilen" ${vergeben && h.gold >= V.UMVERTEILEN ? "" : "disabled"}>Punkte neu verteilen (${V.UMVERTEILEN} Gold)</button>
-      ${!vergeben ? `<p class="leise klein">Du hast noch keine Punkte vergeben.</p>` : h.gold < V.UMVERTEILEN ? `<p class="leise klein">Du hast nicht genug Gold.</p>` : ""}</div>`;
+    const vergeben = h.talente.length, preis = V.umverteilenPreis(S);
+    return `<div class="karte"><h2>${preis ? "Am Schrein" : "Im Lager"}</h2><p class="leise klein">Alle Talente vergessen: Du bekommst deine ${vergeben} Punkte zurück und verteilst sie neu${preis ? "" : ". In der Tiefe kostet das zwischen zwei Ebenen nichts"}.</p>
+      <button class="knopf zweit" id="umverteilen" ${vergeben && h.gold >= preis ? "" : "disabled"}>Punkte neu verteilen${preis ? ` (${preis} Gold)` : " (kostenlos)"}</button>
+      ${!vergeben ? `<p class="leise klein">Du hast noch keine Punkte vergeben.</p>` : h.gold < preis ? `<p class="leise klein">Du hast nicht genug Gold.</p>` : ""}</div>`;
   }
 
   function bildschirmLager() {
@@ -540,7 +581,7 @@
 
   function bildschirmEnde() {
     const sieg = S.ergebnis === "sieg";
-    return `<p class="etikett mitte">${sieg ? "Sieg" : "Niederlage"} · ${(S.ebenen || 1) > 1 ? `Ebene ${S.ebene} von ${S.ebenen}, ` : ""}Raum ${S.raumNr} von ${V.RAEUME} · ${V.SCHWERE[S.schwere || 2].name}${(S.flueche || []).length ? ` · Flüche: ${S.flueche.map(f => esc(V.FLUECHE[f].name)).join(", ")}` : ""}</p>${buchseite(S.seite)}${karteAufklappen()}
+    return `<p class="etikett mitte">${V.endlos(S) ? `Die Tiefe: bis Ebene ${S.ebene} gekommen, ` : `${sieg ? "Sieg" : "Niederlage"} · ${(S.ebenen || 1) > 1 ? `Ebene ${S.ebene} von ${S.ebenen}, ` : ""}`}Raum ${S.raumNr} von ${V.RAEUME} · ${V.SCHWERE[S.schwere || 2].name}${(S.flueche || []).length ? ` · Flüche: ${S.flueche.map(f => esc(V.FLUECHE[f].name)).join(", ")}` : ""}</p>${buchseite(S.seite)}${V.endlos(S) && rolle === "host" ? `<div class="karte">${bestenlisteHtml()}</div>` : ""}${karteAufklappen()}
       <div class="karte"><h2>Die Helden</h2>
         <table class="werte"><tr><th>Held</th><th>Schaden</th><th>Geheilt</th><th>K.&nbsp;o.</th><th>Gold</th></tr>
         ${S.teilnehmer.map(p => { const x = S.helden[p]; return `<tr><td>${esc(sp(p).name)}<br><span class="leise klein">${V.ROLLEN[x.rolle].name} · Stufe ${x.stufe}</span></td><td>${x.stats.schaden}</td><td>${x.stats.geheilt}</td><td>${x.stats.umgefallen}</td><td>${x.gold}</td></tr>`; }).join("")}</table></div>
@@ -582,6 +623,7 @@
     if ($("zurueck-f")) $("zurueck-f").onclick = () => { zeigeFaehigkeiten = false; letzteSig = ""; window.scrollTo(0, 0); render(); };
     const lernen = id => { tun({ t: "talent", id, nr: S.spielNr }); talentFokus = id; letzteSig = ""; render(); };
     document.querySelectorAll("[data-talent]").forEach(b => b.onclick = () => lernen(b.dataset.talent));
+    document.querySelectorAll("[data-ruhm]").forEach(b => b.onclick = () => { tun({ t: "ruhm", id: b.dataset.ruhm, nr: S.spielNr }); letzteSig = ""; render(); });
     document.querySelectorAll("[data-tast]").forEach(b => b.onclick = () => { talentAst = +b.dataset.tast; talentFokus = null; letzteSig = ""; render(); });
     document.querySelectorAll("[data-tknoten]").forEach(b => {
       b.onclick = () => {

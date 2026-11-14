@@ -303,3 +303,7 @@ Nach jedem Schritt: Simulation aller Rollenkombinationen für die Balance und ei
 - **Nachtrag** (14.11.2026): **2 bis 6 Spieler** (Gegner zu fünft Leben ×2,7 / Schaden ×1,45, zu sechst ×3,8 / ×1,75;
   weiter höchstens 4 Gegner gleichzeitig) und **Flüche**, die nur die Gegner stärker machen (Zäh, Wild, Regeneration,
   Dornen, Rachsucht, Verstärkung; der Spielleiter wählt in der Lobby beliebig viele). Ruhm ist noch offen.
+- **Die Tiefe** (14.11.2026): Partielänge „Die Tiefe“, endlos (Ebene 4, 5, … wiederholen die drei Gegenden, stärker,
+  gemischte Gegner, ein Fluch je Ebene, kostenloses Umverteilen im Lager, Bestenliste auf dem Handy des Spielleiters).
+  Stufen ohne Grenze; ab Stufe 20 Ruhmespunkte für den **Aufstieg** (zwei Spezialisierungen je Rolle, eine wählbar,
+  4 Knoten mit zweiter Meisterfähigkeit) und **Ruhmesboni**. Als Nächstes geplant: Wahlknoten im Talentbaum.

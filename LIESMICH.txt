@@ -81,7 +81,24 @@ Gegner-Eigenschaften, drei Ebenen und Schwierigkeitsstufen vom 14.11.2026)
   Held 58/72/69/64 %; Legende 27/46/32/20 %; Wanderer immer fast 100 %.
   Regeneration lässt von Runde zu Runde nach, je Kampf kommen höchstens 8 gerufene Gegner dazu.
   Gemeinsam gegen das Spiel. Partielänge wählt der Spielleiter in der Lobby (auch nach Spielende): Kurz = 1 Ebene (Kerker),
-  Normal = 2 Ebenen (dazu die Spinnengrotte, Standard), Lang = 3 Ebenen (dazu der Glutschlund). Nach jedem Endgegner außer
+  Normal = 2 Ebenen (dazu die Spinnengrotte, Standard), Lang = 3 Ebenen (dazu der Glutschlund). Die Tiefe = endlos (vom 14.11.2026):
+  nach dem Glutschlund wieder Kerker, Grotte, Glutschlund „der Tiefe“, je Ebene Gegner-Leben ×1,3, Schaden ×1,12,
+  Erfahrung ×1,12 und Gold ×1,15; jede dritte Gruppe und alle Elite-Gegner aus beliebigen Gegenden; je Ebene ein zufälliger
+  Fluch der Tiefe (zusätzlich zu den gewählten, steht beim Abstieg und im Kampf). Im Lager zwischen zwei Ebenen Talente
+  kostenlos neu verteilen. Es endet erst, wenn alle fallen. Bestenliste (5 tiefste Läufe) nur auf dem Handy des Spielleiters
+  (localStorage vl:tiefe), in der Lobby bei „Die Tiefe“ und am Ende. Simulation (Dreiergruppen, Abenteurer, klug): etwa 15 %
+  scheitern schon in den ersten drei Ebenen, Median Ebene 6, rund ein Fünftel erreicht Ebene 9; fast alle Niederlagen bei
+  den Endgegnern, am härtesten der Glutdrache (Ebene 3, 6, 9). Am Ende im Schnitt Stufe 24.
+  Stufen über 20: ohne Grenze, jede Stufe braucht 10 Erfahrung mehr als die vorige (Stufe 21 ab 1255). Ab Stufe 20 bringt
+  jede Stufe statt eines Talentpunkts einen Ruhmespunkt (Stufe 20 beides).
+  Aufstieg (ab Stufe 20, kostet Ruhmespunkte): je Rolle zwei Spezialisierungen mit 4 Knoten, man wählt eine; der letzte Knoten
+  ist eine zweite Meisterfähigkeit (zusätzlich zur ersten). Kämpfer: Kriegsherr (alle +1 Schaden; Ansturm) oder Klingentänzer
+  (Klingensturm). Paladin: Kreuzritter (Läuterndes Feuer) oder Hüter (alle anderen −1 Schaden pro Treffer; Ewiger Schild).
+  Dieb: Schattenklinge (Schattentanz) oder Pestbringer (Schwarzer Tod). Waldläufer: Meisterschütze (Sternschuss) oder
+  Tierfreund (Ruf der Wildnis). Magierin: Erzmagierin (Sternenfall) oder Chronomantin (Zeitstillstand). Heilerin:
+  Hohepriesterin (Göttliche Gnade) oder Lebensweberin (Lebensquell).
+  Ruhmesboni (je 1 Ruhmespunkt, mehrfach): Lebenskraft +5 Höchstleben, Kraft +1 Schaden (bis 10×), Hornhaut −1 Schaden pro
+  Treffer (bis 5×), Heilkraft Heilungen +2 (bis 5×), Gürteltasche ein Trank mehr (bis 2×). Bleiben beim Umverteilen. Nach jedem Endgegner außer
   dem letzten: Lager mit voller Heilung, allen Fähigkeiten bereit und Händler, dann neue Karte eine Ebene tiefer.
   Je Ebene sind die Gegner zäher (Leben ×2,8 bzw. ×3,4, Schaden ×1,9 bzw. ×2,2), dafür gibt es mehr Erfahrung (×2 bzw. ×2,8)
   und Gold (×1,4 bzw. ×1,8). Jede Ebene hat ihre eigene Kampfbühne (Fackeln; Pilze und Netze; Lava). Sechs Rollen, zwei bis sechs Helden (jede Rolle einmal):

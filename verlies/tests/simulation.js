@@ -10,16 +10,16 @@ function waehle(S,p,klug){
   const g=V.gegnerLebend(S), tot=S.teilnehmer.find(q=>S.helden[q].hp<=0), schwach=S.teilnehmer.filter(q=>S.helden[q].hp>0&&S.helden[q].hp<S.helden[q].max*0.45);
   const hat=id=>akt.find(a=>a.id===id);
   if(h.hp<h.max*0.35&&hat('trank')) return {a:'trank'};
-  if(tot){ for(const id of ['auferstehung','erloesung','wiedergeburt','gnadenlicht']) if(hat(id)) return {a:id}; for(const id of ['heilen','handauflegen','kraeuter']) if(hat(id)) return {a:id,ziel:tot}; }
-  if(schwach.length>=2) for(const id of ['erloesung','heiligtum','wall','bollwerk','schlachtruf','gnadenlicht','laeutern','segen','licht','wiedergeburt','frost']) if(hat(id)) return {a:id};
+  if(tot){ for(const id of ['gnade','lebensquell','auferstehung','erloesung','wiedergeburt','gnadenlicht']) if(hat(id)) return {a:id}; for(const id of ['heilen','handauflegen','kraeuter']) if(hat(id)) return {a:id,ziel:tot}; }
+  if(schwach.length>=2) for(const id of ['gnade','lebensquell','ewigschild','erloesung','heiligtum','wall','bollwerk','schlachtruf','gnadenlicht','laeutern','segen','licht','wiedergeburt','frost']) if(hat(id)) return {a:id};
   if(schwach.length) { for(const id of ['heilen','handauflegen','kraeuter']) if(hat(id)) return {a:id,ziel:schwach[0]};
     if(hat('schild')&&!schwach.includes(p)) return {a:'schild'}; if(hat('fels')) return {a:'fels'};
     if(hat('arkan')) return {a:'arkan',ziel:schwach[0]}; if(hat('obhut')) return {a:'obhut',ziel:schwach[0]}; if(hat('beschuetzen')&&schwach[0]!==p) return {a:'beschuetzen',ziel:schwach[0]}; if(hat('rauch')) return {a:'rauch'}; }
-  if(g.length>=2) for(const id of ['inferno','durchschuss','seuche','winter','sonnenzorn','treibjagd','raserei','wolfsrudel','meteor','giftwolke','hagel','sonnenstrahl','feuerball','wirbel','licht','doppel']) if(hat(id)) return {a:id};
+  if(g.length>=2) for(const id of ['sternenfall','feuerweihe','schwarztod','ansturm','zeitstillstand','wildnis','klingensturm','schattentanz','inferno','durchschuss','seuche','winter','sonnenzorn','treibjagd','raserei','wolfsrudel','meteor','giftwolke','hagel','sonnenstrahl','feuerball','wirbel','licht','doppel']) if(hat(id)) return {a:id};
   // kluge Spieler: erst Langfinger, Heiler, Beschwörer; steht der Knochenschild, erst die Skelette
   const prio=g.find(x=>V.GEGNER[x.art].langfinger)||g.find(x=>V.GEGNER[x.art].heiler||V.GEGNER[x.art].beschwoerer||V.GEGNER[x.art].schildtraeger)||(g.some(x=>V.knochenschild(S,x))?g.find(x=>!V.GEGNER[x.art].boss):null);
   const gross=prio||g.slice().sort((a,b)=>b.hp-a.hp)[0];
-  for(const id of ['gottesurteil','todesstoss','meisterdieb','vernichten','kopfschuss','eis','ranken','markieren','gift','kriegsschrei','spott','taschendieb']) if(hat(id)) { const a=hat(id); return {a:id,ziel:a.ziel==='gegner'?gross.id:null}; }
+  for(const id of ['sternschuss','gottesurteil','todesstoss','meisterdieb','vernichten','kopfschuss','eis','ranken','markieren','gift','kriegsschrei','spott','taschendieb']) if(hat(id)) { const a=hat(id); return {a:id,ziel:a.ziel==='gegner'?gross.id:null}; }
   if(h.rolle==='dieb'&&hat('verstecken')&&h.hp<h.max*0.5) return {a:'verstecken'};
   return {a:V.AKTIONEN[h.rolle][0].id, ziel:(prio||g.sort((a,b)=>a.hp-b.hp)[0]).id};
 }
@@ -32,7 +32,14 @@ function punkte(S,klug){
   for(const p of S.teilnehmer){ for(let n=0;n<20;n++){ const h=S.helden[p]; if(h.punkte<1)break;
     if(!h.__ast){ const ae=V.AESTE[h.rolle].map(a=>a.id); for(let i=ae.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[ae[i],ae[j]]=[ae[j],ae[i]];} h.__ast=ae; }
     let id=null; for(const ast of h.__ast){ const a=V.AESTE[h.rolle].find(x=>x.id===ast); id=a.knoten.find(k=>V.talentWaehlbar(h,k)); if(id)break; }
-    if(!id)break; const vor=S; const reihe=h.__ast; S=V.aktion(S,p,{t:'talent',id,nr:S.spielNr}); if(S===vor) throw new Error('Talent abgelehnt '+id); S.helden[p].__ast=reihe; } }
+    if(!id)break; const vor=S; const reihe=h.__ast; S=V.aktion(S,p,{t:'talent',id,nr:S.spielNr}); if(S===vor) throw new Error('Talent abgelehnt '+id); S.helden[p].__ast=reihe; }
+    // Ruhmespunkte: erst die Spezialisierung (zufällig, fest), dann Kraft, Hornhaut, Leben im Wechsel
+    for(let n=0;n<40;n++){ const h=S.helden[p]; if(!(h.ruhm>0))break; const reihe=h.__ast, spez=h.__spez;
+      if(!h.__spez) h.__spez=V.AUFSTIEG_AESTE[h.rolle][Math.random()<.5?0:1].id;
+      const a=V.AUFSTIEG_AESTE[h.rolle].find(x=>x.id===h.__spez), id=a.knoten.find(k=>V.talentWaehlbar(h,k)); const vor=S, sp=h.__spez;
+      if(id) S=V.aktion(S,p,{t:'talent',id,nr:S.spielNr});
+      else { const b=['kraft','haut','leben','trank','heil'].find(x=>V.ruhmVon(h,x)<Math.min(V.RUHM[x].max,x==='leben'?99:x==='heil'?(['heilerin','paladin'].includes(h.rolle)?5:0):99)&&(x!=='kraft'||V.ruhmVon(h,'kraft')<=V.ruhmVon(h,'haut')+1)) || 'leben'; S=V.aktion(S,p,{t:'ruhm',id:b,nr:S.spielNr}); }
+      if(S===vor) break; S.helden[p].__ast=reihe; S.helden[p].__spez=sp; } }
   return S;
 }
 function einkaufen(S,p,klug){
@@ -50,7 +57,7 @@ function spiel(seed, rollen, klug){
   pids.forEach((p,i)=>S=V.aktion(S,p,{t:'rolle',rolle:rollen[i]}));
   S=V.aktion(S,'p0',{t:'laenge',n:LAENGE}); S=V.aktion(S,'p0',{t:'schwere',n:SCHWERE}); for(const f of FLUECHE) S=V.aktion(S,'p0',{t:'fluch',id:f}); S=V.aktion(S,'p0',{t:'start',mindestens:1}); if(S.phase!=='erkunden') throw new Error('Start');
   let schritte=0, lager=0, gold=0;
-  while(S.phase!=='ende' && schritte++<(+process.env.SCHRITTE||3000)){
+  while(S.phase!=='ende' && schritte++<(+process.env.SCHRITTE||(LAENGE===4?60000:3000)) && !(LAENGE===4 && S.ebene>(+process.env.BIS||14))){
     if(S.phase==='erkunden'){ S=punkte(S,klug); const e=S.entscheidung; const q=S.teilnehmer.reduce((a,x)=>a+S.helden[x].hp/S.helden[x].max,0)/S.teilnehmer.length;
       const frei=e.optionen.map((o,i)=>i).filter(i=>!e.optionen[i].gesperrt);
       for(const p of S.teilnehmer){ let i=frei[Math.floor(Math.random()*frei.length)];
@@ -67,7 +74,8 @@ function spiel(seed, rollen, klug){
     for(const p of S.teilnehmer){const h=S.helden[p]; if(!(h.hp>=0&&h.hp<=h.max)||isNaN(h.hp)||h.gold<0||isNaN(h.gold)) throw new Error('Held kaputt '+JSON.stringify(h));}
     for(const g of S.gegner) if(isNaN(g.hp)||g.hp>g.max||g.hp<0) throw new Error('Gegner kaputt '+JSON.stringify(g));
   }
-  if(S.phase!=='ende') throw new Error('endet nicht '+rollen+' '+S.phase+' Raum '+S.raumNr+' Runde '+(S.kampf&&S.kampf.runde)+' '+JSON.stringify(S.gegner.map(g=>[g.art,g.hp,g.max])));
+  if(LAENGE===4){ STATS.tiefe=STATS.tiefe||[]; if(klug) STATS.tiefe.push(S.ebene); STATS.stufeMax=Math.max(STATS.stufeMax||0,...S.teilnehmer.map(p=>S.helden[p].stufe)); }
+  if(S.phase!=='ende' && LAENGE!==4) throw new Error('endet nicht '+rollen+' '+S.phase+' Raum '+S.raumNr+' Runde '+(S.kampf&&S.kampf.runde)+' '+JSON.stringify(S.gegner.map(g=>[g.art,g.hp,g.max])));
   if(klug&&S.ergebnis!=='sieg'){ const k=S.karte.knoten[S.karte.pos]; const wo='E'+S.ebene+' '+(k.typ==='boss'?'Endgegner':k.typ+' '+[...new Set(S.gegner.map(g=>g.art))].sort().join('+')); STATS.tod[wo]=(STATS.tod[wo]||0)+1; }
   if(klug){ STATS.spiele++; for(const id of S.karte.weg){ const t=S.karte.knoten[id].typ; STATS.raeume[t]=(STATS.raeume[t]||0)+1; } }
   if(klug){ for(const p of S.teilnehmer){ STATS.stufe+=S.helden[p].stufe; STATS.gold=(STATS.gold||0)+S.helden[p].gold; STATS.n++; STATS.raenge+=S.helden[p].talente.length; const ast=S.helden[p].rolle+'/'+(S.helden[p].__ast||['-'])[0]; const z=STATS.ast[ast]=STATS.ast[ast]||[0,0]; z[0]++; if(S.ergebnis==='sieg')z[1]++;} }
@@ -81,6 +89,7 @@ for(const t of trios){ let sk=0,ss=0,lg=0,gl=0; for(let i=1;i<=N;i++){ const r=s
 zeilen.sort((a,b)=>b[1]-a[1]); for(const z of zeilen) console.log(z[0].padEnd(30),'klug',String(z[1]).padStart(3)+'%','simpel',String(z[2]).padStart(3)+'%','Lager',z[3],'Ø Gold je Lager',z[4]);
 console.log('Räume je Partie (klug):', Object.entries(STATS.raeume).map(([t,n])=>t+' '+(n/STATS.spiele).toFixed(2)).join(', '));
 console.log('Ebenen',LAENGE,'Stufe',V.SCHWERE[SCHWERE].name,'Gruppe',GROESSE,'Flüche',FLUECHE.join('+')||'-','Ø Gold am Ende',Math.round(STATS.gold/STATS.n));console.log('Ø Stufe am Ende', (STATS.stufe/STATS.n).toFixed(1), 'Ø Talente', (STATS.raenge/STATS.n).toFixed(1));
+if(STATS.tiefe){ const t=STATS.tiefe.slice().sort((a,b)=>a-b); const v={}; for(const e of t) v[e]=(v[e]||0)+1; console.log('Tiefe erreicht (Ebene: Partien):', JSON.stringify(v), 'Median', t[Math.floor(t.length/2)], 'höchste Stufe', STATS.stufeMax); }
 const k=zeilen.map(z=>z[1]); console.log('klug: min',Math.min(...k),'max',Math.max(...k),'Schnitt',Math.round(k.reduce((a,b)=>a+b)/k.length));
 const s2=zeilen.map(z=>z[2]); console.log('simpel Schnitt',Math.round(s2.reduce((a,b)=>a+b)/s2.length));
 if(GROESSE===3) for(const d of [['kaempfer','heilerin'],['paladin','magierin'],['dieb','waldlaeufer']]){ let w=0; for(let i=1;i<=N;i++) if(spiel(i*31,d,true).sieg)w++; console.log('zu zweit',d.join('+'),Math.round(100*w/N)+'%'); }

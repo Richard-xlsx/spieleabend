@@ -189,6 +189,7 @@
     3: { wand: ["#1E0906", "#3A140E"], stein: "#2A110C", fuge: "#120503", boden: ["#3A1A12", "#4A2216"], linie: "#260E09", licht: "#FF7A3C" }
   };
   function hintergrund(ebene) {
+    ebene = ((ebene - 1) % 3) + 1;            // die Tiefe wiederholt die drei Gegenden
     const t = THEMA[ebene] || THEMA[1];
     let s = `<defs>
       <linearGradient id="vl-wand" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${t.wand[0]}"/><stop offset="1" stop-color="${t.wand[1]}"/></linearGradient>
@@ -492,11 +493,13 @@
       kopfschuss: "pfeil", ranken: "eis", durchschuss: "hagel", treibjagd: "hagel", wolfsrudel: "hagel", inferno: "meteor", sonnenstrahl: "licht",
       sonnenzorn: "licht", giftwolke: "rauch", seuche: "rauch", bollwerk: "fels", wall: "fels", obhut: "arkan", taktik: "arkan",
       schlachtruf: "kriegsschrei", gnadenlicht: "wiedergeburt", auferstehung: "wiedergeburt", erloesung: "wiedergeburt", heiligtum: "wiedergeburt",
-      heiligtumTick: "laeutern", zeitriss: "segen" };
+      heiligtumTick: "laeutern", zeitriss: "segen",
+      ansturm: "wirbel", klingensturm: "wirbel", feuerweihe: "licht", ewigschild: "fels", schattentanz: "hagel", schwarztod: "rauch", sternschuss: "pfeil",
+      wildnis: "hagel", sternenfall: "meteor", gnade: "wiedergeburt", lebensquell: "wiedergeburt" };
     async function heldAktion(e0) {
-      if (e0.a === "frost" || e0.a === "winter") { await frostwelle(e0); return; }
+      if (e0.a === "frost" || e0.a === "winter" || e0.a === "zeitstillstand") { await frostwelle(e0); return; }
       if (e0.a === "befreien") { await wackeln(e0.von); await wort(e0.von, "frei!", "#F3F0FF"); return; }
-      const e = AEHNLICH[e0.a] ? Object.assign({}, e0, { a: AEHNLICH[e0.a], phase: (e0.a === "sonnenstrahl" || e0.a === "sonnenzorn") ? 2 : e0.phase }) : e0;
+      const e = AEHNLICH[e0.a] ? Object.assign({}, e0, { a: AEHNLICH[e0.a], phase: (e0.a === "sonnenstrahl" || e0.a === "sonnenzorn" || e0.a === "feuerweihe") ? 2 : e0.phase }) : e0;
       const p = e.von, a = e.a, typ = typVon(a), ziele = getroffene(e, true), ziel = e.ziel && zust[e.ziel] ? e.ziel : ziele[0];
       const spitze = () => { const q = pos[p], s = SPITZE[zust[p].rolle] || [0, -100]; return { x: q.x + s[0], y: q.y + s[1] }; };
       if (typ === "nah" && ziel) {

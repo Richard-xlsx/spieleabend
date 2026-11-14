@@ -11,15 +11,20 @@ for (let seed = 1; seed <= 400; seed++) {
   let S = V.neu('X', 'p0', 'A', seed * 977); const P = R.map((_, i) => 'p' + i);
   for (let i = 1; i < R.length; i++) S = V.aktion(S, P[i], { t: 'join', name: 'S' + i });
   P.forEach((p, i) => S = V.aktion(S, p, { t: 'rolle', rolle: R[i] }));
-  S = V.aktion(S, 'p0', { t: 'laenge', n: 3 }); S = V.aktion(S, 'p0', { t: 'schwere', n: 1 + (seed >> 2) % 4 }); for (const f of Object.keys(V.FLUECHE)) if (Math.random() < .4) S = V.aktion(S, 'p0', { t: 'fluch', id: f });
+  const tiefe = seed % 4 === 0; S = V.aktion(S, 'p0', { t: 'laenge', n: tiefe ? 4 : 3 }); S = V.aktion(S, 'p0', { t: 'schwere', n: 1 + (seed >> 2) % 4 }); for (const f of Object.keys(V.FLUECHE)) if (Math.random() < .4) S = V.aktion(S, 'p0', { t: 'fluch', id: f });
   S = V.aktion(S, 'p0', { t: 'start', mindestens: 1 });   // Flüche zufällig
   // Ein Drittel der Partien beginnt in Ebene 2, eins in Ebene 3 (mit kräftigeren Helden), damit alle Gegner vorkommen
-  const ab = 1 + seed % 3;
+  const ab = 1 + seed % 3 + (tiefe ? 3 + (seed >> 3) % 4 : 0);   // die Tiefe: Ebene 4 bis 9
   if (ab > 1) { S.ebene = ab - 1; S.ebeneFertig = true; for (const p of S.teilnehmer) { const h = S.helden[p]; h.max += 30 * (ab - 1); h.hp = h.max; h.waffe = 2 * (ab - 1); h.ruestung = 2 * (ab - 1); } }
   // Damit alle Talente vorkommen: jeder Held bekommt 12 Punkte und verteilt sie zufällig (auch Meisterfähigkeiten)
   for (const p of S.teilnehmer) { S.helden[p].punkte = 12; for (let k = 0; k < 12; k++) {
     const h = S.helden[p], frei = Object.keys(V.TALENT).filter(id => V.talentWaehlbar(h, id)); if (!frei.length) break;
     S = V.aktion(S, p, { t: 'talent', id: frei[Math.floor(Math.random() * frei.length)], nr: S.spielNr }); } }
+  // Jeder Zweite ist aufgestiegen: Stufe 22, Spezialisierung ganz gelernt (zweite Meisterfähigkeit), Ruhmesboni
+  if (seed % 2) for (const p of S.teilnehmer) { const h = S.helden[p]; h.ep = V.epFuer(22); h.stufe = 22; h.ruhm = 6;
+    const a = V.AUFSTIEG_AESTE[h.rolle][seed % 4 < 2 ? 0 : 1]; for (const id of a.knoten) S = V.aktion(S, p, { t: 'talent', id, nr: S.spielNr });
+    S = V.aktion(S, p, { t: 'ruhm', id: 'kraft', nr: S.spielNr }); S = V.aktion(S, p, { t: 'ruhm', id: 'haut', nr: S.spielNr });
+    if (S.helden[p].ruhm !== 0) throw new Error('Aufstieg nicht gelernt ' + h.rolle); }
   let n = 0;
   while (S.phase !== 'ende' && n++ < 3000) {
     if (S.phase === 'erkunden') { for (const p of S.teilnehmer) { if (S.phase !== 'erkunden') break; S = V.aktion(S, p, { t: 'stimme', i: 0, nr: S.spielNr }); } }
