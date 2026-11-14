@@ -6,6 +6,15 @@
   const ZEICHEN = "ABCDEFGHJKLMNPRSTUVWXYZ23456789";
   const FARBEN = ["#16161D", "#E23B2E", "#2F6FDE", "#2E9B4F", "#F2B705", "#8B5A2B", "#E86FB0", "#FFFFFF"];
   const DICKE = { 1: 5, 2: 12, 3: 28 };
+  // Weitere Farben in der aufklappbaren Palette (Striche speichern dann den Farbcode statt der Nummer)
+  const PALETTE = ["#7A1F1F", "#B22222", "#FF6B5B", "#FFB3A7", "#C2410C", "#F97316", "#FDBA74", "#FFE8C2",
+    "#A16207", "#FACC15", "#FEF08A", "#3F6212", "#65A30D", "#A3E635", "#BBF7D0", "#0F766E",
+    "#14B8A6", "#99F6E4", "#1E3A8A", "#0EA5E9", "#7DD3FC", "#4C1D95", "#8B5CF6", "#C4B5FD",
+    "#9D174D", "#DB2777", "#F9A8D4", "#5C3A1E", "#D2B48C", "#FDDCC4", "#E8B48A", "#C68642",
+    "#8D5524", "#374151", "#6B7280", "#9CA3AF", "#D1D5DB", "#F3F4F6"];
+  const farbWert = f => typeof f === "string" ? f : (FARBEN[f] || FARBEN[0]);
+  // Malzustand, der ein Neuzeichnen der Seite übersteht
+  let malFarbe = 0, malDicke = 2, eigeneFarbe = null, paletteOffen = false, ansicht = { key: "", z: 1, x: 0, y: 0 };
   const VORSCHLAEGE = ["Ein Pinguin verschläft seine eigene Hochzeit", "Oma gewinnt ein Rap-Battle", "Ein Hai macht Yoga am Strand",
     "Der Döner fliegt ins All", "Zwei Tauben streiten sich um ein Croissant", "Ein Einhorn steht im Stau",
     "Mein Mitbewohner kocht Nudeln in der Kaffeemaschine", "Ein Vampir beim Zahnarzt", "Ein Hund macht die Steuererklärung",
@@ -219,7 +228,7 @@
     const sx = w / 1000, sy = h / 750; let rest = bisPunkte == null ? Infinity : bisPunkte;
     for (const s of striche || []) {
       if (rest <= 0) break;
-      ctx.strokeStyle = FARBEN[s.f] || FARBEN[0]; ctx.fillStyle = ctx.strokeStyle; ctx.lineWidth = (DICKE[s.d] || 5) * sx;
+      ctx.strokeStyle = farbWert(s.f); ctx.fillStyle = ctx.strokeStyle; ctx.lineWidth = (DICKE[s.d] || 5) * sx;
       const n = Math.min(s.p.length / 2, rest); rest -= n;
       if (n === 1) { ctx.beginPath(); ctx.arc(s.p[0] * sx, s.p[1] * sy, ctx.lineWidth / 2, 0, 7); ctx.fill(); continue; }
       ctx.beginPath(); ctx.moveTo(s.p[0] * sx, s.p[1] * sy);
@@ -244,31 +253,85 @@
   function malen(box) {
     const cv = leinwand(box), ctx = cv.getContext("2d");
     cv.className = "malen";
-    let farbe = 0, dicke = 2, aktuell = null;
+    const breite = parseFloat(cv.style.width), hoehe = parseFloat(cv.style.height), dpr = Math.min(2, window.devicePixelRatio || 1);
+    let aktuell = null;
     const punkte = () => entwurf.striche.reduce((a, s) => a + s.p.length / 2, 0);
     const neu = () => zeichne(ctx, cv.width, cv.height, entwurf.striche);
-    neu();
+    // Zoom: zwei Finger auf der Fläche verschieben und vergrößern, ein Finger malt
+    const key = entwurf.nr + ":" + entwurf.schritt;
+    if (ansicht.key !== key) ansicht = { key, z: 1, x: 0, y: 0 };
+    const zz = document.getElementById("zoomzurueck");
+    const zeigen = () => {
+      cv.style.transform = `translate(${ansicht.x}px,${ansicht.y}px) scale(${ansicht.z})`;
+      if (zz) zz.hidden = ansicht.z <= 1.01;
+    };
+    const schaerfen = () => {                  // nach dem Zoomen in passender Auflösung neu zeichnen
+      const f = Math.min(4, dpr * ansicht.z), w = Math.round(breite * f), h = Math.round(hoehe * f);
+      if (cv.width !== w) { cv.width = w; cv.height = h; neu(); }
+    };
+    cv.style.transformOrigin = "0 0"; zeigen(); schaerfen(); neu();
+    if (zz) zz.onclick = () => { ansicht.z = 1; ansicht.x = 0; ansicht.y = 0; zeigen(); schaerfen(); };
+    const finger = new Map(); let zwick = null, gesperrt = false;
+    const mitte = () => { const [a, b] = [...finger.values()], r = box.getBoundingClientRect(); return { x: (a.x + b.x) / 2 - r.left, y: (a.y + b.y) / 2 - r.top, d: Math.hypot(a.x - b.x, a.y - b.y) || 1 }; };
     const pos = ev => { const r = cv.getBoundingClientRect(); return [Math.round((ev.clientX - r.left) / r.width * 1000), Math.round((ev.clientY - r.top) / r.height * 750)]; };
+    box.addEventListener("gesturestart", ev => ev.preventDefault());
     cv.addEventListener("pointerdown", ev => {
+      ev.preventDefault();
+      finger.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });
+      if (finger.size === 2) {                 // zweiter Finger: Malen abbrechen, Zoomen beginnen
+        if (aktuell) {
+          if (aktuell.p.length <= 16 && entwurf.striche[entwurf.striche.length - 1] === aktuell) entwurf.striche.pop();
+          aktuell = null; entwurfSpeichern(); neu(); aktualisiere();
+        }
+        const m = mitte(); zwick = { m, z: ansicht.z, x: ansicht.x, y: ansicht.y }; gesperrt = true;
+        return;
+      }
+      if (finger.size > 2 || gesperrt) return;
       if (punkte() >= P.MAX_PUNKTE) { voll(); return; }
-      ev.preventDefault(); try { cv.setPointerCapture(ev.pointerId); } catch (e) {}
-      aktuell = { f: farbe, d: dicke, p: pos(ev) }; entwurf.striche.push(aktuell); neu();
+      try { cv.setPointerCapture(ev.pointerId); } catch (e) {}
+      aktuell = { f: malFarbe, d: malDicke, p: pos(ev), id: ev.pointerId }; entwurf.striche.push(aktuell); neu();
     });
     cv.addEventListener("pointermove", ev => {
-      if (!aktuell) return; ev.preventDefault();
+      if (finger.has(ev.pointerId)) finger.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });
+      if (zwick && finger.size >= 2) {
+        ev.preventDefault();
+        const m = mitte(), z = Math.max(1, Math.min(4, zwick.z * m.d / zwick.m.d));
+        const cx = (zwick.m.x - zwick.x) / zwick.z, cy = (zwick.m.y - zwick.y) / zwick.z;   // Punkt unter den Fingern bleibt dort
+        ansicht.z = z;
+        ansicht.x = Math.min(0, Math.max(breite - breite * z, m.x - cx * z));
+        ansicht.y = Math.min(0, Math.max(hoehe - hoehe * z, m.y - cy * z));
+        zeigen(); return;
+      }
+      if (!aktuell || ev.pointerId !== aktuell.id) return; ev.preventDefault();
       const [x, y] = pos(ev), n = aktuell.p.length;
-      if (Math.hypot(x - aktuell.p[n - 2], y - aktuell.p[n - 1]) < 4) return;
+      if (Math.hypot(x - aktuell.p[n - 2], y - aktuell.p[n - 1]) < 4 / ansicht.z) return;
       if (punkte() >= P.MAX_PUNKTE) { voll(); aktuell = null; return; }
       aktuell.p.push(Math.max(0, Math.min(1000, x)), Math.max(0, Math.min(750, y)));
       const sx = cv.width / 1000, sy = cv.height / 750;
-      ctx.strokeStyle = FARBEN[aktuell.f]; ctx.lineWidth = DICKE[aktuell.d] * sx; ctx.lineCap = "round"; ctx.lineJoin = "round";
+      ctx.strokeStyle = farbWert(aktuell.f); ctx.lineWidth = DICKE[aktuell.d] * sx; ctx.lineCap = "round"; ctx.lineJoin = "round";
       ctx.beginPath(); ctx.moveTo(aktuell.p[n - 2] * sx, aktuell.p[n - 1] * sy); ctx.lineTo(aktuell.p[n] * sx, aktuell.p[n + 1] * sy); ctx.stroke();
     });
-    const ende = () => { if (aktuell) { aktuell = null; entwurfSpeichern(); aktualisiere(); } };
-    cv.addEventListener("pointerup", ende); cv.addEventListener("pointercancel", ende); cv.addEventListener("pointerleave", ende);
+    const ende = ev => {
+      finger.delete(ev.pointerId);
+      if (zwick && finger.size < 2) { zwick = null; schaerfen(); }
+      if (!finger.size) gesperrt = false;
+      if (aktuell && ev.pointerId === aktuell.id) { delete aktuell.id; aktuell = null; entwurfSpeichern(); aktualisiere(); }
+    };
+    cv.addEventListener("pointerup", ende); cv.addEventListener("pointercancel", ende);
+    cv.addEventListener("pointerleave", ev => { if (!aktuell || ev.pointerId === aktuell.id) ende(ev); });
     const voll = () => { const h = document.getElementById("voll"); if (h) h.hidden = false; };
-    document.querySelectorAll("[data-farbe]").forEach(b => b.onclick = () => { farbe = +b.dataset.farbe; document.querySelectorAll("[data-farbe]").forEach(x => x.classList.toggle("an", x === b)); });
-    document.querySelectorAll("[data-dicke]").forEach(b => b.onclick = () => { dicke = +b.dataset.dicke; document.querySelectorAll("[data-dicke]").forEach(x => x.classList.toggle("an", x === b)); });
+    // Farben: Grundfarben, aufklappbare Palette und freie Farbwahl
+    const farbeWaehlen = f => {
+      malFarbe = f;
+      if (typeof f === "string") { eigeneFarbe = f; const e = document.getElementById("eigene"); if (e) { e.hidden = false; e.style.background = f; e.dataset.farbe = f; } }
+      document.querySelectorAll("[data-farbe]").forEach(x => x.classList.toggle("an", x.dataset.farbe === String(f)));
+    };
+    document.querySelectorAll("[data-farbe]").forEach(b => b.onclick = () => farbeWaehlen(/^#/.test(b.dataset.farbe) ? b.dataset.farbe : +b.dataset.farbe));
+    const pt = document.getElementById("palettetaste"), pl = document.getElementById("palette");
+    if (pt && pl) pt.onclick = () => { paletteOffen = !paletteOffen; pl.hidden = !paletteOffen; pt.setAttribute("aria-expanded", paletteOffen); };
+    const frei = document.getElementById("freiefarbe");
+    if (frei) frei.oninput = () => farbeWaehlen(frei.value.toUpperCase());
+    document.querySelectorAll("[data-dicke]").forEach(b => b.onclick = () => { malDicke = +b.dataset.dicke; document.querySelectorAll("[data-dicke]").forEach(x => x.classList.toggle("an", x === b)); });
     const z = document.getElementById("rueckgaengig"); if (z) z.onclick = () => { entwurf.striche.pop(); entwurfSpeichern(); neu(); aktualisiere(); };
     const l = document.getElementById("loeschen");
     if (l) l.onclick = () => {
@@ -388,8 +451,14 @@
     } else if (a.typ === "bild") {
       h += `<div class="karte"><p class="etikett">Male das</p>${!vorher ? `<p class="leise" id="vorlage-fehlt">Lädt …</p>` : vorher.leer ? `<h2>Hier fehlt etwas. Mal, was du willst!</h2>` : `<h2 class="zitat">„${esc(vorher.text)}“</h2>`}</div>
         <div class="malbox" id="malbox"></div>
-        <div class="werkzeug">${FARBEN.map((f, i) => `<button class="farbe ${i === 0 ? "an" : ""}" data-farbe="${i}" style="background:${f}" aria-label="${i === FARBEN.length - 1 ? "Radiergummi" : "Farbe " + (i + 1)}">${i === FARBEN.length - 1 ? "⌫" : ""}</button>`).join("")}</div>
-        <div class="werkzeug">${[1, 2, 3].map(d => `<button class="klein ${d === 2 ? "an" : ""}" data-dicke="${d}">${["Fein", "Mittel", "Dick"][d - 1]}</button>`).join("")}
+        <p class="leise klein zoomhinweis">Mit zwei Fingern heranzoomen und verschieben. <button class="klein" id="zoomzurueck" hidden>Ganzes Bild</button></p>
+        <div class="werkzeug">${FARBEN.map((f, i) => `<button class="farbe ${malFarbe === i ? "an" : ""}" data-farbe="${i}" style="background:${f}" aria-label="${i === FARBEN.length - 1 ? "Radiergummi" : "Farbe " + (i + 1)}">${i === FARBEN.length - 1 ? "⌫" : ""}</button>`).join("")}
+          <button class="farbe ${typeof malFarbe === "string" ? "an" : ""}" id="eigene" ${eigeneFarbe ? `data-farbe="${eigeneFarbe}" style="background:${eigeneFarbe}"` : "hidden"} aria-label="Zuletzt gewählte Palettenfarbe"></button>
+          <button class="farbe palettetaste" id="palettetaste" aria-expanded="${paletteOffen}" aria-controls="palette" aria-label="Mehr Farben">+</button></div>
+        <div class="palette" id="palette" ${paletteOffen ? "" : "hidden"}>
+          <div class="palettenraster">${PALETTE.map(f => `<button class="farbe ${malFarbe === f ? "an" : ""}" data-farbe="${f}" style="background:${f}" aria-label="Farbe ${f}"></button>`).join("")}</div>
+          <label class="freiefarbe">Eigene Farbe mischen <input type="color" id="freiefarbe" value="${eigeneFarbe || "#3366CC"}"></label></div>
+        <div class="werkzeug">${[1, 2, 3].map(d => `<button class="klein ${d === malDicke ? "an" : ""}" data-dicke="${d}">${["Fein", "Mittel", "Dick"][d - 1]}</button>`).join("")}
           <button class="klein" id="rueckgaengig">Rückgängig</button><button class="klein" id="loeschen">Alles löschen</button></div>
         <p class="leise klein" id="voll" hidden>Das Bild ist voll. Rückgängig macht wieder Platz.</p>`;
     } else {
