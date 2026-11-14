@@ -272,8 +272,9 @@
       <p class="zug ${meinZug ? "du" : ""}">${meinZug ? (S.zieh > 0 ? `Du bist dran. Auf dem Tisch liegt +${S.zieh}.` : S.gezogen ? "Du hast gezogen. Legen oder „Weiter“." : "Du bist dran.") : esc(sp(S.dran).name) + " ist dran."}</p>
       ${handHtml(meinZug)}
       <div class="unten knoepfe">
-        <button class="knopf zweit" id="ziehen" ${meinZug && (!S.gezogen || S.zieh > 0) ? "" : "disabled"}>${S.zieh > 0 && meinZug ? S.zieh + " ziehen" : "Ziehen"}</button>
-        ${meinZug && auswahl ? `<button class="knopf" id="legen">Legen</button>` : meinZug && S.gezogen && !S.zieh ? `<button class="knopf zweit" id="weiter">Weiter</button>` : ""}
+        ${meinZug && S.gezogen && !S.zieh ? `<button class="knopf zweit" id="weiter">Weiter</button>`
+          : `<button class="knopf zweit" id="ziehen" ${meinZug ? "" : "disabled"}>${S.zieh > 0 && meinZug ? S.zieh + " ziehen" : "Ziehen"}</button>`}
+        ${meinZug && auswahl ? `<button class="knopf" id="legen">Legen</button>` : ""}
         <button class="knopf mau" id="mau" ${S.mau[PID] ? "disabled" : ""}>${S.mau[PID] ? "Mau gesagt" : "Mau!"}</button>
       </div>
       ${dranOffline ? `<button class="link" id="auslassen">${esc(sp(S.dran).name)} ist nicht verbunden: auslassen</button>` : ""}`;
@@ -318,9 +319,9 @@
     if ($("start")) $("start").onclick = starten;
     if ($("nochmal")) $("nochmal").onclick = starten;
     if ($("verlassen")) $("verlassen").onclick = verlassen;
-    if ($("stapel")) $("stapel").onclick = () => tun({ t: "ziehen" });
-    if ($("ziehen")) $("ziehen").onclick = () => tun({ t: "ziehen" });
-    if ($("weiter")) $("weiter").onclick = () => tun({ t: "weiter" });
+    if ($("stapel")) $("stapel").onclick = () => { auswahl = null; tun({ t: "ziehen" }); };
+    if ($("ziehen")) $("ziehen").onclick = () => { auswahl = null; tun({ t: "ziehen" }); };
+    if ($("weiter")) $("weiter").onclick = () => { auswahl = null; tun({ t: "weiter" }); };
     if ($("legen")) $("legen").onclick = legen;
     if ($("strafregel")) $("strafregel").onchange = () => tun({ t: "einstellungen", strafe: $("strafregel").checked });
     if ($("mau")) $("mau").onclick = () => tun({ t: "mau" });
