@@ -60,19 +60,31 @@ Viererkette (2 bis 3 Spieler; vom 14.11.2026)
   Siege werden gezählt, jede Runde beginnt der Nächste. Wer als Vierter oder später kommt, schaut zu. Spielleiter kann
   nicht verbundene Spieler auslassen; die Spielleitung lässt sich wie bei den anderen Spielen übernehmen.
 
-Verlies der Helden (2 bis 4 Spieler; Stufe 1 und Ausbau mit Händler und 6 Rollen vom 13.11.2026, Kampfbühne, Karte, Talentbaum,
+Verlies der Helden (2 bis 6 Spieler; Stufe 1 und Ausbau mit Händler und 6 Rollen vom 13.11.2026, Kampfbühne, Karte, Talentbaum,
 Gegner-Eigenschaften, drei Ebenen und Schwierigkeitsstufen vom 14.11.2026)
   Schwierigkeit wählt der Spielleiter in der Lobby: Wanderer (Gegner-Leben und -Schaden ×0,75, Gold ×1,2, Rast 60 %,
   Bewusstlose stehen mit halben Leben auf), Abenteurer (Standard, Rast 40 %, Bewusstlose stehen mit 5 Leben auf),
   Held (Leben ×1,25, Schaden ×1,15, Gold ×0,9, Rast 30 %, fast doppelt so viele Elite-Räume), Legende (Leben ×1,5,
   Schaden ×1,3, Gold ×0,8, Rast 25 %, Elite wie Held; wer am Kampfende bewusstlos ist, ist gefallen und schaut zu).
-  Gruppengröße: zu zweit Gegner-Leben ×0,55 (Endgegner ×0,47) und Schaden ×0,8, zu viert Leben ×1,65 und Schaden ×1,15.
+  Gruppengröße: zu zweit Gegner-Leben ×0,55 (Endgegner ×0,47) und Schaden ×0,8, zu viert Leben ×1,65 und Schaden ×1,15,
+  zu fünft Leben ×2,7 und Schaden ×1,45, zu sechst Leben ×3,8 und Schaden ×1,75 (vom 14.11.2026; höchstens 4 Gegner gleichzeitig).
+  Flüche (Spielleiter wählt in der Lobby beliebig viele, betreffen nur die Gegner): Zäh (+25 % Leben), Wild (+15 % Schaden),
+  Regeneration (jeder Gegner heilt am Rundenende 5 % seiner Leben, Feuer stoppt das, lässt in langen Kämpfen nach),
+  Dornen (Treffer mit Schwert, Hammer oder Dolch kosten einmal pro Zug 1 Leben, in Ebene 2 und 3 2, nie den letzten),
+  Rachsucht (jeder gefallene Gegner gibt den übrigen +1 Schaden in diesem Kampf, tiefer mehr, höchstens dreimal;
+  steht als „Rache +x“ am Schild),
+  Verstärkung (jeder Kampf außer Endgegner hat einen Gegner mehr, höchstens 4). Aktive Flüche stehen im Kampf unter
+  „Gegner-Eigenschaften“ und auf dem Endbildschirm. Stärke in der Lobby als Totenköpfe. Simulation (Dreiergruppen, Normal,
+  Abenteurer, ohne Fluch 88 %): Verstärkung 86 %, Regeneration 83 %, Dornen 82 % (je ☠), Zäh 79 % (☠☠), Wild 70 %,
+  Rachsucht 65 % (je ☠☠☠), alle sechs zusammen etwa 25 %.
+  Gruppengrößen (Normal, klug): Abenteurer zu dritt 88 %, zu viert 93 %, zu fünft 89 %, zu sechst 94 %;
+  Held 58/72/69/64 %; Legende 27/46/32/20 %; Wanderer immer fast 100 %.
   Regeneration lässt von Runde zu Runde nach, je Kampf kommen höchstens 8 gerufene Gegner dazu.
   Gemeinsam gegen das Spiel. Partielänge wählt der Spielleiter in der Lobby (auch nach Spielende): Kurz = 1 Ebene (Kerker),
   Normal = 2 Ebenen (dazu die Spinnengrotte, Standard), Lang = 3 Ebenen (dazu der Glutschlund). Nach jedem Endgegner außer
   dem letzten: Lager mit voller Heilung, allen Fähigkeiten bereit und Händler, dann neue Karte eine Ebene tiefer.
   Je Ebene sind die Gegner zäher (Leben ×2,8 bzw. ×3,4, Schaden ×1,9 bzw. ×2,2), dafür gibt es mehr Erfahrung (×2 bzw. ×2,8)
-  und Gold (×1,4 bzw. ×1,8). Jede Ebene hat ihre eigene Kampfbühne (Fackeln; Pilze und Netze; Lava). Sechs Rollen, zwei bis vier Helden (jede Rolle einmal):
+  und Gold (×1,4 bzw. ×1,8). Jede Ebene hat ihre eigene Kampfbühne (Fackeln; Pilze und Netze; Lava). Sechs Rollen, zwei bis sechs Helden (jede Rolle einmal):
     Kämpfer (34 Leben; Schwerthieb, Schildwall, Wirbelschlag | Äste: Beschützer, Berserker, Feldherr)
     Paladin (32; Hammerschlag, Handauflegen, Beschützen | Schutzherr, Rächer, Gnade)
     Dieb (29; Dolchstich, Giftklinge, In die Schatten | Assassine, Giftmischer, Gauner)
@@ -145,7 +157,7 @@ Gegner-Eigenschaften, drei Ebenen und Schwierigkeitsstufen vom 14.11.2026)
   9 Talenten; Lang Schnitt 82 % (Gruppen ohne Heilerin oder Paladin deutlich schwerer), am Ende Stufe 15.
   Fast alle Niederlagen bei den Endgegnern, dazu der Höhlentroll. Zu zweit (Normal): Kämpfer+Heilerin rund 87 %,
   Paladin+Magierin rund 73 %, Dieb+Waldläufer nur rund 10 %.
-  Noch nicht drin (siehe verlies/KONZEPT.md): Schwierigkeitsstufen, Speichern zwischen Ebenen.
+  Noch nicht drin (siehe verlies/KONZEPT.md): Speichern zwischen Ebenen.
 
 Verbindung (Handy des Spielleiters ist der Server, gilt für alle Spiele)
   - Die Handys verbinden sich direkt miteinander. Zum Finden nutzt die Seite den kostenlosen Vermittlungsdienst PeerJS

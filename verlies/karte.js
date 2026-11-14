@@ -86,7 +86,7 @@
     // Die Helden stehen am aktuellen Raum
     const hp = pos(hier), n = S.teilnehmer.length;
     S.teilnehmer.forEach((p, i) => {
-      const h = S.helden[p], x = hp.x + 24 + i * 13, y = hp.y - 14 + (i % 2) * 6;
+      const h = S.helden[p], x = hp.x + 24 + (n > 4 ? i % 3 : i) * 13, y = hp.y - 14 + (n > 4 ? Math.floor(i / 3) * 14 + (i % 2) * 3 : (i % 2) * 6);
       const name = (o.namen && o.namen[p]) || "?";
       s += `<g transform="translate(${x} ${y})"${h.hp <= 0 ? ' opacity=".45"' : ""}><circle r="7" fill="${FARBE[h.rolle] || T}" stroke="#F3E6CC" stroke-width="1.5"/><text y="3.5" text-anchor="middle" font-family="Inter, sans-serif" font-weight="700" font-size="9" fill="#F3E6CC">${esc(name.charAt(0).toUpperCase())}</text></g>`;
     });

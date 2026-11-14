@@ -1,14 +1,14 @@
 // Verlies der Helden: Spielregeln ohne Netzwerk und ohne Oberfläche.
 // Der ganze Spielstand steckt in S (wird nach jeder Änderung an alle geschickt). Zufall kommt aus S.rng,
 // damit ein übernehmender Spielleiter genau dort weitermacht, wo der alte aufgehört hat.
-// Ablauf: Lobby (Rolle wählen, 6 Rollen, höchstens 3 Helden) → Karte mit 7 Reihen; vor jedem Raum stimmt die Gruppe
+// Ablauf: Lobby (Rolle wählen, 6 Rollen, 2 bis 6 Helden) → Karte mit 7 Reihen; vor jedem Raum stimmt die Gruppe
 // auf der Karte ab, wohin es geht → Endgegner in Reihe 8. Händler stehen als Räume auf der Karte, vor dem Thronsaal
 // schlägt der Händler immer noch einmal sein Lager auf. Jeder kauft mit seinem eigenen Gold.
 (function () {
   const RAEUME = 8;                   // 7 Reihen Räume + Thronsaal
   const REIHEN = RAEUME - 1;
   const LAGER_NACH = [REIHEN];
-  const MAX_HELDEN = 4;
+  const MAX_HELDEN = 6;
   const MAX_GERUFEN = 8;                  // je Kampf höchstens so viele gerufene Gegner, damit kein Kampf endlos dauert
   const kopie = x => JSON.parse(JSON.stringify(x));
 
@@ -428,15 +428,28 @@
     4: { name: "Legende", kurz: "Wer fällt, bleibt liegen", hp: 1.5, dmg: 1.3, gold: 0.8, rast: 0.25, elite: 1.8 }
   };
   const schwere = S => SCHWERE[S.schwere || 2];
-  // Gruppengröße: zu zweit weniger, zu viert mehr Gegner-Leben
-  const GRUPPE = { 1: { hp: 0.4, dmg: 0.7 }, 2: { hp: 0.55, dmg: 0.8, boss: 0.85 }, 3: { hp: 1, dmg: 1 }, 4: { hp: 1.65, dmg: 1.15 } };
+  // Gruppengröße: zu zweit weniger, ab vier Helden mehr Gegner-Leben und -Schaden
+  const GRUPPE = { 1: { hp: 0.4, dmg: 0.7 }, 2: { hp: 0.55, dmg: 0.8, boss: 0.85 }, 3: { hp: 1, dmg: 1 }, 4: { hp: 1.65, dmg: 1.15 },
+    5: { hp: 2.7, dmg: 1.45 }, 6: { hp: 3.8, dmg: 1.75 } };
   const gruppe = S => GRUPPE[(S.teilnehmer || []).length] || GRUPPE[3];
-  const gdmg = (S, n) => Math.round(n * staerke(S).dmg * schwere(S).dmg * gruppe(S).dmg);
+  // Flüche: vom Spielleiter in der Lobby gewählt, beliebig kombinierbar, betreffen nur die Gegner.
+  // stufe: 1 leicht, 2 mittel, 3 stark (Simulation, Dreiergruppe Abenteurer: ohne Fluch 88 % Siege)
+  const FLUECHE = {
+    zaeh: { stufe: 2, name: "Zäh", text: "Alle Gegner haben 25 % mehr Leben." },
+    wild: { stufe: 3, name: "Wild", text: "Alle Gegner machen 15 % mehr Schaden." },
+    regen: { stufe: 1, name: "Regeneration", text: "Jeder Gegner heilt am Ende der Runde 5 % seiner Leben. Feuer stoppt das, in langen Kämpfen lässt es nach." },
+    dornen: { stufe: 1, name: "Dornen", text: "Wer einen Gegner mit Schwert, Hammer oder Dolch trifft, verliert selbst 1 Leben, in tieferen Ebenen 2 (nie den letzten)." },
+    rache: { stufe: 3, name: "Rachsucht", text: "Jeder gefallene Gegner macht die übrigen in diesem Kampf wütender: +1 Schaden, tiefer mehr (höchstens dreimal)." },
+    verstaerkung: { stufe: 1, name: "Verstärkung", text: "In jedem Kampf außer gegen Endgegner steht ein Gegner mehr (höchstens 4)." }
+  };
+  const fluch = (S, id) => (S.flueche || []).includes(id);
+  const gdmg = (S, n) => Math.round(n * staerke(S).dmg * schwere(S).dmg * gruppe(S).dmg * (fluch(S, "wild") ? 1.15 : 1));
+  const racheBonus = S => fluch(S, "rache") && S.kampf ? gdmg(S, Math.min(3, S.kampf.rache || 0)) : 0;
   const LAENGEN = { 1: "Kurz", 2: "Normal", 3: "Lang" };
   const stufe = nr => (nr <= 3 ? 0 : nr <= 5 ? 1 : 2);
   function gegnerErzeugen(S, art) {
     // zu zweit schwächer; je tiefer, desto zäher (Helden steigen ja auch auf)
-    const g = GEGNER[art], f = gruppe(S).hp * (g.boss ? gruppe(S).boss || 1 : 1) * schwere(S).hp * (g.boss ? 1 : 1 + 0.11 * Math.max(0, S.raumNr - 1)) * (1 + (S.karte ? S.karte.fluch || 0 : 0));
+    const g = GEGNER[art], f = gruppe(S).hp * (g.boss ? gruppe(S).boss || 1 : 1) * schwere(S).hp * (g.boss ? 1 : 1 + 0.11 * Math.max(0, S.raumNr - 1)) * (1 + (S.karte ? S.karte.fluch || 0 : 0)) * (fluch(S, "zaeh") ? 1.25 : 1);
     const hp = Math.max(4, Math.round(g.hp * f * staerke(S).hp));
     S.gegnerNr = (S.gegnerNr || 0) + 1;
     return Object.assign({ id: "g" + S.gegnerNr, art, name: g.name, hp, max: hp, gift: 0, giftR: 0, starr: 0, markiert: 0 }, g.elite ? { elite: true } : {});
@@ -568,7 +581,7 @@
       v: 2, spiel: "verlies", code, epoch: 0, host: hostPid, phase: "lobby",
       spieler: { [hostPid]: { name: hostName } }, reihenfolge: [hostPid], rollen: {},
       teilnehmer: [], helden: {}, gegner: [], raumNr: 0, seite: null, entscheidung: null, kampf: null, lager: null,
-      log: [], benutzt: [], rng: (seed >>> 0) || 1, spielNr: 0, laenge: 2, schwere: 2, ebene: 1, ebenen: 2, aenderung: Date.now()
+      log: [], benutzt: [], rng: (seed >>> 0) || 1, spielNr: 0, laenge: 2, schwere: 2, flueche: [], ebene: 1, ebenen: 2, aenderung: Date.now()
     };
   }
   const lebend = S => S.teilnehmer.filter(p => S.helden[p].hp > 0);
@@ -808,8 +821,12 @@
   }
 
   function kampfStarten(S, gruppe) {
+    if (fluch(S, "verstaerkung") && gruppe.length < 4 && !gruppe.some(a => GEGNER[a].boss)) {
+      const einfach = gruppe.filter(a => !GEGNER[a].elite && !GEGNER[a].langfinger);
+      gruppe = gruppe.concat(einfach.length ? eins(S, einfach) : eins(S, ebeneVon(S).gruppen[0].flat().filter(a => !GEGNER[a].langfinger)));
+    }
     S.gegner = gruppe.map(a => gegnerErzeugen(S, a));
-    S.kampf = { runde: 1, wahl: {}, bossPhase: 1, epTot: 0, nebel: false, absicht: {} };
+    S.kampf = { runde: 1, wahl: {}, bossPhase: 1, epTot: 0, nebel: false, absicht: {}, rache: 0 };
     for (const p of S.teilnehmer) { const h = S.helden[p]; for (const id in h.cd) if (NEUE[id] && NEUE[id].meister) delete h.cd[id]; }
     for (const p of S.teilnehmer) Object.assign(S.helden[p], { schild: false, versteckt: false, lauer: false, segen: 0, gift: 0, giftR: 0, immun: false, fels: false, beschuetzt: null, netz: 0 });
     S.entscheidung = null;
@@ -853,7 +870,7 @@
     pfeil: "fern", doppel: "fern", hagel: "fern", markieren: "fern", kopfschuss: "fern", durchschuss: "fern", treibjagd: "fern",
     giftwolke: "gift", seuche: "gift", dolch: "stich", todesstoss: "stich"
   };
-  let angriffsart = "nah", feuerangriff = false;
+  let angriffsart = "nah", feuerangriff = false, dornenSchon = false;
   const FEUER = { funken: 1, feuerball: 1, meteor: 1, inferno: 1 };
   // Endgegner wechseln in Phasen: Königin fliegt ab Phase 2, der Drache nur in Phase 1 und wird in Phase 3 schnell
   const istFliegend = (S, g) => !!GEGNER[g.art].fliegend || !!(S.kampf && ((g.art === "koenigin" && S.kampf.bossPhase >= 2) || (g.art === "drache" && S.kampf.bossPhase < 2)));
@@ -867,7 +884,8 @@
     if (art.boss && istFliegend(S, g)) z.push("fliegt");
     if (art.boss && istSchnell(S, g)) z.push("Wut");
     if (g.schutz > 0) z.push(`Schild ${g.schutz}`);
-    if (g.feuer > 0 && art.regeneration) z.push("brennt");
+    if (g.feuer > 0 && (art.regeneration || fluch(S, "regen"))) z.push("brennt");
+    if (racheBonus(S)) z.push(`Rache +${racheBonus(S)}`);
     return z;
   }
   function wirkung(S, g, d) {
@@ -885,6 +903,12 @@
   function aufGegner(S, pid, g, d, log) {
     const h = S.helden[pid], e = Math.min(d, g.hp);
     g.hp -= e; h.stats.schaden += e;
+    // Fluch Dornen: Nahkampf kostet einmal pro Zug selbst Leben, aber nie den letzten
+    if (fluch(S, "dornen") && e > 0 && !dornenSchon && (angriffsart === "nah" || angriffsart === "stich") && h.hp > 1) {
+      dornenSchon = true;
+      const x = Math.min(h.hp - 1, Math.round(staerke(S).dmg));
+      if (x > 0) { h.hp -= x; log.push(`${heldName(S, pid)} sticht sich an den Dornen von ${g.name}: −${x} Leben.`); }
+    }
     if (g.hp <= 0 && e > 0 && h.hp > 0 && passiv(h, "todheil")) { const x = heldHeilen(S, pid, passiv(h, "todheil")); if (x) log.push(`${heldName(S, pid)} schöpft Kraft: +${x} Leben.`); }
     return e;
   }
@@ -969,7 +993,7 @@
     for (const p of reihe) {
       const h = S.helden[p], w = k.wahl[p], n = heldName(S, p);
       cd(h, w);
-      angriffsart = ANGRIFFSART[w.a] || "nah"; feuerangriff = !!FEUER[w.a];
+      angriffsart = ANGRIFFSART[w.a] || "nah"; feuerangriff = !!FEUER[w.a]; dornenSchon = false;
       beginn();
       switch (w.a) {
         case "befreien": h.netz = 0; log.push(`${n} reißt sich aus dem Netz los.`); break;
@@ -1029,7 +1053,7 @@
     for (const p of reihe) {
       if (!gegnerLebend(S).length) break;
       const h = S.helden[p], w = k.wahl[p], ziel = S.gegner.find(g => g.id === w.ziel);
-      angriffsart = ANGRIFFSART[w.a] || "nah"; feuerangriff = !!FEUER[w.a];
+      angriffsart = ANGRIFFSART[w.a] || "nah"; feuerangriff = !!FEUER[w.a]; dornenSchon = false;
       beginn();
       switch (w.a) {
         case "schlag": schadenAnGegner(S, p, ziel, wurf(S, 6, 8) + rs(h, "schlag"), log, "trifft"); break;
@@ -1132,7 +1156,9 @@
     };
     beuteZurueck();
     // Besiegte verlassen die Bühne, wenn Verstärkung kommt (ihre Erfahrung bleibt)
+    const racheZaehlen = () => { for (const x of S.gegner) if (x.hp <= 0 && !x.geflohen && !x.gezaehlt) { x.gezaehlt = true; k.rache = (k.rache || 0) + 1; } };
     const aufraeumen = () => {
+      racheZaehlen();
       for (const x of S.gegner) if (x.hp <= 0 && !x.gerufen && !x.geflohen) k.epTot = (k.epTot || 0) + (GEGNER[x.art].ep || 0);
       S.gegner = S.gegner.filter(x => x.hp > 0);
     };
@@ -1204,7 +1230,7 @@
       if (!spott && !zieher.length && b && S.helden[b].hp > 0) { log.push(`${heldName(S, b)} fängt den Angriff auf ${heldName(S, p)} ab.`); p = b; minus += 2 + passiv(S.helden[b], "schutzplus"); }
       const rudel = art.rudel ? art.rudel * gegnerLebend(S).filter(x => x !== g && x.art === g.art).length : 0;
       const orks = art.ork && S.gegner.some(x => x !== g && x.hp > 0 && GEGNER[x.art].anfuehrer) ? 2 : 0;
-      treffer(S, p, gdmg(S, wurf(S, art.dmg[0], art.dmg[1])) + rudel + orks - minus, log, g.name, g);
+      treffer(S, p, gdmg(S, wurf(S, art.dmg[0], art.dmg[1])) + rudel + orks + racheBonus(S) - minus, log, g.name, g);
       const z = S.helden[p];
       if (art.gift && z.hp > 0 && !z.immun && chance(S, 0.4)) { setzeGift(z, gdmg(S, 2), 2); log.push(`${heldName(S, p)} ist vergiftet.`); }
       if (art.brand && z.hp > 0 && !z.immun && chance(S, 0.4)) { setzeGift(z, gdmg(S, 3), 2, true); log.push(`${heldName(S, p)} steht in Flammen.`); }
@@ -1264,6 +1290,7 @@
       if (istSchnell(S, g) && lebend(S).length && erg.a !== "keinziel") { const z2 = hieb(g, {}); if (z2.a !== "keinziel") erg = Object.assign({}, erg, { doppelt: true }); }
       return erg;
     };
+    racheZaehlen();
     for (const g of gegnerLebend(S)) { if (g.hp <= 0) continue; beginn(); const z = gegnerZug(g); ende(Object.assign({ von: g.id }, z)); }
     beuteZurueck();
     explosionen();
@@ -1286,12 +1313,12 @@
       log.push("Das Heiligtum leuchtet: alle +8 Leben.");
       ende({ von, a: "heiligtumTick" });
     }
-    // Regeneration (Feuer stoppt sie)
+    // Regeneration (Feuer stoppt sie); der Fluch gibt jedem Gegner 5 % seiner Leben dazu
     for (const g of gegnerLebend(S)) {
-      const r = GEGNER[g.art].regeneration;
-      if (!r || g.feuer > 0 || g.hp >= g.max || !lebend(S).length) continue;
+      const r = GEGNER[g.art].regeneration, f = fluch(S, "regen") ? g.max * 0.05 : 0;
+      if ((!r && !f) || g.feuer > 0 || g.hp >= g.max || !lebend(S).length) continue;
       // zu zweit weniger, und mit jeder Runde schwächer (ab Runde 11 gar nicht mehr): kein endloser Kampf
-      const n = Math.round(gdmg(S, r) * Math.min(1, gruppe(S).hp) * Math.max(0, 1 - (S.kampf.runde - 1) / 10));
+      const n = Math.round(((r ? gdmg(S, r) * Math.min(1, gruppe(S).hp) : 0) + f) * Math.max(0, 1 - (S.kampf.runde - 1) / 10));
       if (n < 1) continue;
       beginn(); const x = Math.min(n, g.max - g.hp); g.hp += x;
       log.push(`${g.name} regeneriert: +${x} Leben.`);
@@ -1464,6 +1491,12 @@
         S.laenge = m.n;
         break;
       }
+      case "fluch": {                      // Spielleiter: Fluch an- oder abwählen
+        if (!istHost || !(S.phase === "lobby" || S.phase === "ende") || !FLUECHE[m.id]) return S0;
+        const l = S.flueche || [];
+        S.flueche = l.includes(m.id) ? l.filter(x => x !== m.id) : Object.keys(FLUECHE).filter(x => x === m.id || l.includes(x));
+        break;
+      }
       case "schwere": {                    // Spielleiter: Schwierigkeitsstufe (1 bis 4)
         if (!istHost || !(S.phase === "lobby" || S.phase === "ende") || !SCHWERE[m.n]) return S0;
         S.schwere = m.n;
@@ -1539,7 +1572,7 @@
     return S;
   }
 
-  window.VL = { zustand, SCHWERE, GRUPPE, BEFREIEN, EBENEN, LAENGEN, ebeneVon, EIGENSCHAFTEN, eigenschaften, knochenschild, RAEUME, REIHEN, RAUMNAME, SEGEN, UMVERTEILEN, sicht, MAX_HELDEN, LAGER_NACH, ROLLEN, ROLLEN_REIHE, AKTIONEN, NEUE, TRANK, GEGNER, EP_STUFEN, MAX_STUFE, STUFENBONUS,
+  window.VL = { zustand, SCHWERE, GRUPPE, FLUECHE, BEFREIEN, EBENEN, LAENGEN, ebeneVon, EIGENSCHAFTEN, eigenschaften, knochenschild, RAEUME, REIHEN, RAUMNAME, SEGEN, UMVERTEILEN, sicht, MAX_HELDEN, LAGER_NACH, ROLLEN, ROLLEN_REIHE, AKTIONEN, NEUE, TRANK, GEGNER, EP_STUFEN, MAX_STUFE, STUFENBONUS,
     AESTE, TALENT, talenteVon, talentWaehlbar, hauptast, passiv, stufeBonus, trankMax, aktionZusatz,
     neu, aktion, aktionenVon, angebot, standardWahl, lebend, gegnerLebend, goldSumme, cdVon };
 })();

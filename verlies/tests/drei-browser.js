@@ -12,24 +12,27 @@ const OUT = path.join(AUS, (process.argv[3] || 'b') + '-');
     p.on('console', m => { if (m.type() === 'error') p.errs.push('console: ' + m.text()); });
     return p;
   };
-  const R = (process.argv[2] || 'paladin,magierin,waldlaeufer').split(',');   // drei oder vier Rollen
-  const [h, a, c] = [await mk(), await mk(), await mk()], d = R.length > 3 ? await mk() : null;
+  const R = (process.argv[2] || 'paladin,magierin,waldlaeufer').split(',');   // drei bis sechs Rollen
+  const [h, a, c] = [await mk(), await mk(), await mk()], mehr = [];
+  for (let i = 3; i < R.length; i++) mehr.push(await mk());
+  const NAMEN = ['Mia', 'Tom', 'Ida'];
   await h.goto(URL_BASIS + '/verlies/'); await h.fill('#name', 'Richard'); await h.click('#neu');
   await h.waitForFunction(() => window.__vl && window.__vl.verbunden, null, { timeout: 30000 });
   const code = new URL(h.url()).searchParams.get('raum'); console.log('Raum', code);
-  for (const [p, n] of [[a, 'Lena'], [c, 'Jens']].concat(d ? [[d, 'Mia']] : [])) { await p.goto(URL_BASIS + '/verlies/?raum=' + code); await p.fill('#name', n); await p.click('#mitspielen'); }
+  for (const [p, n] of [[a, 'Lena'], [c, 'Jens']].concat(mehr.map((p, i) => [p, NAMEN[i]]))) { await p.goto(URL_BASIS + '/verlies/?raum=' + code); await p.fill('#name', n); await p.click('#mitspielen'); }
   await h.waitForFunction(n => window.__vl.S.online.length === n, R.length, { timeout: 30000 });
   await h.click('[data-rolle="' + R[0] + '"]'); await a.waitForTimeout(600);
   await a.click('[data-rolle="' + R[1] + '"]'); await c.waitForTimeout(600);
   const belegt = await c.$('[data-rolle="' + R[0] + '"][disabled]'); console.log('Rolle 1 für Jens gesperrt:', !!belegt);
   await c.click('[data-rolle="' + R[2] + '"]');
-  if (d) { await d.waitForTimeout(600); await d.click('[data-rolle="' + R[3] + '"]'); }
+  for (let i = 0; i < mehr.length; i++) { await mehr[i].waitForTimeout(600); await mehr[i].click('[data-rolle="' + R[3 + i] + '"]'); }
+  for (const f of (process.env.FLUECHE || '').split(',').filter(Boolean)) { await h.waitForTimeout(300); await h.click('[data-fluch="' + f + '"]'); }
   if (process.env.SCHWERE) { await h.waitForTimeout(400); await h.click('[data-schwere="' + process.env.SCHWERE + '"]'); }
   await h.waitForTimeout(800);
   console.log('Rollen', JSON.stringify(await h.evaluate(() => window.__vl.S.rollen)));
   await h.screenshot({ path: OUT + '1-lobby.png', fullPage: true });
   await h.click('#start');
-  const pages = [h, a, c].concat(d ? [d] : []); const shots = {}; let schritte = 0, neugeladen = false, hostNeu = false;
+  const pages = [h, a, c].concat(mehr); const shots = {}; let schritte = 0, neugeladen = false, hostNeu = false;
   while (schritte++ < 2500) {
     const ph = await h.evaluate(() => window.__vl.S && window.__vl.S.phase);
     if (ph === 'ende') break;

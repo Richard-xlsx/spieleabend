@@ -10,8 +10,8 @@ Ohne Browser (nur Node.js):
                                      Standard 300 Partien je Gruppe; für einen schnellen Blick 50 bis 100.
                                      Partielänge über EBENEN=1, 2 (Standard) oder 3, z. B. EBENEN=3 node simulation.js 20.
                                      Schwierigkeit über SCHWERE=1 (Wanderer) bis 4 (Legende), Standard 2; Gruppengröße über GRUPPE=2, 3
-                                     (Standard) oder 4, dann alle Gruppen dieser Größe. Ein Kampf, der nicht endet, bricht mit „endet nicht“ ab.
-  node rundenaufzeichnung.js         400 zufällige Partien mit 2 bis 4 Helden und allen Schwierigkeiten (je ein Drittel beginnt in Ebene 1, 2 und 3): Ausgangslage + Ereignisse in S.letzte müssen genau das
+                                     (Standard) bis 6, dann alle Gruppen dieser Größe. Flüche über FLUECHE=zaeh,wild,regen,dornen,rache,verstaerkung. Ein Kampf, der nicht endet, bricht mit „endet nicht“ ab.
+  node rundenaufzeichnung.js         400 zufällige Partien mit 2 bis 6 Helden, allen Schwierigkeiten und zufälligen Flüchen (je ein Drittel beginnt in Ebene 1, 2 und 3): Ausgangslage + Ereignisse in S.letzte müssen genau das
                                      Rundenergebnis ergeben, jeder Gegner braucht eine angekündigte Absicht. Jeder Held bekommt 12 zufällige Talente,
                                      damit alle Fähigkeiten vorkommen. Erwartet: Fehler 0.
   node endgegner-runde-finden.js     Sucht eine Runde, in der der Knochenkönig Skelette ruft, und speichert sie (ruf.json).
@@ -20,7 +20,8 @@ Mit Browser (Playwright und Chromium sind in der Cloud-Umgebung vorinstalliert).
 Vorher im Ordner spieleabend einen Webserver starten:  python3 -m http.server 8765
 Andere Adresse (z. B. die Live-Seite):  VERLIES_URL=https://richard-xlsx.github.io/spieleabend node ...
   node drei-browser.js [rolle1,rolle2,rolle3[,rolle4]] [kürzel]
-                                     Mit vier Rollen spielt eine vierte Mitspielerin mit; SCHWERE=1 bis 4 wählt die Schwierigkeit in der Lobby.
+                                     Mit vier bis sechs Rollen spielen weitere Mitspieler mit; SCHWERE=1 bis 4 wählt die Schwierigkeit in der Lobby,
+                                     FLUECHE=rache,dornen … schaltet Flüche an.
                                      Drei (oder vier) getrennte Browser im iPhone-Format spielen eine ganze Partie: Rollenwahl,
                                      Abstimmung auf der Karte, Händler, Talente lernen, Kämpfe mit Wiedergabe. Dazwischen lädt eine
                                      Mitspielerin (Raum 3) und der Spielleiter (Raum 5) neu. Am Ende: Fehler [] und

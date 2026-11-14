@@ -312,9 +312,9 @@
   }
 
   function bildschirmStart() {
-    return `<header class="titel">${VBuehne.titelbild()}<h1>Verlies der Helden</h1><p class="leise">Zwei bis vier Helden steigen gemeinsam hinab: durch den Kerker, die Spinnengrotte und den Glutschlund, mit Händlern, Schätzen und einem Endgegner auf jeder Ebene. Jeder spielt auf seinem Handy, gewonnen wird zusammen.</p></header>
+    return `<header class="titel">${VBuehne.titelbild()}<h1>Verlies der Helden</h1><p class="leise">Zwei bis sechs Helden steigen gemeinsam hinab: durch den Kerker, die Spinnengrotte und den Glutschlund, mit Händlern, Schätzen und einem Endgegner auf jeder Ebene. Jeder spielt auf seinem Handy, gewonnen wird zusammen.</p></header>
       <label class="feld">Dein Name<input id="name" maxlength="20" value="${esc(name)}" autocomplete="nickname" placeholder="z. B. Richard"></label>
-      <div class="karte"><h2>Neues Spiel</h2><p class="leise klein">Für 2 bis 4 Leute. Je nach Länge 30 bis 90 Minuten. Runde für Runde, ohne Zeitdruck.</p>
+      <div class="karte"><h2>Neues Spiel</h2><p class="leise klein">Für 2 bis 6 Leute. Je nach Länge 30 bis 90 Minuten. Runde für Runde, ohne Zeitdruck.</p>
         <button class="knopf" id="neu">Raum erstellen</button></div>
       <div class="karte"><h2>Mitspielen</h2>
         <label class="feld">Raumcode<input id="code" maxlength="4" autocapitalize="characters" placeholder="z. B. K7M2"></label>
@@ -359,6 +359,14 @@
     return `<div class="karte"><h3>Schwierigkeit</h3><div class="laengen vier">${[1, 2, 3, 4].map(i => `<button class="laenge ${i === n ? "an" : ""}" data-schwere="${i}" ${host ? "" : "disabled"} aria-pressed="${i === n}"><b>${V.SCHWERE[i].name}</b><small>${esc(V.SCHWERE[i].kurz)}</small></button>`).join("")}</div>
       <p class="leise klein">${esc(W.name)}: ${text[n]}${host ? "" : ` · wählt ${esc(sp(S.host).name)}`}</p></div>`;
   }
+  // Flüche: der Spielleiter wählt beliebig viele, sie machen nur die Gegner stärker
+  function flucheHtml(host) {
+    const an = S.flueche || [];
+    return `<div class="karte"><h3>Flüche <small class="leise">${an.length ? an.length + " aktiv" : "keine"}</small></h3><p class="leise klein">Für mehr Herausforderung, beliebig kombinierbar. Sie machen nur die Gegner stärker. ☠ leicht, ☠☠ mittel, ☠☠☠ stark.</p>
+      <div class="laengen vier">${Object.keys(V.FLUECHE).map(id => { const f = V.FLUECHE[id], ja = an.includes(id);
+        return `<button class="laenge fluch ${ja ? "an" : ""}" data-fluch="${id}" ${host ? "" : "disabled"} aria-pressed="${ja}"><b>${esc(f.name)}</b><small class="totenkopf" aria-label="${["", "leicht", "mittel", "stark"][f.stufe]}">${"☠".repeat(f.stufe)}</small><small>${esc(f.text)}</small></button>`; }).join("")}</div>
+      ${host ? "" : `<p class="leise klein">Wählt ${esc(sp(S.host).name)}.</p>`}</div>`;
+  }
   function bildschirmLobby() {
     const host = rolle === "host";
     const leute = S.reihenfolge.filter(p => S.spieler[p] && (online(p) || p === PID));
@@ -368,10 +376,11 @@
     return `<header class="titel"><p class="etikett">Verlies · Raumcode</p><div class="code">${esc(code)}</div></header>
       ${qr ? `<div class="qr">${qr}</div>` : ""}
       <div class="reihe"><button class="knopf zweit" id="teilen">Link teilen</button><button class="knopf zweit" id="kopieren">Link kopieren</button></div>
-      <div class="karte"><h2>Wähle deine Rolle</h2><p class="leise klein">Sechs Rollen, zwei bis vier gehen hinab. Neue Fähigkeiten lernt jeder im Talentbaum.</p>${rollenKarten()}
+      <div class="karte"><h2>Wähle deine Rolle</h2><p class="leise klein">Sechs Rollen, zwei bis sechs gehen hinab. Neue Fähigkeiten lernt jeder im Talentbaum.</p>${rollenKarten()}
         ${ohneRolle.length ? `<p class="leise klein">Noch ohne Rolle: ${ohneRolle.map(p => esc(sp(p).name)).join(", ")}${leute.length > V.MAX_HELDEN ? ". Wer keine Rolle hat, schaut zu." : ""}</p>` : ""}</div>
       ${laengeHtml(host)}
       ${schwereHtml(host)}
+      ${flucheHtml(host)}
       <div class="karte"><h3>So geht's</h3><p class="leise klein">Auf der Karte stimmt ihr ab, welchen Raum ihr als Nächstes nehmt. Im Kampf wählt jeder in Ruhe seinen Zug, ausgeführt wird, wenn alle gewählt haben. Heilende Fähigkeiten holen Bewusstlose zurück. Beim Händler kauft jeder mit seinem eigenen Gold, Talentpunkte gibt es mit jeder Stufe. Am Ende jeder Ebene wartet ein Endgegner, danach ein Lager mit voller Heilung. Wenn alle fallen, ist das Spiel verloren.</p></div>
       ${host ? `<div class="unten"><button class="knopf" id="start" ${startbereit() ? "" : "disabled"}>${startbereit() ? "Abstieg beginnen" : "Mindestens 2 brauchen eine Rolle …"}</button></div>`
         : `<p class="leise mitte">Warte, bis ${esc(sp(S.host).name)} das Spiel startet.</p>`}
@@ -426,7 +435,8 @@
     // Was die Gegner besonders macht (Erklärung zu den Schildern auf der Bühne)
     const zst = V.gegnerLebend(S).flatMap(g => V.zustand(S, g));
     const eig = [...new Set(V.gegnerLebend(S).flatMap(g => V.eigenschaften(g.art)).concat(zst.includes("fliegt") ? ["fliegend"] : [], zst.includes("Wut") ? ["schnell"] : []))], schild = S.gegner.some(g => V.knochenschild(S, g));
-    if (eig.length || schild) h += `<details class="chronik gegnerkunde"${k.runde === 1 || schild ? " open" : ""}><summary class="etikett">Gegner-Eigenschaften</summary>${schild ? `<p><b>Knochenschild:</b> Der Knochenkönig nimmt nur halben Schaden, solange ein Skelett steht.</p>` : ""}${eig.map(e => { const [n, t] = V.EIGENSCHAFTEN[e]; return `<p><b>${esc(n.charAt(0).toUpperCase() + n.slice(1))}:</b> ${esc(t)}</p>`; }).join("")}</details>`;
+    const fl = S.flueche || [];
+    if (eig.length || schild || fl.length) h += `<details class="chronik gegnerkunde"${k.runde === 1 || schild ? " open" : ""}><summary class="etikett">Gegner-Eigenschaften</summary>${schild ? `<p><b>Knochenschild:</b> Der Knochenkönig nimmt nur halben Schaden, solange ein Skelett steht.</p>` : ""}${eig.map(e => { const [n, t] = V.EIGENSCHAFTEN[e]; return `<p><b>${esc(n.charAt(0).toUpperCase() + n.slice(1))}:</b> ${esc(t)}</p>`; }).join("")}${fl.map(f => `<p><b>☠ Fluch ${esc(V.FLUECHE[f].name)}:</b> ${esc(V.FLUECHE[f].text)}</p>`).join("")}</details>`;
     if (S.log && S.log.length) h += `<details class="chronik"><summary class="etikett">Was in Runde ${k.runde - 1} geschah</summary>${S.log.map(t => `<p>${esc(t)}</p>`).join("")}</details>`;
     // Eigene Wahl
     if (!mitspieler()) h += `<p class="leise mitte">Du schaust zu.</p>`;
@@ -530,11 +540,11 @@
 
   function bildschirmEnde() {
     const sieg = S.ergebnis === "sieg";
-    return `<p class="etikett mitte">${sieg ? "Sieg" : "Niederlage"} · ${(S.ebenen || 1) > 1 ? `Ebene ${S.ebene} von ${S.ebenen}, ` : ""}Raum ${S.raumNr} von ${V.RAEUME} · ${V.SCHWERE[S.schwere || 2].name}</p>${buchseite(S.seite)}${karteAufklappen()}
+    return `<p class="etikett mitte">${sieg ? "Sieg" : "Niederlage"} · ${(S.ebenen || 1) > 1 ? `Ebene ${S.ebene} von ${S.ebenen}, ` : ""}Raum ${S.raumNr} von ${V.RAEUME} · ${V.SCHWERE[S.schwere || 2].name}${(S.flueche || []).length ? ` · Flüche: ${S.flueche.map(f => esc(V.FLUECHE[f].name)).join(", ")}` : ""}</p>${buchseite(S.seite)}${karteAufklappen()}
       <div class="karte"><h2>Die Helden</h2>
         <table class="werte"><tr><th>Held</th><th>Schaden</th><th>Geheilt</th><th>K.&nbsp;o.</th><th>Gold</th></tr>
         ${S.teilnehmer.map(p => { const x = S.helden[p]; return `<tr><td>${esc(sp(p).name)}<br><span class="leise klein">${V.ROLLEN[x.rolle].name} · Stufe ${x.stufe}</span></td><td>${x.stats.schaden}</td><td>${x.stats.geheilt}</td><td>${x.stats.umgefallen}</td><td>${x.gold}</td></tr>`; }).join("")}</table></div>
-      ${rolle === "host" ? laengeHtml(true) + schwereHtml(true) : ""}
+      ${rolle === "host" ? laengeHtml(true) + schwereHtml(true) + flucheHtml(true) : ""}
       ${rolle === "host" ? `<div class="unten"><button class="knopf" id="nochmal">Nochmal hinab</button><button class="knopf zweit" id="lobby">Rollen neu wählen</button></div>` : `<p class="leise mitte">${esc(sp(S.host).name)} kann eine neue Runde starten.</p>`}
       <button class="link" id="verlassen">Raum verlassen</button>`;
   }
@@ -559,6 +569,7 @@
     if ($("nochmal")) $("nochmal").onclick = starten;
     if ($("lobby")) $("lobby").onclick = () => tun({ t: "neustart" });
     document.querySelectorAll("[data-schwere]").forEach(b => b.onclick = () => tun({ t: "schwere", n: +b.dataset.schwere }));
+    document.querySelectorAll("[data-fluch]").forEach(b => b.onclick = () => tun({ t: "fluch", id: b.dataset.fluch }));
     document.querySelectorAll("[data-laenge]").forEach(b => b.onclick = () => tun({ t: "laenge", n: +b.dataset.laenge }));
     if ($("verlassen")) $("verlassen").onclick = verlassen;
     document.querySelectorAll("[data-stimme]").forEach(b => {
