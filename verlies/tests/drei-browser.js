@@ -28,7 +28,7 @@ const OUT = path.join(AUS, (process.argv[3] || 'b') + '-');
   await h.screenshot({ path: OUT + '1-lobby.png', fullPage: true });
   await h.click('#start');
   const pages = [h, a, c]; const shots = {}; let schritte = 0, neugeladen = false, hostNeu = false;
-  while (schritte++ < 900) {
+  while (schritte++ < 2500) {
     const ph = await h.evaluate(() => window.__vl.S && window.__vl.S.phase);
     if (ph === 'ende') break;
     const raum = await h.evaluate(() => window.__vl.S.raumNr);
