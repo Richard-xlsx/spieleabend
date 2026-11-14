@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Gleisgenossen">
+<meta name="theme-color" content="#1C1A33">
+<title>Gleisgenossen</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@600;800&family=Inter:wght@400;500;600;700&display=swap">
+<style>
+/* Spieleabend-Familie: Tintenblau, Korall, gelbe Markierung; im Spiel eine 3D-Landschaft unter hellem Himmel */
+:root{
+  --bg:#1C1A33; --flaeche:#272447; --flaeche2:#322E5A; --text:#F3F0FF; --leise:#A8A2CC; --linie:#3D3868;
+  --akzent:#FF6B57; --akzent-text:#1C1A33; --gelb:#FFD447; --gut:#5BD69A; --rot:#E2453A;
+  --display:"Unbounded","Segoe UI",system-ui,sans-serif; --fliess:"Inter","Segoe UI",system-ui,sans-serif;
+  --glas:rgba(28,26,51,.93);
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--bg);color:var(--text);font:16px/1.45 var(--fliess);-webkit-text-size-adjust:100%}
+body{padding:max(12px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) max(16px,env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left))}
+#app{max-width:520px;margin:0 auto;display:flex;flex-direction:column;gap:12px}
+h1,h2{font-family:var(--display);margin:0;letter-spacing:-.01em;text-wrap:balance}
+h1{font-size:1.9rem;line-height:1.1;font-weight:800}
+h2{font-size:1.05rem;font-weight:600}
+.titel{display:flex;flex-direction:column;gap:6px;padding-top:6px}
+.titelbild{display:block;width:100%;max-width:420px;height:auto;margin:0 auto 8px;filter:drop-shadow(0 6px 0 rgba(0,0,0,.25))}
+.leise{color:var(--leise);margin:0}
+.mitte{text-align:center}
+.klein{font-size:.88rem}
+.etikett{font-size:.72rem;text-transform:uppercase;letter-spacing:.1em;color:var(--leise);font-weight:600;margin:0}
+.karte-box{background:var(--flaeche);border:1px solid var(--linie);border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:12px}
+.feld{display:flex;flex-direction:column;gap:6px;font-size:.85rem;color:var(--leise);font-weight:500}
+.feld input{font:500 1.05rem var(--fliess);color:var(--text);background:var(--flaeche2);border:1px solid var(--linie);border-radius:12px;padding:13px 14px;width:100%;outline:none}
+.feld input:focus{border-color:var(--akzent)}
+.knopf{appearance:none;border:0;border-radius:14px;padding:14px 16px;font:700 1rem var(--fliess);background:var(--akzent);color:var(--akzent-text);width:100%;cursor:pointer}
+.knopf.zweit{background:transparent;color:var(--text);border:1px solid var(--linie)}
+.knopf.klein{padding:10px 12px;font-size:.9rem;width:auto}
+.knopf:disabled{opacity:.4;cursor:default}
+button:focus-visible,input:focus-visible,a:focus-visible{outline:3px solid var(--gelb);outline-offset:2px}
+.reihe{display:flex;gap:8px}
+.reihe > *{flex:1}
+.wahl{display:flex;gap:8px;flex-wrap:wrap}
+.wahl button{appearance:none;flex:1;border:1px solid var(--linie);background:var(--flaeche2);color:var(--text);border-radius:999px;padding:8px 12px;font:600 .88rem var(--fliess);cursor:pointer;white-space:nowrap}
+.wahl button.an{background:var(--text);color:var(--bg);border-color:var(--text)}
+.link{background:none;border:0;color:var(--leise);text-decoration:underline;font:inherit;cursor:pointer;padding:8px;align-self:center}
+.code{font-family:var(--display);font-weight:800;font-size:3.4rem;letter-spacing:.12em;line-height:1}
+.qr{background:#fff;border-radius:16px;padding:10px;width:200px;max-width:60%;align-self:center}
+.qr svg{display:block;width:100%;height:auto}
+.spieler{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.spieler li{display:flex;align-items:center;gap:10px;font-weight:600}
+.spieler small{color:var(--leise);font-weight:500}
+.punkt{width:10px;height:10px;border-radius:50%;background:var(--linie);display:inline-block;flex:none}
+.punkt.an{background:var(--gut)}
+.regeln{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:5px;font-size:.92rem;color:var(--leise)}
+.regeln b{color:var(--text)}
+.status{position:sticky;top:0;z-index:30;background:var(--gelb);color:var(--bg);border-radius:12px;padding:10px 12px;font-weight:600;font-size:.9rem;display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.status button{background:var(--bg);color:var(--text);border:0;border-radius:999px;padding:6px 12px;font:600 .85rem var(--fliess)}
+.unten{position:sticky;bottom:0;padding-block:10px calc(4px + env(safe-area-inset-bottom));background:linear-gradient(transparent,var(--bg) 30%);display:flex;flex-direction:column;gap:8px;z-index:3}
+.toast{position:fixed;left:50%;bottom:calc(150px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--text);color:var(--bg);font-weight:600;padding:10px 16px;border-radius:12px;z-index:40;max-width:90vw;text-align:center;box-shadow:0 8px 20px rgba(0,0,0,.4)}
+
+/* ---------- Spiel: 3D-Welt mit Bedienleiste ---------- */
+html.spiel{background:linear-gradient(#A9D8EE,#E6F4FA 70%) fixed;height:100%}
+body.spiel{padding:0;height:100%;overflow:hidden;background:linear-gradient(#A9D8EE,#E6F4FA 70%);overscroll-behavior:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+body.spiel #app{display:none}
+#welt{position:fixed;inset:0;z-index:0}
+#welt canvas{display:block;touch-action:none}
+#hud{position:fixed;inset:0;z-index:10;pointer-events:none;display:flex;flex-direction:column;justify-content:space-between;
+  padding:max(10px,env(safe-area-inset-top)) max(10px,env(safe-area-inset-right)) max(12px,env(safe-area-inset-bottom)) max(10px,env(safe-area-inset-left))}
+#hud .status{pointer-events:auto;margin-bottom:6px}
+.hud-oben{display:flex;gap:6px;align-items:stretch;max-width:620px;width:100%;margin:0 auto}
+.hud-oben > *{pointer-events:auto}
+.chip{background:var(--glas);border-radius:14px;padding:6px 11px;display:flex;flex-direction:column;justify-content:center;min-width:0;box-shadow:0 4px 14px rgba(0,0,0,.18)}
+.chip small{font-size:.66rem;color:var(--leise);font-weight:600;text-transform:uppercase;letter-spacing:.08em}
+.chip b{font:800 .95rem var(--display);white-space:nowrap}
+.chip.gross{flex:1}
+.chip.minus b{color:#FF8A7A}
+.rund{appearance:none;border:0;background:var(--glas);color:var(--text);border-radius:14px;width:46px;font-size:1.25rem;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.18)}
+.hud-unten{display:flex;flex-direction:column;gap:8px;max-width:620px;width:100%;margin:0 auto}
+.hud-unten > *{pointer-events:auto}
+.panel{background:var(--glas);border-radius:18px;padding:12px 14px;max-height:52vh;overflow:auto;display:flex;flex-direction:column;gap:10px;box-shadow:0 8px 24px rgba(0,0,0,.25);overscroll-behavior:contain}
+.panel .aktion{position:sticky;bottom:-12px;margin:0 -14px -12px;padding:8px 14px 12px;background:#211F3B;border-radius:0 0 18px 18px}
+.panel h3{margin:0;font:700 1rem var(--display)}
+.panel p{margin:0}
+.panel .kopf{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.zu{appearance:none;border:0;background:var(--flaeche2);color:var(--text);border-radius:999px;width:32px;height:32px;font-size:1rem;cursor:pointer;flex:none}
+.werkzeuge{display:flex;gap:6px}
+.werkzeuge button{appearance:none;flex:1;border:0;border-radius:14px;padding:9px 4px 8px;background:var(--glas);color:var(--leise);font:700 .74rem var(--fliess);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;box-shadow:0 4px 14px rgba(0,0,0,.18)}
+.werkzeuge button i{font-style:normal;font-size:1.15rem;line-height:1.2}
+.werkzeuge button.an{background:var(--text);color:var(--bg)}
+.fertig{display:flex;gap:6px}
+.fertig .knopf{box-shadow:0 6px 18px rgba(0,0,0,.25)}
+.fertig .knopf.bereit{background:var(--gut)}
+.zeile{display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-bottom:1px solid var(--linie);font-size:.9rem}
+.zeile:last-child{border:0}
+.zeile > :last-child{white-space:nowrap}
+.plus{color:var(--gut);font-weight:700}
+.minus{color:#FF8A7A;font-weight:700}
+.warn{color:#FFB4A8}
+.zuglist{display:flex;flex-direction:column;gap:8px}
+.zugkarte{background:var(--flaeche2);border-radius:14px;padding:10px 12px;display:flex;flex-direction:column;gap:6px}
+.zugkarte .titel2{display:flex;align-items:center;gap:8px;font-weight:700}
+.farbe{width:14px;height:14px;border-radius:4px;display:inline-block;flex:none}
+.zugkarte .knoepfe{display:flex;gap:6px}
+.zugkarte .knoepfe button{appearance:none;flex:1;border:1px solid var(--linie);background:transparent;color:var(--text);border-radius:10px;padding:7px;font:600 .82rem var(--fliess);cursor:pointer}
+.lokwahl{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.lokwahl button{appearance:none;border:2px solid var(--linie);background:var(--flaeche2);color:var(--text);border-radius:14px;padding:7px 9px;text-align:left;font:500 .72rem/1.35 var(--fliess);cursor:pointer}
+.lokwahl button b{display:block;font-size:.92rem}
+.lokwahl button.an{border-color:var(--gelb)}
+.halte{display:flex;flex-wrap:wrap;gap:6px}
+.halte span{background:var(--gelb);color:var(--bg);border-radius:999px;padding:4px 10px;font-weight:700;font-size:.82rem}
+.mitglieder{display:flex;flex-wrap:wrap;gap:6px}
+.mitglieder span{background:var(--flaeche2);border-radius:999px;padding:4px 10px 4px 8px;font-size:.8rem;font-weight:600;display:inline-flex;align-items:center;gap:6px}
+.mitglieder span.ok{background:rgba(91,214,154,.18);color:#BFF3D8}
+.sterne{font-size:2rem;letter-spacing:.15em;color:var(--gelb);text-align:center}
+.sterne .aus{color:var(--linie)}
+.balken{height:8px;background:var(--flaeche2);border-radius:6px;overflow:hidden}
+.balken i{display:block;height:100%;background:var(--gut)}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="welt" hidden></div>
+<div id="hud" hidden></div>
+<script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+<script src="../netz.js"></script>
+<script src="logic.js"></script>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<script type="module" src="app.js"></script>
+</body>
+</html>

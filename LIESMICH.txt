@@ -1,7 +1,7 @@
 Spieleabend
 ===========
 
-Partyspiele für 2 bis 8 Personen, jeder auf seinem eigenen Handy, ohne Konto und ohne App.
+Partyspiele für 1 bis 8 Personen, jeder auf seinem eigenen Handy, ohne Konto und ohne App.
 Online: https://richard-xlsx.github.io/spieleabend/ (GitHub Pages, Projekt github.com/Richard-xlsx/spieleabend).
 Änderungen werden mit Git hochgeladen (Autor mit anonymer GitHub-Adresse); nach ca. einer Minute ist die neue Fassung online.
 
@@ -14,6 +14,8 @@ Aufbau
   verlies/                        index.html, verlies-logic.js (Regeln, Kampf, Zufall), verlies.js (Verbindung und Bildschirme),
                                   bilder.js (Tuschezeichnungen für Räume, Gegner, Helden)
   viererkette/                    index.html, viererkette-logic.js (Brett, Gewinnreihe), viererkette.js (Verbindung und Bildschirme)
+  gleisgenossen/                  index.html, logic.js (Karte, Bauen, Abrechnung), welt.js (3D-Welt mit Three.js),
+                                  app.js (Verbindung, Lobby, Bedienleiste)
   _entwurf/                       Kartenentwürfe, wird nicht hochgeladen
 
 Buchstabenbattle (ab 2 Spielern)
@@ -166,3 +168,18 @@ Mau-Mau zusätzlich: Regeltests (7er-Kette, Bube und Wunsch, 8, Ass, Mau/Erwisch
 Spielern (rund 47.000 Züge), dabei nie eine Karte verloren oder doppelt.
 Getestet am 13.11.2026 mit drei simulierten Spielern im Browser (alle Spiele: ganze Runde, Punkte bzw. Ketten und Herzen,
 Neuladen eines Mitspielers, Neuladen der Spielleiterin, Übernahme der Spielleitung). Noch nicht auf echten Handys.
+
+Gleisgenossen (1 bis 6 Spieler, kooperativ)
+  Eine Eisenbahn-Genossenschaft mit gemeinsamer Kasse (Start 2.000 T). 3D-Landschaft aus Sechsecken (Three.js 0.160 vom CDN),
+  Karte wird jedes Spiel neu erzeugt: 1–2 Spieler 14 × 11 Felder, 3–4 Spieler 16 × 12, 5–6 Spieler 18 × 13.
+  Ein Monat: alle planen gleichzeitig, dann „Monat beenden“; sind alle verbundenen fertig, wird abgerechnet. 8, 12 oder 16 Monate.
+  Gleis bauen: Start (Ort, Betrieb oder Gleis) und Ziel antippen, der günstigste Weg wird vorgeschlagen.
+  Kosten pro Feld: Wiese 20, Wald 40, Hügel 60, Fluss (Brücke) 150, Berg (Tunnel) 250 T; Bahnhof 100 T, entsteht automatisch.
+  Der eigene letzte Bau im selben Monat lässt sich zurücknehmen.
+  Züge: Feldbahn 250 T (3 Felder/Tag, 10 Plätze, 30 T/Monat), Dampflok 550 T (5 Felder/Tag, 20 Plätze, 60 T/Monat).
+  Ladung Fahrgäste (Orte, 14/24/36 pro Monat je Größe), Kohle (Zeche → Kraftwerk), Holz (Holzfäller → Sägewerk).
+  Einnahmen = Menge × Satz × Entfernung in Feldern (Fahrgäste 1,2 · Kohle 1,0 · Holz 0,9). Wartung 2 T je Gleisstück, 5 T je Bahnhof.
+  Kasse im Minus nach der Abrechnung = Pleite. Am Ende Wert = Kasse + halber Zugpreis; bis zu drei Sterne,
+  die Grenzen richten sich nach der Karte (sterneGrenzen in logic.js).
+  Geplant: Etappe 2 (Aufträge, Ruf, Ereignisse, Kredite, Verarbeitung, wachsende Orte),
+  Etappe 3 (Rollen mit Geheimwissen, Szenarien, Bestenliste).
