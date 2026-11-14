@@ -56,8 +56,11 @@ const OUT = path.join(AUS, (process.argv[3] || 'b') + '-');
       const fk = await p.$('#faehigkeiten:not(.zweit)');
       if (fk) {
         await fk.click(); await p.waitForTimeout(200);
-        const v = await p.$('[data-talent]:not([disabled])');
-        if (v) { await v.click(); await p.waitForTimeout(400); }
+        for (const r of [null, ...(await p.$$('[data-tast]')).map((_, i) => i)]) {   // Liste zeigt nur einen Ast: notfalls die anderen probieren
+          if (r !== null) { await p.click('[data-tast="' + r + '"]'); await p.waitForTimeout(150); }
+          const v = await p.$('[data-talent]:not([disabled])');
+          if (v) { await v.click(); await p.waitForTimeout(400); break; }
+        }
         if (!shots.faehigkeiten) { shots.faehigkeiten = 1; await p.screenshot({ path: OUT + '2-faehigkeiten.png', fullPage: true }); }
         await p.click('#zurueck-f'); await p.waitForTimeout(150);
         continue;
