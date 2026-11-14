@@ -1,0 +1,379 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#BFE3F2">
+<title>Gleisgenossen 3D-Test</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@600;800&family=Inter:wght@400;500;600;700&display=swap">
+<style>
+/* 3D-Test für Gleisgenossen: Kleinlandschaft aus Sechsecken, fahrende Züge, freie Kamera */
+html,body{margin:0;height:100%;overflow:hidden;background:linear-gradient(#A9D8EE,#E6F4FA 70%);font-family:Inter,"Segoe UI",system-ui,sans-serif;
+  -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}
+canvas{display:block;touch-action:none}
+.oben{position:fixed;top:max(10px,env(safe-area-inset-top));left:12px;right:12px;display:flex;justify-content:space-between;align-items:flex-start;gap:8px;pointer-events:none}
+.marke{background:#1C1A33;color:#F3F0FF;border-radius:14px;padding:8px 12px;font:800 .92rem Unbounded,system-ui,sans-serif}
+.marke small{display:block;font:500 .72rem Inter,system-ui,sans-serif;color:#A8A2CC;margin-top:2px}
+.zurueck{pointer-events:auto;background:#1C1A33;color:#F3F0FF;border-radius:14px;padding:9px 12px;font-weight:700;font-size:.85rem;text-decoration:none}
+.unten{position:fixed;left:12px;right:12px;bottom:max(14px,env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:8px;pointer-events:none;max-width:520px;margin:0 auto}
+.info{background:rgba(28,26,51,.92);color:#F3F0FF;border-radius:14px;padding:10px 14px;font-size:.88rem}
+.info b{color:#FFD447}
+.hinweis{background:rgba(28,26,51,.78);color:#E9E6FA;border-radius:12px;padding:8px 12px;font-size:.78rem;line-height:1.4}
+.knoepfe{display:flex;gap:8px}
+.knoepfe button{pointer-events:auto;flex:1;border:0;border-radius:14px;padding:13px 10px;font:700 .9rem Inter,system-ui,sans-serif;background:#FF6B57;color:#1C1A33;cursor:pointer}
+.knoepfe button.zweit{background:#1C1A33;color:#F3F0FF}
+[hidden]{display:none!important}
+</style>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+</head>
+<body>
+<div class="oben"><div class="marke">Gleisgenossen<small>3D-Test · noch kein Spiel</small></div><a class="zurueck" href="../">← Spieleabend</a></div>
+<div class="unten">
+  <div class="info" id="info" hidden></div>
+  <div class="hinweis" id="hinweis">1 Finger: verschieben · 2 Finger: zoomen, gemeinsam schieben: drehen und neigen · Feld antippen: Baukosten</div>
+  <div class="knoepfe"><button id="folgen">Zug folgen</button><button class="zweit" id="uebersicht">Übersicht</button></div>
+</div>
+<script type="module">
+import * as THREE from "three";
+import { MapControls } from "three/addons/controls/MapControls.js";
+
+// ---------- Grundgerüst ----------
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+document.body.prepend(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.fog = new THREE.Fog(0xD7EDF6, 45, 95);
+const camera = new THREE.PerspectiveCamera(45, innerWidth / innerHeight, 0.1, 200);
+
+scene.add(new THREE.HemisphereLight(0xffffff, 0x5f7f4a, 1.7));
+const sonne = new THREE.DirectionalLight(0xfff1d6, 2.6);
+sonne.position.set(-14, 24, 12);
+sonne.castShadow = true;
+sonne.shadow.mapSize.set(2048, 2048);
+Object.assign(sonne.shadow.camera, { left: -24, right: 24, top: 18, bottom: -18, near: 1, far: 70 });
+sonne.shadow.bias = -0.0006;
+scene.add(sonne);
+
+const controls = new MapControls(camera, renderer.domElement);
+controls.enableDamping = true; controls.dampingFactor = 0.08;
+controls.minDistance = 5; controls.maxDistance = 42;
+controls.minPolarAngle = 0.25; controls.maxPolarAngle = 1.22;
+controls.zoomToCursor = true;
+
+// ---------- Zufall & Hilfen ----------
+let saat = 7;
+const zufall = () => { saat |= 0; saat = saat + 0x6D2B79F5 | 0; let t = Math.imul(saat ^ saat >>> 15, 1 | saat); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+const V = (x, y, z) => new THREE.Vector3(x, y, z);
+const mat = (farbe, extra) => new THREE.MeshStandardMaterial(Object.assign({ color: farbe, roughness: 0.9, metalness: 0, flatShading: true }, extra));
+function abstand(punkte, x, z) { let m = 1e9; for (const p of punkte) { const d = (p.x - x) ** 2 + (p.z - z) ** 2; if (d < m) m = d; } return Math.sqrt(m); }
+function schatten(o) { o.traverse(k => { if (k.isMesh) { k.castShadow = true; k.receiveShadow = true; } }); return o; }
+function balken(a, b, dicke, material) {   // Quader zwischen zwei Punkten
+  const m = new THREE.Mesh(new THREE.BoxGeometry(dicke, dicke, a.distanceTo(b)), material);
+  m.position.copy(a).add(b).multiplyScalar(0.5); m.lookAt(b); m.castShadow = true; return m;
+}
+
+// ---------- Strecke & Fluss ----------
+const GY = 0.35, TY = 0.37;                   // Höhe der Wiese, Höhe des Schotterbetts
+const strecke = new THREE.CatmullRomCurve3([
+  [-11, -4], [-6, -7.6], [0, -6.2], [6, -7.6], [11.5, -4.5], [12.5, 1.5], [8.5, 6.6], [2, 5.2], [-4, 7.2], [-10, 5.4], [-12.8, 0.4]
+].map(([x, z]) => V(x, TY, z)), true, "centripetal");
+const LAENGE = strecke.getLength();
+const SP = strecke.getSpacedPoints(700);
+const fluss = new THREE.CatmullRomCurve3([[-4, -14], [-1.5, -8], [1.8, -2.5], [-0.5, 2.5], [2.5, 8], [6, 14]].map(([x, z]) => V(x, 0, z)));
+const FP = fluss.getSpacedPoints(300);
+const BAHNHOEFE = [0.08, 0.58];               // Anteil der Streckenlänge
+const KRAFTWERK_U = 0.34;
+
+function seite(u, weg) {                      // Punkt neben der Strecke, nach außen
+  const p = strecke.getPointAt(u), t = strecke.getTangentAt(u);
+  let n = V(t.z, 0, -t.x).normalize();
+  if (n.x * p.x + n.z * p.z < 0) n.negate();
+  return { p, t, n, punkt: p.clone().addScaledVector(n, weg) };
+}
+const sperren = [];                            // Kreise ohne Bäume
+BAHNHOEFE.forEach(u => sperren.push({ p: seite(u, 2.2).punkt, r: 3.2 }));
+const kw = seite(KRAFTWERK_U, 2.6); sperren.push({ p: kw.punkt, r: 2.3 });
+const gesperrt = (x, z, extra = 0) => sperren.some(s => (s.p.x - x) ** 2 + (s.p.z - z) ** 2 < (s.r + extra) ** 2);
+
+// ---------- Sechseck-Felder ----------
+const SPALTEN = 20, ZEILEN = 16, W3 = Math.sqrt(3);
+const felder = [];
+const n1 = (x, z) => Math.sin(x * .31 + .7) * Math.cos(z * .37 - 1.1) + .5 * Math.sin(x * .73 - z * .51 + 2) + .35 * Math.cos(x * 1.3 + z * 1.1);
+const n2 = (x, z) => Math.sin(x * .45 - 1.7) * Math.sin(z * .52 + .4) + .4 * Math.cos(x * .9 + z * .3);
+for (let r = 0; r < ZEILEN; r++) for (let c = 0; c < SPALTEN; c++) {
+  const x = W3 * (c + .5 * (r & 1)) - W3 * (SPALTEN - .5) / 2, z = 1.5 * r - 1.5 * (ZEILEN - 1) / 2;
+  const dT = abstand(SP, x, z), dR = abstand(FP, x, z);
+  const rand = Math.max(Math.abs(x) / 17, Math.abs(z) / 11.5);
+  let typ = "wiese", h = GY;
+  if (dR < 1.05) { typ = "wasser"; h = .12; }
+  else if (dT < 1.3 || gesperrt(x, z, -.6)) typ = "wiese";
+  else if (rand > .7 && n1(x, z) > .1 && dT > 2.6 && dR > 2.2) { typ = "berg"; h = .5; }
+  else if (n1(x, z) > .55 && dT > 1.6 && dR > 1.6) { typ = "huegel"; h = .55 + zufall() * .25; }
+  else if (n2(x, z) > .3 && !gesperrt(x, z)) typ = "wald";
+  felder.push({ x, z, typ, h, dT });
+}
+const FARBE = { wiese: [0x9BD45A, 0x8FCB50, 0xA5DA66], wald: [0x84C04F, 0x7DB84A], huegel: [0x7FB64B, 0x76AD45], wasser: [0x4F86D9, 0x4A80D2], berg: [0x9C9C8E, 0xA6A496] };
+const feldGeo = new THREE.CylinderGeometry(1, 1, 1, 6).translate(0, .5, 0);
+const feldMesh = new THREE.InstancedMesh(feldGeo, mat(0xffffff), felder.length);
+const hilf = new THREE.Object3D(), col = new THREE.Color();
+felder.forEach((f, i) => {
+  hilf.position.set(f.x, 0, f.z); hilf.scale.set(1, f.h, 1); hilf.updateMatrix(); feldMesh.setMatrixAt(i, hilf.matrix);
+  const l = FARBE[f.typ]; feldMesh.setColorAt(i, col.setHex(l[Math.floor(zufall() * l.length)]));
+});
+feldMesh.receiveShadow = true; scene.add(feldMesh);
+// Sockel unter der Landschaft
+const sockel = new THREE.Mesh(new THREE.BoxGeometry(W3 * SPALTEN + 1.5, 1.2, 1.5 * ZEILEN + 1.2), mat(0x7A5A3F));
+sockel.position.set(0, -.6, -.1); scene.add(sockel);
+
+// Berge
+felder.filter(f => f.typ === "berg").forEach(f => {
+  const hb = 1.4 + zufall() * 1.3, rb = .95;
+  const g = new THREE.Group();
+  const b = new THREE.Mesh(new THREE.ConeGeometry(rb, hb, 5), mat(0x8E8B84)); b.position.y = hb / 2; g.add(b);
+  const s = new THREE.Mesh(new THREE.ConeGeometry(rb * .36, hb * .36, 5), mat(0xF7F7FA)); s.position.y = hb - hb * .18 + .01; g.add(s);
+  g.position.set(f.x, f.h, f.z); g.rotation.y = zufall() * 6; scene.add(schatten(g));
+});
+
+// ---------- Bäume (instanziert) ----------
+const baumOrte = [];
+felder.forEach(f => {
+  const anzahl = f.typ === "wald" ? 3 + Math.floor(zufall() * 3) : f.typ === "huegel" ? (zufall() < .5 ? 1 : 0) : f.typ === "wiese" ? (zufall() < .12 ? 1 : 0) : 0;
+  for (let i = 0; i < anzahl; i++) {
+    const x = f.x + (zufall() - .5) * 1.3, z = f.z + (zufall() - .5) * 1.3;
+    if (abstand(SP, x, z) < .9 || abstand(FP, x, z) < 1.3 || gesperrt(x, z)) continue;
+    baumOrte.push({ x, z, y: f.h, s: .7 + zufall() * .55 });
+  }
+});
+const kroneGeo = new THREE.ConeGeometry(.32, .9, 7).translate(0, .62, 0);
+const stammGeo = new THREE.CylinderGeometry(.06, .07, .24, 5).translate(0, .12, 0);
+const kronen = new THREE.InstancedMesh(kroneGeo, mat(0xffffff), baumOrte.length);
+const staemme = new THREE.InstancedMesh(stammGeo, mat(0x7A5234), baumOrte.length);
+baumOrte.forEach((b, i) => {
+  hilf.position.set(b.x, b.y, b.z); hilf.scale.setScalar(b.s); hilf.rotation.y = zufall() * 6; hilf.updateMatrix();
+  kronen.setMatrixAt(i, hilf.matrix); staemme.setMatrixAt(i, hilf.matrix);
+  kronen.setColorAt(i, col.setHex([0x2F8A4A, 0x3A9A52, 0x2A7D44, 0x4BA35A][Math.floor(zufall() * 4)]));
+});
+[kronen, staemme].forEach(m => { m.castShadow = true; m.receiveShadow = true; scene.add(m); });
+
+// ---------- Gleis ----------
+function band(breite, y, farbe) {
+  const pos = [], idx = [];
+  SP.forEach((p, i) => {
+    const t = strecke.getTangentAt(i / (SP.length - 1)); const n = V(t.z, 0, -t.x).normalize();
+    pos.push(p.x + n.x * breite, y, p.z + n.z * breite, p.x - n.x * breite, y, p.z - n.z * breite);
+    if (i < SP.length - 1) { const a = i * 2; idx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2); }
+  });
+  const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3)); g.setIndex(idx); g.computeVertexNormals();
+  const m = new THREE.Mesh(g, mat(farbe, { side: THREE.DoubleSide })); m.receiveShadow = true; return m;
+}
+scene.add(band(.36, TY, 0x9A8C7C));
+const SCHWELLEN = Math.floor(LAENGE / .24);
+const schwellen = new THREE.InstancedMesh(new THREE.BoxGeometry(.6, .05, .11), mat(0x6B4A32), SCHWELLEN);
+for (let i = 0; i < SCHWELLEN; i++) {
+  const u = i / SCHWELLEN, p = strecke.getPointAt(u), q = strecke.getPointAt((u + .001) % 1);
+  hilf.position.set(p.x, TY + .03, p.z); hilf.scale.setScalar(1); hilf.lookAt(q.x, TY + .03, q.z); hilf.updateMatrix(); schwellen.setMatrixAt(i, hilf.matrix);
+}
+schwellen.receiveShadow = true; scene.add(schwellen);
+[-.2, .2].forEach(off => {
+  const pts = SP.slice(0, -1).map((p, i) => { const t = strecke.getTangentAt(i / (SP.length - 1)); const n = V(t.z, 0, -t.x).normalize(); return V(p.x + n.x * off, TY + .08, p.z + n.z * off); });
+  const s = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts, true), 1400, .028, 4, true), mat(0xC9CED6, { metalness: .6, roughness: .4, flatShading: false }));
+  s.castShadow = true; scene.add(s);
+});
+
+// ---------- Brücken über den Fluss ----------
+const feldBei = (x, z) => { let b = null, m = 1e9; for (const f of felder) { const d = (f.x - x) ** 2 + (f.z - z) ** 2; if (d < m) { m = d; b = f; } } return b; };
+const nass = SP.map(p => feldBei(p.x, p.z).typ === "wasser");
+const blau = mat(0x2F6FDE), grau = mat(0x8D8F99);
+for (let i = 0; i < SP.length - 1; i++) {
+  if (!nass.slice(Math.max(0, i - 3), i + 4).some(Boolean)) continue;
+  const u = i / (SP.length - 1), t = strecke.getTangentAt(u), n = V(t.z, 0, -t.x).normalize();
+  const a = SP[i], b = SP[i + 1];
+  for (const s of [-.42, .42]) {
+    const o = n.clone().multiplyScalar(s);
+    scene.add(balken(a.clone().add(o).setY(TY + .55), b.clone().add(o).setY(TY + .55), .07, blau));
+    scene.add(balken(a.clone().add(o).setY(TY + .02), b.clone().add(o).setY(TY + .02), .07, blau));
+    if (i % 4 === 0) {
+      scene.add(balken(a.clone().add(o).setY(TY), a.clone().add(o).setY(TY + .55), .05, blau));
+      const c = SP[Math.min(i + 4, SP.length - 1)].clone().add(o);
+      scene.add(balken(a.clone().add(o).setY(TY + .02), c.setY(TY + .55), .045, blau));
+    }
+  }
+  if (i % 6 === 0 && nass[i]) { const p = new THREE.Mesh(new THREE.CylinderGeometry(.13, .16, TY, 6), grau); p.position.set(a.x, TY / 2, a.z); scene.add(schatten(p)); }
+}
+
+// ---------- Bahnhöfe, Häuser, Kraftwerk ----------
+const WAND = [0xF3E6CC, 0xF9C7A8, 0xE8E1F5, 0xFFE3A3, 0xD9EEF7], DACH = [0xC9553D, 0x8C4A3A, 0x4A5A8C, 0xB8643C];
+function haus(x, z, y, b, t, h, wand, dach, dreh) {
+  const g = new THREE.Group();
+  const k = new THREE.Mesh(new THREE.BoxGeometry(b, h, t), mat(wand)); k.position.y = h / 2; g.add(k);
+  const form = new THREE.Shape([new THREE.Vector2(-b * .58, 0), new THREE.Vector2(b * .58, 0), new THREE.Vector2(0, b * .42)]);
+  const dg = new THREE.ExtrudeGeometry(form, { depth: t * 1.08, bevelEnabled: false }).translate(0, 0, -t * .54);
+  const d = new THREE.Mesh(dg, mat(dach)); d.position.y = h; g.add(d);
+  const f = new THREE.Mesh(new THREE.BoxGeometry(b * 1.01, h * .22, t * .5), mat(0x3B4A6B)); f.position.y = h * .6; g.add(f);
+  g.position.set(x, y, z); g.rotation.y = dreh; scene.add(schatten(g)); return g;
+}
+BAHNHOEFE.forEach((u, bi) => {
+  const { p, t, n } = seite(u, 0);
+  const dreh = Math.atan2(t.x, t.z);
+  const bahnsteig = new THREE.Mesh(new THREE.BoxGeometry(.7, .14, 2.8), mat(0xD8D2C4));
+  bahnsteig.position.copy(p).addScaledVector(n, .72).setY(TY + .07); bahnsteig.rotation.y = dreh; scene.add(schatten(bahnsteig));
+  const empfang = haus(0, 0, GY, 1.0, 2.0, .6, 0xF0D9B5, 0x9A3B2E, dreh);
+  empfang.position.copy(p).addScaledVector(n, 1.5).setY(GY);
+  // kleine Stadt hinter dem Bahnhof
+  for (let k = 0; k < 14; k++) {
+    const x = p.x + n.x * (2.3 + zufall() * 2.6) + t.x * (zufall() - .5) * 5.5, z = p.z + n.z * (2.3 + zufall() * 2.6) + t.z * (zufall() - .5) * 5.5;
+    if (abstand(SP, x, z) < 1.2 || abstand(FP, x, z) < 1.4) continue;
+    const f = feldBei(x, z); if (f.typ !== "wiese") continue;
+    haus(x, z, f.h, .5 + zufall() * .35, .55 + zufall() * .4, .45 + zufall() * (bi ? .7 : .45), WAND[Math.floor(zufall() * 5)], DACH[Math.floor(zufall() * 4)], dreh + (zufall() < .5 ? 0 : Math.PI / 2));
+  }
+});
+// Kraftwerk mit rauchenden Schloten
+const rauchQuellen = [];
+{
+  const g = new THREE.Group(), dreh = Math.atan2(kw.t.x, kw.t.z);
+  const halle = new THREE.Mesh(new THREE.BoxGeometry(1.8, .9, 2.6), mat(0xE9E4DA)); halle.position.y = .45; g.add(halle);
+  const dach = new THREE.Mesh(new THREE.BoxGeometry(1.9, .08, 2.7), mat(0xC9553D)); dach.position.y = .94; g.add(dach);
+  const turm = new THREE.Mesh(new THREE.CylinderGeometry(.42, .55, 1.0, 10), mat(0xB8BCC6)); turm.position.set(-1.4, .5, .6); g.add(turm);
+  [-.55, .55].forEach((z, i) => {
+    const s = new THREE.Mesh(new THREE.CylinderGeometry(.13, .17, 2.1, 8), mat(0xE9E4DA)); s.position.set(.45, 1.05, z); g.add(s);
+    const ring = new THREE.Mesh(new THREE.CylinderGeometry(.14, .14, .22, 8), mat(0xE2453A)); ring.position.set(.45, 1.85, z); g.add(ring);
+    rauchQuellen.push({ g, lokal: V(.45, 2.15, z), takt: i * .3 });
+  });
+  const kohle = new THREE.Mesh(new THREE.ConeGeometry(.55, .4, 7), mat(0x2B2B30)); kohle.position.set(-1.25, .2, -.8); g.add(kohle);
+  g.position.copy(kw.punkt).setY(GY); g.rotation.y = dreh; scene.add(schatten(g));
+}
+
+// ---------- Züge ----------
+function lok(farbe) {
+  const g = new THREE.Group(), m = mat(farbe), schwarz = mat(0x26252E), gold = mat(0xFFD447);
+  const rahmen = new THREE.Mesh(new THREE.BoxGeometry(.44, .1, 1.05), schwarz); rahmen.position.y = .16; g.add(rahmen);
+  const kessel = new THREE.Mesh(new THREE.CylinderGeometry(.17, .17, .66, 12), m); kessel.rotation.x = Math.PI / 2; kessel.position.set(0, .36, .14); g.add(kessel);
+  const front = new THREE.Mesh(new THREE.CylinderGeometry(.18, .18, .06, 12), schwarz); front.rotation.x = Math.PI / 2; front.position.set(0, .36, .49); g.add(front);
+  const lampe = new THREE.Mesh(new THREE.SphereGeometry(.05, 8, 6), gold); lampe.position.set(0, .42, .53); g.add(lampe);
+  const kabine = new THREE.Mesh(new THREE.BoxGeometry(.46, .42, .36), m); kabine.position.set(0, .42, -.33); g.add(kabine);
+  const fenster = new THREE.Mesh(new THREE.BoxGeometry(.47, .14, .2), mat(0xBFE3F2)); fenster.position.set(0, .52, -.33); g.add(fenster);
+  const dach = new THREE.Mesh(new THREE.BoxGeometry(.52, .05, .44), schwarz); dach.position.set(0, .65, -.33); g.add(dach);
+  const schlot = new THREE.Mesh(new THREE.CylinderGeometry(.06, .045, .2, 8), schwarz); schlot.position.set(0, .6, .36); g.add(schlot);
+  const dom = new THREE.Mesh(new THREE.SphereGeometry(.07, 8, 6), gold); dom.position.set(0, .53, .08); g.add(dom);
+  [-.36, -.08, .2, .42].forEach(z => { const r = new THREE.Mesh(new THREE.CylinderGeometry(.085, .085, .48, 10), schwarz); r.rotation.z = Math.PI / 2; r.position.set(0, .09, z); g.add(r); });
+  return schatten(g);
+}
+function wagen(art, farbe) {
+  const g = new THREE.Group(), schwarz = mat(0x26252E);
+  const rahmen = new THREE.Mesh(new THREE.BoxGeometry(.42, .08, .9), schwarz); rahmen.position.y = .16; g.add(rahmen);
+  if (art === "personen") {
+    const k = new THREE.Mesh(new THREE.BoxGeometry(.44, .34, .88), mat(0xF3E6CC)); k.position.y = .37; g.add(k);
+    const streif = new THREE.Mesh(new THREE.BoxGeometry(.45, .07, .89), mat(farbe)); streif.position.y = .26; g.add(streif);
+    const fen = new THREE.Mesh(new THREE.BoxGeometry(.45, .1, .7), mat(0x3B4A6B)); fen.position.y = .43; g.add(fen);
+    const d = new THREE.Mesh(new THREE.BoxGeometry(.48, .05, .92), mat(0x5A5866)); d.position.y = .56; g.add(d);
+  } else {
+    const k = new THREE.Mesh(new THREE.BoxGeometry(.44, .24, .86), mat(farbe)); k.position.y = .32; g.add(k);
+    const kohle = new THREE.Mesh(new THREE.BoxGeometry(.38, .1, .78), mat(0x24242A)); kohle.position.y = .45; g.add(kohle);
+  }
+  [-.28, .28].forEach(z => { const r = new THREE.Mesh(new THREE.CylinderGeometry(.075, .075, .46, 10), schwarz); r.rotation.z = Math.PI / 2; r.position.set(0, .08, z); g.add(r); });
+  return schatten(g);
+}
+const zuege = [
+  { name: "Personenzug", s: 0.02 * LAENGE, v: 0, warten: 0, teile: [lok(0xE2453A), wagen("personen", 0xE2453A), wagen("personen", 0xE2453A), wagen("personen", 0xE2453A)] },
+  { name: "Kohlezug", s: 0.52 * LAENGE, v: 0, warten: 0, teile: [lok(0x2F6FDE), wagen("kohle", 0x7A5A3F), wagen("kohle", 0x7A5A3F), wagen("kohle", 0x7A5A3F)] }
+];
+zuege.forEach(z => z.teile.forEach(t => scene.add(t)));
+const HALT = BAHNHOEFE.map(u => u * LAENGE + .2);
+const VMAX = 2.4, BREMS = 1.1;
+function zugBewegen(z, dt) {
+  if (z.warten > 0) { z.warten -= dt; if (z.warten <= 0) z.s = (z.s + .05) % LAENGE; z.v = 0; }
+  else {
+    const d = Math.min(...HALT.map(h => ((h - z.s) % LAENGE + LAENGE) % LAENGE));
+    z.v = Math.min(z.v + BREMS * dt, VMAX, Math.max(Math.sqrt(2 * BREMS * d), .15));
+    if (d <= z.v * dt) { z.s = (z.s + d) % LAENGE; z.warten = 2.6; z.v = 0; } else z.s = (z.s + z.v * dt) % LAENGE;
+  }
+  z.teile.forEach((t, i) => {
+    const s = ((z.s - (i ? .58 + .46 + (i - 1) * 1.0 : 0)) % LAENGE + LAENGE) % LAENGE, u = s / LAENGE;
+    const p = strecke.getPointAt(u), q = strecke.getPointAt((u + .002) % 1);
+    t.position.set(p.x, TY + .08, p.z); t.lookAt(q.x, TY + .08, q.z);
+  });
+}
+
+// ---------- Rauch ----------
+const wolken = [], wolkeGeo = new THREE.IcosahedronGeometry(.13, 0);
+for (let i = 0; i < 90; i++) { const m = new THREE.Mesh(wolkeGeo, new THREE.MeshLambertMaterial({ color: 0xF4F4F6, transparent: true, opacity: 0, depthWrite: false })); m.visible = false; scene.add(m); wolken.push({ m, alter: 9 }); }
+let wNr = 0;
+function puff(p, kraft) { const w = wolken[wNr++ % wolken.length]; w.m.position.copy(p); w.alter = 0; w.kraft = kraft; w.m.visible = true; w.dx = (zufall() - .5) * .2; }
+function rauch(dt) {
+  wolken.forEach(w => { if (w.alter > 2.4) { w.m.visible = false; return; } w.alter += dt;
+    w.m.position.y += dt * (.45 + w.kraft * .3); w.m.position.x += dt * (.25 + w.dx); w.m.scale.setScalar(1 + w.alter * 1.6 * w.kraft); w.m.material.opacity = Math.max(0, .85 - w.alter / 2.6); });
+}
+
+// ---------- Kamera ----------
+function startAnsicht() {
+  const hoch = innerHeight > innerWidth;
+  controls.target.set(hoch ? -3 : 0, 0, hoch ? -1 : 0);
+  camera.position.set(controls.target.x - (hoch ? 5 : 6), hoch ? 30 : 19, controls.target.z + (hoch ? 25 : 21));
+  controls.update();
+}
+startAnsicht();
+controls.addEventListener("change", () => {
+  const t = controls.target; const vx = Math.max(-17, Math.min(17, t.x)) - t.x, vz = Math.max(-11.5, Math.min(11.5, t.z)) - t.z;
+  if (vx || vz) { t.x += vx; t.z += vz; camera.position.x += vx; camera.position.z += vz; }
+});
+let folgen = null;
+const folgenKnopf = document.getElementById("folgen");
+folgenKnopf.onclick = () => {
+  folgen = folgen === null ? 0 : folgen === 0 ? 1 : null;
+  folgenKnopf.textContent = folgen === null ? "Zug folgen" : folgen === 0 ? "Kohlezug folgen" : "Nicht mehr folgen";
+  if (folgen !== null) { const z = zuege[folgen].teile[0].position; const d = camera.position.clone().sub(controls.target); if (d.length() > 14) d.setLength(11); controls.target.copy(z).setY(0); camera.position.copy(controls.target).add(d); }
+};
+document.getElementById("uebersicht").onclick = () => { folgen = null; folgenKnopf.textContent = "Zug folgen"; startAnsicht(); };
+controls.addEventListener("start", () => { if (folgen !== null && aktiveFinger === 1) { folgen = null; folgenKnopf.textContent = "Zug folgen"; } });
+
+// ---------- Feld antippen ----------
+const NAMEN = { wiese: ["Wiese", 20], wald: ["Wald", 40], huegel: ["Hügel", 60], wasser: ["Fluss, Brücke nötig", 150], berg: ["Berg, Tunnel nötig", 250] };
+const ring = new THREE.Mesh(new THREE.RingGeometry(.8, .98, 6, 1, Math.PI / 2).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: 0xFFD447, transparent: true, opacity: .95 }));
+ring.visible = false; scene.add(ring);
+const info = document.getElementById("info"), ray = new THREE.Raycaster(), maus = new THREE.Vector2();
+let aktiveFinger = 0, start = null;
+renderer.domElement.addEventListener("pointerdown", () => setTimeout(() => document.getElementById("hinweis").hidden = true, 4000), { once: true });
+renderer.domElement.addEventListener("pointerdown", e => { aktiveFinger++; start = aktiveFinger === 1 ? { x: e.clientX, y: e.clientY, t: performance.now() } : null; });
+addEventListener("pointerup", e => {
+  aktiveFinger = Math.max(0, aktiveFinger - 1);
+  if (!start || Math.hypot(e.clientX - start.x, e.clientY - start.y) > 8 || performance.now() - start.t > 450) { start = null; return; }
+  start = null;
+  maus.set(e.clientX / innerWidth * 2 - 1, -e.clientY / innerHeight * 2 + 1); ray.setFromCamera(maus, camera);
+  const treffer = ray.intersectObject(feldMesh)[0];
+  if (!treffer) { ring.visible = false; info.hidden = true; return; }
+  const f = felder[treffer.instanceId]; ring.position.set(f.x, f.h + .02, f.z); ring.visible = true;
+  const [n, k] = NAMEN[f.typ];
+  info.innerHTML = f.dT < .7 ? `<b>${n}</b> · hier liegt schon ein Gleis` : `<b>${n}</b> · Gleis bauen: ${k} Taler`;
+  info.hidden = false;
+});
+addEventListener("pointercancel", () => { aktiveFinger = Math.max(0, aktiveFinger - 1); start = null; });
+
+// ---------- Schleife ----------
+addEventListener("resize", () => { camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); });
+const uhr = new THREE.Clock(); let rauchTakt = 0, kwTakt = 0;
+const wp = new THREE.Vector3();
+function schleife() {
+  const dt = Math.min(uhr.getDelta(), .05);
+  zuege.forEach(z => zugBewegen(z, dt));
+  rauchTakt -= dt; kwTakt -= dt;
+  if (rauchTakt <= 0) { zuege.forEach(z => puff(z.teile[0].localToWorld(wp.set(0, .72, .36)), z.v > .3 ? .8 : .45)); rauchTakt = zuege[0].v > .3 ? .16 : .45; }
+  if (kwTakt <= 0) { rauchQuellen.forEach(q => puff(q.g.localToWorld(wp.copy(q.lokal)), 1.3)); kwTakt = .35; }
+  rauch(dt);
+  if (folgen !== null) {
+    const p = zuege[folgen].teile[0].position, d = V(p.x, 0, p.z).sub(controls.target).multiplyScalar(Math.min(1, dt * 4));
+    controls.target.add(d); camera.position.add(d);
+  }
+  controls.update();
+  renderer.render(scene, camera);
+  requestAnimationFrame(schleife);
+}
+schleife();
+window.__gg = { scene, zuege, felder };
+</script>
+</body>
+</html>
