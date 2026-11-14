@@ -43,6 +43,19 @@ function schild(text, { bg = "#1C1A33", fg = "#F3F0FF", groesse = 1, unter = "" 
   return sp;
 }
 
+const kante = (a, b) => a < b ? a + "-" + b : b + "-" + a;
+const SPUR = .31;
+// Spurwechsel weich machen (gleitender Mittelwert über einige Punkte)
+function glaetten(pts) { return pts.map((p, i) => { let s = 0, n = 0; for (let k = -4; k <= 4; k++) { const q = pts[i + k]; if (q) { s += q.sp; n++; } } return { x: p.x, z: p.z, sp: s / n }; }); }                    // Abstand der beiden Gleise einer zweigleisigen Strecke von der Mitte
+// Linienzug seitlich versetzen (positiv = rechts in Laufrichtung)
+function versetzt(l, o) {
+  return l.map((p, i) => {
+    const a = l[Math.max(0, i - 1)], b = l[Math.min(l.length - 1, i + 1)];
+    let tx = b.x - a.x, tz = b.z - a.z; const n = Math.hypot(tx, tz) || 1; tx /= n; tz /= n;
+    return { x: p.x + tz * o, z: p.z - tx * o };
+  });
+}
+
 export class Welt {
   constructor(el) {
     this.el = el;
@@ -243,20 +256,24 @@ export class Welt {
 
   // ---------- Gleise und Bahnhöfe ----------
   // Linienzug eines Gleiswegs durch die Felder (Bögen in den Feldern, Mitte → Kante → Mitte)
-  zellenLinie(zellen, rund) {
+  // doppel (optional): Gleisstücke mit zwei Gleisen; jeder Punkt bekommt sp = 1 (zweigleisig) oder 0
+  zellenLinie(zellen, rund, doppel) {
     const pts = [], halt = [];
-    const push = (x, z) => { const l = pts[pts.length - 1]; if (!l || Math.hypot(l.x - x, l.z - z) > 1e-4) pts.push({ x, z }); };
+    let sp = 0;
+    const dz = (a, b) => (doppel && doppel[kante(a, b)]) ? 1 : 0;
+    const push = (x, z) => { const l = pts[pts.length - 1]; if (!l || Math.hypot(l.x - x, l.z - z) > 1e-4) pts.push({ x, z, sp }); };
     const bogen = (a, c, b, k, ab) => { for (let t = ab; t <= 8; t++) { const u = t / 8; push((1 - u) ** 2 * a.x + 2 * (1 - u) * u * c.x + u * u * b.x, (1 - u) ** 2 * a.z + 2 * (1 - u) * u * c.z + u * u * b.z); if (t === 4) halt[k] = pts.length - 1; } };
     // Rundkurs: letzte Zelle = erste; jedes Feld als Bogen, der Kreis schließt sich ohne Knick
     if (rund && zellen.length > 3) {
       const m = zellen.length - 1;
-      for (let k = 0; k < m; k++) bogen(this.mitte(zellen[(k - 1 + m) % m], zellen[k]), this.pos(zellen[k]), this.mitte(zellen[k], zellen[k + 1]), k, k ? 1 : 0);
-      return { pts, halt };
+      for (let k = 0; k < m; k++) { sp = dz(zellen[(k - 1 + m) % m], zellen[k]) && dz(zellen[k], zellen[k + 1]) ? 1 : 0; bogen(this.mitte(zellen[(k - 1 + m) % m], zellen[k]), this.pos(zellen[k]), this.mitte(zellen[k], zellen[k + 1]), k, k ? 1 : 0); }
+      return { pts: glaetten(pts), halt };
     }
     const n = zellen.length;
     if (n === 1) { const p = this.pos(zellen[0]); return { pts: [p, p], halt: [0] }; }
     for (let k = 0; k < n; k++) {
       const c = this.pos(zellen[k]);
+      sp = k === 0 ? dz(zellen[0], zellen[1]) : k === n - 1 ? dz(zellen[k - 1], zellen[k]) : (dz(zellen[k - 1], zellen[k]) && dz(zellen[k], zellen[k + 1]) ? 1 : 0);
       if (k === 0) { const m = this.mitte(zellen[0], zellen[1]); halt[0] = pts.length; push(c.x, c.z); for (let t = 1; t <= 4; t++) push(c.x + (m.x - c.x) * t / 4, c.z + (m.z - c.z) * t / 4); }
       else if (k === n - 1) { const m = this.mitte(zellen[k - 1], zellen[k]); for (let t = 1; t <= 4; t++) push(m.x + (c.x - m.x) * t / 4, m.z + (c.z - m.z) * t / 4); halt[k] = pts.length - 1; }
       else {
@@ -264,17 +281,26 @@ export class Welt {
         for (let t = 1; t <= 8; t++) { const u = t / 8, x = (1 - u) ** 2 * a.x + 2 * (1 - u) * u * c.x + u * u * b.x, z = (1 - u) ** 2 * a.z + 2 * (1 - u) * u * c.z + u * u * b.z; push(x, z); if (t === 4) halt[k] = pts.length - 1; }
       }
     }
-    return { pts, halt };
+    return { pts: glaetten(pts), halt };
   }
   // Gleisstücke je Feld: zwei Anschlüsse → Bogen, sonst Strahlen von der Mitte
-  netzLinien(adj) {
+  netzLinien(adj, doppel = {}) {
     const linien = [];
     for (const [c, nb] of adj) {
-      const p = this.pos(c), ms = nb.map(n => this.mitte(c, n));
+      const p = this.pos(c), ms = nb.map(n => this.mitte(c, n)), dd = nb.map(n => !!doppel[kante(c, n)]);
       if (ms.length === 2) {
         const l = []; for (let t = 0; t <= 8; t++) { const u = t / 8; l.push({ x: (1 - u) ** 2 * ms[0].x + 2 * (1 - u) * u * p.x + u * u * ms[1].x, z: (1 - u) ** 2 * ms[0].z + 2 * (1 - u) * u * p.z + u * u * ms[1].z }); }
-        linien.push({ c, l });
-      } else ms.forEach(m => { const l = []; for (let t = 0; t <= 4; t++) l.push({ x: p.x + (m.x - p.x) * t / 4, z: p.z + (m.z - p.z) * t / 4 }); linien.push({ c, l }); });
+        if (dd[0] === dd[1]) linien.push({ c, l, d: dd[0] });
+        else {
+          // Übergang ein-/zweigleisig: Weiche in diesem Feld
+          linien.push({ c, l, d: false });
+          const k = dd[0] ? 0 : 1, m = ms[k], h = []; for (let t = 0; t <= 4; t++) h.push({ x: m.x + (p.x - m.x) * t / 4, z: m.z + (p.z - m.z) * t / 4 });
+          linien.push({ c, l: h, d: true, halb: true }); this.weichen.push(c);
+        }
+      } else {
+        ms.forEach((m, i) => { const l = []; for (let t = 0; t <= 4; t++) l.push({ x: p.x + (m.x - p.x) * t / 4, z: p.z + (m.z - p.z) * t / 4 }); linien.push({ c, l, d: dd[i] }); });
+        if (ms.length >= 3) this.weichen.push(c);
+      }
     }
     return linien;
   }
@@ -293,12 +319,23 @@ export class Welt {
     const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3)); g.setIndex(idx); g.computeVertexNormals();
     return g;
   }
-  gleisMeshes(linien, gruppe, farbe) {
-    if (!linien.length) return;
+  gleisMeshes(eingabe, gruppe, farbe) {
+    if (!eingabe.length) return;
     const geist = farbe !== undefined;
-    const schotter = new THREE.Mesh(this.band(linien, geist ? .34 : .36, TY + (geist ? .06 : 0)), geist ? new THREE.MeshBasicMaterial({ color: farbe, transparent: true, opacity: .55, side: THREE.DoubleSide, depthWrite: false }) : mat(0x9A8C7C, { side: THREE.DoubleSide }));
+    // zweigleisige Stücke werden als zwei versetzte Gleise gezeichnet (ein „halbes“ läuft zur Mitte der Weiche zusammen)
+    const linien = [], bett = [], breit = [];
+    for (const e of eingabe) {
+      if (Array.isArray(e)) { linien.push(e); bett.push(e); continue; }
+      if (!e.d) { linien.push(e.l); bett.push(e.l); continue; }
+      breit.push(e.l);
+      if (e.halb) { const n = e.l.length - 1; for (const o of [SPUR, -SPUR]) linien.push(e.l.map((p, i) => { const f = 1 - i / n; return versetzt(e.l, o * f)[i]; })); }
+      else linien.push(versetzt(e.l, SPUR), versetzt(e.l, -SPUR));
+    }
+    if (breit.length) { const sb = new THREE.Mesh(this.band(breit, .68, TY - .005), mat(0x9A8C7C, { side: THREE.DoubleSide })); sb.receiveShadow = true; gruppe.add(sb); }
+    const schotter = new THREE.Mesh(this.band(geist ? linien : bett, geist ? .34 : .36, TY + (geist ? .06 : 0)), geist ? new THREE.MeshBasicMaterial({ color: farbe, transparent: true, opacity: .55, side: THREE.DoubleSide, depthWrite: false }) : mat(0x9A8C7C, { side: THREE.DoubleSide }));
     schotter.receiveShadow = true; gruppe.add(schotter);
     if (geist) return;
+    if (!bett.length) gruppe.remove(schotter);
     const schienen = new THREE.Mesh(this.band(linien, .028, TY + .085, .2), mat(0xC9CED6, { metalness: .5, roughness: .4, side: THREE.DoubleSide }));
     const schienen2 = new THREE.Mesh(this.band(linien, .028, TY + .085, -.2), schienen.material);
     gruppe.add(schienen, schienen2);
@@ -317,12 +354,24 @@ export class Welt {
     im.receiveShadow = true; gruppe.add(im);
   }
   netzSetzen(S, adj) {
-    const key = Object.keys(S.gleise).sort().join(",") + "|" + S.bahnhoefe.join(",");
+    const doppel = S.doppel || {};
+    const key = Object.keys(S.gleise).sort().join(",") + "|" + S.bahnhoefe.join(",") + "|" + Object.keys(doppel).sort().join(",");
     if (key === this.netzKey) return;
     this.netzKey = key;
     leeren(this.gNetz);
-    const K = this.K, linien = this.netzLinien(adj);
-    this.gleisMeshes(linien.map(x => x.l), this.gNetz);
+    this.weichen = [];
+    const K = this.K, linien = this.netzLinien(adj, doppel);
+    this.gleisMeshes(linien, this.gNetz);
+    // Weichen: kleine Weichenlaterne neben jeder Abzweigung
+    for (const c of new Set(this.weichen)) {
+      if (S.bahnhoefe.includes(c)) continue;
+      const p = this.pos(c), g = new THREE.Group();
+      const pf = new THREE.Mesh(new THREE.CylinderGeometry(.025, .03, .34, 6), mat(0x3A3A44)); pf.position.y = .17; g.add(pf);
+      const la = new THREE.Mesh(new THREE.BoxGeometry(.12, .12, .12), mat(0xF3F0FF)); la.position.y = .38; g.add(la);
+      const st = new THREE.Mesh(new THREE.BoxGeometry(.13, .04, .04), mat(0xE2453A)); st.position.y = .38; g.add(st);
+      const hb = new THREE.Mesh(new THREE.BoxGeometry(.05, .05, .22), mat(0x3A3A44)); hb.position.set(0, .05, .12); g.add(hb);
+      g.position.set(p.x + .55, TY, p.z + .32); this.gNetz.add(schatten(g));
+    }
     // Hügel mit Gleis abtragen (Einschnitt), Wald roden
     const hilf = new THREE.Object3D(), mitGleis = new Set(adj.keys());
     for (let i = 0; i < K.B * K.H; i++) if (K.g[i] === "h") {
@@ -333,11 +382,11 @@ export class Welt {
     this.baeumeSetzen(mitGleis);
     // Brücken über den Fluss, Tunnelportale am Berg
     const blau = mat(0x2F6FDE), grau = mat(0x8D8F99), stein = mat(0x77736C), dunkel = mat(0x1C1A22);
-    for (const { c, l } of linien) {
+    for (const { c, l, d } of linien) {
       if (K.g[c] === "~") {
         for (let i = 0; i < l.length - 1; i++) {
           const a = l[i], b = l[i + 1], tx = b.x - a.x, tz = b.z - a.z, len = Math.hypot(tx, tz) || 1, nx = tz / len, nz = -tx / len;
-          for (const s of [-.42, .42]) {
+          for (const s of d ? [-.74, .74] : [-.42, .42]) {
             const A = V(a.x + nx * s, 0, a.z + nz * s), B = V(b.x + nx * s, 0, b.z + nz * s);
             this.gNetz.add(balken(A.clone().setY(TY + .55), B.clone().setY(TY + .55), .07, blau), balken(A.clone().setY(TY + .02), B.clone().setY(TY + .02), .07, blau));
             if (i % 2 === 0) this.gNetz.add(balken(A.clone().setY(TY), A.clone().setY(TY + .55), .05, blau), balken(A.clone().setY(TY + .02), B.clone().setY(TY + .55), .045, blau));
@@ -364,15 +413,15 @@ export class Welt {
       let nx = dz, nz = -dx;
       // Seite ohne zweites Gleis wählen
       if (nb[1]) { const m2 = this.mitte(c, nb[1]); if ((m2.x - p.x) * nx + (m2.z - p.z) * nz > 0) { nx = -nx; nz = -nz; } }
-      const w = Math.atan2(dx, dz);
-      const bs = new THREE.Mesh(new THREE.BoxGeometry(.42, .14, 1.25), mat(0xE7E1D3)); bs.position.set(p.x + nx * .5, TY + .07, p.z + nz * .5); bs.rotation.y = w; this.gNetz.add(schatten(bs));
-      const dach = new THREE.Mesh(new THREE.BoxGeometry(.46, .04, .9), mat(0xC9553D)); dach.position.set(p.x + nx * .52, TY + .5, p.z + nz * .52); dach.rotation.y = w; this.gNetz.add(schatten(dach));
-      [-.35, .35].forEach(o => { const s = new THREE.Mesh(new THREE.CylinderGeometry(.025, .025, .38, 5), mat(0x3A3A44)); s.position.set(p.x + nx * .6 + dx * o, TY + .3, p.z + nz * .6 + dz * o); this.gNetz.add(s); });
+      const w = Math.atan2(dx, dz), zw = nb.some(n => doppel[kante(c, n)]) ? .3 : 0;
+      const bs = new THREE.Mesh(new THREE.BoxGeometry(.42, .14, 1.25), mat(0xE7E1D3)); bs.position.set(p.x + nx * (.5 + zw), TY + .07, p.z + nz * (.5 + zw)); bs.rotation.y = w; this.gNetz.add(schatten(bs));
+      const dach = new THREE.Mesh(new THREE.BoxGeometry(.46, .04, .9), mat(0xC9553D)); dach.position.set(p.x + nx * (.52 + zw), TY + .5, p.z + nz * (.52 + zw)); dach.rotation.y = w; this.gNetz.add(schatten(dach));
+      [-.35, .35].forEach(o => { const s = new THREE.Mesh(new THREE.CylinderGeometry(.025, .025, .38, 5), mat(0x3A3A44)); s.position.set(p.x + nx * (.6 + zw) + dx * o, TY + .3, p.z + nz * (.6 + zw) + dz * o); this.gNetz.add(s); });
       const hs = new THREE.Group();
       const kv = new THREE.Mesh(new THREE.BoxGeometry(.4, .42, .6), mat(0xF0D9B5)); kv.position.y = .21; hs.add(kv);
       const form = new THREE.Shape([new THREE.Vector2(-.25, 0), new THREE.Vector2(.25, 0), new THREE.Vector2(0, .2)]);
       const dd = new THREE.Mesh(new THREE.ExtrudeGeometry(form, { depth: .66, bevelEnabled: false }).translate(0, 0, -.33), mat(0x9A3B2E)); dd.position.y = .42; hs.add(dd);
-      hs.position.set(p.x + nx * .9, GY, p.z + nz * .9); hs.rotation.y = w; this.gNetz.add(schatten(hs));
+      hs.position.set(p.x + nx * (.9 + zw * .5), GY, p.z + nz * (.9 + zw * .5)); hs.rotation.y = w; this.gNetz.add(schatten(hs));
     }
   }
 
@@ -436,7 +485,7 @@ export class Welt {
     S.zuege.forEach((z, k) => {
       const w = linienWeg(S, z.linie, null, z.rund); if (!w) return;
       const rund = !!z.rund && w.pfad.length > 3;
-      const { pts, halt } = this.zellenLinie(w.pfad, rund);
+      const { pts, halt } = this.zellenLinie(w.pfad, rund, S.doppel);
       const len = [0]; for (let i = 1; i < pts.length; i++) len.push(len[i - 1] + Math.hypot(pts[i].x - pts[i - 1].x, pts[i].z - pts[i - 1].z));
       const L = len[len.length - 1], L0 = LOKS[z.lok];
       const teile = [z.lok === "feld" ? this.feldbahn(z.farbe) : this.lok(z.farbe)];
@@ -456,12 +505,16 @@ export class Welt {
     let lo = 0, hi = z.len.length - 1;
     while (hi - lo > 1) { const m = (lo + hi) >> 1; if (z.len[m] <= s) lo = m; else hi = m; }
     const a = z.pts[lo], b = z.pts[hi], d = z.len[hi] - z.len[lo] || 1, u = (s - z.len[lo]) / d;
-    return { x: a.x + (b.x - a.x) * u, z: a.z + (b.z - a.z) * u };
+    return { x: a.x + (b.x - a.x) * u, z: a.z + (b.z - a.z) * u, sp: (a.sp || 0) + ((b.sp || 0) - (a.sp || 0)) * u };
   }
   zugStellen(z) {
+    // auf zweigleisigen Stücken Rechtsverkehr: je nach Fahrtrichtung auf dem rechten Gleis
+    const richtung = z.rund ? 1 : z.dir;
     z.teile.forEach((t, i) => {
       const s = z.s - z.abst[i], p = this.punktBei(z, s), q = this.punktBei(z, s + .06), r = this.punktBei(z, s - .06);
-      t.position.set(p.x, TY + .08, p.z); t.lookAt(q.x + (q.x - r.x) * 5, TY + .08, q.z + (q.z - r.z) * 5);
+      let tx = q.x - r.x, tz = q.z - r.z; const n = Math.hypot(tx, tz) || 1; tx /= n; tz /= n;
+      const o = p.sp * SPUR * richtung, x = p.x + tz * o, y = p.z - tx * o;
+      t.position.set(x, TY + .08, y); t.lookAt(x + tx, TY + .08, y + tz);
     });
   }
   zugBewegen(z, dt) {

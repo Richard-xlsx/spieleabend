@@ -191,6 +191,18 @@
     }
     return { kosten, kanten, bahnhoefe };
   }
+  // Zweigleisiger Ausbau entlang vorhandener Gleise: 60 % der Baukosten je Stück
+  function ausbauKosten(S, pfad) {
+    if (!Array.isArray(pfad) || pfad.length < 2) return { fehler: "Der Weg ist zu kurz." };
+    const kanten = []; let kosten = 0;
+    for (let k = 1; k < pfad.length; k++) {
+      const key = kante(pfad[k - 1], pfad[k]);
+      if (!S.gleise[key]) return { fehler: "Ausbauen geht nur entlang vorhandener Gleise." };
+      if (S.doppel[key] || kanten.includes(key)) continue;
+      kanten.push(key); kosten += Math.round((feldKosten(S, pfad[k - 1]) + feldKosten(S, pfad[k])) / 2 * .6 * rabatt(S));
+    }
+    return { kosten, kanten };
+  }
   // Günstigster neuer Weg von a nach b (vorhandene Gleise fast kostenlos, fremde Orte gemieden)
   // neu = eigene Trasse: vorhandene Gleisstücke werden nicht mitbenutzt (für Kreise und zweite Strecken)
   function bauWeg(S, a, b, neu) {
@@ -254,7 +266,7 @@
       v: 1, spiel: "gleisgenossen", code, epoch: 0, host: hostPid, phase: "lobby",
       spieler: { [hostPid]: { name: hostName } }, reihenfolge: [hostPid], online: [hostPid],
       monate: 12, monat: 0, kasse: 0, karte: null, gleise: {}, bahnhoefe: [], zuege: [], zugNr: 0,
-      ruf: RUF_START, kredit: 0, lager: 0, bretter: {}, wachstum: {}, auftraege: [], angebote: [], aNr: 0, ereignis: null, naechstes: null,
+      ruf: RUF_START, kredit: 0, lager: 0, bretter: {}, wachstum: {}, auftraege: [], angebote: [], aNr: 0, ereignis: null, naechstes: null, doppel: {},
       bereit: {}, bericht: null, historie: [], baulog: [], ergebnis: null, aenderung: Date.now()
     };
   }
@@ -278,7 +290,7 @@
   // Ältere Spielstände (vor Aufträgen, Kredit usw.) um die neuen Felder ergänzen
   function nachruesten(S) {
     if (!S) return S;
-    const d = { ruf: RUF_START, kredit: 0, lager: 0, bretter: {}, wachstum: {}, auftraege: [], angebote: [], aNr: 0, ereignis: null, naechstes: null };
+    const d = { ruf: RUF_START, kredit: 0, lager: 0, bretter: {}, wachstum: {}, auftraege: [], angebote: [], aNr: 0, ereignis: null, naechstes: null, doppel: {} };
     for (const k in d) if (S[k] === undefined) S[k] = d[k];
     return S;
   }
@@ -302,7 +314,7 @@
         const anzahl = Math.max(1, Math.min(6, m.anzahl || 1));
         S.karte = karteErzeugen(Number.isInteger(m.seed) ? m.seed : Math.floor(Math.random() * 1e9), anzahl);
         Object.assign(S, { phase: "planen", monat: 1, kasse: START_KASSE, gleise: {}, bahnhoefe: [], zuege: [], zugNr: 0, bereit: {}, bericht: null, historie: [], baulog: [], ergebnis: null,
-          ruf: RUF_START, kredit: 0, lager: 0, bretter: {}, wachstum: {}, auftraege: [], angebote: [], aNr: 0, ereignis: null, naechstes: null });
+          ruf: RUF_START, kredit: 0, lager: 0, bretter: {}, wachstum: {}, auftraege: [], angebote: [], aNr: 0, ereignis: null, naechstes: null, doppel: {} });
         S.angebote = angeboteErzeugen(S);
         break;
       }
@@ -320,11 +332,22 @@
         S.baulog.push({ pid, monat: S.monat, kanten: k.kanten, bahnhoefe: k.bahnhoefe, kosten: k.kosten });
         break;
       }
+      case "ausbauen": {
+        if (S.phase !== "planen") return nein("Gebaut wird in der Planungsphase.");
+        const k = ausbauKosten(S, m.pfad); if (k.fehler) return nein(k.fehler);
+        if (!k.kanten.length) return nein("Diese Strecke ist schon zweigleisig.");
+        if (k.kosten > S.kasse) return nein("Dafür reicht die Kasse nicht (" + k.kosten + " T).");
+        k.kanten.forEach(x => { S.doppel[x] = 1; });
+        S.kasse -= k.kosten;
+        S.baulog.push({ pid, monat: S.monat, kanten: [], doppel: k.kanten, bahnhoefe: [], kosten: k.kosten });
+        break;
+      }
       case "rueckgaengig": {
         if (S.phase !== "planen") return nein("Gerade nicht möglich.");
         const l = S.baulog[S.baulog.length - 1];
         if (!l || l.monat !== S.monat || l.pid !== pid) return nein("Nur der eigene letzte Bau in diesem Monat lässt sich zurücknehmen.");
-        l.kanten.forEach(x => { delete S.gleise[x]; });
+        l.kanten.forEach(x => { delete S.gleise[x]; delete S.doppel[x]; });
+        (l.doppel || []).forEach(x => { delete S.doppel[x]; });
         S.bahnhoefe = S.bahnhoefe.filter(b => !l.bahnhoefe.includes(b));
         if (S.zuege.some(z => !linieOk(S, z.linie, z.rund).ok)) return nein("Ein Zug fährt schon über diese Strecke.");
         S.kasse += l.kosten; S.baulog.pop();
@@ -451,6 +474,26 @@
     return l;
   }
 
+  // Züge, die sich eingleisige Stücke teilen, warten aufeinander: Faktor auf die Fahrzeit je Zug.
+  // Faktor = 1 + 0,25 × (Anteil geteilter eingleisiger Stücke an der Linie) × (andere Züge dort, bis 3), höchstens 1,5.
+  function gegenseitig(S, adj, ev) {
+    const wege = {}, nutzer = {};
+    for (const z of S.zuege) {
+      if (ev && ev.typ === "lokschaden" && ev.zug === z.id) continue;
+      const w = linienWeg(S, z.linie, adj, z.rund); if (!w) continue;
+      const k = new Set(); for (let i = 1; i < w.pfad.length; i++) k.add(kante(w.pfad[i - 1], w.pfad[i]));
+      wege[z.id] = k; k.forEach(x => { nutzer[x] = (nutzer[x] || 0) + 1; });
+    }
+    const f = {};
+    for (const id in wege) {
+      let geteilt = 0, andere = 0;
+      wege[id].forEach(x => { if (!S.doppel[x] && nutzer[x] > 1) { geteilt++; andere = Math.max(andere, nutzer[x] - 1); } });
+      f[id] = Math.min(1.5, 1 + .25 * (geteilt / Math.max(1, wege[id].size)) * Math.min(3, andere));
+    }
+    return f;
+  }
+  const behinderung = (S, ev) => gegenseitig(S, netz(S), ev === undefined ? S.ereignis : ev);
+
   // ---------- Abrechnung eines Monats ----------
   function monatRechnen(S) {
     const adj = netz(S), ev = S.ereignis || {}, vorrat = {}, geliefert = {}, neueBretter = {};
@@ -465,6 +508,7 @@
     const muenze = (zelle, betrag) => { if (betrag <= 0) return; const m = b.muenzen.find(x => x.zelle === zelle); if (m) m.betrag += betrag; else b.muenzen.push({ zelle, betrag }); };
     const gib = (ort, l, n) => { const k = ort + "|" + l; geliefert[k] = (geliefert[k] || 0) + n; };
     let insLager = 0;
+    const behinderung = gegenseitig(S, adj, ev);
     for (const z of S.zuege) {
       const L = LOKS[z.lok], e = { id: z.id, menge: 0, einnahmen: 0, fahrten: 0, hinweis: "" };
       b.betrieb += L.betrieb;
@@ -475,7 +519,8 @@
       if (ev.typ === "hochwasser" && w.pfad.some(i => S.karte.g[i] === "~")) { e.hinweis = "Brücke wegen Hochwasser gesperrt"; fertig(); continue; }
       const tempo = L.tempo * (ev.typ === "schnee" ? .6 : 1);
       // Pendelzug: jede Fahrt eine Richtung, an den Enden wenden. Rundkurs: eine Runde zählt wie Hin- und Rückfahrt, ohne Wenden.
-      const laenge = w.laenge, tage = laenge / tempo + z.linie.length * .5 + (z.rund ? 0 : .5);
+      const stau = behinderung[z.id] || 1;
+      const laenge = w.laenge, tage = (laenge / tempo + z.linie.length * .5 + (z.rund ? 0 : .5)) * stau;
       const fahrten = z.rund ? 2 * Math.max(1, Math.floor(TAGE / tage)) : Math.max(1, Math.floor(TAGE / tage)), kap = L.wagen * WAGEN_PLATZ;
       const ab = (p, q) => { const d = Math.abs(p - q); return z.rund ? Math.min(d, laenge - d) : d; };
       e.fahrten = fahrten;
@@ -519,6 +564,7 @@
           else if (lager) e.hinweis = e.menge + " Kohle ins Lager";
         }
       }
+      if (stau > 1.04) { e.stau = Math.round((1 - 1 / stau) * 100); e.hinweis = (e.hinweis ? e.hinweis + " · " : "") + "eingleisig geteilt, −" + e.stau + " % Fahrten"; }
       b.einnahmen += e.einnahmen; fertig();
     }
     // Sägewerke: Rest bleibt liegen, aus dem neuen Holz werden Bretter für den nächsten Monat
@@ -542,7 +588,7 @@
       if (S.monat >= a.frist) { b.auftraege.push(Object.assign({}, a, { ok: false })); S.ruf = Math.max(0, S.ruf - 1); return false; }
       return true;
     });
-    b.wartung = Object.keys(S.gleise).length * WARTUNG_GLEIS + S.bahnhoefe.length * WARTUNG_BAHNHOF;
+    b.wartung = (Object.keys(S.gleise).length + Object.keys(S.doppel).length) * WARTUNG_GLEIS + S.bahnhoefe.length * WARTUNG_BAHNHOF;
     const kosten = b.betrieb + b.wartung + b.kohle.kosten + b.zinsen;
     S.kasse += b.einnahmen + b.belohnung - kosten;
     b.kasse = S.kasse; b.ruf = S.ruf; b.kredit = S.kredit;
@@ -557,6 +603,7 @@
   window.GG = {
     GELAENDE, BAHNHOF, START_KASSE, WARTUNG_GLEIS, WARTUNG_BAHNHOF, LOKS, LADUNG, ORTE, FAHRGAESTE, MONATE, MAX_HALTE, WAGEN_PLATZ,
     KOHLE_PREIS, LAGER_MAX, ZINS, KREDIT_SCHRITT, RUF_MAX, MAX_AUFTRAEGE, WACHSTUM, kreditRahmen,
+    ausbauKosten, behinderung,
     neu, nachruesten, aktion, weiterWennBereit, karteErzeugen, nachbarn, hexAbstand, kante, netz, streckenWeg, linienWeg, pfadKosten, bauWeg,
     linieOk, linieInfo, ortBei, produktion, darfStarten, imNetz, zugWert, wert, sterneGrenzen, monatRechnen
   };

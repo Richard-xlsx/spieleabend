@@ -245,6 +245,7 @@ function bildschirmLobby() {
     <div class="karte-box"><h2>So geht's</h2><ul class="regeln">
       <li>Alle planen <b>gleichzeitig</b> mit einer <b>gemeinsamen Kasse</b>: Gleise bauen, Züge kaufen, Linien festlegen.</li>
       <li><b>Gleis bauen:</b> Start antippen (Ort oder Gleis), dann das Ziel. Der günstigste Weg erscheint mit Kosten. Wiese 20 T, Wald 40, Hügel 60, Brücke 150, Tunnel 250 pro Feld. Erreicht das Gleis einen Ort, entsteht dort ein Bahnhof (100 T).</li>
+      <li><b>Zweigleisig ausbauen:</b> Teilen sich Züge ein eingleisiges Stück, warten sie aufeinander und schaffen weniger Fahrten. Zweigleisige Strecken lösen das.</li>
       <li><b>Züge:</b> Lok und Ladung wählen, dann die Bahnhöfe der Reihe nach antippen. Der Zug pendelt hin und her. Gibt es einen Gleiskreis, macht den ersten Bahnhof nochmal antippen einen <b>Rundkurs</b>: kein Wenden, etwas mehr Fahrten.</li>
       <li><b>Fahrgäste</b> fahren zwischen Orten, <b>Kohle</b> von der Zeche zum Kraftwerk, <b>Holz</b> vom Holzfäller zum Sägewerk. Je weiter, desto mehr Geld.</li>
       <li><b>Kohle in einen Ort</b> füllt euer Kohlenlager: Damit fahren eure Loks, sonst muss Kohle teuer zugekauft werden.</li>
@@ -276,7 +277,7 @@ function spielRender() {
   // Vorschau und Markierungen
   const marken = [];
   if (ui.modus === "bauen" && ui.bau.length) {
-    welt.vorschau(ui.bau);
+    welt.vorschau(ui.bau, ui.ausbau ? 0x2F6FDE : 0xFF6B57);
     marken.push({ zelle: ui.bau[0], farbe: 0xFFD447, text: ui.bau.length === 1 ? "Start" : "" });
     if (ui.bau.length > 1) marken.push({ zelle: ui.bau[ui.bau.length - 1], farbe: 0xFF6B57, text: "Ziel", bg: "#FF6B57" });
   } else if (ui.modus === "zuege" && ui.zug) {
@@ -367,7 +368,7 @@ function infoPanel(i) {
     if (zuege.length) zeilen.push("Hier halten: " + zuege.map(z => "Zug " + z.nr).join(", "));
   } else if (deko) zeilen.push(`Gehört zu ${esc(deko.name)}. Hier kann kein Gleis hin.`);
   else zeilen.push(`Gleisbau über dieses Feld: etwa ${G.GELAENDE[t].kosten} T${t === "~" ? " (Brücke)" : t === "b" ? " (Tunnel)" : ""}.`);
-  if (G.imNetz(S, i) && !o) zeilen.push("Hier liegt ein Gleis.");
+  if (G.imNetz(S, i) && !o) zeilen.push(G.nachbarn(S.karte, i).some(n => S.doppel[G.kante(i, n)]) ? "Hier liegt eine zweigleisige Strecke." : "Hier liegt ein Gleis (eingleisig).");
   const bauen = S.phase === "planen" && G.darfStarten(S, i);
   return `<div class="panel"><div class="kopf"><h3>${esc(titel)}</h3><button class="zu" id="infozu" aria-label="Schließen">✕</button></div>
     ${zeilen.map(z => `<p class="klein">${z}</p>`).join("")}
@@ -376,8 +377,17 @@ function infoPanel(i) {
 function bauPanel() {
   const b = ui.bau, letzter = S.baulog[S.baulog.length - 1];
   const zurueck = letzter && letzter.monat === S.monat && letzter.pid === PID ? `<button class="link" id="rueckgaengig">Letzten eigenen Bau zurücknehmen (+${zahl(letzter.kosten)} T)</button>` : "";
+  const art = `<div class="wahl"><button data-bauart="neu" class="${ui.ausbau ? "" : "an"}">Neues Gleis</button><button data-bauart="ausbau" class="${ui.ausbau ? "an" : ""}">Zweigleisig ausbauen</button></div>`;
   if (!b.length) return `<div class="panel"><div class="kopf"><h3>Gleis bauen</h3><button class="zu" id="modzu" aria-label="Schließen">✕</button></div>
-    <p class="klein">Tippe auf den <b>Start</b>: einen Ort, eine Zeche, ein Werk oder ein vorhandenes Gleis.</p>${zurueck}</div>`;
+    ${art}
+    <p class="klein">${ui.ausbau ? "Tippe auf den <b>Anfang</b> eines vorhandenen Gleises, dann auf das Ende. Zweigleisige Strecken teilen sich Züge ohne Warten, jede Richtung hat ihr eigenes Gleis. Kosten: 60 % vom Neubau." : "Tippe auf den <b>Start</b>: einen Ort, eine Zeche, ein Werk oder ein vorhandenes Gleis."}</p>${zurueck}</div>`;
+  if (ui.ausbau) {
+    if (b.length === 1) return `<div class="panel kompakt"><div class="kopf"><h3>Ausbau ab ${esc(ortName(b[0]) === "Feld" ? "hier" : ortName(b[0]))}</h3><button class="zu" id="bauweg" aria-label="Verwerfen">✕</button></div><p class="klein">Tippe auf das <b>Ende</b> des Abschnitts, der zweigleisig werden soll.</p></div>`;
+    const a = G.ausbauKosten(S, b), teuer = !a.fehler && a.kosten > S.kasse;
+    return `<div class="panel kompakt"><div class="kopf"><h3>Ausbau: ${esc(ortName(b[0]) === "Feld" ? "Gleis" : ortName(b[0]))} → ${esc(ortName(b[b.length - 1]) === "Feld" ? "Gleis" : ortName(b[b.length - 1]))}</h3><button class="zu" id="bauweg" aria-label="Verwerfen">✕</button></div>
+      <p class="leise klein">${a.fehler ? `<span class="warn">${esc(a.fehler)}</span>` : a.kanten.length ? `${a.kanten.length} Gleisstücke werden zweigleisig${teuer ? ` · <span class="warn">Kasse reicht nicht</span>` : ""}` : "Hier ist schon alles zweigleisig."}</p>
+      <button class="knopf" id="ausbauen" ${a.fehler || teuer || !a.kanten.length ? "disabled" : ""}>Ausbauen · ${zahl(a.kosten || 0)} T</button></div>`;
+  }
   if (b.length === 1) return `<div class="panel kompakt"><div class="kopf"><h3>Start: ${esc(ortName(b[0]) === "Feld" ? "Gleis" : ortName(b[0]))}</h3><button class="zu" id="bauweg" aria-label="Verwerfen">✕</button></div>
     <p class="klein">Tippe jetzt auf das <b>Ziel</b>. Der günstigste Weg wird vorgeschlagen. Weitere Felder verlängern ihn.</p><button class="schalterchip ${ui.bauNeu ? "an" : ""}" id="bauneu" aria-pressed="${!!ui.bauNeu}">${ui.bauNeu ? "✓ " : ""}Neue Trasse (nicht über vorhandene Gleise, z. B. für einen Kreis)</button></div>`;
   const k = G.pfadKosten(S, b);
@@ -419,11 +429,13 @@ function zugPanel() {
       ${teuer ? `<p class="warn klein">Dafür reicht die Kasse nicht.</p>` : ""}
       <div class="aktion"><button class="knopf" id="halteweiter">Weiter: Bahnhöfe auf der Karte antippen</button></div></div>`;
   }
+  const beh = G.behinderung(S);
   return `<div class="panel"><div class="kopf"><h3>Züge (${S.zuege.length})</h3><button class="zu" id="modzu" aria-label="Schließen">✕</button></div>
     ${S.zuege.length ? `<div class="zuglist">${S.zuege.map(z => {
-      const L = G.LOKS[z.lok], e = z.letzter;
+      const L = G.LOKS[z.lok], e = z.letzter, st = beh[z.id] || 1;
       return `<div class="zugkarte"><div class="titel2"><i class="farbe" style="background:${z.farbe}"></i>Zug ${z.nr} · ${L.name} · ${ladungName(z.ladung)}</div>
         <div class="klein leise">${linieText(z)}</div>
+        ${st > 1.04 ? `<div class="klein warn">Teilt eingleisige Strecken mit anderen Zügen: etwa −${Math.round((1 - 1 / st) * 100)} % Fahrten. Zweigleisig ausbauen hilft.</div>` : ""}
         ${e ? `<div class="klein">Letzter Monat: ${e.menge} ${ladungName(z.ladung)} · <span class="plus">+${zahl(e.einnahmen)} T</span>${e.hinweis ? ` · <span class="warn">${esc(e.hinweis)}</span>` : ""}</div>` : `<div class="klein leise">Fährt ab diesem Monat.</div>`}
         <div class="knoepfe"><button data-zeigen="${z.id}">Auf Karte</button><button data-linie="${z.id}">Linie ändern</button><button data-verkaufen="${z.id}">Verkaufen +${zahl(G.zugWert(S, z))} T</button></div></div>`;
     }).join("")}</div>` : `<p class="leise klein">Noch keine Züge. Ein Zug braucht eine Linie aus mindestens zwei Bahnhöfen.</p>`}
@@ -513,12 +525,13 @@ function feldGetippt(i) {
 // Der Bauweg entsteht aus den angetippten Punkten; zwischen ihnen wird jeweils der günstigste Weg gesucht.
 function bauBerechnen(punkte) {
   let p = [punkte[0]];
-  for (let k = 1; k < punkte.length; k++) { const w = G.bauWeg(S, p[p.length - 1], punkte[k], ui.bauNeu); if (!w) return null; p = p.concat(w.slice(1)); }
+  for (let k = 1; k < punkte.length; k++) { const w = ui.ausbau ? G.streckenWeg(S, p[p.length - 1], punkte[k]) : G.bauWeg(S, p[p.length - 1], punkte[k], ui.bauNeu); if (!w || w.length < 2) return null; p = p.concat(w.slice(1)); }
   return p;
 }
 function bauTippen(i) {
   const b = ui.bau;
   if (!b.length) {
+    if (ui.ausbau && !G.imNetz(S, i)) return zeigeHinweis("Ausbauen geht nur auf vorhandenen Gleisen.");
     if (!G.darfStarten(S, i)) return zeigeHinweis("Gleise beginnen an einem Ort, einer Zeche, einem Werk oder einem vorhandenen Gleis.");
     ui.bau = [i]; ui.bauP = [i];
   } else {
@@ -529,7 +542,7 @@ function bauTippen(i) {
       ui.bauP = P; ui.bau = bauBerechnen(P) || b.slice(0, k + 1);
     } else {
       const P = (ui.bauP || [b[0]]).concat(i), p = bauBerechnen(P);
-      if (!p) return zeigeHinweis(S.karte.g[i] === "x" ? "Bebaute Felder bleiben frei." : ui.bauNeu ? "Ohne vorhandene Gleise kommt man dort nicht hin." : "Dorthin kann kein Gleis führen.");
+      if (!p) return zeigeHinweis(ui.ausbau ? "Dorthin führt kein vorhandenes Gleis." : S.karte.g[i] === "x" ? "Bebaute Felder bleiben frei." : ui.bauNeu ? "Ohne vorhandene Gleise kommt man dort nicht hin." : "Dorthin kann kein Gleis führen.");
       ui.bauP = P; ui.bau = p;
     }
   }
@@ -577,6 +590,8 @@ function hudBinden() {
     render();
   });
   an("bauweg", () => { ui.bau = []; render(); }); an("bauweg2", () => { ui.bau = []; render(); });
+  an("ausbauen", () => { const p = ui.bau; ui.bau = []; ui.bauP = []; tun({ t: "ausbauen", pfad: p }); render(); });
+  document.querySelectorAll("[data-bauart]").forEach(b => b.onclick = () => { ui.ausbau = b.dataset.bauart === "ausbau"; ui.bau = []; ui.bauP = []; render(); });
   an("bauen", () => { const p = ui.bau; ui.bau = []; tun({ t: "bauen", pfad: p }); render(); });
   an("rueckgaengig", () => tun({ t: "rueckgaengig" }));
   an("leihen", () => tun({ t: "kredit" }));

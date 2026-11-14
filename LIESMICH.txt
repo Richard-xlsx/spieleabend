@@ -178,6 +178,9 @@ Gleisgenossen (1 bis 6 Spieler, kooperativ)
   Kosten pro Feld: Wiese 20, Wald 40, Hügel 60, Fluss (Brücke) 150, Berg (Tunnel) 250 T; Bahnhof 100 T, entsteht automatisch.
   Der eigene letzte Bau im selben Monat lässt sich zurücknehmen.
   „Neue Trasse“ beim Bauen: der Weg meidet vorhandene Gleise und Gleisfelder (für Kreise und zweite Strecken).
+  Zweigleisig ausbauen (beim Bauen umschalten): entlang vorhandener Gleise, 60 % der Neubaukosten, doppelte Wartung.
+  Teilen sich Züge eingleisige Stücke, brauchen sie länger: Fahrzeit × (1 + 0,25 × Anteil geteilter Stücke × andere Züge bis 3),
+  höchstens × 1,5. Auf zweigleisigen Stücken fährt jede Richtung auf ihrem Gleis (Rechtsverkehr); Weichenlaternen an Abzweigen.
   Rundkurs: ersten Bahnhof als letzten Halt antippen. Braucht einen Kreis ohne doppelt befahrene Gleisstücke;
   der Zug fährt nur vorwärts, ohne Wenden (Pendelzüge brauchen pro Fahrt einen halben Tag zum Wenden).
   Züge: Feldbahn 250 T (3 Felder/Tag, 10 Plätze, 15 T + 3 Kohle/Monat), Dampflok 550 T (5 Felder/Tag, 20 Plätze, 30 T + 6 Kohle/Monat).
