@@ -4,7 +4,7 @@
   const app = document.getElementById("app");
   const PREFIX = "fmwvk-";
   const ZEICHEN = "ABCDEFGHJKLMNPRSTUVWXYZ23456789";
-  const PEER_OPT = { debug: 0 };
+  const PEER_OPT = window.SPIELEABEND_PEER ? window.SPIELEABEND_PEER() : { debug: 0 };   // TURN-Server siehe ../netz.js
   const params = new URLSearchParams(location.search);
   const T = params.get("test") ? "-" + params.get("test") : "";
   const ls = {
@@ -124,7 +124,7 @@
     });
     c.on("close", () => { if (hostConn === c) { hostConn = null; verloren(); } });
     c.on("error", () => {});
-    retryTimer = setTimeout(() => { if (t === token && hostConn !== c) { try { c.close(); } catch (e) {} fehlschlag(t); } }, 5000);
+    retryTimer = setTimeout(() => { if (t === token && hostConn !== c) { try { c.close(); } catch (e) {} fehlschlag(t); } }, window.SPIELEABEND_WARTEN || 12000);
   }
   function fehlschlag(t) {
     if (t !== token) return;

@@ -7,6 +7,7 @@ Online: https://richard-xlsx.github.io/spieleabend/ (GitHub Pages, Projekt githu
 
 Aufbau
   index.html                      Startseite: Spiel auswählen
+  netz.js                         Verbindungseinstellungen für alle Spiele: TURN-Server für verschiedene Netze (z. B. mobile Daten)
   buchstabenbattle/               index.html, logic.js (Regeln und Punkte), app.js (Verbindung und Bildschirme)
   stillepost/                     index.html, stillepost-logic.js, stillepost.js
   maumau/                         index.html, maumau-logic.js, maumau.js, holzschnitt.js, figuren2.js (Karten)
