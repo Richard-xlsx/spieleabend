@@ -197,6 +197,19 @@
     app.innerHTML = h;
     binden();
     const neu = document.querySelector(".handscroll"); if (neu) neu.scrollLeft = sx;
+    handAnpassen();
+  }
+  // Die Hand nutzt den freien Platz unter dem Tisch: Kartenbreite aus der verbleibenden Bildschirmhöhe
+  let kartenBreite = 76;
+  const handHoehe = kw => Math.round(kw * 1.4 * (GROSS + .05) + HEBEN + 6);
+  const GROSS = 1.15, HEBEN = 22;              // ausgewählte Karte: so viel größer und so weit angehoben
+  function handAnpassen() {
+    const hand = document.querySelector(".hand"); if (!hand) return;
+    const ohneHand = document.body.offsetHeight - hand.offsetHeight;   // body: Inhaltshöhe (das html-Element ist mindestens so hoch wie der Bildschirm)
+    const frei = window.innerHeight - ohneHand;
+    const kw = Math.round(Math.max(76, Math.min(150, (frei - HEBEN - 6) / (1.4 * (GROSS + .05)))));
+    if (Math.abs(kw - kartenBreite) < 3) return;
+    kartenBreite = kw; render();
   }
   setInterval(() => { if (rolle === "client" && offlineSeit) render(); }, 5000);
 
@@ -241,12 +254,18 @@
   function handHtml(meinZug) {
     const karten = sortiert(hand), n = karten.length;
     if (!n) return `<p class="leise mitte">Keine Karten.</p>`;
-    const breite = Math.min(app.clientWidth || 340, 520), nutzbar = breite - 24, kw = 76;
-    let schritt = n > 1 ? Math.min(42, (nutzbar - kw) / (n - 1)) : 0, scroll = false;
-    if (n > 1 && schritt < 22) { schritt = 22; scroll = true; }
+    const breite = Math.min(app.clientWidth || 340, 520), nutzbar = breite - 24;
+    // so groß, wie die Höhe erlaubt, aber nur so breit, dass alle Karten ohne Wischen nebeneinander passen
+    const kw = Math.round(Math.max(76, Math.min(kartenBreite, nutzbar / (1 + .3 * (n - 1)))));
+    // Abstand zwischen den Karten: mindestens so viel, dass Wert und Farbe in der Ecke lesbar bleiben
+    const minSchritt = Math.round(kw * .3);
+    let schritt = n > 1 ? Math.min(kw * .58, (nutzbar - kw) / (n - 1)) : 0, scroll = false;
+    if (n > 1 && schritt < minSchritt) { schritt = minSchritt; scroll = true; }
     const gesamt = kw + schritt * (n - 1), start = scroll ? 4 : (breite - gesamt) / 2, dreh = scroll ? 0 : Math.min(2, 12 / Math.max(n, 1));
     if (auswahl && !karten.includes(auswahl)) auswahl = null;
-    return `<div class="handscroll${scroll ? " scroll" : ""}"><div class="hand" style="width:${scroll ? gesamt + 8 : breite}px">${karten.map((k, j) =>
+    // die ausgewählte Karte wächst in den Platz über der Hand hinein (bei vielen Karten mehr)
+    const gross = Math.max(GROSS, Math.min(1.6, (handHoehe(kartenBreite) - HEBEN - 8) / (kw * 1.4))).toFixed(2);
+    return `<div class="handscroll${scroll ? " scroll" : ""}"><div class="hand" style="width:${scroll ? gesamt + 8 : breite}px;height:${handHoehe(kartenBreite)}px;--kw:${kw}px;--gross:${gross}">${karten.map((k, j) =>
       `<button class="handkarte${k === auswahl ? " gewaehlt" : ""}" data-karte="${k}" aria-pressed="${k === auswahl}" aria-label="${esc(kartenText(k))}"
         style="left:${(start + j * schritt).toFixed(1)}px;transform:rotate(${((j - (n - 1) / 2) * dreh).toFixed(1)}deg)">${kartenSvg(k)}</button>`).join("")}</div></div>`;
   }
