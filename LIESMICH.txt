@@ -62,6 +62,11 @@ Verlies zu dritt (2 bis 3 Spieler; Stufe 1 und Ausbau mit Händler und 6 Rollen 
   Truhen und Ereignisse 8. Stufen 1 bis 8 (ab 15, 35, 60, 90, 125, 165, 210 Erfahrung); jede Stufe +3 Höchstleben und
   1 Fähigkeitspunkt. Punkte gibt man außerhalb des Kampfes aus (Knopf „Fähigkeiten“): jede Fähigkeit hat Rang I bis III.
   Angriffe +1 bis +3 Schaden je Rang, Heilungen +2 bis +3 Leben, Schutz-Fähigkeiten 1 Runde schneller bereit, Gift +1.
+  Kampfbühne (buehne.js): Gegner oben, Helden unten von hinten. Jeder Gegner kündigt zu Beginn der Runde an, was er vorhat
+  (gelbes Schild, z. B. „⚔ → Lena“); Schildwall/Unerschütterlich ziehen den Angriff trotzdem auf sich, Versteckte werden nicht
+  gefunden. Ziele tippt man direkt auf der Bühne an. Jede ausgewertete Runde wird auf allen Handys als Animation abgespielt
+  (S.letzte: Ausgangslage plus Ereignisliste), mit Ton (abschaltbar), „Animation schnell“ und „Überspringen“.
+  Nach Neuladen wird die letzte Runde nicht noch einmal abgespielt. Vorschau zum Ausprobieren: verlies/vorschau-kampf.html.
   8 Räume: Vor jedem Raum Abstimmung über zwei Türen mit Hinweis (Kampf, Truhe, Rast oder Ereignis), Raum 8 ist der Knochenkönig.
   Gleichstand: das Los. Der Spielleiter kann eine Abstimmung beenden, ohne auf alle zu warten.
   Kampf rundenweise ohne Zeitdruck: Jeder wählt Zug und Ziel, ausgeführt wird, wenn alle Lebenden gewählt haben

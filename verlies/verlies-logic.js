@@ -352,12 +352,29 @@
   }
 
   // ---------- Kampf ----------
+  // Jeder Gegner legt zu Beginn der Runde fest, was er vorhat (wird allen angezeigt).
+  // Ausgeführt wird später: Schildwall/Unerschütterlich ziehen den Angriff auf sich, Versteckte werden nicht gefunden.
+  function planeGegner(S) {
+    const k = S.kampf, a = {}, helden = lebend(S);
+    for (const g of gegnerLebend(S)) {
+      const art = GEGNER[g.art];
+      if (art.boss && k.runde % 3 === 0) { a[g.id] = { a: "beben" }; continue; }
+      if (art.heiler) {
+        const v = gegnerLebend(S).filter(x => x !== g && x.hp < x.max * 0.6).sort((x, y) => x.hp / x.max - y.hp / y.max)[0];
+        if (v) { a[g.id] = { a: "heilen", ziel: v.id }; continue; }
+      }
+      a[g.id] = { a: "angriff", ziel: helden.length ? eins(S, helden) : null };
+    }
+    k.absicht = a;
+  }
+
   function kampfStarten(S, gruppe) {
     S.gegner = gruppe.map(a => gegnerErzeugen(S, a));
-    S.kampf = { runde: 1, wahl: {}, bossRuf: false, nebel: false };
+    S.kampf = { runde: 1, wahl: {}, bossRuf: false, nebel: false, absicht: {} };
     for (const p of S.teilnehmer) Object.assign(S.helden[p], { schild: false, versteckt: false, lauer: false, segen: 0, gift: 0, giftR: 0, immun: false, fels: false, beschuetzt: null });
     S.entscheidung = null;
     S.log = [];
+    planeGegner(S);
   }
 
   function wahlGueltig(S, pid, m) {
@@ -426,12 +443,30 @@
   function rundeAuswerten(S) {
     const log = [], k = S.kampf;
     const reihe = S.teilnehmer.filter(p => S.helden[p].hp > 0 && k.wahl[p]);
+    // Ausgangslage und Ereignisse für die Wiedergabe auf allen Handys (Kampfbühne)
+    const start = {
+      gegner: S.gegner.map(g => ({ id: g.id, art: g.art, name: g.name, hp: g.hp, max: g.max, giftR: g.giftR, markiert: g.markiert })),
+      helden: Object.fromEntries(S.teilnehmer.map(p => { const h = S.helden[p]; return [p, { hp: h.hp, max: h.max, giftR: h.giftR }]; })),
+      absicht: kopie(k.absicht || {})
+    };
+    const ev = [];
+    const schnapp = () => ({ g: Object.fromEntries(S.gegner.map(g => [g.id, g.hp])), h: Object.fromEntries(S.teilnehmer.map(q => [q, S.helden[q].hp])) });
+    let vor = null, logAb = 0;
+    const beginn = () => { vor = schnapp(); logAb = log.length; };
+    const ende = e => {
+      const jetzt = schnapp(), d = [];
+      for (const id in jetzt.g) if (vor.g[id] !== undefined && jetzt.g[id] !== vor.g[id]) d.push([id, jetzt.g[id] - vor.g[id], jetzt.g[id]]);
+      for (const id in jetzt.h) if (jetzt.h[id] !== vor.h[id]) d.push([id, jetzt.h[id] - vor.h[id], jetzt.h[id]]);
+      const text = log.slice(logAb);
+      if (text.length || d.length) ev.push(Object.assign({ d, text }, e));
+    };
     const cd = (h, w) => { const a = alleAktionen(h.rolle).find(x => x.id === w.a); if (a && a.cd) h.cd[a.id] = cdVon(h, a); };
     const rs = (h, id) => rangPlus(h, id, "schaden"), rh = (h, id) => rangPlus(h, id, "heil");
     // 1. Schutz, Heilung und Vorbereitung zuerst, damit sie noch in dieser Runde wirken
     for (const p of reihe) {
       const h = S.helden[p], w = k.wahl[p], n = heldName(S, p);
       cd(h, w);
+      beginn();
       switch (w.a) {
         case "schild": h.schild = true; log.push(`${n} hebt den Schild und ruft die Gegner zu sich.`); break;
         case "fels": h.fels = true; h.immun = true; log.push(`${n} steht wie ein Fels. Alle Gegner wenden sich gegen ihn.`); break;
@@ -453,11 +488,13 @@
         case "beschuetzen": S.helden[w.ziel].beschuetzt = p; log.push(`${n} stellt sich vor ${heldName(S, w.ziel)}.`); break;
         case "licht": alleHeilen(S, p, 4); break;     // Schaden folgt unten
       }
+      ende({ von: p, a: w.a, ziel: w.ziel || null, phase: 1 });
     }
     // 2. Angriffe
     for (const p of reihe) {
       if (!gegnerLebend(S).length) break;
       const h = S.helden[p], w = k.wahl[p], ziel = S.gegner.find(g => g.id === w.ziel);
+      beginn();
       switch (w.a) {
         case "schlag": schadenAnGegner(S, p, ziel, wurf(S, 6, 8) + rs(h, "schlag"), log, "trifft"); break;
         case "vernichten": schadenAnGegner(S, p, ziel, wurf(S, 13, 17) + rs(h, "vernichten"), log, "spaltet"); break;
@@ -501,48 +538,57 @@
         case "doppel": pfeile(S, p, 2, 5 + rs(h, "doppel"), log, "schießt zwei Pfeile"); break;
         case "hagel": pfeile(S, p, 4, 5 + rs(h, "hagel"), log, "lässt Pfeile regnen"); break;
       }
+      ende({ von: p, a: w.a, ziel: w.ziel || null, phase: 2 });
     }
     // 3. Gift auf Gegnern
     for (const g of gegnerLebend(S)) if (g.giftR > 0) {
+      beginn();
       const e = Math.min(g.gift, g.hp); g.hp -= e; g.giftR -= 1;
       const dieb = S.teilnehmer.find(p => S.helden[p].rolle === "dieb"); if (dieb) S.helden[dieb].stats.schaden += e;
       log.push(`Das Gift frisst an ${g.name}: ${e} Schaden${g.hp <= 0 ? ". " + g.name + " fällt!" : "."}`);
+      ende({ von: g.id, a: "giftTick" });
     }
     // 4. Endgegner ruft Verstärkung
     const koenig = S.gegner.find(g => g.art === "koenig");
     if (koenig && koenig.hp > 0 && !k.bossRuf && koenig.hp <= koenig.max / 2) {
       k.bossRuf = true;
-      S.gegner.push(gegnerErzeugen(S, "skelett"), gegnerErzeugen(S, "skelett"));
+      beginn();
+      const neu = [gegnerErzeugen(S, "skelett"), gegnerErzeugen(S, "skelett")];
+      S.gegner.push(...neu);
       log.push("Der Knochenkönig hebt die Arme. Zwei Skelette kriechen aus dem Boden!");
+      ende({ von: koenig.id, a: "ruf", neu: neu.map(g => ({ id: g.id, art: g.art, name: g.name, hp: g.hp, max: g.max })) });
     }
-    // 5. Gegner handeln
-    for (const g of gegnerLebend(S)) {
-      const art = GEGNER[g.art];
-      if (g.starr > 0) { log.push(`${g.name} ist erstarrt und kann nicht angreifen.`); continue; }
+    // 5. Gegner handeln (nach ihrer angekündigten Absicht)
+    const gegnerZug = g => {
+      const art = GEGNER[g.art], plan = (k.absicht || {})[g.id] || {};
+      if (g.starr > 0) { log.push(`${g.name} ist erstarrt und kann nicht angreifen.`); return { a: "starr" }; }
       if (art.heiler) {
-        const verletzt = gegnerLebend(S).filter(x => x !== g && x.hp < x.max * 0.6).sort((a, b) => a.hp / a.max - b.hp / b.max)[0];
-        if (verletzt) { const n = Math.min(7, verletzt.max - verletzt.hp); verletzt.hp += n; log.push(`${g.name} murmelt einen Zauber: ${verletzt.name} +${n} Leben.`); continue; }
+        const verletzt = gegnerLebend(S).filter(x => x !== g && x.hp < x.max * 0.6).sort((a2, b2) => a2.hp / a2.max - b2.hp / b2.max)[0];
+        if (verletzt) { const n = Math.min(7, verletzt.max - verletzt.hp); verletzt.hp += n; log.push(`${g.name} murmelt einen Zauber: ${verletzt.name} +${n} Leben.`); return { a: "heilen", ziel: verletzt.id }; }
       }
-      if (art.boss && k.runde % 3 === 0) {
+      if (art.boss && (plan.a ? plan.a === "beben" : k.runde % 3 === 0)) {
         log.push("Der Knochenkönig stampft auf: Der Boden bebt!");
         for (const p of lebend(S)) treffer(S, p, 5, log, null);
-        continue;
+        return { a: "beben" };
       }
-      if (k.nebel && chance(S, 0.5)) { log.push(`${g.name} schlägt im Rauch ins Leere.`); continue; }
+      if (k.nebel && chance(S, 0.5)) { log.push(`${g.name} schlägt im Rauch ins Leere.`); return { a: "daneben", ziel: plan.ziel || null }; }
       const zieher = lebend(S).filter(p => S.helden[p].schild || S.helden[p].fels);
       const ziele = lebend(S).filter(p => !S.helden[p].versteckt);
-      let p = zieher.length ? eins(S, zieher) : (ziele.length ? eins(S, ziele) : null);
-      if (!p) { log.push(`${g.name} sucht vergeblich nach einem Ziel.`); continue; }
+      let p = zieher.length ? eins(S, zieher) : (plan.ziel && ziele.includes(plan.ziel) ? plan.ziel : (ziele.length ? eins(S, ziele) : null));
+      if (!p) { log.push(`${g.name} sucht vergeblich nach einem Ziel.`); return { a: "keinziel", ziel: plan.ziel || null }; }
+      if (zieher.length && plan.ziel && p !== plan.ziel && S.helden[plan.ziel] && S.helden[plan.ziel].hp > 0) log.push(`${heldName(S, p)} zieht den Angriff auf sich.`);
       let minus = 0;
       const b = S.helden[p].beschuetzt;
       if (!zieher.length && b && S.helden[b].hp > 0) { log.push(`${heldName(S, b)} fängt den Angriff auf ${heldName(S, p)} ab.`); p = b; minus = 2; }
       treffer(S, p, wurf(S, art.dmg[0], art.dmg[1]) - minus, log, g.name);
       if (art.gift && S.helden[p].hp > 0 && !S.helden[p].immun && chance(S, 0.4)) { S.helden[p].gift = 2; S.helden[p].giftR = 2; log.push(`${heldName(S, p)} ist vergiftet.`); }
-    }
+      return { a: art.gift ? "biss" : "angriff", ziel: p };
+    };
+    for (const g of gegnerLebend(S)) { beginn(); const z = gegnerZug(g); ende(Object.assign({ von: g.id }, z)); }
     // 6. Gift auf Helden, Rundenende
     for (const p of lebend(S)) {
       const h = S.helden[p];
-      if (h.giftR > 0) { const n = Math.min(h.gift, h.hp); h.hp -= n; h.giftR -= 1; log.push(`Gift: ${heldName(S, p)} −${n} Leben${h.hp <= 0 ? " und bricht zusammen!" : "."}`); if (h.hp <= 0) h.stats.umgefallen += 1; }
+      if (h.giftR > 0) { beginn(); const n = Math.min(h.gift, h.hp); h.hp -= n; h.giftR -= 1; log.push(`Gift: ${heldName(S, p)} −${n} Leben${h.hp <= 0 ? " und bricht zusammen!" : "."}`); if (h.hp <= 0) h.stats.umgefallen += 1; ende({ von: p, a: "giftTick" }); }
     }
     for (const p of S.teilnehmer) {
       const h = S.helden[p];
@@ -553,9 +599,11 @@
     for (const g of S.gegner) { if (g.starr > 0) g.starr -= 1; if (g.markiert > 0) g.markiert -= 1; }
     k.nebel = false;
     S.log = log;
+    S.letzte = { id: `${S.spielNr}:${S.raumNr}:${k.runde}`, runde: k.runde, titel: S.seite ? S.seite.titel : "", start, ev };
     k.wahl = {};
     k.runde += 1;
 
+    if (gegnerLebend(S).length && lebend(S).length) planeGegner(S);
     if (!gegnerLebend(S).length) kampfGewonnen(S);
     else if (!lebend(S).length) { S.phase = "ende"; S.ergebnis = "niederlage"; S.seite = { bild: "grab", titel: "Ihr seid gefallen", text: ["Die Dunkelheit schließt sich über euch. Der Knochenkönig bekommt neue Knochen für seine Sammlung."] }; S.kampf = null; }
   }
@@ -668,7 +716,7 @@
             ep: 0, stufe: 1, punkte: 0, rang: {},
             stats: { schaden: 0, geheilt: 0, umgefallen: 0 } };
         }
-        Object.assign(S, { raumNr: 0, gegner: [], kampf: null, lager: null, lagerBesucht: [], log: [], benutzt: [], ergebnis: null, gegnerNr: 0, spielNr: (S.spielNr || 0) + 1 });
+        Object.assign(S, { raumNr: 0, gegner: [], kampf: null, lager: null, lagerBesucht: [], log: [], benutzt: [], ergebnis: null, gegnerNr: 0, letzte: null, spielNr: (S.spielNr || 0) + 1 });
         S.phase = "erkunden";
         S.seite = { bild: "eingang", titel: "Der Abstieg", text: [TEXTE.eingang[0]] };
         entscheiden(S, "weiter", "", [{ text: "Hinabsteigen" }]);

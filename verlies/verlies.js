@@ -24,6 +24,10 @@
   let retryTimer = null, token = 0, versuch = 0, letzteSig = "";
   let auswahl = null;            // gewählte Aktion, die noch ein Ziel braucht
   let zeigeFaehigkeiten = false; // eigener Bildschirm zum Verbessern (nur außerhalb des Kampfes)
+  // Kampfbühne: jede ausgewertete Runde (S.letzte) wird einmal abgespielt. Beim ersten Stand nach dem Laden nicht,
+  // damit nach Neuladen nichts doppelt läuft.
+  let gespielt = null, wiedergabe = false, ueberspringen = false;
+  let tonAn = ls.get("vl:ton") !== false, schnell = !!ls.get("vl:schnell");
 
   const hostId = ep => PREFIX + code + "-" + ep;
   const link = () => location.origin + location.pathname + "?raum=" + code;
@@ -193,6 +197,9 @@
   }
   let letzteRunde = "";
   function render() {
+    if (S && gespielt === null) gespielt = S.letzte ? S.letzte.id : "";
+    if (wiedergabe) { aktualisiere(); return; }
+    if (S && S.letzte && S.letzte.id !== gespielt && rolle && rolle !== "pruefen") { starteWiedergabe(S.letzte); return; }
     // wechselt die Runde (oder das Spiel), ist eine halb gewählte Aktion hinfällig
     const r = S && S.kampf ? S.spielNr + ":" + S.kampf.runde : "";
     if (r !== letzteRunde) { letzteRunde = r; auswahl = null; }
@@ -214,6 +221,54 @@
     }
   }
   setInterval(aktualisiere, 1000);
+
+  async function starteWiedergabe(Lz) {
+    wiedergabe = true; ueberspringen = false;
+    const nr = Lz.runde;
+    app.innerHTML = `<div class="status" id="status" hidden><span></span><button id="uebernehmen" hidden>Spielleitung übernehmen</button></div>
+      <div class="kopf"><h2>${esc(Lz.titel || "Kampf")} · Runde ${nr}</h2></div>
+      <div class="buehne" id="buehne"></div>
+      <div class="chronik" id="wchronik" aria-live="polite"><p>…</p></div>
+      <button class="knopf zweit" id="ueberspringen">Überspringen</button>
+      ${einstellungenHtml()}`;
+    window.scrollTo(0, 0);
+    document.getElementById("ueberspringen").onclick = () => { ueberspringen = true; };
+    bindeEinstellungen();
+    if ($("uebernehmen")) $("uebernehmen").onclick = uebernehmen;
+    aktualisiere();
+    try {
+      await VBuehne.abspielen(document.getElementById("buehne"), Lz, {
+        name: p => sp(p).name, rolle: p => (S.helden[p] || {}).rolle,
+        get tempo() { return schnell ? .55 : 1; }, get ton() { return tonAn; },
+        abbruch: () => ueberspringen,
+        sag: t => { const c = document.getElementById("wchronik"); if (c) c.innerHTML = (t || []).map(x => `<p>${esc(x)}</p>`).join("") || "<p>…</p>"; }
+      });
+      if (!ueberspringen) await new Promise(r => setTimeout(r, 500));
+    } catch (e) { if (window.console) console.error(e); }
+    gespielt = Lz.id; wiedergabe = false; letzteSig = "";
+    render();
+  }
+  const $ = id => document.getElementById(id);
+  function einstellungenHtml() {
+    return `<div class="einstellungen"><button id="e-ton" class="${tonAn ? "an" : ""}">${tonAn ? "Ton an" : "Ton aus"}</button><button id="e-schnell" class="${schnell ? "an" : ""}">${schnell ? "Animation schnell" : "Animation normal"}</button></div>`;
+  }
+  function bindeEinstellungen() {
+    if ($("e-ton")) $("e-ton").onclick = e => { tonAn = !tonAn; ls.set("vl:ton", tonAn); e.target.classList.toggle("an", tonAn); e.target.textContent = tonAn ? "Ton an" : "Ton aus"; if (tonAn) VBuehne.audio(); };
+    if ($("e-schnell")) $("e-schnell").onclick = e => { schnell = !schnell; ls.set("vl:schnell", schnell); e.target.classList.toggle("an", schnell); e.target.textContent = schnell ? "Animation schnell" : "Animation normal"; };
+  }
+  // Daten für die ruhende Bühne im Kampf
+  function buehnenDaten(zielModus) {
+    const k = S.kampf;
+    return {
+      gegner: S.gegner.map(g => ({ id: g.id, art: g.art, name: g.name, hp: g.hp, max: g.max, giftR: g.giftR, markiert: g.markiert, starr: g.starr })),
+      helden: S.teilnehmer.map(p => { const x = S.helden[p];
+        const m = [x.hp <= 0 ? "bewusstlos" : k.wahl[p] ? "✓ bereit" : !online(p) ? "nicht verbunden" : "", x.giftR > 0 && x.hp > 0 ? "vergiftet" : "", x.lauer ? "lauert" : "", x.segen ? "gesegnet" : ""].filter(Boolean).join(" · ");
+        return { id: p, rolle: x.rolle, name: sp(p).name, hp: x.hp, max: x.max, marken: m }; }),
+      absicht: k.absicht || {},
+      zielModus: zielModus === "anderer" ? "held" : zielModus,
+      zielHelden: S.teilnehmer.filter(p => zielModus === "held" || (zielModus === "anderer" && p !== PID && S.helden[p].hp > 0))
+    };
+  }
 
   function baue() {
     let h = `<div class="status" id="status" hidden><span></span><button id="uebernehmen" hidden>Spielleitung übernehmen</button></div>`;
@@ -316,17 +371,9 @@
     let h = fortschritt();
     h += `<div class="kopf"><h2>${esc(S.seite.titel)} · Runde ${k.runde}</h2></div>`;
     if (k.runde === 1 && S.seite) h += `<div class="chronik"><p>${esc(S.seite.text[0])}</p></div>`;
-    // Gegner
-    h += `<div class="reihe-k">${S.gegner.map(g => {
-      const ziel = zielModus === "gegner" && g.hp > 0;
-      return `<button class="figur ${g.hp <= 0 ? "weg" : ""} ${ziel ? "ziel" : ""}" ${ziel ? `data-ziel="${g.id}"` : "disabled"} aria-label="${esc(g.name)}">
-        ${VB.bild(g.art, "kbild")}<b>${esc(g.name)}</b>${balken(g.hp, g.max)}<span class="zahl">${g.hp <= 0 ? "besiegt" : g.hp + " / " + g.max}</span>
-        <span class="marken">${g.hp > 0 ? (g.giftR > 0 ? `<span class="marke gift">Gift ${g.giftR}</span>` : "") + (g.markiert > 0 ? `<span class="marke schild">markiert</span>` : "") : ""}</span></button>`;
-    }).join("")}</div>`;
-    // Was zuletzt geschah
-    if (S.log && S.log.length) h += `<div class="chronik"><p class="etikett">Runde ${k.runde - 1}</p>${S.log.map(t => `<p>${esc(t)}</p>`).join("")}</div>`;
-    // Helden
-    h += `<h3>Gruppe</h3>${heldenLeiste(true, zielModus === "gegner" ? null : zielModus)}`;
+    // Bühne: Gegner oben mit angekündigtem Zug, Helden unten; Ziele werden hier angetippt
+    h += `<div class="buehne" id="buehne"></div>`;
+    if (S.log && S.log.length) h += `<details class="chronik"><summary class="etikett">Was in Runde ${k.runde - 1} geschah</summary>${S.log.map(t => `<p>${esc(t)}</p>`).join("")}</details>`;
     // Eigene Wahl
     if (!mitspieler()) h += `<p class="leise mitte">Du schaust zu.</p>`;
     else if (!lebt) h += `<div class="hinweis">Du bist bewusstlos. Nur eine heilende Fähigkeit kann dich zurückholen.</div>`;
@@ -335,7 +382,7 @@
       const zn = meineWahl.ziel ? (S.gegner.find(g => g.id === meineWahl.ziel) || {}).name || sp(meineWahl.ziel).name : "";
       h += `<div class="karte"><p class="etikett">Dein Zug</p><h2>${esc(a.name)}${zn ? " → " + esc(zn) : ""}</h2><button class="knopf zweit" id="aendern">Ändern</button></div>`;
     } else {
-      if (zielModus) h += `<div class="hinweis">${esc(auswahl.name)}: Tippe oben auf ${zielModus === "gegner" ? "einen Gegner" : zielModus === "anderer" ? "einen anderen Helden" : "einen Helden"}.</div>`;
+      if (zielModus) h += `<div class="hinweis">${esc(auswahl.name)}: Tippe auf der Bühne auf ${zielModus === "gegner" ? "einen Gegner" : zielModus === "anderer" ? "einen anderen Helden" : "einen Helden"} (gelb umrandet).</div>`;
       h += `<p class="etikett">Dein Zug</p><div class="aktionen">${V.aktionenVon(mh).map(a => {
         const cd = a.cd ? (mh.cd[a.id] || 0) : 0;
         const ohneZiel = a.ziel === "anderer" && !S.teilnehmer.some(p => p !== PID && S.helden[p].hp > 0);
@@ -346,6 +393,7 @@
     const fehlen = V.lebend(S).filter(p => !k.wahl[p]);
     if (fehlen.length) h += `<p class="leise klein mitte">Warte auf: ${fehlen.map(p => esc(sp(p).name)).join(", ")}</p>`;
     if (rolle === "host" && fehlen.some(p => !online(p))) h += `<button class="link" id="auto">Für nicht Verbundene automatisch ziehen</button>`;
+    h += einstellungenHtml();
     return h;
   }
 
@@ -406,7 +454,8 @@
   }
 
   function binden() {
-    const $ = id => document.getElementById(id);
+    if ($("buehne") && S && S.phase === "kampf" && !wiedergabe) VBuehne.zeichne($("buehne"), buehnenDaten(auswahl && auswahl.ziel));
+    bindeEinstellungen();
     const nameAus = () => { const n = ($("name").value || "").trim().slice(0, 20); if (!n) { $("name").focus(); return null; } name = n; ls.set("slf:name", n); return n; };
     if ($("uebernehmen")) $("uebernehmen").onclick = uebernehmen;
     if ($("neu")) $("neu").onclick = () => { if (nameAus()) neuesSpiel(); };
