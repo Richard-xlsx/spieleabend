@@ -302,4 +302,4 @@ Nach jedem Schritt: Simulation aller Rollenkombinationen für die Balance und ei
 5. **Reihenfolge:** wie in Abschnitt 10.
 - **Nachtrag** (14.11.2026): **2 bis 6 Spieler** (Gegner zu fünft Leben ×2,7 / Schaden ×1,45, zu sechst ×3,8 / ×1,75;
   weiter höchstens 4 Gegner gleichzeitig) und **Flüche**, die nur die Gegner stärker machen (Zäh, Wild, Regeneration,
-  Dornen, Rachsucht, Verstärkung; der Spielleiter wählt in der Lobby beliebig viele). Ruhm kommt nicht.
+  Dornen, Rachsucht, Verstärkung; der Spielleiter wählt in der Lobby beliebig viele). Ruhm ist noch offen.
