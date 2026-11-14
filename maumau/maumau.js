@@ -163,11 +163,10 @@
     hostStarten({ S: M.neu(code, PID, name, { runden }), H: M.leerH() });
   }
   function verlassen() { ls.del("mm:host:" + code); ls.del("mm:kopie:" + code); location.href = location.pathname + (params.get("test") ? "?test=" + params.get("test") : ""); }
-  // Erster Tipp wählt eine Karte aus (hebt sie an, ohne zu verraten, ob sie passt), zweiter Tipp oder „Legen“ legt sie.
+  // Tippen wählt eine Karte aus (hebt sie an, ohne zu verraten, ob sie passt), nochmal Tippen wählt ab. Gelegt wird nur mit „Legen“.
   function karteTippen(k) {
     if (!S || S.phase !== "spiel") return;
-    if (auswahl !== k || S.dran !== PID) { auswahl = auswahl === k ? null : k; render(); return; }
-    legen();
+    auswahl = auswahl === k ? null : k; render();   // Tippen wählt aus bzw. wieder ab; gelegt wird nur über „Legen“
   }
   function legen() {
     const k = auswahl; if (!k || S.dran !== PID) return;
@@ -242,7 +241,7 @@
         <li><b>Bube:</b> passt auf alles außer auf einen Buben. Du wünschst dir eine Farbe.</li><li><b>Ass:</b> ${S.regeln.ass ? "Du bist gleich noch einmal dran." : "keine Sonderregel"}</li>
         <li><b>Mau:</b> Wer nur noch eine Karte hat, muss vorher „Mau“ getippt haben. Merkt das jemand und tippt bei dir „Erwischt?“, ziehst du 2. Zu frühes Mau (mehr als 2 Karten) kostet 1 Strafkarte, falscher Alarm beim Erwischen auch.</li>
         <li><b>Falsche Karte:</b> ${S.regeln.strafe === false ? "wird einfach nicht angenommen." : "Wer eine unpassende Karte legt, nimmt sie zurück und zieht 1 Strafkarte."}</li>
-        <li><b>Legen:</b> Karte antippen, dann „Legen“ (oder die Karte noch einmal antippen).</li>
+        <li><b>Legen:</b> Karte antippen, dann „Legen“. Nochmal antippen wählt sie wieder ab.</li>
         <li><b>Punkte:</b> Wer fertig ist, bekommt 0. Alle anderen bekommen Minuspunkte für ihre Karten (Ass 11, Bilder und 10 je 10, sonst der Wert). Nach ${S.runden} Runden gewinnt, wer die wenigsten hat.</li></ul>
         ${host ? `<div class="wahl" id="wRunden2">${[3, 5, 8].map(r => `<button data-runden="${r}" class="${r === S.runden ? "an" : ""}">${r} Runden</button>`).join("")}</div>
           <label class="schalter"><input type="checkbox" id="assregel" ${S.regeln.ass ? "checked" : ""}> Ass: nochmal dran</label>
@@ -264,7 +263,7 @@
     const gesamt = kw + schritt * (n - 1), start = scroll ? 4 : (breite - gesamt) / 2, dreh = scroll ? 0 : Math.min(2, 12 / Math.max(n, 1));
     if (auswahl && !karten.includes(auswahl)) auswahl = null;
     // die ausgewählte Karte wächst in den Platz über der Hand hinein (bei vielen Karten mehr)
-    const gross = Math.max(GROSS, Math.min(1.6, (handHoehe(kartenBreite) - HEBEN - 8) / (kw * 1.4))).toFixed(2);
+    const gross = Math.max(GROSS, Math.min(1.25, (handHoehe(kartenBreite) - HEBEN - 8) / (kw * 1.4))).toFixed(2);
     return `<div class="handscroll${scroll ? " scroll" : ""}"><div class="hand" style="width:${scroll ? gesamt + 8 : breite}px;height:${handHoehe(kartenBreite)}px;--kw:${kw}px;--gross:${gross}">${karten.map((k, j) =>
       `<button class="handkarte${k === auswahl ? " gewaehlt" : ""}" data-karte="${k}" aria-pressed="${k === auswahl}" aria-label="${esc(kartenText(k))}"
         style="left:${(start + j * schritt).toFixed(1)}px;transform:rotate(${((j - (n - 1) / 2) * dreh).toFixed(1)}deg)">${kartenSvg(k)}</button>`).join("")}</div></div>`;
