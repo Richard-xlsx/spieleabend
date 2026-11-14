@@ -46,8 +46,13 @@ Mau-Mau (2 bis 8 Spieler)
   Fällt der Spielleiter ganz aus und jemand übernimmt, wird die laufende Runde neu gegeben (die Karten kannte nur sein Handy);
   die Punkte bleiben. Ist jemand nicht verbunden und dran, kann der Spielleiter ihn auslassen.
 
-Verlies zu dritt (2 bis 3 Spieler; Stufe 1 und Ausbau mit Händler und 6 Rollen vom 13.11.2026, Kampfbühne, Karte und Talentbaum vom 14.11.2026)
-  Gemeinsam gegen das Spiel. Sechs Rollen, höchstens drei Helden (jede Rolle einmal):
+Verlies zu dritt (2 bis 3 Spieler; Stufe 1 und Ausbau mit Händler und 6 Rollen vom 13.11.2026, Kampfbühne, Karte, Talentbaum,
+Gegner-Eigenschaften und drei Ebenen vom 14.11.2026)
+  Gemeinsam gegen das Spiel. Partielänge wählt der Spielleiter in der Lobby (auch nach Spielende): Kurz = 1 Ebene (Kerker),
+  Normal = 2 Ebenen (dazu die Spinnengrotte, Standard), Lang = 3 Ebenen (dazu der Glutschlund). Nach jedem Endgegner außer
+  dem letzten: Lager mit voller Heilung, allen Fähigkeiten bereit und Händler, dann neue Karte eine Ebene tiefer.
+  Je Ebene sind die Gegner zäher (Leben ×2,8 bzw. ×3,4, Schaden ×1,9 bzw. ×2,2), dafür gibt es mehr Erfahrung (×2 bzw. ×2,8)
+  und Gold (×1,4 bzw. ×1,8). Jede Ebene hat ihre eigene Kampfbühne (Fackeln; Pilze und Netze; Lava). Sechs Rollen, höchstens drei Helden (jede Rolle einmal):
     Kämpfer (34 Leben; Schwerthieb, Schildwall, Wirbelschlag | Äste: Beschützer, Berserker, Feldherr)
     Paladin (32; Hammerschlag, Handauflegen, Beschützen | Schutzherr, Rächer, Gnade)
     Dieb (29; Dolchstich, Giftklinge, In die Schatten | Assassine, Giftmischer, Gauner)
@@ -98,6 +103,16 @@ Verlies zu dritt (2 bis 3 Spieler; Stufe 1 und Ausbau mit Händler und 6 Rollen 
   Phase 2: zwei Skelette und Knochenschild (nur halber Schaden, solange ein Skelett steht); sind alle Skelette weg, ruft er
   in der nächsten Bebenrunde ein neues statt zu beben. Ork, Höhlenspinne, Ork-Häuptling und Spinnenmutter kommen später
   in den Ebenen 2 und 3.
+  Spinnengrotte: Höhlenspinne (Gift), Spinnenbrut (Rudel, schwach), Netzweberin (Netz: ein Held kann nächste Runde nur
+  „Befreien“), Pilzling (explosiv: beim Tod Schaden und Gift an alle), Fledermausschwarm (fliegend, schnell: zwei Angriffe),
+  Schleim (teilt sich einmal, wenn er verletzt ist). Elite: Höhlentroll (Regeneration, Feuer stoppt sie 2 Runden),
+  Brutmutter (Beschwörer). Endgegnerin Spinnenkönigin: legt jede 3. Runde Eier (zwei Spinnenbruten), spinnt Helden ein,
+  ab halben Leben hängt sie an der Decke (fliegend).
+  Glutschlund: Feuerkobold (schnell), Lavaschnecke (gepanzert), Salamander (setzt in Brand), Ork-Krieger, Ork-Schamane
+  (Schildträger: Schild, der 8 Schaden schluckt), Obsidian-Golem (sehr gepanzert, greift nur jede 2. Runde an).
+  Elite: Ork-Häuptling (alle Orks +2 Schaden), Feuerelementar (explosiv, Feuer). Endgegner Glutdrache: fliegt und speit
+  jede 3. Runde Feuer auf alle; ab halben Leben am Boden mit Schwanzhieb; unter 25 % Wut (zwei Angriffe pro Runde).
+  Händler: Waffe bis +6, Rüstung bis −5, Stärkungselixier bis 5× (für die längeren Partien).
   Ereignisse: Brunnen, schlafender Troll, Händler (Trank 8 Gold), Altar (jeder 15 Gold für +5 Höchstleben), Brücke.
   Zufall steckt im Spielstand (S.rng), eine Übernahme der Spielleitung würfelt also genau so weiter.
   Simuliert mit Karte, Talenten und Gegner-Eigenschaften (alle 20 Dreiergruppen, je 100 Partien, jeder Held folgt einem
@@ -106,8 +121,11 @@ Verlies zu dritt (2 bis 3 Spieler; Stufe 1 und Ausbau mit Händler und 6 Rollen 
   Fast alle Niederlagen passieren beim Knochenkönig. Am Ende im Schnitt Stufe 5 mit knapp 5 Talenten.
   Zu zweit: Kämpfer+Heilerin rund 81 %, Paladin+Magierin rund 77 %, Dieb+Waldläufer rund 37 %.
   Dolchstich und Pfeilschuss machen 7–9 Schaden (vorher 6–8), damit Dieb und Waldläufer mithalten.
-  Noch nicht drin (siehe verlies/KONZEPT.md): Ebenen 2 und 3,
-  Schwierigkeitsstufen, Speichern zwischen Ebenen.
+  Mit Ebenen (je 30 bis 40 Partien je Dreiergruppe): Normal Schnitt 90 % (63 bis 100 %), am Ende Stufe 9 mit gut
+  9 Talenten; Lang Schnitt 82 % (Gruppen ohne Heilerin oder Paladin deutlich schwerer), am Ende Stufe 15.
+  Fast alle Niederlagen bei den Endgegnern, dazu der Höhlentroll. Zu zweit (Normal): Kämpfer+Heilerin rund 87 %,
+  Paladin+Magierin rund 73 %, Dieb+Waldläufer nur rund 10 %.
+  Noch nicht drin (siehe verlies/KONZEPT.md): Schwierigkeitsstufen, Speichern zwischen Ebenen.
 
 Verbindung (Handy des Spielleiters ist der Server, gilt für alle Spiele)
   - Die Handys verbinden sich direkt miteinander. Zum Finden nutzt die Seite den kostenlosen Vermittlungsdienst PeerJS

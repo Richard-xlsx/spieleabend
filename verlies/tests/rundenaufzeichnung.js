@@ -11,7 +11,10 @@ for (let seed = 1; seed <= 400; seed++) {
   let S = V.neu('X', 'p0', 'A', seed * 977); const P = R.map((_, i) => 'p' + i);
   for (let i = 1; i < 3; i++) S = V.aktion(S, P[i], { t: 'join', name: 'S' + i });
   P.forEach((p, i) => S = V.aktion(S, p, { t: 'rolle', rolle: R[i] }));
-  S = V.aktion(S, 'p0', { t: 'start', mindestens: 1 });
+  S = V.aktion(S, 'p0', { t: 'laenge', n: 3 }); S = V.aktion(S, 'p0', { t: 'start', mindestens: 1 });
+  // Ein Drittel der Partien beginnt in Ebene 2, eins in Ebene 3 (mit kräftigeren Helden), damit alle Gegner vorkommen
+  const ab = 1 + seed % 3;
+  if (ab > 1) { S.ebene = ab - 1; S.ebeneFertig = true; for (const p of S.teilnehmer) { const h = S.helden[p]; h.max += 30 * (ab - 1); h.hp = h.max; h.waffe = 2 * (ab - 1); h.ruestung = 2 * (ab - 1); } }
   // Damit alle Talente vorkommen: jeder Held bekommt 12 Punkte und verteilt sie zufällig (auch Meisterfähigkeiten)
   for (const p of S.teilnehmer) { S.helden[p].punkte = 12; for (let k = 0; k < 12; k++) {
     const h = S.helden[p], frei = Object.keys(V.TALENT).filter(id => V.talentWaehlbar(h, id)); if (!frei.length) break;

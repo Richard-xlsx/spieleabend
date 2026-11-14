@@ -116,29 +116,126 @@
       <circle cx="-5" cy="-98" r="2.8" fill="#7BE3A0"/><circle cx="5" cy="-98" r="2.8" fill="#7BE3A0"/>
       <g class="waffe"><path d="M36 0v-126" ${L(5, "#3A2E26")}/><circle cx="36" cy="-130" r="10" ${F("#EDE4D0")}/><circle cx="32" cy="-132" r="2.5" fill="${T}"/><circle cx="40" cy="-132" r="2.5" fill="${T}"/>
       <path d="M36 -141c-9-8-3-18 0-24 4 7 9 15 0 24z" fill="#7BE3A0" stroke="${T}" stroke-width="2"/></g>` };
-  const GROESSE = { koenig: 5, orkhaeuptling: 4.5, kerkerwaerter: 4.5, totenbeschwoerer: 4.4, ork: 4, ghul: 3.5, skelett: 3, spinnenmutter: 3, bogenschuetze: 2.5, schamane: 2, langfinger: 2, goblin: 2, spinne: 2, ratte: 1, schwarm: 0.5 };
-  const kurzName = n => { const k = n.replace("Goblin-", "").replace("Skelett-", "").replace("Höhlen", "").replace(/^Der /, ""); return k.charAt(0).toUpperCase() + k.slice(1); };
+  // Spinnengrotte
+  GEG.brut = { h: 44, svg: `<g transform="scale(.6)">${GEG.spinne.svg.replace(/#3A2E26/g, "#5A4A3E")}</g>` };
+  GEG.weberin = { h: 80, svg: `<path d="M0 -150v96" ${L(1.5, "#D8E8DF")}/><g transform="scale(1.05)">${GEG.spinne.svg.replace(/#3A2E26/g, "#D8CFC0").replace(/#7A6352/g, "#A89C88")}</g>` };
+  GEG.spinnenmutter.svg = GEG.spinnenmutter.svg.replace("</g>", "") + `<circle cx="-14" cy="-6" r="6" ${F("#F3E6CC", 2)}/><circle cx="16" cy="-4" r="5" ${F("#F3E6CC", 2)}/></g>`;
+  GEG.koenigin = { h: 150, svg: `<g transform="scale(1.9)">${GEG.spinne.svg.replace(/#3A2E26/g, "#4A2E5A").replace(/#7A6352/g, "#6A4A6E")}</g>
+      <path d="M-20 -118l3-18 8 9 9-14 9 14 8-9 3 18z" ${F("#E8C24A")}/><circle cx="0" cy="-124" r="2.5" fill="#B83A2A"/>` };
+  GEG.pilzling = { h: 76, svg: `${schatten(30)}<path d="M-12 0v-10h8v10zM4 0v-10h8v10z" ${F("#CFC2A8")}/>
+      <path d="M-16 -8q-4-30 16-34 20 4 16 34z" ${F("#E8DCC4")}/><circle cx="-6" cy="-24" r="2.5" fill="${T}"/><circle cx="6" cy="-24" r="2.5" fill="${T}"/><path d="M-4 -16q4 3 8 0" ${L(2)}/>
+      <path d="M-38 -40q38-54 76 0q-38 8-76 0z" ${F("#C2492E")}/><circle cx="-18" cy="-52" r="5" fill="#F3E6CC"/><circle cx="4" cy="-64" r="6" fill="#F3E6CC"/><circle cx="20" cy="-50" r="4" fill="#F3E6CC"/>` };
+  const fledermaus = (x, y, k) => `<g transform="translate(${x} ${y}) scale(${k})"><path d="M-4 0Q-16-14-32-8Q-24-2-26 6Q-16 0-10 8Q-6 2-4 4z" ${F("#3A2E3E", 2)}/><path d="M4 0Q16-14 32-8Q24-2 26 6Q16 0 10 8Q6 2 4 4z" ${F("#3A2E3E", 2)}/>
+      <ellipse rx="7" ry="9" ${F("#4A3E4E", 2)}/><path d="M-5-7l-2-7 5 3M5-7l2-7-5 3" ${F("#4A3E4E", 1.5)}/><circle cx="-3" cy="-2" r="1.8" fill="#E23B2E"/><circle cx="3" cy="-2" r="1.8" fill="#E23B2E"/></g>`;
+  GEG.fledermaus = { h: 110, svg: `${schatten(34)}${fledermaus(-28, -66, 1.1)}${fledermaus(26, -92, 1.2)}<g class="waffe">${fledermaus(4, -44, 1.15)}</g>` };
+  GEG.schleim = { h: 62, svg: `${schatten(42)}<path d="M-40 0q-6-36 20-50 20-12 40 0 26 14 20 50z" fill="#7BCF5A" fill-opacity=".88" stroke="${T}" stroke-width="3"/>
+      <ellipse cx="-16" cy="-38" rx="8" ry="5" fill="#E9FFD9" opacity=".6"/><circle cx="-10" cy="-26" r="4" fill="${T}"/><circle cx="10" cy="-26" r="4" fill="${T}"/><path d="M-8 -14q8 6 16 0" ${L(2.5)}/>
+      <circle cx="18" cy="-12" r="3" fill="none" stroke="#3E7A2E" stroke-width="1.5"/><circle cx="-22" cy="-10" r="2" fill="none" stroke="#3E7A2E" stroke-width="1.5"/>` };
+  GEG.hoehlentroll = { h: 152, svg: `${schatten(60)}<path d="M-28 0v-36h20v36zM8 0v-36h20v36z" ${F("#5E6E52")}/>
+      ${arm("M-44 -96q-22 30-20 64", "#7C8F64", 14)}
+      <path d="M-46 -36q-10-64 46-76 56 12 46 76z" ${F("#7C8F64")}/><path d="M-24 -52q24 14 48 0" ${L(2.5, "#5E6E52")}/><path d="M-40 -38h80l-8 16h-64z" ${F("#6B4A2E", 2.5)}/>
+      <path d="M-40 -102q8-8 16 0M24 -102q8-8 16 0" ${L(3, "#3E7A55")}/>
+      <circle cx="0" cy="-118" r="18" ${F("#7C8F64")}/><path d="M-4 -120q4 10 8 0" ${L(2.5)}/><circle cx="-7" cy="-124" r="2.5" fill="#E8C24A"/><circle cx="7" cy="-124" r="2.5" fill="#E8C24A"/><path d="M-8 -106v-6M8 -106v-6" ${L(3.5, "#EDE4D0")}/>
+      <g class="waffe">${arm("M44 -96q16 24 14 48", "#7C8F64", 14)}<path d="M58 -48l14-80" ${L(9, "#6B4A2E")}/><ellipse cx="74" cy="-132" rx="13" ry="20" ${F("#7A5434")}/></g>` };
+  // Glutschlund
+  GEG.kobold = { h: 84, svg: `${schatten(26)}<path d="M-10 0v-18h7v18zM3 0v-18h7v18z" ${F("#7A2E1E")}/>
+      <path d="M14 -20q18 0 16-18l4-4h-6" ${L(3, "#D9583B")}/><path d="M-16 -18q-2-26 16-30 18 4 16 30z" ${F("#D9583B")}/>
+      <circle cx="0" cy="-58" r="15" ${F("#D9583B")}/><path d="M-10 -68l-6-12 10 6M10 -68l6-12-10 6" ${F("#3A2E26", 2)}/>
+      <circle cx="-5" cy="-60" r="2.6" fill="#FFE27A"/><circle cx="5" cy="-60" r="2.6" fill="#FFE27A"/><path d="M-6 -51q6 4 12 0" ${L(2)}/>
+      <g class="waffe"><path d="M-22 -34c-8-6-4-14 0-18 2 6 6 8 4 14 4-2 6-6 4-10 6 6 4 14-2 16z" fill="#FF9A3C" stroke="${T}" stroke-width="2"/></g>` };
+  GEG.schnecke = { h: 84, svg: `${schatten(54)}<path d="M-52 0q-4-16 18-18h52q18-2 24-22 4-12 14-12 10 2 8 14-4 24-14 38z" ${F("#C2603A")}/>
+      <path d="M52 -50l-4-16M60 -48l4-16" ${L(2.5)}/><circle cx="48" cy="-68" r="3.5" ${F("#FFE27A", 1.5)}/><circle cx="64" cy="-66" r="3.5" ${F("#FFE27A", 1.5)}/>
+      <circle cx="-8" cy="-44" r="34" ${F("#3A3036")}/><path d="M-28 -44a20 20 0 1 1 20 20a12 12 0 1 1-10-14a5 5 0 1 1 6 6" ${L(3.5, "#FF6A2A")}/>
+      <g class="waffe"><path d="M66 -30l8 2" ${L(1)}/></g>` };
+  GEG.salamander = { h: 60, svg: `${schatten(56)}<path d="M-56 -10q-22-2-34-16 18 4 34 6" ${F("#C2492E", 2.5)}/>
+      <path d="M-34 -10l-8 10M-10 -8l6 10M20 -8l-6 10M38 -10l8 10" ${L(5, "#A8402A")}/>
+      <path d="M-60 -12q10-26 50-28 40-2 60 10 14 2 22 10-8 10-24 10-40 10-108-2z" ${F("#D9583B")}/>
+      <path d="M-26 -36q2-10 6-14 2 6 6 8 0-8 4-12 4 8 4 16" fill="#FF9A3C" stroke="${T}" stroke-width="2"/>
+      <circle cx="-20" cy="-24" r="4" fill="#FFB547"/><circle cx="4" cy="-28" r="3.5" fill="#FFB547"/><circle cx="26" cy="-24" r="3" fill="#FFB547"/><circle cx="58" cy="-22" r="3" fill="#FFE27A" stroke="${T}" stroke-width="1.5"/>
+      <g class="waffe"><path d="M70 -16l8 0" ${L(2, "#E23B2E")}/></g>` };
+  GEG.orkschamane = { h: 134, svg: `${schatten(44)}<path d="M-34 0q-4-60 34-74 38 14 34 74z" ${F("#6B4A3A")}/><path d="M-30 -40h60" ${L(5, "#3A2E26")}/><path d="M-28 -72q28 12 56 0" ${L(7, "#B9AD99")}/>
+      <path d="M-16 -104l-10-16M16 -104l10-16" ${L(5, "#EDE4D0")}/><circle cx="0" cy="-92" r="19" ${F("#5E7350")}/>
+      <circle cx="-7" cy="-94" r="3" fill="#E23B2E"/><circle cx="7" cy="-94" r="3" fill="#E23B2E"/><path d="M-8 -80v-6M8 -80v-6" ${L(3.5, "#EDE4D0")}/>
+      <g class="waffe"><path d="M38 0v-120" ${L(5, "#6B4A2E")}/><path d="M38 -136l-9 13 9 7 9-7z" ${F("#5BA8FF", 2)}/></g>` };
+  GEG.golem = { h: 148, svg: `${schatten(58)}<path d="M-30 0l4-34h20l-2 34zM8 0l-2-34h20l4 34z" ${F("#1E1A22")}/>
+      <path d="M-54 -88l-16 10-4 40 16 6 8-36z" ${F("#2A2430")}/>
+      <path d="M-48 -34l-6-56 30-26h48l30 26-6 56z" ${F("#2A2430")}/><path d="M-40 -84l22-20M30 -90l12 14" ${L(2, "#5A4E66")}/>
+      <path d="M-20 -100l10 20-6 16 12 20M24 -96l-8 18 10 14" ${L(3, "#FF6A2A")}/>
+      <path d="M-18 -116l4-26h28l4 26z" ${F("#2A2430")}/><rect x="-10" y="-132" width="7" height="4" fill="#FF9A3C"/><rect x="3" y="-132" width="7" height="4" fill="#FF9A3C"/>
+      <g class="waffe"><path d="M54 -88l16 10 4 40-16 6-8-36z" ${F("#2A2430")}/></g>` };
+  GEG.feuerelementar = { h: 140, svg: `${schatten(46)}<path d="M-34 -6c-14-40 10-60 8-92 14 14 18 30 14 44 10-20 8-46-2-70 30 20 44 60 34 94 8-10 10-24 6-36 16 20 14 48-2 62z" fill="#FF6A2A" stroke="${T}" stroke-width="3"/>
+      <path d="M-14 -10c-6-20 6-30 4-50 10 10 12 20 10 30 6-10 6-20 2-30 14 14 18 36 6 52z" fill="#FFB547"/><path d="M-4 -12c-2-10 2-16 4-22 4 8 6 14 2 22z" fill="#FFF3B0"/>
+      <path d="M-14 -88l8 4M14 -88l-8 4" ${L(3)}/><circle cx="-8" cy="-80" r="3.5" fill="#FFF3B0" stroke="${T}" stroke-width="1.5"/><circle cx="8" cy="-80" r="3.5" fill="#FFF3B0" stroke="${T}" stroke-width="1.5"/>
+      <g class="waffe"><path d="M30 -60c10-6 16 0 18 8-6-2-10 0-12 4" fill="#FF9A3C" stroke="${T}" stroke-width="2"/></g>` };
+  const fluegel = `<path d="M-30 -110L-120 -170L-110 -122L-140 -110L-104 -88L-120 -66L-40 -70z" ${F("#7A2418")}/><path d="M-32 -106L-116 -164M-36 -94L-134 -110M-40 -80L-116 -68" ${L(2, "#4A140C")}/>`;
+  GEG.drache = { h: 162, svg: `${schatten(80)}<g transform="scale(.82)">${fluegel}<g transform="scale(-1 1)">${fluegel}</g>
+      <path d="M30 -20q50 0 70-30 6-10 16-8-8 8-6 16" ${L(14)}/><path d="M30 -20q50 0 70-30 6-10 16-8-8 8-6 16" ${L(9, "#B83A2A")}/>
+      <path d="M-40 0v-30h22v30zM18 0v-30h22v30z" ${F("#8C2A1C")}/>
+      <path d="M-50 -24q-10-70 50-86 60 16 50 86z" ${F("#B83A2A")}/><path d="M-20 -32q20 8 40 0M-24 -48q24 8 48 0M-24 -64q24 8 48 0M-20 -80q20 8 40 0" ${L(3, "#E8C24A")}/>
+      <path d="M-14 -104q-6-30 14-44 20 14 14 44z" ${F("#B83A2A")}/>
+      <path d="M-18 -170l-14-20 20 8M18 -170l14-20-20 8" ${F("#EDE4D0", 2.5)}/>
+      <path d="M-26 -152q0-24 26-28 26 4 26 28-10 16-26 18-16-2-26-18z" ${F("#B83A2A")}/>
+      <path d="M-15 -160l8 3M15 -160l-8 3" ${L(3)}/><circle cx="-9" cy="-154" r="3.5" fill="#FFE27A"/><circle cx="9" cy="-154" r="3.5" fill="#FFE27A"/><circle cx="-5" cy="-138" r="2" fill="${T}"/><circle cx="5" cy="-138" r="2" fill="${T}"/>
+      <g class="waffe"><path d="M44 -60l16 14-4 4" ${L(4, "#EDE4D0")}/></g></g>` };
+  const GROESSE = { koenig: 5, koenigin: 5, drache: 5, orkhaeuptling: 4.5, kerkerwaerter: 4.5, hoehlentroll: 4.5, totenbeschwoerer: 4.4, feuerelementar: 4.4, spinnenmutter: 4.3, golem: 4.2, ork: 4, ghul: 3.5, orkschamane: 3.4,
+    skelett: 3, schleim: 2.8, schnecke: 2.8, bogenschuetze: 2.5, fledermaus: 2.5, weberin: 2.4, salamander: 2.3, schamane: 2, langfinger: 2, goblin: 2, spinne: 2, pilzling: 1.8, kobold: 1.6, ratte: 1, brut: 0.6, schwarm: 0.5 };
+  const kurzName = n => { const k = n.replace("Goblin-", "").replace("Skelett-", "").replace("Höhlen", "").replace(/^(Der|Die) /, ""); return k.charAt(0).toUpperCase() + k.slice(1); };
 
   // ---------- Hintergrund ----------
-  function hintergrund() {
+  // Jede Ebene hat ihre eigene Bühne: Kerker (Fackeln), Spinnengrotte (Pilze, Netze), Glutschlund (Lava)
+  const THEMA = {
+    1: { wand: ["#1B1626", "#2E2638"], stein: "#251E30", fuge: "#120E18", boden: ["#3A3040", "#4A3E48"], linie: "#2A2230", licht: "#FFB547" },
+    2: { wand: ["#0E1B16", "#1B2E25"], stein: "#16281F", fuge: "#08120D", boden: ["#1E3126", "#2A4031"], linie: "#13231A", licht: "#7BE3A0" },
+    3: { wand: ["#1E0906", "#3A140E"], stein: "#2A110C", fuge: "#120503", boden: ["#3A1A12", "#4A2216"], linie: "#260E09", licht: "#FF7A3C" }
+  };
+  function hintergrund(ebene) {
+    const t = THEMA[ebene] || THEMA[1];
     let s = `<defs>
-      <linearGradient id="vl-wand" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1B1626"/><stop offset="1" stop-color="#2E2638"/></linearGradient>
-      <linearGradient id="vl-boden" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3A3040"/><stop offset="1" stop-color="#4A3E48"/></linearGradient>
-      <radialGradient id="vl-licht" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#FFB547" stop-opacity=".35"/><stop offset="1" stop-color="#FFB547" stop-opacity="0"/></radialGradient>
+      <linearGradient id="vl-wand" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${t.wand[0]}"/><stop offset="1" stop-color="${t.wand[1]}"/></linearGradient>
+      <linearGradient id="vl-boden" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${t.boden[0]}"/><stop offset="1" stop-color="${t.boden[1]}"/></linearGradient>
+      <radialGradient id="vl-licht" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="${t.licht}" stop-opacity=".35"/><stop offset="1" stop-color="${t.licht}" stop-opacity="0"/></radialGradient>
       <radialGradient id="vl-glut" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#FFF3B0"/><stop offset=".45" stop-color="#FF9A3C"/><stop offset="1" stop-color="#E2421F" stop-opacity="0"/></radialGradient>
       <radialGradient id="vl-heil" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#E9FFD9"/><stop offset=".5" stop-color="#7BE3A0" stop-opacity=".7"/><stop offset="1" stop-color="#4FB98A" stop-opacity="0"/></radialGradient>
       <radialGradient id="vl-vignette" cx=".5" cy=".45" r=".75"><stop offset=".55" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".55"/></radialGradient>
     </defs><rect width="400" height="250" fill="url(#vl-wand)"/>`;
-    for (let r = 0; r < 6; r++) for (let c = -1; c < 8; c++) {
-      const x = c * 60 + (r % 2 ? 30 : 0), y = r * 40;
-      s += `<rect x="${x + 2}" y="${y + 2}" width="56" height="36" rx="4" fill="#251E30" stroke="#120E18" stroke-width="2" opacity="${(.55 + ((r * 7 + c * 3) % 5) * .08).toFixed(2)}"/>`;
+    if (ebene === 2) {
+      // Höhlenfels statt Mauern
+      for (let r = 0; r < 6; r++) for (let c = -1; c < 8; c++) {
+        const x = c * 62 + (r % 2 ? 31 : 0) + ((r * 5 + c * 7) % 9), y = r * 42 + ((c * 3) % 7);
+        s += `<ellipse cx="${x + 30}" cy="${y + 20}" rx="${26 + (r + c) % 4 * 3}" ry="${17 + (r * c) % 3 * 2}" fill="${t.stein}" stroke="${t.fuge}" stroke-width="2" opacity="${(.6 + ((r * 7 + c * 3) % 5) * .07).toFixed(2)}"/>`;
+      }
+      // Netze in den oberen Ecken, herabhängende Fäden
+      for (const [x, sx] of [[0, 1], [400, -1]]) {
+        s += `<g opacity=".55" ${L(1.2, "#D8E8DF")}>${[0, 1, 2, 3].map(i => `<path d="M${x} ${i * 22} L${x + sx * (90 - i * 22)} 0"/>`).join("")}${[22, 44, 66].map(r => `<path d="M${x} ${r} Q${x + sx * r * .55} ${r * .55} ${x + sx * r} 0"/>`).join("")}</g>`;
+      }
+      for (const x of [96, 150, 262, 318]) s += `<path d="M${x} 0v${30 + (x % 40)}" ${L(1, "#D8E8DF")} opacity=".35"/>`;
+    } else {
+      for (let r = 0; r < 6; r++) for (let c = -1; c < 8; c++) {
+        const x = c * 60 + (r % 2 ? 30 : 0), y = r * 40;
+        s += `<rect x="${x + 2}" y="${y + 2}" width="56" height="36" rx="4" fill="${t.stein}" stroke="${t.fuge}" stroke-width="2" opacity="${(.55 + ((r * 7 + c * 3) % 5) * .08).toFixed(2)}"/>`;
+      }
+      if (ebene === 3) s += `<path d="M40 40l14 22-6 18 10 24M300 20l-8 26 12 14-4 30M190 0l6 30-10 20" ${L(2.5, "#FF6A2A")} opacity=".55"/>`;
     }
     s += `<path d="M0 248 Q200 228 400 248 V500 H0Z" fill="url(#vl-boden)"/>`;
-    for (let i = 0; i < 9; i++) s += `<path d="M${200 + (i - 4) * 18} 240 L${200 + (i - 4) * 110} 500" stroke="#2A2230" stroke-width="2" opacity=".6"/>`;
-    for (let i = 0; i < 5; i++) s += `<path d="M0 ${280 + i * i * 9} Q200 ${270 + i * i * 9} 400 ${280 + i * i * 9}" stroke="#2A2230" stroke-width="2" fill="none" opacity=".5"/>`;
-    for (const [x, b] of [[22, ""], [378, "b"]]) {
-      s += `<circle cx="${x}" cy="150" r="60" fill="url(#vl-licht)"/><path d="M${x - 6} 156 l4 30 h4 l4-30z" ${F("#6B4A2E", 2.5)}/><path d="M${x - 9} 152 h18" ${L(2.5)}/>
-        <g class="vl-flamme ${b}"><path d="M${x} 122 c-11 13-11 24 0 31 11-7 11-18 0-31z" fill="#FF9A3C" stroke="${T}" stroke-width="2.5"/><path d="M${x} 133 c-4 6-4 12 0 15 4-3 4-9 0-15z" fill="#FFE27A"/></g>`;
+    for (let i = 0; i < 9; i++) s += `<path d="M${200 + (i - 4) * 18} 240 L${200 + (i - 4) * 110} 500" stroke="${t.linie}" stroke-width="2" opacity=".6"/>`;
+    for (let i = 0; i < 5; i++) s += `<path d="M0 ${280 + i * i * 9} Q200 ${270 + i * i * 9} 400 ${280 + i * i * 9}" stroke="${t.linie}" stroke-width="2" fill="none" opacity=".5"/>`;
+    if (ebene === 2) {
+      // leuchtende Pilze statt Fackeln
+      for (const [x, b] of [[24, ""], [376, "b"]]) {
+        s += `<circle cx="${x}" cy="200" r="64" fill="url(#vl-licht)"/>
+          <g class="vl-flamme ${b}"><path d="M${x - 4} 236v-26h8v26z" ${F("#CFE6D8", 2)}/><path d="M${x - 18} 212q18-26 36 0z" ${F("#5BD69A", 2.5)}/><circle cx="${x - 6}" cy="204" r="2.5" fill="#E9FFD9"/><circle cx="${x + 6}" cy="206" r="2" fill="#E9FFD9"/>
+          <path d="M${x + 12} 238v-14h5v14z" ${F("#CFE6D8", 1.5)}/><path d="M${x + 6} 226q8-14 17 0z" ${F("#3FB88A", 2)}/></g>`;
+      }
+    } else if (ebene === 3) {
+      // Lavarinnen im Boden und Glut an den Seiten
+      s += `<path d="M-10 300 Q60 290 90 320 T190 330 T300 310 T410 330" ${L(7, "#FF6A2A")} opacity=".8"/><path d="M-10 300 Q60 290 90 320 T190 330 T300 310 T410 330" ${L(2.5, "#FFE27A")}/>
+        <path d="M30 420 Q90 400 130 430 M280 440 Q330 420 400 436" ${L(5, "#FF6A2A")} opacity=".6"/>`;
+      for (const [x, b] of [[22, ""], [378, "b"]]) s += `<circle cx="${x}" cy="200" r="70" fill="url(#vl-licht)"/><g class="vl-flamme ${b}"><path d="M${x - 14} 240c-4-18 6-22 6-34 8 8 10 14 8 20 4-6 6-10 6-16 8 12 6 24 0 30z" fill="#FF6A2A" stroke="${T}" stroke-width="2.5"/><path d="M${x - 4} 238c-2-8 2-12 4-16 4 6 4 10 2 16z" fill="#FFE27A"/></g>`;
+    } else {
+      for (const [x, b] of [[22, ""], [378, "b"]]) {
+        s += `<circle cx="${x}" cy="150" r="60" fill="url(#vl-licht)"/><path d="M${x - 6} 156 l4 30 h4 l4-30z" ${F("#6B4A2E", 2.5)}/><path d="M${x - 9} 152 h18" ${L(2.5)}/>
+          <g class="vl-flamme ${b}"><path d="M${x} 122 c-11 13-11 24 0 31 11-7 11-18 0-31z" fill="#FF9A3C" stroke="${T}" stroke-width="2.5"/><path d="M${x} 133 c-4 6-4 12 0 15 4-3 4-9 0-15z" fill="#FFE27A"/></g>`;
+      }
     }
     return s;
   }
@@ -173,7 +270,7 @@
   // daten: { gegner:[{id,art,name,hp,max,giftR,markiert,starr}], helden:[{id,rolle,name,hp,max,marken}], absicht, zielModus, zielHelden:[ids] }
   function svgBauen(daten) {
     const pos = aufstellung(daten.gegner, daten.helden.map(h => h.id));
-    let s = hintergrund();
+    let s = hintergrund(daten.ebene || 1);
     for (const g of daten.gegner) {
       const p = pos[g.id], tot = g.hp <= 0;
       s += `<g class="vl-einheit" id="vl-e-${g.id}" style="transform:translate(${p.x}px,${p.y}px)"><g style="transform:scale(${p.s})"><g class="vl-fig" id="vl-f-${g.id}" ${tot ? 'style="opacity:0"' : ""}><g class="vl-atmen ${g.id.length % 2 ? "b" : ""}">${GEG[g.art] ? GEG[g.art].svg : ""}</g></g></g></g>`;
@@ -186,11 +283,14 @@
     for (const g of daten.gegner) {
       const p = pos[g.id], hoehe = (GEG[g.art] ? GEG[g.art].h : 80) * p.s, w = p.w, y = Math.max(28, p.y - hoehe - 42);
       const V = window.VL, eig = V ? V.eigenschaften(g.art).filter(e => e !== "wucht" && e !== "gift").map(e => V.EIGENSCHAFTEN[e][0]) : [];
-      const marken = [g.schild ? "Knochenschild" : "", g.giftR > 0 ? "Gift" : "", g.markiert > 0 ? "markiert" : "", g.starr > 0 ? "erstarrt" : ""].concat(eig).filter(Boolean).join(" · ");
+      const marken = [...(g.zustand || []), g.giftR > 0 ? "Gift" : "", g.markiert > 0 ? "markiert" : "", g.starr > 0 ? "erstarrt" : ""].concat(eig).filter(Boolean).join(" · ");
       s += `<g ${g.hp <= 0 ? 'opacity=".25"' : ""}>${plakette(g.id, p.x - w / 2, y, w, kurzName(g.name), g.hp, g.max, marken)}</g>`;
       const a = daten.absicht && daten.absicht[g.id];
       if (a && g.hp > 0) {
+        const wer = id => (daten.helden.find(x => x.id === id) || { name: "?" }).name;
         const txt = a.a === "beben" ? `⟁ ${a.name || "Beben"} → alle` : a.a === "ruf" ? "☠ ruft Verstärkung" : a.a === "flucht" ? "↯ will fliehen!"
+          : a.a === "netz" ? `🕸 Netz → ${wer(a.ziel)}` : a.a === "ruhe" ? "… sammelt Kraft" : a.a === "schuetzen" ? `🛡 → ${kurzName((daten.gegner.find(x => x.id === a.ziel) || { name: "?" }).name)}`
+          : a.a === "angriff" && a.doppelt ? `⚔⚔ → ${wer(a.ziel)}`
           : a.a === "stehlen" ? `✋ Gold → ${(daten.helden.find(x => x.id === a.ziel) || { name: "?" }).name}` : a.a === "heilen" ? `✚ → ${kurzName((daten.gegner.find(x => x.id === a.ziel) || { name: "?" }).name)}` : `⚔ → ${(daten.helden.find(x => x.id === a.ziel) || { name: "?" }).name}`;
         const bw = Math.min(w + 6, txt.length * 6.6 + 16);
         s += `<g id="vl-ab-${g.id}" class="vl-absicht"><rect x="${p.x - bw / 2}" y="${y - 24}" width="${bw}" height="20" rx="10" fill="#FFD447" stroke="${T}" stroke-width="2"/>
@@ -269,7 +369,7 @@
     const heldIds = Object.keys(R.start.helden);
     const helden = heldIds.map(p => ({ id: p, rolle: info.rolle(p), name: info.name(p), hp: R.start.helden[p].hp, max: R.start.helden[p].max, marken: "" }));
     const zust = {}; for (const g of gegner) zust[g.id] = g; for (const h of helden) zust[h.id] = h;
-    let bau = svgBauen({ gegner, helden, absicht: R.start.absicht });
+    let bau = svgBauen({ gegner, helden, absicht: R.start.absicht, ebene: R.start.ebene });
     el.innerHTML = bau.svg;
     let pos = bau.pos;
     let svg = el.querySelector("svg");
@@ -393,6 +493,7 @@
       heiligtumTick: "laeutern", zeitriss: "segen" };
     async function heldAktion(e0) {
       if (e0.a === "frost" || e0.a === "winter") { await frostwelle(e0); return; }
+      if (e0.a === "befreien") { await wackeln(e0.von); await wort(e0.von, "frei!", "#F3F0FF"); return; }
       const e = AEHNLICH[e0.a] ? Object.assign({}, e0, { a: AEHNLICH[e0.a], phase: (e0.a === "sonnenstrahl" || e0.a === "sonnenzorn") ? 2 : e0.phase }) : e0;
       const p = e.von, a = e.a, typ = typVon(a), ziele = getroffene(e, true), ziel = e.ziel && zust[e.ziel] ? e.ziel : ziele[0];
       const spitze = () => { const q = pos[p], s = SPITZE[zust[p].rolle] || [0, -100]; return { x: q.x + s[0], y: q.y + s[1] }; };
@@ -514,6 +615,29 @@
         await animiere($("vl-f-" + g), [{ transform: "translateX(0)", opacity: 1 }, { transform: `translateX(${pos[g] && pos[g].x > 200 ? 160 : -160}px)`, opacity: 0 }], 700, { easing: "ease-in" });
         return;
       }
+      if (e.a === "ruhe") { await wort(g, "sammelt Kraft", "#FFB547"); return; }
+      if (e.a === "phase") {
+        sfx("ruf"); blitz("#FFD447", .3); bebenBild(6);
+        await animiere($("vl-f-" + g), [{ transform: "scale(1)" }, { transform: "scale(1.12)" }, { transform: "scale(1)" }], 600);
+        await wort(g, e.phase === 3 ? "Wut!" : "Phase " + e.phase, "#FFD447"); return;
+      }
+      if (e.a === "regen") { const m = M(g); sfx("heil"); glut(m.x, m.y, "vl-heil", 60, 700); await folgen(e); return; }
+      if (e.a === "explosion") {
+        const m = M(g); sfx("knall"); bebenBild(9); blitz("#FF9A3C", .4);
+        glut(m.x, m.y, "vl-glut", 120, 700); partikel(m.x, m.y, "#FF9A3C", 26, 120, 40, 800);
+        for (const h of helden) partikel(pos[h.id].x, pos[h.id].y - 60, "#FFB547", 8, 50, 30, 600);
+        await folgen(e); return;
+      }
+      if (e.a === "netz" && e.ziel && pos[e.ziel]) {
+        sfx("gift"); const a1 = M(g), b = M(e.ziel);
+        await flug({ x: a1.x, y: a1.y }, b, `<g ${L(1.5, "#F3F0FF")}><circle r="12"/><circle r="6"/><path d="M-14 0h28M0-14v28M-10-10l20 20M10-10l-20 20"/></g>`, 500, 30, true);
+        await wort(e.ziel, "eingesponnen", "#F3F0FF"); return;
+      }
+      if (e.a === "schuetzen") {
+        sfx("schutz"); const a1 = M(g), b = M(e.ziel);
+        await flug({ x: a1.x + 20, y: a1.y - 30 }, b, `<circle r="12" fill="#9EC5FF" fill-opacity=".5" stroke="#5BA8FF" stroke-width="2.5"/>`, 450, 40, false, "#9EC5FF");
+        await wort(e.ziel, "Schild", "#9EC5FF"); return;
+      }
       if (e.a === "beute") { const m = M(g); sfx("heil"); await partikel(m.x, m.y, "#E8C24A", 16, 70, 50, 700); return; }
       if (e.a === "heilen") {
         sfx("heil"); const a1 = M(g), b = M(e.ziel);
@@ -530,10 +654,11 @@
       if (e.a === "ruf") {
         sfx("ruf");
         await animiere($("vl-f-" + g), [{ transform: "scale(1)" }, { transform: "scale(1.08)" }, { transform: "scale(1)" }], 500);
+        for (const [id, , nach] of e.d || []) if (zust[id]) zust[id].hp = nach;   // z. B. ein Schleim, der sich teilt
         gegner = gegner.filter(x => x.hp > 0);    // Besiegte machen Platz
         for (const n of e.neu || []) { const z = Object.assign({ giftR: 0, markiert: 0 }, n); gegner.push(z); zust[z.id] = z; }
         // neu aufstellen: Bühne mit allen Gegnern neu zeichnen, die neuen steigen aus dem Boden
-        bau = svgBauen({ gegner, helden, absicht: {} }); el.innerHTML = bau.svg; pos = bau.pos;
+        bau = svgBauen({ gegner, helden, absicht: {}, ebene: R.start.ebene }); el.innerHTML = bau.svg; pos = bau.pos;
         svg = el.querySelector("svg");
         for (const n of e.neu || []) { const f = $("vl-f-" + n.id); if (f) animiere(f, [{ transform: "translateY(40px)", opacity: 0 }, { transform: "translateY(0)", opacity: 1 }], 700, { easing: "ease-out" }); }
         await warte(800); return;

@@ -274,6 +274,12 @@ Nach jedem Schritt: Simulation aller Rollenkombinationen für die Balance und ei
   ein Skelett steht; ohne Skelette ruft der König ein neues. Gerufene Gegner geben keine Erfahrung, besiegte machen ihnen
   Platz (höchstens 4 Gegner). Die Eigenschaften schnell, Regeneration, explosiv, Netz, fliegend und Schildträger kommen mit
   den Gegnern der Ebenen 2 und 3 in Schritt 5. Dolchstich und Pfeilschuss machen jetzt 7–9 Schaden.
+- **Schritt 5 fertig** (14.11.2026): Spinnengrotte und Glutschlund mit allen Gegnern aus Abschnitt 6, je eigener Kampfbühne,
+  Partielänge Kurz/Normal/Lang in der Lobby (Standard Normal). Zwischen den Ebenen ein Lager mit voller Heilung und Händler
+  (Speichern folgt in Schritt 7). Abweichungen: Die Gegner haben Werte auf Kerker-Maß und werden je Ebene stärker
+  (Leben ×2,8/×3,4, Schaden ×1,9/×2,2); Erfahrung ×2/×2,8, Gold ×1,4/×1,8. Netz: Der Held kann in der nächsten Runde nur
+  „Befreien“ wählen (Feuer befreit nicht). Schleim teilt sich einmal. Die Spinnenmutter heißt jetzt Brutmutter.
+  Händler: Waffe bis +6, Rüstung bis −5, Elixier bis 5×. Zu zweit bleibt Dieb+Waldläufer sehr schwer (Schritt 6).
 
 ## 11. Entscheidungen (14.11.2026)
 

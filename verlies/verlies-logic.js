@@ -110,6 +110,7 @@
     ["sonnenzorn", "Sonnenzorn", null, 0, "15 Schaden an allen Gegnern, alle Helden +5", 1]
   ].forEach(([id, name, ziel, cd, text, meister]) => { NEUE[id] = Object.assign({ id, name, ziel, text }, cd ? { cd } : {}, meister ? { meister: true } : {}); });
   const TRANK = { id: "trank", name: "Heiltrank", ziel: null, text: "+14 Leben für dich" };
+  const BEFREIEN = { id: "befreien", name: "Aus dem Netz befreien", ziel: null, text: "Du hängst im Netz fest und setzt diese Runde aus." };
 
   // ---------- Talentbaum ----------
   // Je Rolle 3 Äste mit 6 Knoten. Ein Knoten braucht den darunter im selben Ast. Ganz oben die Meisterfähigkeit:
@@ -299,6 +300,7 @@
     return t.length ? " · " + t.join(" · ") : "";
   }
   function aktionenVon(h) {
+    if (h.netz > 0) return [BEFREIEN];
     const l = AKTIONEN[h.rolle].slice();
     for (const t of talenteVon(h)) { const id = t.e.neu || t.e.meister; if (id) l.push(NEUE[id]); }
     if (h.traenke > 0) l.push(TRANK);
@@ -306,7 +308,7 @@
   }
 
   // ---------- Händler ----------
-  const MAX = { waffe: 4, ruestung: 3, leben: 3, traenke: 3 };
+  const MAX = { waffe: 6, ruestung: 5, leben: 5, traenke: 3 };
   const trankMax = h => MAX.traenke + stufeBonus(h).traenke;
   function angebot(h) {
     const l = [
@@ -335,13 +337,30 @@
     kerkerwaerter: { name: "Kerkerwärter", hp: 72, dmg: [7, 9], ep: 40, elite: true, panzer: 3, begleiter: "langfinger",
       wucht: { n: 5, name: "Kettenschlag", text: "Der Kerkerwärter schwingt seine Kette durch den ganzen Raum!" } },
     totenbeschwoerer: { name: "Totenbeschwörer", hp: 52, dmg: [4, 6], ep: 38, elite: true, beschwoerer: "skelett", begleiter: "skelett" },
-    // für spätere Ebenen (Spinnengrotte, Glutschlund)
+    // Spinnengrotte (Ebene 2). Werte auf Kerker-Maß, die Ebene macht sie stärker (STAERKE)
     spinne: { name: "Höhlenspinne", hp: 19, dmg: [3, 4], gift: true, ep: 11 },
-    ork: { name: "Ork", hp: 48, dmg: [7, 9], ep: 22 },
-    orkhaeuptling: { name: "Ork-Häuptling", bild: "ork", hp: 70, dmg: [8, 10], ep: 40, elite: true, begleiter: "goblin",
+    brut: { name: "Spinnenbrut", bild: "spinne", hp: 9, dmg: [1, 2], ep: 4, rudel: 1 },
+    weberin: { name: "Netzweberin", hp: 18, dmg: [2, 3], ep: 13, netz: true },
+    pilzling: { name: "Pilzling", hp: 14, dmg: [2, 3], ep: 10, explosiv: { n: 5, gift: true, text: "Der Pilzling platzt: Eine Sporenwolke hüllt alle ein!" } },
+    fledermaus: { name: "Fledermausschwarm", hp: 16, dmg: [2, 3], ep: 12, fliegend: true, schnell: true },
+    schleim: { name: "Schleim", hp: 30, dmg: [3, 5], ep: 12, teilt: true },
+    hoehlentroll: { name: "Höhlentroll", hp: 80, dmg: [7, 9], ep: 40, elite: true, regeneration: 6, begleiter: "pilzling",
+      wucht: { n: 5, name: "Keulenschwung", text: "Der Höhlentroll schwingt seine Keule durch die ganze Höhle!" } },
+    spinnenmutter: { name: "Brutmutter", hp: 56, dmg: [4, 6], gift: true, ep: 38, elite: true, beschwoerer: "brut", begleiter: "spinne" },
+    koenigin: { name: "Die Spinnenkönigin", hp: 320, dmg: [9, 12], boss: true, ep: 80, gift: true, beschwoerer: "brut", ruf: 2 },
+    // Glutschlund (Ebene 3)
+    kobold: { name: "Feuerkobold", hp: 16, dmg: [2, 4], ep: 11, schnell: true },
+    schnecke: { name: "Lavaschnecke", hp: 30, dmg: [3, 5], ep: 13, panzer: 3 },
+    salamander: { name: "Salamander", hp: 22, dmg: [3, 5], ep: 13, brand: true },
+    ork: { name: "Ork-Krieger", hp: 40, dmg: [5, 7], ep: 18, ork: true },
+    orkschamane: { name: "Ork-Schamane", hp: 24, dmg: [3, 4], ep: 14, ork: true, schildtraeger: true },
+    golem: { name: "Obsidian-Golem", hp: 50, dmg: [9, 12], ep: 22, panzer: 5, traege: true },
+    orkhaeuptling: { name: "Ork-Häuptling", hp: 70, dmg: [7, 9], ep: 40, elite: true, ork: true, anfuehrer: true, begleiter: "ork",
       wucht: { n: 5, name: "Rundumschlag", text: "Der Ork-Häuptling wirbelt seine Axt im Kreis!" } },
-    spinnenmutter: { name: "Spinnenmutter", bild: "spinne", hp: 50, dmg: [4, 6], gift: true, ep: 34, elite: true, begleiter: "spinne",
-      wucht: { n: 3, name: "Giftregen", text: "Die Spinnenmutter speit einen Regen aus Gift!", gift: true } }
+    feuerelementar: { name: "Feuerelementar", hp: 60, dmg: [6, 8], ep: 38, elite: true, brand: true, begleiter: "kobold",
+      explosiv: { n: 8, brand: true, text: "Das Feuerelementar zerbirst in einer Feuerwolke!" },
+      wucht: { n: 4, name: "Feuerwelle", text: "Eine Welle aus Feuer rollt über euch hinweg!", brand: true } },
+    drache: { name: "Der Glutdrache", hp: 270, dmg: [10, 13], boss: true, ep: 0, brand: true }
   };
   // kurze Beschreibung der Eigenschaften (für Plaketten und die Erklärung unter der Bühne)
   const EIGENSCHAFTEN = {
@@ -351,22 +370,62 @@
     rudel: ["Rudel", "+2 Schaden für jeden lebenden Artgenossen. Flächenschaden hilft."],
     heiler: ["Heiler", "Heilt verletzte Gegner. Zuerst ausschalten!"],
     langfinger: ["Langfinger", "Stiehlt Gold und flieht in der 3. Runde. Besiegt ihn vorher, dann gibt es das Gold zurück."],
-    beschwoerer: ["Beschwörer", "Ruft jede 3. Runde ein Skelett. Zuerst ausschalten!"],
+    beschwoerer: ["Beschwörer", "Ruft regelmäßig Verstärkung. Zuerst ausschalten!"],
+    fliegend: ["fliegend", "Nahkampf macht nur halben Schaden. Pfeile und Zauber treffen voll."],
+    schnell: ["schnell", "Greift zweimal pro Runde an. Erstarren hilft."],
+    regeneration: ["Regeneration", "Heilt sich jede Runde. Feuer stoppt das für 2 Runden."],
+    explosiv: ["explosiv", "Trifft beim Tod alle Helden. Vorher Schild oder Schutz!"],
+    netz: ["Netz", "Spinnt einen Helden ein: Er setzt eine Runde aus."],
+    teilt: ["teilt sich", "Wird er verletzt, teilt er sich einmal in zwei. Flächenschaden hilft."],
+    schildtraeger: ["Schildträger", "Legt anderen Gegnern einen Schild um, der 8 Schaden schluckt. Zuerst ausschalten!"],
+    anfuehrer: ["Anführer", "Alle Orks machen +2 Schaden, solange er steht."],
+    traege: ["träge", "Greift nur jede 2. Runde an, dazwischen sammelt er Kraft."],
+    brand: ["Feuer", "Kann Helden in Brand setzen."],
     wucht: ["Flächenangriff", "Trifft jede 3. Runde alle Helden."],
     gift: ["Gift", "Kann Helden vergiften."]
   };
   const eigenschaften = art => Object.keys(EIGENSCHAFTEN).filter(e => GEGNER[art] && GEGNER[art][e]);
-  const ELITEN = ["kerkerwaerter", "totenbeschwoerer"];
-  const GRUPPEN = [
+  const GRUPPEN_KERKER = [
     [["ratte", "ratte"], ["goblin", "ratte"], ["langfinger", "goblin"], ["skelett"], ["goblin", "goblin"]],
     [["schwarm", "schwarm", "schwarm"], ["skelett", "goblin"], ["bogenschuetze", "skelett"], ["ghul"], ["langfinger", "goblin", "ratte"], ["schamane", "goblin", "ratte"]],
     [["ghul", "skelett"], ["skelett", "skelett", "schamane"], ["bogenschuetze", "bogenschuetze", "ghul"], ["ghul", "schamane"], ["schwarm", "schwarm", "schwarm", "bogenschuetze"], ["langfinger", "skelett", "goblin"]]
   ];
+  const EBENEN = [
+    { name: "Der Kerker", boss: "koenig", eliten: ["kerkerwaerter", "totenbeschwoerer"], gruppen: GRUPPEN_KERKER, bild: "koenig",
+      abstieg: "Feuchte Stufen führen hinab. Hinter euch fällt das Gitter ins Schloss. Irgendwo tief unten sitzt der Knochenkönig auf seinem Thron, und er erwartet keine Gäste.",
+      bossTitel: "Der Thronsaal", bossText: "Ein Thronsaal aus Gebeinen. Grünes Licht flackert in leeren Augenhöhlen. Der Knochenkönig erhebt sich: „Noch mehr Knochen für meine Sammlung.“",
+      siegTitel: "Der Knochenkönig ist besiegt!", siegText: "Sein Thron zerfällt zu Staub. Unter den Trümmern: sein Schatz.",
+      niederlage: "Die Dunkelheit schließt sich über euch. Der Knochenkönig bekommt neue Knochen für seine Sammlung." },
+    { name: "Die Spinnengrotte", boss: "koenigin", eliten: ["hoehlentroll", "spinnenmutter"], bild: "koenigin",
+      gruppen: [
+        [["spinne", "brut", "brut"], ["pilzling", "spinne"], ["fledermaus"], ["weberin", "brut"], ["schleim"]],
+        [["spinne", "spinne", "weberin"], ["fledermaus", "pilzling"], ["schleim", "spinne"], ["brut", "brut", "brut", "weberin"], ["pilzling", "pilzling", "spinne"]],
+        [["schleim", "weberin", "spinne"], ["fledermaus", "fledermaus"], ["spinne", "spinne", "pilzling"], ["weberin", "weberin", "schleim"], ["brut", "brut", "fledermaus", "spinne"]]],
+      abstieg: "Hinter dem Thron führt ein Spalt tiefer in den Fels. Pilze leuchten grün, Fäden kleben an allem. Ganz unten wartet die Spinnenkönigin in ihrem Nest.",
+      bossTitel: "Das Nest", bossText: "Ein Gewölbe voller Netze und Eier. Acht Augen leuchten auf. Die Spinnenkönigin lässt sich langsam herab: „Frisches Futter für meine Kinder.“",
+      siegTitel: "Die Spinnenkönigin ist besiegt!", siegText: "Ihr Nest fällt in sich zusammen. Zwischen den Fäden glitzert, was frühere Abenteurer zurückgelassen haben.",
+      niederlage: "Weiche Fäden legen sich um euch. Die Spinnenkönigin hat Vorräte für den Winter." },
+    { name: "Der Glutschlund", boss: "drache", eliten: ["orkhaeuptling", "feuerelementar"], bild: "drache",
+      gruppen: [
+        [["kobold", "kobold"], ["salamander", "kobold"], ["schnecke"], ["ork"], ["orkschamane", "kobold"]],
+        [["ork", "orkschamane"], ["schnecke", "salamander"], ["golem"], ["kobold", "kobold", "salamander"], ["ork", "kobold"]],
+        [["ork", "ork", "orkschamane"], ["golem", "salamander"], ["schnecke", "schnecke", "orkschamane"], ["ork", "salamander", "kobold"], ["golem", "kobold", "kobold"]]],
+      abstieg: "Unter der Grotte wird es heiß. Der Fels glüht rot, Lava fließt in Rinnen. Aus der Tiefe dröhnt der Atem des Glutdrachen.",
+      bossTitel: "Der Drachenhort", bossText: "Ein Berg aus Gold, umspült von Lava. Der Glutdrache breitet die Flügel aus und steigt auf: „Ihr seid weit gekommen. Hier endet es.“",
+      siegTitel: "Der Glutdrache ist besiegt!", siegText: "Der Drache stürzt in die Lava. Sein Hort gehört euch, und ihr habt den tiefsten Grund des Verlieses gesehen.",
+      niederlage: "Feuer und Asche. Der Glutdrache legt sich wieder auf sein Gold." }
+  ];
+  // Stärke je Ebene: Leben und Schaden der Gegner, Erfahrung und Gold
+  const STAERKE = [{ hp: 1, dmg: 1, ep: 1, gold: 1 }, { hp: 2.8, dmg: 1.9, ep: 2, gold: 1.4 }, { hp: 3.4, dmg: 2.2, ep: 2.8, gold: 1.8 }];
+  const ebeneVon = S => EBENEN[(S.ebene || 1) - 1];
+  const staerke = S => STAERKE[(S.ebene || 1) - 1];
+  const gdmg = (S, n) => Math.round(n * staerke(S).dmg);
+  const LAENGEN = { 1: "Kurz", 2: "Normal", 3: "Lang" };
   const stufe = nr => (nr <= 3 ? 0 : nr <= 5 ? 1 : 2);
   function gegnerErzeugen(S, art) {
     // zu zweit schwächer; je tiefer, desto zäher (Helden steigen ja auch auf)
     const g = GEGNER[art], f = (S.teilnehmer.length === 2 ? 0.55 : 1) * (g.boss ? 1 : 1 + 0.11 * Math.max(0, S.raumNr - 1)) * (1 + (S.karte ? S.karte.fluch || 0 : 0));
-    const hp = Math.max(4, Math.round(g.hp * f));
+    const hp = Math.max(4, Math.round(g.hp * f * staerke(S).hp));
     S.gegnerNr = (S.gegnerNr || 0) + 1;
     return Object.assign({ id: "g" + S.gegnerNr, art, name: g.name, hp, max: hp, gift: 0, giftR: 0, starr: 0, markiert: 0 }, g.elite ? { elite: true } : {});
   }
@@ -414,7 +473,7 @@
 
   // ---------- Karte ----------
   // 7 Reihen mit 2 bis 4 Räumen, Wege ohne Kreuzungen. Erzeugt aus S.rng, also für alle gleich.
-  const RAUMNAME = { kampf: "Kampf", elite: "Elite", schatz: "Truhe", rast: "Rast", haendler: "Händler", schrein: "Schrein", ereignis: "Unbekannt", kammer: "Schatzkammer", boss: "Thronsaal", eingang: "Eingang" };
+  const RAUMNAME = { kampf: "Kampf", elite: "Elite", schatz: "Truhe", rast: "Rast", haendler: "Händler", schrein: "Schrein", ereignis: "Unbekannt", kammer: "Schatzkammer", boss: "Endgegner", eingang: "Eingang" };
   const KARTENTYPEN = {
     erste: [["kampf", 55], ["ereignis", 25], ["schatz", 20]],
     mitte: [["kampf", 40], ["elite", 11], ["ereignis", 18], ["schatz", 8], ["rast", 11], ["haendler", 7], ["schrein", 5]],
@@ -460,7 +519,7 @@
     const eltern = id => Object.values(K.knoten).filter(k => k.nach.includes(id));
     const kand = inReihen(5, 6).filter(k => k.typ !== "haendler" && k.typ !== "elite" && k.typ !== "schrein" && eltern(k.id).every(e => e.nach.length >= 2));
     if (kand.length) eins(S, kand).typ = "kammer";
-    for (const k of Object.values(K.knoten)) if (k.typ === "elite") k.elite = eins(S, ELITEN);
+    for (const k of Object.values(K.knoten)) if (k.typ === "elite") k.elite = eins(S, ebeneVon(S).eliten);
     return K;
   }
   // Wie weit die Gruppe auf der Karte sieht: 2 Reihen, mit Waldläufer oder Dieb 3
@@ -497,7 +556,7 @@
       v: 2, spiel: "verlies", code, epoch: 0, host: hostPid, phase: "lobby",
       spieler: { [hostPid]: { name: hostName } }, reihenfolge: [hostPid], rollen: {},
       teilnehmer: [], helden: {}, gegner: [], raumNr: 0, seite: null, entscheidung: null, kampf: null, lager: null,
-      log: [], benutzt: [], rng: (seed >>> 0) || 1, spielNr: 0, aenderung: Date.now()
+      log: [], benutzt: [], rng: (seed >>> 0) || 1, spielNr: 0, laenge: 2, ebene: 1, ebenen: 2, aenderung: Date.now()
     };
   }
   const lebend = S => S.teilnehmer.filter(p => S.helden[p].hp > 0);
@@ -512,7 +571,7 @@
   }
   // Gold für jeden: gibt Text zurück
   function goldFuerJeden(S, a, b) {
-    const n = wurf(S, a, b), extra = [];
+    const n = Math.round(wurf(S, a, b) * staerke(S).gold), extra = [];
     for (const p of S.teilnehmer) {
       const h = S.helden[p], x = Math.round(n * passiv(h, "gold") / 100);
       h.gold += n + x;
@@ -526,8 +585,18 @@
     S.entscheidung = Object.assign({ art, frage, optionen, stimmen: {} }, extra || {});
   }
   const EREIGNISSE_FREI = S => Object.keys(EREIGNISSE).filter(e => !S.benutzt.includes(e));
+  // Nächste Ebene: neue Karte, neue Ereignisse, Abstieg
+  function neueEbene(S) {
+    S.ebene += 1; S.ebeneFertig = false;
+    Object.assign(S, { raumNr: 0, gegner: [], lagerBesucht: [], benutzt: [] });
+    S.karte = karteErzeugen(S);
+    S.phase = "erkunden";
+    S.seite = { bild: "eingang", titel: `Ebene ${S.ebene}: ${ebeneVon(S).name}`, text: [ebeneVon(S).abstieg] };
+    entscheiden(S, "weiter", "", [{ text: "Hinabsteigen" }]);
+  }
   function weiterziehen(S) {
     S.log = [];
+    if (S.ebeneFertig) { neueEbene(S); return; }
     if (S.raumNr === REIHEN && !(S.lagerBesucht || []).includes(REIHEN)) lagerOeffnen(S, true);
     else karteZeigen(S);
   }
@@ -551,13 +620,14 @@
     S.raumNr = n;
     S.log = [];
     if (typ === "boss") {
-      S.seite = { bild: "koenig", titel: "Der Thronsaal", text: [TEXTE.boss[0]] };
-      kampfStarten(S, ["koenig"]);
+      const E = ebeneVon(S);
+      S.seite = { bild: E.bild, titel: E.bossTitel, text: [E.bossText] };
+      kampfStarten(S, [E.boss]);
     } else if (typ === "kampf") {
-      kampfRaum(S, eins(S, GRUPPEN[stufe(n)]), `Raum ${n}`, eins(S, TEXTE.kampf));
+      kampfRaum(S, eins(S, ebeneVon(S).gruppen[stufe(n)]), `Raum ${n}`, eins(S, TEXTE.kampf));
     } else if (typ === "elite") {
       const e = GEGNER[k.elite];
-      kampfRaum(S, [k.elite, e.begleiter], `Raum ${n}: ${e.name}`, `${e.name} versperrt den Weg. Am Gürtel baumelt ein schwerer Schlüssel.`);
+      kampfRaum(S, [k.elite, e.begleiter], `Raum ${n}: ${e.name}`, `${e.name} versperrt den Weg. Irgendwo an ihm glänzt ein schwerer Schlüssel.`);
     } else if (typ === "schatz") {
       S.seite = { bild: "truhe", titel: `Raum ${n}: Eine Truhe`, text: [eins(S, TEXTE.schatz)] };
       entscheiden(S, "truhe", "Öffnen?", [{ text: "Truhe öffnen" }, { text: "Liegen lassen" }]);
@@ -591,7 +661,7 @@
     } else {
       // Unbekannt: Hinterhalt, Fundstück oder eines der Ereignisse
       const frei = EREIGNISSE_FREI(S), r = zufall(S);
-      if (r < 0.22 || !frei.length) kampfRaum(S, eins(S, GRUPPEN[stufe(n)]), `Raum ${n}: Ein Hinterhalt!`, "Kaum seid ihr drin, fällt hinter euch ein Gitter herab. Aus den Schatten kommen sie.");
+      if (r < 0.22 || !frei.length) kampfRaum(S, eins(S, ebeneVon(S).gruppen[stufe(n)]), `Raum ${n}: Ein Hinterhalt!`, "Kaum seid ihr drin, fällt hinter euch ein Gitter herab. Aus den Schatten kommen sie.");
       else if (r < 0.32) {
         const t = ["Zwischen alten Knochen liegt ein Lederbeutel.", goldFuerJeden(S, 6, 10)];
         if (!K.schluessel && Object.values(K.knoten).some(x => x.typ === "kammer" && x.r > n)) { K.schluessel += 1; t.push("Darin: ein schwerer, alter Schlüssel."); }
@@ -692,21 +762,34 @@
   // Jeder Gegner legt zu Beginn der Runde fest, was er vorhat (wird allen angezeigt).
   // Ausgeführt wird später: Schildwall/Unerschütterlich ziehen den Angriff auf sich, Versteckte werden nicht gefunden.
   function planeGegner(S) {
-    const k = S.kampf, a = {}, helden = lebend(S);
+    const k = S.kampf, a = {}, helden = lebend(S), frei = () => gegnerLebend(S).length < 4;
+    const held = () => { const l = helden.filter(p => !S.helden[p].netz); return l.length ? eins(S, l) : helden.length ? eins(S, helden) : null; };
+    const angriff = g => Object.assign({ a: "angriff", ziel: held() }, istSchnell(S, g) ? { doppelt: true } : {});
     for (const g of gegnerLebend(S)) {
-      const art = GEGNER[g.art];
-      if (art.boss && k.runde % 3 === 0) {
+      const art = GEGNER[g.art], r = k.runde;
+      if (art.boss) {
         const diener = gegnerLebend(S).filter(x => x !== g).length;
-        a[g.id] = k.bossPhase >= 2 && diener === 0 ? { a: "ruf" } : { a: "beben" }; continue;
+        if (g.art === "koenig" && r % 3 === 0) a[g.id] = k.bossPhase >= 2 && diener === 0 ? { a: "ruf" } : { a: "beben" };
+        else if (g.art === "koenigin" && r % 3 === 0 && frei()) a[g.id] = { a: "ruf" };
+        else if (g.art === "koenigin" && r % 3 === 2) a[g.id] = { a: "netz", ziel: held() };
+        else if (g.art === "drache" && r % 3 === 0) a[g.id] = { a: "beben", name: k.bossPhase >= 2 ? "Schwanzhieb" : "Flammenatem" };
+        else a[g.id] = angriff(g);
+        continue;
       }
-      if (art.beschwoerer && k.runde % 3 === 2 && gegnerLebend(S).length < 4) { a[g.id] = { a: "ruf" }; continue; }
-      if (art.langfinger) { a[g.id] = k.runde >= 3 ? { a: "flucht" } : { a: "stehlen", ziel: helden.length ? eins(S, helden) : null }; continue; }
-      if (art.wucht && k.runde % 3 === 2) { a[g.id] = { a: "beben", name: art.wucht.name }; continue; }
+      if (art.beschwoerer && r % 3 === 2 && frei()) { a[g.id] = { a: "ruf" }; continue; }
+      if (art.langfinger) { a[g.id] = r >= 3 ? { a: "flucht" } : { a: "stehlen", ziel: held() }; continue; }
+      if (art.traege && r % 2 === 0) { a[g.id] = { a: "ruhe" }; continue; }
+      if (art.netz && r % 3 === 1) { a[g.id] = { a: "netz", ziel: held() }; continue; }
+      if (art.wucht && r % 3 === 2) { a[g.id] = { a: "beben", name: art.wucht.name }; continue; }
       if (art.heiler) {
         const v = gegnerLebend(S).filter(x => x !== g && x.hp < x.max * 0.6).sort((x, y) => x.hp / x.max - y.hp / y.max)[0];
         if (v) { a[g.id] = { a: "heilen", ziel: v.id }; continue; }
       }
-      a[g.id] = { a: "angriff", ziel: helden.length ? eins(S, helden) : null };
+      if (art.schildtraeger) {
+        const v = gegnerLebend(S).filter(x => x !== g && !(x.schutz > 0)).sort((x, y) => x.hp / x.max - y.hp / y.max)[0];
+        if (v) { a[g.id] = { a: "schuetzen", ziel: v.id }; continue; }
+      }
+      a[g.id] = angriff(g);
     }
     k.absicht = a;
   }
@@ -715,7 +798,7 @@
     S.gegner = gruppe.map(a => gegnerErzeugen(S, a));
     S.kampf = { runde: 1, wahl: {}, bossPhase: 1, epTot: 0, nebel: false, absicht: {} };
     for (const p of S.teilnehmer) { const h = S.helden[p]; for (const id in h.cd) if (NEUE[id] && NEUE[id].meister) delete h.cd[id]; }
-    for (const p of S.teilnehmer) Object.assign(S.helden[p], { schild: false, versteckt: false, lauer: false, segen: 0, gift: 0, giftR: 0, immun: false, fels: false, beschuetzt: null });
+    for (const p of S.teilnehmer) Object.assign(S.helden[p], { schild: false, versteckt: false, lauer: false, segen: 0, gift: 0, giftR: 0, immun: false, fels: false, beschuetzt: null, netz: 0 });
     S.entscheidung = null;
     S.log = [];
     planeGegner(S);
@@ -735,6 +818,7 @@
   const HEILEND = { heilen: 1, handauflegen: 1, kraeuter: 1 };
   function standardWahl(S, pid) {
     const h = S.helden[pid], ziel = gegnerLebend(S).sort((a, b) => a.hp - b.hp)[0];
+    if (h.netz > 0) return { a: "befreien", ziel: null };
     const heil = aktionenVon(h).find(a => HEILEND[a.id] && !(h.cd[a.id] > 0));
     if (heil) {
       const schwach = S.teilnehmer.filter(p => S.helden[p].hp < S.helden[p].max * 0.5).sort((a2, b) => S.helden[a2].hp - S.helden[b].hp)[0];
@@ -756,16 +840,33 @@
     pfeil: "fern", doppel: "fern", hagel: "fern", markieren: "fern", kopfschuss: "fern", durchschuss: "fern", treibjagd: "fern",
     giftwolke: "gift", seuche: "gift", dolch: "stich", todesstoss: "stich"
   };
-  let angriffsart = "nah";
+  let angriffsart = "nah", feuerangriff = false;
+  const FEUER = { funken: 1, feuerball: 1, meteor: 1, inferno: 1 };
+  // Endgegner wechseln in Phasen: Königin fliegt ab Phase 2, der Drache nur in Phase 1 und wird in Phase 3 schnell
+  const istFliegend = (S, g) => !!GEGNER[g.art].fliegend || !!(S.kampf && ((g.art === "koenigin" && S.kampf.bossPhase >= 2) || (g.art === "drache" && S.kampf.bossPhase < 2)));
+  const istSchnell = (S, g) => !!GEGNER[g.art].schnell || !!(g.art === "drache" && S.kampf && S.kampf.bossPhase >= 3);
   // Knochenschild: Der Knochenkönig nimmt in Phase 2 halben Schaden, solange einer seiner Diener steht
-  const knochenschild = (S, g) => !!(S.kampf && S.kampf.bossPhase >= 2 && GEGNER[g.art].boss && S.gegner.some(x => x !== g && x.hp > 0));
+  const knochenschild = (S, g) => !!(S.kampf && S.kampf.bossPhase >= 2 && g.art === "koenig" && S.gegner.some(x => x !== g && x.hp > 0));
+  // Sichtbarer Zustand eines Gegners (Namensschild)
+  function zustand(S, g) {
+    const art = GEGNER[g.art], z = [];
+    if (knochenschild(S, g)) z.push("Knochenschild");
+    if (art.boss && istFliegend(S, g)) z.push("fliegt");
+    if (art.boss && istSchnell(S, g)) z.push("Wut");
+    if (g.schutz > 0) z.push(`Schild ${g.schutz}`);
+    if (g.feuer > 0 && art.regeneration) z.push("brennt");
+    return z;
+  }
   function wirkung(S, g, d) {
     const art = GEGNER[g.art];
     if (art.untot && angriffsart === "licht") d *= 2;
-    if (art.hinten && (angriffsart === "nah" || angriffsart === "stich")) d = Math.ceil(d / 2);
+    if ((art.hinten || istFliegend(S, g)) && (angriffsart === "nah" || angriffsart === "stich")) d = Math.ceil(d / 2);
+    if (feuerangriff) g.feuer = 2;
     if (knochenschild(S, g)) d = Math.ceil(d / 2);
     if (art.panzer && !["gift", "magie", "licht", "stich"].includes(angriffsart)) d -= art.panzer;
-    return Math.max(1, d);
+    d = Math.max(1, d);
+    if (g.schutz > 0) { const x = Math.min(g.schutz, d); g.schutz -= x; d -= x; }
+    return d;
   }
   // Schaden wirklich abziehen; wer einen Gegner besiegt, heilt sich mit Siegeshunger/Blutzoll
   function aufGegner(S, pid, g, d, log) {
@@ -812,6 +913,7 @@
   // Untote: Gift wirkt nur halb (Feuer/Brand voll)
   function vergiften(g, n, runden, feuer) {
     if (GEGNER[g.art].untot && !feuer) n = Math.ceil(n / 2);
+    if (feuer) g.feuer = 2;
     if (g.hp > 0 && !(g.giftR > 0 && g.gift > n)) { g.gift = n; g.giftR = runden; }
   }
   function heilenAuf(S, von, ziel, n, log, wie) {
@@ -832,9 +934,9 @@
     const reihe = S.teilnehmer.filter(p => S.helden[p].hp > 0 && k.wahl[p]);
     // Ausgangslage und Ereignisse für die Wiedergabe auf allen Handys (Kampfbühne)
     const start = {
-      gegner: S.gegner.map(g => ({ id: g.id, art: g.art, name: g.name, hp: g.hp, max: g.max, giftR: g.giftR, markiert: g.markiert, schild: knochenschild(S, g) })),
+      gegner: S.gegner.map(g => ({ id: g.id, art: g.art, name: g.name, hp: g.hp, max: g.max, giftR: g.giftR, markiert: g.markiert, zustand: zustand(S, g) })),
       helden: Object.fromEntries(S.teilnehmer.map(p => { const h = S.helden[p]; return [p, { hp: h.hp, max: h.max, giftR: h.giftR }]; })),
-      absicht: kopie(k.absicht || {})
+      absicht: kopie(k.absicht || {}), ebene: S.ebene || 1
     };
     const ev = [];
     const schnapp = () => ({ g: Object.fromEntries(S.gegner.map(g => [g.id, g.hp])), h: Object.fromEntries(S.teilnehmer.map(q => [q, S.helden[q].hp])) });
@@ -854,9 +956,10 @@
     for (const p of reihe) {
       const h = S.helden[p], w = k.wahl[p], n = heldName(S, p);
       cd(h, w);
-      angriffsart = ANGRIFFSART[w.a] || "nah";
+      angriffsart = ANGRIFFSART[w.a] || "nah"; feuerangriff = !!FEUER[w.a];
       beginn();
       switch (w.a) {
+        case "befreien": h.netz = 0; log.push(`${n} reißt sich aus dem Netz los.`); break;
         case "schild": h.schild = true; log.push(`${n} hebt den Schild und ruft die Gegner zu sich.`); break;
         case "fels": h.fels = true; h.immun = true; log.push(`${n} steht wie ein Fels. Alle Gegner wenden sich gegen ihn.`); break;
         case "verstecken": h.versteckt = true; h.lauer = true; log.push(`${n} verschwindet in den Schatten.`); break;
@@ -913,7 +1016,7 @@
     for (const p of reihe) {
       if (!gegnerLebend(S).length) break;
       const h = S.helden[p], w = k.wahl[p], ziel = S.gegner.find(g => g.id === w.ziel);
-      angriffsart = ANGRIFFSART[w.a] || "nah";
+      angriffsart = ANGRIFFSART[w.a] || "nah"; feuerangriff = !!FEUER[w.a];
       beginn();
       switch (w.a) {
         case "schlag": schadenAnGegner(S, p, ziel, wurf(S, 6, 8) + rs(h, "schlag"), log, "trifft"); break;
@@ -1003,7 +1106,7 @@
       log.push(`Das Gift frisst an ${g.name}: ${e} Schaden${g.hp <= 0 ? ". " + g.name + " fällt!" : "."}`);
       ende({ von: g.id, a: "giftTick" });
     }
-    angriffsart = "nah";
+    angriffsart = "nah"; feuerangriff = false;
     // Ein besiegter Langfinger lässt das gestohlene Gold fallen
     const beuteZurueck = () => {
       for (const g of S.gegner) if (g.hp <= 0 && !g.geflohen && g.beute) {
@@ -1027,49 +1130,55 @@
       for (let i = 0; i < anzahl && gegnerLebend(S).length < 4; i++) { const g = Object.assign(gegnerErzeugen(S, art), { gerufen: true }); S.gegner.push(g); neu.push(g); }
       return neu.map(kurz);
     };
-    // 4. Endgegner: Phase 2 ab halben Leben (zwei Skelette und Knochenschild)
-    const koenig = S.gegner.find(g => g.art === "koenig");
-    if (koenig && koenig.hp > 0 && k.bossPhase < 2 && koenig.hp <= koenig.max / 2) {
-      k.bossPhase = 2;
+    // Explosive Gegner reißen beim Tod alle mit
+    const explosionen = () => {
+      for (const g of S.gegner) {
+        const X = GEGNER[g.art].explosiv;
+        if (!X || g.hp > 0 || g.explodiert || g.geflohen) continue;
+        g.explodiert = true;
+        if (!lebend(S).length) continue;
+        beginn();
+        log.push(X.text);
+        for (const p of lebend(S)) { treffer(S, p, gdmg(S, X.n), log, null); const h = S.helden[p]; if ((X.gift || X.brand) && h.hp > 0 && !h.immun) setzeGift(h, gdmg(S, X.brand ? 3 : 2), 2, X.brand); }
+        ende({ von: g.id, a: "explosion" });
+      }
+    };
+    explosionen();
+    // Schleim teilt sich einmal, sobald er verletzt ist
+    for (const g of gegnerLebend(S)) {
+      if (!GEGNER[g.art].teilt || g.geteilt || g.hp >= g.max || g.hp < 8 || gegnerLebend(S).length >= 4) continue;
       beginn();
-      const neu = rufen(2, "skelett");
-      log.push("Der Knochenkönig hebt die Arme. Zwei Skelette kriechen aus dem Boden, und Knochen legen sich wie ein Schild um ihn: Solange ein Skelett steht, nimmt er nur halben Schaden!");
-      ende({ von: koenig.id, a: "ruf", neu, phase: 2 });
+      g.geteilt = true;
+      const halb = Math.floor(g.hp / 2); g.hp -= halb;
+      aufraeumen();
+      const n = Object.assign(gegnerErzeugen(S, g.art), { hp: halb, max: halb, geteilt: true, gerufen: true });
+      S.gegner.push(n);
+      log.push(`${g.name} wabbelt und teilt sich in zwei!`);
+      ende({ von: g.id, a: "ruf", neu: [kurz(n)] });
     }
+    // 4. Endgegner wechseln die Phase
+    const boss = S.gegner.find(g => GEGNER[g.art].boss && g.hp > 0), q = boss ? boss.hp / boss.max : 1;
+    const phase = (nr, text, extra) => { k.bossPhase = nr; beginn(); const neu = extra ? extra() : null; log.push(text); ende(Object.assign({ von: boss.id, a: neu ? "ruf" : "phase", phase: nr }, neu ? { neu } : {})); };
+    if (boss && boss.art === "koenig" && k.bossPhase < 2 && q <= 0.5)
+      phase(2, "Der Knochenkönig hebt die Arme. Zwei Skelette kriechen aus dem Boden, und Knochen legen sich wie ein Schild um ihn: Solange ein Skelett steht, nimmt er nur halben Schaden!", () => rufen(2, "skelett"));
+    if (boss && boss.art === "koenigin" && k.bossPhase < 2 && q <= 0.5)
+      phase(2, "Die Spinnenkönigin zieht sich an ihren Fäden zur Decke hinauf! Von dort oben treffen Nahkampfangriffe nur noch halb.");
+    if (boss && boss.art === "drache" && k.bossPhase < 2 && q <= 0.5)
+      phase(2, "Der Glutdrache stürzt mit zerfetzten Flügeln zu Boden! Jetzt treffen ihn auch Schwerter voll, aber sein Schwanz peitscht.");
+    if (boss && boss.art === "drache" && k.bossPhase < 3 && q <= 0.25)
+      phase(3, "Der Glutdrache tobt vor Wut: Er greift jetzt zweimal pro Runde an!");
     // 5. Gegner handeln (nach ihrer angekündigten Absicht)
-    const gegnerZug = g => {
-      const art = GEGNER[g.art], plan = (k.absicht || {})[g.id] || {};
-      if (g.starr > 0) { log.push(`${g.name} ist erstarrt und kann nicht angreifen.`); return { a: "starr" }; }
-      if (plan.a === "ruf" && gegnerLebend(S).length < 4) {
-        const neu = rufen(1, art.beschwoerer || "skelett");
-        log.push(art.boss ? "Der Knochenkönig hebt die Hand: Ein neues Skelett kriecht aus dem Boden." : `${g.name} murmelt dunkle Worte: Ein Skelett kriecht aus dem Boden!`);
-        return { a: "ruf", neu };
-      }
-      if (plan.a === "flucht") {
-        const summe = Object.values(g.beute || {}).reduce((x, y) => x + y, 0);
-        g.geflohen = true; g.hp = 0;
-        log.push(summe ? `${g.name} huscht mit ${summe} Gold davon!` : `${g.name} huscht mit leeren Taschen davon.`);
-        return { a: "flucht" };
-      }
-      if (art.heiler) {
-        const verletzt = gegnerLebend(S).filter(x => x !== g && x.hp < x.max * 0.6).sort((a2, b2) => a2.hp / a2.max - b2.hp / b2.max)[0];
-        if (verletzt) { const n = Math.min(7, verletzt.max - verletzt.hp); verletzt.hp += n; log.push(`${g.name} murmelt einen Zauber: ${verletzt.name} +${n} Leben.`); return { a: "heilen", ziel: verletzt.id }; }
-      }
-      if (art.boss && (plan.a ? plan.a === "beben" : k.runde % 3 === 0)) {
-        log.push("Der Knochenkönig stampft auf: Der Boden bebt!");
-        for (const p of lebend(S)) treffer(S, p, 5 - (k.frost || 0), log, null);
-        return { a: "beben" };
-      }
-      if (art.wucht && plan.a === "beben") {
-        log.push(art.wucht.text);
-        for (const p of lebend(S)) {
-          treffer(S, p, art.wucht.n - (k.frost || 0), log, null);
-          const h = S.helden[p];
-          if (art.wucht.gift && h.hp > 0 && !h.immun) { h.gift = 2; h.giftR = 2; }
-        }
-        if (art.wucht.gift) log.push("Wer noch steht, ist vergiftet.");
-        return { a: "beben" };
-      }
+    const RUFTEXT = {
+      koenig: "Der Knochenkönig hebt die Hand: Ein neues Skelett kriecht aus dem Boden.",
+      totenbeschwoerer: "Der Totenbeschwörer murmelt dunkle Worte: Ein Skelett kriecht aus dem Boden!",
+      spinnenmutter: "Die Brutmutter zirpt: Spinnenbrut krabbelt aus allen Ritzen!",
+      koenigin: "Die Spinnenkönigin legt Eier. Sofort schlüpft Spinnenbrut!"
+    };
+    const bossWucht = g => g.art === "koenig" ? { n: 5, text: "Der Knochenkönig stampft auf: Der Boden bebt!" }
+      : k.bossPhase < 2 ? { n: 7, text: "Der Glutdrache speit Feuer über euch alle!", brand: true } : { n: 7, text: "Der Glutdrache peitscht mit dem Schwanz durch den Raum!" };
+    // ein einzelner Schlag gegen einen Helden (schnelle Gegner schlagen zweimal)
+    const hieb = (g, plan) => {
+      const art = GEGNER[g.art];
       if (k.nebel && chance(S, 0.5)) { log.push(`${g.name} schlägt im Rauch ins Leere.`); return { a: "daneben", ziel: plan.ziel || null }; }
       const zieher = lebend(S).filter(p => S.helden[p].schild || S.helden[p].fels);
       const ziele = lebend(S).filter(p => !S.helden[p].versteckt);
@@ -1081,9 +1190,11 @@
       const b = S.helden[p].beschuetzt;
       if (!spott && !zieher.length && b && S.helden[b].hp > 0) { log.push(`${heldName(S, b)} fängt den Angriff auf ${heldName(S, p)} ab.`); p = b; minus += 2 + passiv(S.helden[b], "schutzplus"); }
       const rudel = art.rudel ? art.rudel * gegnerLebend(S).filter(x => x !== g && x.art === g.art).length : 0;
-      treffer(S, p, wurf(S, art.dmg[0], art.dmg[1]) + rudel - minus, log, g.name, g);
+      const orks = art.ork && S.gegner.some(x => x !== g && x.hp > 0 && GEGNER[x.art].anfuehrer) ? 2 : 0;
+      treffer(S, p, gdmg(S, wurf(S, art.dmg[0], art.dmg[1])) + rudel + orks - minus, log, g.name, g);
       const z = S.helden[p];
-      if (art.gift && z.hp > 0 && !z.immun && chance(S, 0.4)) { z.gift = 2; z.giftR = 2; log.push(`${heldName(S, p)} ist vergiftet.`); }
+      if (art.gift && z.hp > 0 && !z.immun && chance(S, 0.4)) { setzeGift(z, gdmg(S, 2), 2); log.push(`${heldName(S, p)} ist vergiftet.`); }
+      if (art.brand && z.hp > 0 && !z.immun && chance(S, 0.4)) { setzeGift(z, gdmg(S, 3), 2, true); log.push(`${heldName(S, p)} steht in Flammen.`); }
       if (art.langfinger && !z.immun && z.gold > 0) {
         const n = Math.min(z.gold, wurf(S, 5, 8));
         z.gold -= n; g.beute = g.beute || {}; g.beute[p] = (g.beute[p] || 0) + n;
@@ -1092,12 +1203,61 @@
       }
       return { a: art.gift ? "biss" : "angriff", ziel: p };
     };
+    const gegnerZug = g => {
+      const art = GEGNER[g.art], plan = (k.absicht || {})[g.id] || {};
+      if (g.starr > 0) { log.push(`${g.name} ist erstarrt und kann nicht angreifen.`); return { a: "starr" }; }
+      if (plan.a === "ruf" && gegnerLebend(S).length < 4) {
+        const neu = rufen(art.ruf || 1, art.beschwoerer || "skelett");
+        log.push(RUFTEXT[g.art] || `${g.name} ruft Verstärkung!`);
+        return { a: "ruf", neu };
+      }
+      if (plan.a === "flucht") {
+        const summe = Object.values(g.beute || {}).reduce((x, y) => x + y, 0);
+        g.geflohen = true; g.hp = 0;
+        log.push(summe ? `${g.name} huscht mit ${summe} Gold davon!` : `${g.name} huscht mit leeren Taschen davon.`);
+        return { a: "flucht" };
+      }
+      if (plan.a === "ruhe") { log.push(`${g.name} glüht auf und sammelt Kraft.`); return { a: "ruhe" }; }
+      if (plan.a === "netz") {
+        const ziele = lebend(S).filter(p => !S.helden[p].versteckt);
+        const p = plan.ziel && ziele.includes(plan.ziel) ? plan.ziel : ziele.length ? eins(S, ziele) : null;
+        if (!p) { log.push(`${g.name} findet niemanden für ihr Netz.`); return { a: "keinziel" }; }
+        if (S.helden[p].immun) { log.push(`Das Netz von ${g.name} prallt an ${heldName(S, p)} ab.`); return { a: "netz", ziel: p }; }
+        S.helden[p].netz = 1;
+        log.push(`${g.name} spinnt ${heldName(S, p)} ein: nächste Runde nur „Befreien“.`);
+        return { a: "netz", ziel: p };
+      }
+      if (plan.a === "schuetzen") {
+        const v = S.gegner.find(x => x.id === plan.ziel && x.hp > 0) || gegnerLebend(S).find(x => x !== g);
+        if (v) { v.schutz = gdmg(S, 8); log.push(`${g.name} legt einen Schild um ${v.name}: Er schluckt ${v.schutz} Schaden.`); return { a: "schuetzen", ziel: v.id }; }
+      }
+      if (art.heiler) {
+        const verletzt = gegnerLebend(S).filter(x => x !== g && x.hp < x.max * 0.6).sort((a2, b2) => a2.hp / a2.max - b2.hp / b2.max)[0];
+        if (verletzt) { const n = Math.min(gdmg(S, 7), verletzt.max - verletzt.hp); verletzt.hp += n; log.push(`${g.name} murmelt einen Zauber: ${verletzt.name} +${n} Leben.`); return { a: "heilen", ziel: verletzt.id }; }
+      }
+      const W = plan.a === "beben" ? (art.boss ? bossWucht(g) : art.wucht) : null;
+      if (W) {
+        log.push(W.text);
+        for (const p of lebend(S)) {
+          treffer(S, p, gdmg(S, W.n) - (k.frost || 0), log, null);
+          const h = S.helden[p];
+          if ((W.gift || W.brand) && h.hp > 0 && !h.immun) setzeGift(h, gdmg(S, W.brand ? 3 : 2), 2, W.brand);
+        }
+        if (W.gift) log.push("Wer noch steht, ist vergiftet.");
+        if (W.brand) log.push("Wer noch steht, brennt.");
+        return { a: "beben" };
+      }
+      let erg = hieb(g, plan);
+      if (istSchnell(S, g) && lebend(S).length && erg.a !== "keinziel") { const z2 = hieb(g, {}); if (z2.a !== "keinziel") erg = Object.assign({}, erg, { doppelt: true }); }
+      return erg;
+    };
     for (const g of gegnerLebend(S)) { if (g.hp <= 0) continue; beginn(); const z = gegnerZug(g); ende(Object.assign({ von: g.id }, z)); }
     beuteZurueck();
+    explosionen();
     // 6. Gift auf Helden, Rundenende
     for (const p of lebend(S)) {
       const h = S.helden[p];
-      if (h.giftR > 0) { beginn(); const n = Math.min(h.gift, h.hp); h.hp -= n; h.giftR -= 1; log.push(`Gift: ${heldName(S, p)} −${n} Leben${h.hp <= 0 ? " und bricht zusammen!" : "."}`); if (h.hp <= 0) h.stats.umgefallen += 1; ende({ von: p, a: "giftTick" }); }
+      if (h.giftR > 0) { beginn(); const n = Math.min(h.gift, h.hp); h.hp -= n; h.giftR -= 1; log.push(`${h.giftArt || "Gift"}: ${heldName(S, p)} −${n} Leben${h.hp <= 0 ? " und bricht zusammen!" : "."}`); if (h.hp <= 0) h.stats.umgefallen += 1; ende({ von: p, a: "giftTick" }); }
     }
     for (const p of S.teilnehmer) {
       const h = S.helden[p];
@@ -1113,7 +1273,15 @@
       log.push("Das Heiligtum leuchtet: alle +8 Leben.");
       ende({ von, a: "heiligtumTick" });
     }
-    for (const g of S.gegner) { if (g.starr > 0) g.starr -= 1; if (g.markiert > 0) g.markiert -= 1; g.spott = null; }
+    // Regeneration (Feuer stoppt sie)
+    for (const g of gegnerLebend(S)) {
+      const r = GEGNER[g.art].regeneration;
+      if (!r || g.feuer > 0 || g.hp >= g.max || !lebend(S).length) continue;
+      beginn(); const x = Math.min(gdmg(S, r), g.max - g.hp); g.hp += x;
+      log.push(`${g.name} regeneriert: +${x} Leben.`);
+      ende({ von: g.id, a: "regen" });
+    }
+    for (const g of S.gegner) { if (g.starr > 0) g.starr -= 1; if (g.markiert > 0) g.markiert -= 1; if (g.feuer > 0) g.feuer -= 1; g.spott = null; }
     k.nebel = false; k.frost = 0; k.bollwerk = false;
     S.log = log;
     S.letzte = { id: `${S.spielNr}:${S.raumNr}:${k.runde}`, runde: k.runde, titel: S.seite ? S.seite.titel : "", start, ev };
@@ -1122,8 +1290,9 @@
 
     if (gegnerLebend(S).length && lebend(S).length) planeGegner(S);
     if (!gegnerLebend(S).length) kampfGewonnen(S);
-    else if (!lebend(S).length) { S.phase = "ende"; S.ergebnis = "niederlage"; S.seite = { bild: "grab", titel: "Ihr seid gefallen", text: ["Die Dunkelheit schließt sich über euch. Der Knochenkönig bekommt neue Knochen für seine Sammlung."] }; S.kampf = null; }
+    else if (!lebend(S).length) { S.phase = "ende"; S.ergebnis = "niederlage"; S.seite = { bild: "grab", titel: "Ihr seid gefallen", text: [ebeneVon(S).niederlage] }; S.kampf = null; }
   }
+  function setzeGift(h, n, runden, brand) { h.gift = n; h.giftR = runden; h.giftArt = brand ? "Brand" : "Gift"; }
   function treffer(S, p, n, log, von, g) {
     const h = S.helden[p], wer = heldName(S, p);
     if (h.immun) { log.push(von ? `${von} trifft ${wer}, doch der Schlag prallt ab.` : `${wer} bleibt unversehrt.`); return; }
@@ -1144,6 +1313,7 @@
   function erfahrung(S, ep) {
     const t = [];
     if (ep <= 0) return t;
+    ep = Math.round(ep * staerke(S).ep);
     t.push(`+${ep} Erfahrung für jeden.`);
     for (const p of S.teilnehmer) {
       const h = S.helden[p], vorher = h.stufe;
@@ -1157,20 +1327,29 @@
   }
 
   function kampfGewonnen(S) {
-    const boss = S.gegner.some(g => g.art === "koenig");
+    const boss = S.gegner.some(g => GEGNER[g.art].boss);
     const t = [];
     const ep = (S.kampf.epTot || 0) + S.gegner.filter(g => !g.gerufen && !g.geflohen).reduce((a, g) => a + (GEGNER[g.art].ep || 0), 0);
     S.kampf = null;
     for (const p of S.teilnehmer) {
-      const h = S.helden[p]; h.gift = 0; h.giftR = 0; h.segen = 0; h.lauer = false;
+      const h = S.helden[p]; h.gift = 0; h.giftR = 0; h.segen = 0; h.lauer = false; h.netz = 0;
       if (h.hp <= 0) { h.hp = 5; t.push(`${heldName(S, p)} kommt mit 5 Leben wieder zu sich.`); }
     }
     const sammeln = S.teilnehmer.reduce((a, p) => a + passiv(S.helden[p], "siegheil"), 0);
     if (sammeln) { for (const p of S.teilnehmer) heldHeilen(S, p, sammeln); t.push(`Ihr sammelt euch: alle +${sammeln} Leben.`); }
     if (boss) {
-      const g = goldFuerJeden(S, 40, 50);
-      S.phase = "ende"; S.ergebnis = "sieg";
-      S.seite = { bild: "krone", titel: "Der Knochenkönig ist besiegt!", text: ["Sein Thron zerfällt zu Staub. Unter den Trümmern: sein Schatz.", g].concat(t) };
+      const E = ebeneVon(S), g = goldFuerJeden(S, 40, 50);
+      if (S.ebene >= (S.ebenen || 1)) {
+        S.phase = "ende"; S.ergebnis = "sieg";
+        S.seite = { bild: "krone", titel: E.siegTitel, text: [E.siegText, g].concat(t) };
+        return;
+      }
+      // Lager zwischen zwei Ebenen: volle Heilung, Händler, dann geht es tiefer
+      const x = erfahrung(S, ep);
+      for (const p of S.teilnehmer) { const h = S.helden[p]; h.hp = h.max; h.cd = {}; }
+      S.ebeneFertig = true;
+      lagerOeffnen(S, false);
+      S.seite = { bild: "feuer", titel: E.siegTitel, text: [E.siegText, g].concat(x, t, ["Ihr schlagt ein Lager auf und schlaft euch aus: Alle sind voll geheilt. Der Händler ist euch gefolgt."]) };
       return;
     }
     const s = stufe(S.raumNr), elite = S.gegner.some(g => g.elite);
@@ -1253,11 +1432,17 @@
             ep: 0, stufe: 1, punkte: 0, talente: [],
             stats: { schaden: 0, geheilt: 0, umgefallen: 0 } };
         }
-        Object.assign(S, { raumNr: 0, gegner: [], kampf: null, lager: null, lagerBesucht: [], log: [], benutzt: [], ergebnis: null, gegnerNr: 0, letzte: null, spielNr: (S.spielNr || 0) + 1 });
+        Object.assign(S, { raumNr: 0, gegner: [], kampf: null, lager: null, lagerBesucht: [], log: [], benutzt: [], ergebnis: null, gegnerNr: 0, letzte: null, spielNr: (S.spielNr || 0) + 1,
+          ebene: 1, ebenen: S.laenge || 2, ebeneFertig: false });
         S.karte = karteErzeugen(S);
         S.phase = "erkunden";
-        S.seite = { bild: "eingang", titel: "Der Abstieg", text: [TEXTE.eingang[0]] };
+        S.seite = { bild: "eingang", titel: "Der Abstieg", text: [EBENEN[0].abstieg] };
         entscheiden(S, "weiter", "", [{ text: "Hinabsteigen" }]);
+        break;
+      }
+      case "laenge": {                     // Spielleiter: Partielänge (1 bis 3 Ebenen)
+        if (!istHost || !(S.phase === "lobby" || S.phase === "ende") || !LAENGEN[m.n]) return S0;
+        S.laenge = m.n;
         break;
       }
       case "stimme": {
@@ -1329,7 +1514,7 @@
     return S;
   }
 
-  window.VL = { EIGENSCHAFTEN, eigenschaften, knochenschild, RAEUME, REIHEN, RAUMNAME, SEGEN, UMVERTEILEN, sicht, MAX_HELDEN, LAGER_NACH, ROLLEN, ROLLEN_REIHE, AKTIONEN, NEUE, TRANK, GEGNER, EP_STUFEN, MAX_STUFE, STUFENBONUS,
+  window.VL = { zustand, BEFREIEN, EBENEN, LAENGEN, ebeneVon, EIGENSCHAFTEN, eigenschaften, knochenschild, RAEUME, REIHEN, RAUMNAME, SEGEN, UMVERTEILEN, sicht, MAX_HELDEN, LAGER_NACH, ROLLEN, ROLLEN_REIHE, AKTIONEN, NEUE, TRANK, GEGNER, EP_STUFEN, MAX_STUFE, STUFENBONUS,
     AESTE, TALENT, talenteVon, talentWaehlbar, hauptast, passiv, stufeBonus, trankMax, aktionZusatz,
     neu, aktion, aktionenVon, angebot, standardWahl, lebend, gegnerLebend, goldSumme, cdVon };
 })();

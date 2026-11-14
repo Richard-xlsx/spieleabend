@@ -8,7 +8,8 @@ Ohne Browser (nur Node.js):
   node simulation.js [Partien]       Alle 20 Dreiergruppen und drei Zweiergruppen, je „klug“ (Fähigkeiten, Einkaufen,
                                      Talente; jeder Held folgt einem zufälligen Ast) und „simpel“ (nur Grundangriff). Zeigt Siegquoten, Ø Stufe, Ø Gold, die Siegquote je Ast und wo verloren wird.
                                      Standard 300 Partien je Gruppe; für einen schnellen Blick 50 bis 100.
-  node rundenaufzeichnung.js         400 zufällige Partien: Ausgangslage + Ereignisse in S.letzte müssen genau das
+                                     Partielänge über EBENEN=1, 2 (Standard) oder 3, z. B. EBENEN=3 node simulation.js 20.
+  node rundenaufzeichnung.js         400 zufällige Partien (je ein Drittel beginnt in Ebene 1, 2 und 3): Ausgangslage + Ereignisse in S.letzte müssen genau das
                                      Rundenergebnis ergeben, jeder Gegner braucht eine angekündigte Absicht. Jeder Held bekommt 12 zufällige Talente,
                                      damit alle Fähigkeiten vorkommen. Erwartet: Fehler 0.
   node endgegner-runde-finden.js     Sucht eine Runde, in der der Knochenkönig Skelette ruft, und speichert sie (ruf.json).
@@ -26,7 +27,7 @@ Andere Adresse (z. B. die Live-Seite):  VERLIES_URL=https://richard-xlsx.github.
   node karte-ansicht.js              Zeichnet eine Karte mitten in einer Partie (karte-mitte.png) und die Elite-Gegner
                                      auf der Bühne (elite-buehne.png).
   node gegner-ansicht.js             Zeichnet die Kerker-Gegner auf der Bühne mit Eigenschaften, Absichten und Knochenschild
-                                     (gegner-1.png bis gegner-4.png) und als Seitenbilder (gegner-seiten.png).
+                                     aller drei Ebenen (gegner-1.png bis gegner-10.png) und als Seitenbilder (gegner-seiten.png).
   node zeichnungen.js                Zeichnet alle Bilder aus bilder.js auf eine Seite (bilder.png) zum Anschauen.
 
 Nach Änderungen an den Regeln: simulation.js und rundenaufzeichnung.js.

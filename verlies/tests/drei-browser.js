@@ -82,7 +82,7 @@ const OUT = path.join(AUS, (process.argv[3] || 'b') + '-');
   await h.waitForTimeout(1500);
   for (const p of pages) console.log(await p.evaluate(() => (document.querySelector('.etikett') || {}).textContent), '| Fehler:', JSON.stringify(p.errs));
   await h.screenshot({ path: OUT + '4-ende.png', fullPage: true });
-  const S = await h.evaluate(() => window.__vl.S); console.log('Ergebnis', S.ergebnis, 'Raum', S.raumNr, 'Gold', S.gold, 'Schleifen', schritte);
+  const S = await h.evaluate(() => window.__vl.S); console.log('Ergebnis', S.ergebnis, 'Ebene', S.ebene + '/' + S.ebenen, 'Raum', S.raumNr, 'Schleifen', schritte);
   const sync = await Promise.all(pages.map(p => p.evaluate(() => window.__vl.S.aenderung))); console.log('Gleicher Stand auf allen:', new Set(sync).size === 1);
   await b.close();
 })().catch(e => { console.error('ABBRUCH', e.message); process.exit(1); });
