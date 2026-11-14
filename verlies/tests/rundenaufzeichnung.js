@@ -7,11 +7,11 @@ const fs = require('fs'), vm = require('vm'); const ctx = { window: {}, console 
 vm.runInContext(fs.readFileSync(LOGIK, 'utf8'), ctx); const V = ctx.window.VL;
 let runden = 0, fehler = 0, arten = {}, ohneZiel = 0;
 for (let seed = 1; seed <= 400; seed++) {
-  const R = ['kaempfer', 'dieb', 'heilerin', 'magierin', 'waldlaeufer', 'paladin'].sort(() => Math.random() - .5).slice(0, 3);
+  const R = ['kaempfer', 'dieb', 'heilerin', 'magierin', 'waldlaeufer', 'paladin'].sort(() => Math.random() - .5).slice(0, 2 + seed % 3);   // 2 bis 4 Helden
   let S = V.neu('X', 'p0', 'A', seed * 977); const P = R.map((_, i) => 'p' + i);
-  for (let i = 1; i < 3; i++) S = V.aktion(S, P[i], { t: 'join', name: 'S' + i });
+  for (let i = 1; i < R.length; i++) S = V.aktion(S, P[i], { t: 'join', name: 'S' + i });
   P.forEach((p, i) => S = V.aktion(S, p, { t: 'rolle', rolle: R[i] }));
-  S = V.aktion(S, 'p0', { t: 'laenge', n: 3 }); S = V.aktion(S, 'p0', { t: 'start', mindestens: 1 });
+  S = V.aktion(S, 'p0', { t: 'laenge', n: 3 }); S = V.aktion(S, 'p0', { t: 'schwere', n: 1 + (seed >> 2) % 4 }); S = V.aktion(S, 'p0', { t: 'start', mindestens: 1 });
   // Ein Drittel der Partien beginnt in Ebene 2, eins in Ebene 3 (mit kräftigeren Helden), damit alle Gegner vorkommen
   const ab = 1 + seed % 3;
   if (ab > 1) { S.ebene = ab - 1; S.ebeneFertig = true; for (const p of S.teilnehmer) { const h = S.helden[p]; h.max += 30 * (ab - 1); h.hp = h.max; h.waffe = 2 * (ab - 1); h.ruestung = 2 * (ab - 1); } }

@@ -291,7 +291,7 @@
     return {
       gegner: S.gegner.map(g => ({ id: g.id, art: g.art, name: g.name, hp: g.hp, max: g.max, giftR: g.giftR, markiert: g.markiert, starr: g.starr, zustand: V.zustand(S, g) })),
       helden: S.teilnehmer.map(p => { const x = S.helden[p];
-        const m = [x.hp <= 0 ? "bewusstlos" : k.wahl[p] ? "✓ bereit" : !online(p) ? "nicht verbunden" : "", x.giftR > 0 && x.hp > 0 ? (x.giftArt === "Brand" ? "brennt" : "vergiftet") : "", x.netz && x.hp > 0 ? "im Netz" : "", x.lauer ? "lauert" : "", x.segen ? "gesegnet" : ""].filter(Boolean).join(" · ");
+        const m = [x.gefallen ? "gefallen" : x.hp <= 0 ? "bewusstlos" : k.wahl[p] ? "✓ bereit" : !online(p) ? "nicht verbunden" : "", x.giftR > 0 && x.hp > 0 ? (x.giftArt === "Brand" ? "brennt" : "vergiftet") : "", x.netz && x.hp > 0 ? "im Netz" : "", x.lauer ? "lauert" : "", x.segen ? "gesegnet" : ""].filter(Boolean).join(" · ");
         return { id: p, rolle: x.rolle, name: sp(p).name, hp: x.hp, max: x.max, marken: m }; }),
       absicht: k.absicht || {}, ebene: S.ebene || 1,
       zielModus: zielModus === "anderer" ? "held" : zielModus,
@@ -349,6 +349,16 @@
     return `<div class="karte"><h3>Partielänge</h3><div class="laengen">${[1, 2, 3].map(i => `<button class="laenge ${i === n ? "an" : ""}" data-laenge="${i}" ${host ? "" : "disabled"} aria-pressed="${i === n}"><b>${V.LAENGEN[i]}</b><small>${DAUER[i]}</small></button>`).join("")}</div>
       <p class="leise klein">${V.EBENEN.slice(0, n).map(e => esc(e.name)).join(" → ")}${host ? "" : ` · wählt ${esc(sp(S.host).name)}`}</p></div>`;
   }
+  // Schwierigkeit: ebenso vom Spielleiter gewählt
+  function schwereHtml(host) {
+    const n = S.schwere || 2, W = V.SCHWERE[n];
+    const text = { 1: `Gegner schwächer, mehr Gold, die Rast heilt ${Math.round(V.SCHWERE[1].rast * 100)} %. Bewusstlose stehen nach dem Kampf mit halben Leben auf.`,
+      2: "So wie bisher. Bewusstlose stehen nach dem Kampf mit 5 Leben auf.",
+      3: `Gegner zäher und stärker, weniger Gold, mehr Elite-Räume, die Rast heilt nur ${Math.round(V.SCHWERE[3].rast * 100)} %.`,
+      4: "Noch härter als Held. Wer am Ende eines Kampfes bewusstlos ist, ist gefallen und schaut für den Rest der Partie zu." };
+    return `<div class="karte"><h3>Schwierigkeit</h3><div class="laengen vier">${[1, 2, 3, 4].map(i => `<button class="laenge ${i === n ? "an" : ""}" data-schwere="${i}" ${host ? "" : "disabled"} aria-pressed="${i === n}"><b>${V.SCHWERE[i].name}</b><small>${esc(V.SCHWERE[i].kurz)}</small></button>`).join("")}</div>
+      <p class="leise klein">${esc(W.name)}: ${text[n]}${host ? "" : ` · wählt ${esc(sp(S.host).name)}`}</p></div>`;
+  }
   function bildschirmLobby() {
     const host = rolle === "host";
     const leute = S.reihenfolge.filter(p => S.spieler[p] && (online(p) || p === PID));
@@ -358,9 +368,10 @@
     return `<header class="titel"><p class="etikett">Verlies · Raumcode</p><div class="code">${esc(code)}</div></header>
       ${qr ? `<div class="qr">${qr}</div>` : ""}
       <div class="reihe"><button class="knopf zweit" id="teilen">Link teilen</button><button class="knopf zweit" id="kopieren">Link kopieren</button></div>
-      <div class="karte"><h2>Wähle deine Rolle</h2><p class="leise klein">Sechs Rollen, drei gehen hinab. Jede Rolle kann beim Händler zwei weitere Fähigkeiten lernen.</p>${rollenKarten()}
-        ${ohneRolle.length ? `<p class="leise klein">Noch ohne Rolle: ${ohneRolle.map(p => esc(sp(p).name)).join(", ")}${leute.length > 3 ? ". Wer keine Rolle hat, schaut zu." : ""}</p>` : ""}</div>
+      <div class="karte"><h2>Wähle deine Rolle</h2><p class="leise klein">Sechs Rollen, zwei bis vier gehen hinab. Jede Rolle kann beim Händler zwei weitere Fähigkeiten lernen.</p>${rollenKarten()}
+        ${ohneRolle.length ? `<p class="leise klein">Noch ohne Rolle: ${ohneRolle.map(p => esc(sp(p).name)).join(", ")}${leute.length > V.MAX_HELDEN ? ". Wer keine Rolle hat, schaut zu." : ""}</p>` : ""}</div>
       ${laengeHtml(host)}
+      ${schwereHtml(host)}
       <div class="karte"><h3>So geht's</h3><p class="leise klein">Auf der Karte stimmt ihr ab, welchen Raum ihr als Nächstes nehmt. Im Kampf wählt jeder in Ruhe seinen Zug, ausgeführt wird, wenn alle gewählt haben. Heilende Fähigkeiten holen Bewusstlose zurück. Beim Händler kauft jeder mit seinem eigenen Gold, Talentpunkte gibt es mit jeder Stufe. Am Ende jeder Ebene wartet ein Endgegner, danach ein Lager mit voller Heilung. Wenn alle fallen, ist das Spiel verloren.</p></div>
       ${host ? `<div class="unten"><button class="knopf" id="start" ${startbereit() ? "" : "disabled"}>${startbereit() ? "Abstieg beginnen" : "Mindestens 2 brauchen eine Rolle …"}</button></div>`
         : `<p class="leise mitte">Warte, bis ${esc(sp(S.host).name)} das Spiel startet.</p>`}
@@ -370,7 +381,7 @@
   // eine Zeile je Held; im Kampf mit Zustandsmarken und als Ziel antippbar
   function heldZeile(p, imKampf, ziel) {
     const x = S.helden[p], k = S.kampf;
-    const marken = imKampf ? [x.hp <= 0 ? `<span class="marke">bewusstlos</span>` : "", x.giftR > 0 && x.hp > 0 ? `<span class="marke gift">${x.giftArt === "Brand" ? "brennt" : "vergiftet"}</span>` : "", x.netz && x.hp > 0 ? `<span class="marke">im Netz</span>` : "",
+    const marken = x.gefallen ? `<span class="marke">gefallen, schaut zu</span>` : imKampf ? [x.hp <= 0 ? `<span class="marke">bewusstlos</span>` : "", x.giftR > 0 && x.hp > 0 ? `<span class="marke gift">${x.giftArt === "Brand" ? "brennt" : "vergiftet"}</span>` : "", x.netz && x.hp > 0 ? `<span class="marke">im Netz</span>` : "",
       x.lauer ? `<span class="marke schatten">lauert</span>` : "", x.segen ? `<span class="marke">gesegnet</span>` : "",
       k && k.wahl[p] ? `<span class="marke ok">bereit</span>` : ""].join("") : "";
     const ast = V.hauptast(x);
@@ -519,11 +530,11 @@
 
   function bildschirmEnde() {
     const sieg = S.ergebnis === "sieg";
-    return `<p class="etikett mitte">${sieg ? "Sieg" : "Niederlage"} · ${(S.ebenen || 1) > 1 ? `Ebene ${S.ebene} von ${S.ebenen}, ` : ""}Raum ${S.raumNr} von ${V.RAEUME}</p>${buchseite(S.seite)}${karteAufklappen()}
+    return `<p class="etikett mitte">${sieg ? "Sieg" : "Niederlage"} · ${(S.ebenen || 1) > 1 ? `Ebene ${S.ebene} von ${S.ebenen}, ` : ""}Raum ${S.raumNr} von ${V.RAEUME} · ${V.SCHWERE[S.schwere || 2].name}</p>${buchseite(S.seite)}${karteAufklappen()}
       <div class="karte"><h2>Die Helden</h2>
         <table class="werte"><tr><th>Held</th><th>Schaden</th><th>Geheilt</th><th>K.&nbsp;o.</th><th>Gold</th></tr>
         ${S.teilnehmer.map(p => { const x = S.helden[p]; return `<tr><td>${esc(sp(p).name)}<br><span class="leise klein">${V.ROLLEN[x.rolle].name} · Stufe ${x.stufe}</span></td><td>${x.stats.schaden}</td><td>${x.stats.geheilt}</td><td>${x.stats.umgefallen}</td><td>${x.gold}</td></tr>`; }).join("")}</table></div>
-      ${rolle === "host" ? laengeHtml(true) : ""}
+      ${rolle === "host" ? laengeHtml(true) + schwereHtml(true) : ""}
       ${rolle === "host" ? `<div class="unten"><button class="knopf" id="nochmal">Nochmal hinab</button><button class="knopf zweit" id="lobby">Rollen neu wählen</button></div>` : `<p class="leise mitte">${esc(sp(S.host).name)} kann eine neue Runde starten.</p>`}
       <button class="link" id="verlassen">Raum verlassen</button>`;
   }
@@ -547,6 +558,7 @@
     if ($("start")) $("start").onclick = starten;
     if ($("nochmal")) $("nochmal").onclick = starten;
     if ($("lobby")) $("lobby").onclick = () => tun({ t: "neustart" });
+    document.querySelectorAll("[data-schwere]").forEach(b => b.onclick = () => tun({ t: "schwere", n: +b.dataset.schwere }));
     document.querySelectorAll("[data-laenge]").forEach(b => b.onclick = () => tun({ t: "laenge", n: +b.dataset.laenge }));
     if ($("verlassen")) $("verlassen").onclick = verlassen;
     document.querySelectorAll("[data-stimme]").forEach(b => {

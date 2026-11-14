@@ -243,8 +243,8 @@
   // ---------- Aufstellung ----------
   function aufstellung(gegner, helden) {
     const pos = {};
-    const n = helden.length, hx = n === 1 ? [200] : n === 2 ? [125, 275] : [78, 200, 322], hy = n === 3 ? [430, 440, 430] : [436, 436, 436];
-    helden.forEach((p, i) => { pos[p] = { x: hx[i], y: hy[i], s: 1, held: true }; });
+    const n = helden.length, hx = n === 1 ? [200] : n === 2 ? [125, 275] : n === 3 ? [78, 200, 322] : [52, 149, 251, 348], hy = n === 3 ? [430, 440, 430] : n === 4 ? [432, 440, 440, 432] : [436, 436, 436];
+    helden.forEach((p, i) => { pos[p] = { x: hx[i], y: hy[i], s: n >= 4 ? .78 : 1, w: n >= 4 ? 94 : 108, held: true }; });
     const c = gegner.length;
     const plaetze = c === 1 ? [200] : c === 2 ? [112, 288] : c === 3 ? [200, 72, 328] : [148, 252, 52, 348];
     const skala = c <= 2 ? 1 : c === 3 ? .8 : .66;
@@ -277,7 +277,7 @@
     }
     for (const h of daten.helden) {
       const p = pos[h.id], weg = h.hp <= 0;
-      s += `<g class="vl-einheit" id="vl-e-${h.id}" style="transform:translate(${p.x}px,${p.y}px)"><g class="vl-fig" id="vl-f-${h.id}" ${weg ? 'style="transform:rotate(-80deg) translate(10px,10px);opacity:.45"' : ""}><g class="vl-atmen ${p.x > 200 ? "c" : p.x < 200 ? "" : "b"}">${HELD[h.rolle] || ""}</g></g></g>`;
+      s += `<g class="vl-einheit" id="vl-e-${h.id}" style="transform:translate(${p.x}px,${p.y}px)"><g class="vl-fig" id="vl-f-${h.id}" ${weg ? 'style="transform:rotate(-80deg) translate(10px,10px);opacity:.45"' : ""}><g class="vl-atmen ${p.x > 200 ? "c" : p.x < 200 ? "" : "b"}"><g style="transform:scale(${p.s})">${HELD[h.rolle] || ""}</g></g></g></g>`;
     }
     // Plaketten, Absichten, Ziele
     for (const g of daten.gegner) {
@@ -297,7 +297,7 @@
           <text x="${p.x}" y="${y - 10}" text-anchor="middle" font-family="Inter,system-ui" font-weight="700" font-size="10.5" fill="#1C1A33"${txt.length * 6.6 + 16 > bw ? ` textLength="${bw - 14}" lengthAdjust="spacingAndGlyphs"` : ""}>${esc(txt)}</text></g>`;
       }
     }
-    for (const h of daten.helden) { const p = pos[h.id]; s += plakette(h.id, p.x - 54, p.y + 10, 108, h.name, h.hp, h.max, h.marken); }
+    for (const h of daten.helden) { const p = pos[h.id]; s += plakette(h.id, p.x - p.w / 2, p.y + 10, p.w, h.name, h.hp, h.max, h.marken); }
     if (daten.zielModus === "gegner") for (const g of daten.gegner) if (g.hp > 0) {
       const p = pos[g.id], hoehe = (GEG[g.art] ? GEG[g.art].h : 80) * p.s;
       s += `<ellipse class="vl-ring" cx="${p.x}" cy="${p.y}" rx="${44 * p.s + 10}" ry="${12 * p.s + 4}" fill="none" stroke="#FFD447" stroke-width="3"/>

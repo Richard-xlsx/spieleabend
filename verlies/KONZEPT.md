@@ -280,6 +280,16 @@ Nach jedem Schritt: Simulation aller Rollenkombinationen für die Balance und ei
   (Leben ×2,8/×3,4, Schaden ×1,9/×2,2); Erfahrung ×2/×2,8, Gold ×1,4/×1,8. Netz: Der Held kann in der nächsten Runde nur
   „Befreien“ wählen (Feuer befreit nicht). Schleim teilt sich einmal. Die Spinnenmutter heißt jetzt Brutmutter.
   Händler: Waffe bis +6, Rüstung bis −5, Elixier bis 5×. Zu zweit bleibt Dieb+Waldläufer sehr schwer (Schritt 6).
+- **Schritt 6 fertig** (14.11.2026): Schwierigkeit Wanderer/Abenteurer/Held/Legende in der Lobby (Spielleiter wählt,
+  Standard Abenteurer), dazu **2 bis 4 Spieler**. Werte wie in Abschnitt 7 (Gegner-Leben, -Schaden, Gold, Rast), Held und
+  Legende mit fast doppelt so vielen Elite-Räumen. Wanderer: Bewusstlose stehen mit halben Leben auf. Legende: Wer am Ende
+  eines Kampfes bewusstlos ist, ist gefallen und schaut zu (stimmt aber weiter mit ab); im Kampf kann man ihn noch
+  zurückholen. Abweichung: „Gegner kündigen nur das Ziel an“ entfällt, weil die Ankündigung nie die Stärke zeigt.
+  Gruppengröße: zu zweit Gegner-Leben ×0,55 (Endgegner ×0,47) und Schaden ×0,8, zu viert Leben ×1,65 und Schaden ×1,15.
+  Gefundene Fehler: Meisterfähigkeiten ließen sich (an der Oberfläche vorbei) jede Runde wählen; Regeneration und
+  Beschwörungen konnten Kämpfe endlos machen. Jetzt: Regeneration lässt Runde für Runde nach, je Kampf höchstens
+  8 gerufene Gegner. Simulation (Dreiergruppen, Normal): Wanderer 100 %, Abenteurer 87 %, Held 61 %, Legende 26 %;
+  Abenteurer zu zweit 84 %, zu viert 93 %; Dieb+Waldläufer zu zweit 52 %. Flüche und Ruhm folgen später.
 
 ## 11. Entscheidungen (14.11.2026)
 
