@@ -27,6 +27,7 @@
   // Kampfbühne: jede ausgewertete Runde (S.letzte) wird einmal abgespielt. Beim ersten Stand nach dem Laden nicht,
   // damit nach Neuladen nichts doppelt läuft.
   let gespielt = null, wiedergabe = false, ueberspringen = false;
+  let karteOffen = false;
   let tonAn = ls.get("vl:ton") !== false, schnell = !!ls.get("vl:schnell");
 
   const hostId = ep => PREFIX + code + "-" + ep;
@@ -179,9 +180,36 @@
   }
   function fortschritt() {
     let h = "";
-    const hier = S.entscheidung && S.entscheidung.art === "tuer" ? S.raumNr + 1 : S.raumNr;
+    const hier = S.entscheidung && S.entscheidung.art === "karte" ? S.raumNr + 1 : S.raumNr;
     for (let i = 1; i <= V.RAEUME; i++) h += `<i class="${i < hier ? "da" : i === hier ? "hier" : ""} ${i === V.RAEUME ? "boss" : ""}"></i>`;
-    return `<div class="kopf"><div class="fortschritt" aria-label="Raum ${S.raumNr} von ${V.RAEUME}">${h}</div><span class="gold">${mitspieler() ? ich().gold + " Gold" : V.goldSumme(S) + " Gold gesamt"}</span></div>`;
+    const sl = S.karte && S.karte.schluessel ? `<span class="marke schluessel">${S.karte.schluessel === 1 ? "1 Schlüssel" : S.karte.schluessel + " Schlüssel"}</span>` : "";
+    return `<div class="kopf"><div class="fortschritt" aria-label="Raum ${S.raumNr} von ${V.RAEUME}">${h}</div>${sl}<span class="gold">${mitspieler() ? ich().gold + " Gold" : V.goldSumme(S) + " Gold gesamt"}</span></div>`;
+  }
+  // Karte: zum Abstimmen groß, sonst zum Aufklappen
+  const namen = () => Object.fromEntries(S.teilnehmer.map(p => [p, sp(p).name]));
+  function karteAufklappen() {
+    if (!S.karte) return "";
+    return `<details class="kartenklapp" id="kartenklapp" ${karteOffen ? "open" : ""}><summary>Karte ansehen</summary><div class="seite kartenblatt">${VKarte.svg(S, { namen: namen() })}${VKarte.legende()}</div></details>`;
+  }
+  function bildschirmKarte() {
+    const e = S.entscheidung, meine = e.stimmen[PID];
+    const offen = S.teilnehmer.filter(p => e.stimmen[p] === undefined);
+    const kuerzel = p => sp(p).name.slice(0, 2);
+    const stimmen = {};
+    e.optionen.forEach((o, i) => { const w = S.teilnehmer.filter(p => e.stimmen[p] === i).map(kuerzel); if (w.length) stimmen[o.knoten] = (stimmen[o.knoten] || []).concat(w); });
+    let h = fortschritt();
+    h += `<article class="seite kartenblatt"><h2>${esc(S.seite.titel)}</h2><p>${esc(S.seite.text[0])}</p>
+      ${VKarte.svg(S, { optionen: e.optionen.map((o, i) => ({ knoten: o.knoten, i, gesperrt: o.gesperrt, geheim: o.geheim })), meine, stimmen, klickbar: mitspieler(), namen: namen() })}
+      ${VKarte.legende()}</article>`;
+    h += `<h2>${esc(e.frage)}</h2><p class="leise klein">Tippe auf der Karte auf einen Raum mit rotem Ring oder wähle hier.${V.sicht(S) > 2 ? " Dank eures Spähers seht ihr drei Reihen weit." : ""}</p>
+      <div class="optionen">${e.optionen.map((o, i) => {
+        const wer = S.teilnehmer.filter(p => e.stimmen[p] === i).map(p => esc(sp(p).name));
+        return `<button class="option ${meine === i ? "meins" : ""} ${o.gesperrt ? "gesperrt" : ""}" data-stimme="${i}" ${mitspieler() && !o.gesperrt ? "" : "disabled"}><b>${esc(o.text)}</b>${o.hinweis ? `<i>${esc(o.hinweis)}</i>` : ""}<span class="stimmen">${wer.join(", ")}</span></button>`;
+      }).join("")}</div>
+      <p class="leise klein mitte">${offen.length ? "Warte auf: " + offen.map(p => esc(sp(p).name)).join(", ") : ""}${e.optionen.length > 1 ? " · Bei Gleichstand entscheidet das Los." : ""}</p>
+      ${rolle === "host" && offen.length && Object.keys(e.stimmen).length ? `<button class="link" id="beenden">Nicht warten, jetzt entscheiden</button>` : ""}`;
+    h += faehigkeitenKnopf() + `<h3>Gruppe</h3>${heldenLeiste(false, false)}`;
+    return h;
   }
   function buchseite(seite) {
     if (!seite) return "";
@@ -349,6 +377,7 @@
 
   function bildschirmErkunden() {
     const e = S.entscheidung;
+    if (e && e.art === "karte" && S.karte) return bildschirmKarte();
     let h = fortschritt() + buchseite(S.seite);
     if (e) {
       const meine = e.stimmen[PID];
@@ -360,7 +389,7 @@
       <p class="leise klein mitte">${offen.length ? "Warte auf: " + offen.map(p => esc(sp(p).name)).join(", ") : ""}${e.optionen.length > 1 ? " · Bei Gleichstand entscheidet das Los." : ""}</p>
       ${rolle === "host" && offen.length && Object.keys(e.stimmen).length ? `<button class="link" id="beenden">Nicht warten, jetzt entscheiden</button>` : ""}`;
     }
-    h += faehigkeitenKnopf() + `<h3>Gruppe</h3>${heldenLeiste(false, false)}`;
+    h += faehigkeitenKnopf() + karteAufklappen() + `<h3>Gruppe</h3>${heldenLeiste(false, false)}`;
     return h;
   }
 
@@ -420,7 +449,15 @@
           <b>${esc(mitRang(h, a))}</b><span class="preis rang">${pips}</span>
           <small>${esc(a.text)}${rangZusatz(h, a)}${voll ? (r >= V.MAX_RANG ? " · höchster Rang" : "") : ` · Nächster Rang: ${esc(next)}`}</small></button>`;
       }).join("")}</div>
+      ${amSchrein() ? umverteilenHtml(h) : ""}
       <div class="unten"><button class="knopf" id="zurueck-f">Zurück</button></div>`;
+  }
+  const amSchrein = () => S.phase === "erkunden" && S.entscheidung && S.entscheidung.art === "schrein";
+  function umverteilenHtml(h) {
+    const vergeben = Object.values(h.rang).reduce((a, r) => a + r - 1, 0);
+    return `<div class="karte"><h2>Am Schrein</h2><p class="leise klein">Alle Ränge zurück auf I, du bekommst deine ${vergeben} vergebenen Punkte zurück und verteilst sie neu.</p>
+      <button class="knopf zweit" id="umverteilen" ${vergeben && h.gold >= V.UMVERTEILEN ? "" : "disabled"}>Punkte neu verteilen (${V.UMVERTEILEN} Gold)</button>
+      ${!vergeben ? `<p class="leise klein">Du hast noch keine Punkte vergeben.</p>` : h.gold < V.UMVERTEILEN ? `<p class="leise klein">Du hast nicht genug Gold.</p>` : ""}</div>`;
   }
 
   function bildschirmLager() {
@@ -437,7 +474,7 @@
         <p class="leise klein mitte">${offen.length ? "Noch beim Händler: " + offen.map(p => esc(sp(p).name)).join(", ") : ""}</p>
         ${rolle === "host" && offen.length && offen.length < S.teilnehmer.length ? `<button class="link" id="beenden">Nicht warten, weiterziehen</button>` : ""}</div>`;
     } else h += `<p class="leise mitte">Die Helden kaufen ein. Noch beim Händler: ${offen.map(p => esc(sp(p).name)).join(", ")}</p>`;
-    h += faehigkeitenKnopf();
+    h += faehigkeitenKnopf() + karteAufklappen();
     if (L.kaeufe.length) h += `<p class="kaeufe">${L.kaeufe.slice(-6).map(k => `${esc(sp(k.pid).name)}: ${esc(k.name)}`).join(" · ")}</p>`;
     h += `<h3>Gruppe</h3>${heldenLeiste(false, null)}`;
     return h;
@@ -445,7 +482,7 @@
 
   function bildschirmEnde() {
     const sieg = S.ergebnis === "sieg";
-    return `<p class="etikett mitte">${sieg ? "Sieg" : "Niederlage"} · Raum ${S.raumNr} von ${V.RAEUME}</p>${buchseite(S.seite)}
+    return `<p class="etikett mitte">${sieg ? "Sieg" : "Niederlage"} · Raum ${S.raumNr} von ${V.RAEUME}</p>${buchseite(S.seite)}${karteAufklappen()}
       <div class="karte"><h2>Die Helden</h2>
         <table class="werte"><tr><th>Held</th><th>Schaden</th><th>Geheilt</th><th>K.&nbsp;o.</th><th>Gold</th></tr>
         ${S.teilnehmer.map(p => { const x = S.helden[p]; return `<tr><td>${esc(sp(p).name)}<br><span class="leise klein">${V.ROLLEN[x.rolle].name} · Stufe ${x.stufe}</span></td><td>${x.stats.schaden}</td><td>${x.stats.geheilt}</td><td>${x.stats.umgefallen}</td><td>${x.gold}</td></tr>`; }).join("")}</table></div>
@@ -473,12 +510,17 @@
     if ($("nochmal")) $("nochmal").onclick = starten;
     if ($("lobby")) $("lobby").onclick = () => tun({ t: "neustart" });
     if ($("verlassen")) $("verlassen").onclick = verlassen;
-    document.querySelectorAll("[data-stimme]").forEach(b => b.onclick = () => tun({ t: "stimme", i: +b.dataset.stimme, nr: S.spielNr }));
+    document.querySelectorAll("[data-stimme]").forEach(b => {
+      b.onclick = () => tun({ t: "stimme", i: +b.dataset.stimme, nr: S.spielNr });
+      if (b.tagName !== "BUTTON") b.onkeydown = ev => { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); b.onclick(); } };
+    });
     if ($("beenden")) $("beenden").onclick = () => tun({ t: "beenden" });
     document.querySelectorAll("[data-kauf]").forEach(b => b.onclick = () => tun({ t: "kaufen", id: b.dataset.kauf, nr: S.spielNr }));
     if ($("faehigkeiten")) $("faehigkeiten").onclick = () => { zeigeFaehigkeiten = true; letzteSig = ""; window.scrollTo(0, 0); render(); };
     if ($("zurueck-f")) $("zurueck-f").onclick = () => { zeigeFaehigkeiten = false; letzteSig = ""; window.scrollTo(0, 0); render(); };
     document.querySelectorAll("[data-verbessern]").forEach(b => b.onclick = () => tun({ t: "verbessern", id: b.dataset.verbessern, nr: S.spielNr }));
+    if ($("kartenklapp")) $("kartenklapp").ontoggle = e => { karteOffen = e.target.open; };
+    if ($("umverteilen")) $("umverteilen").onclick = () => tun({ t: "umverteilen", nr: S.spielNr });
     if ($("fertig")) $("fertig").onclick = () => tun({ t: "fertig", wert: !S.lager.fertig[PID], nr: S.spielNr });
     if ($("auto")) $("auto").onclick = () => tun({ t: "auto" });
     // Kampf

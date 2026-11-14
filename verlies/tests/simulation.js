@@ -21,7 +21,7 @@ function waehle(S,p,klug){
   if(h.rolle==='dieb'&&hat('verstecken')&&h.hp<h.max*0.5) return {a:'verstecken'};
   return {a:V.AKTIONEN[h.rolle][0].id, ziel:g.sort((a,b)=>a.hp-b.hp)[0].id};
 }
-const STATS={stufe:0,n:0,raenge:0};
+const STATS={stufe:0,n:0,raenge:0,raeume:{},elite:0,kammer:0,spiele:0};
 function punkte(S,klug){
   if(!klug) return S;
   for(const p of S.teilnehmer){ for(let n=0;n<10;n++){ const h=S.helden[p]; if(h.punkte<1)break;
@@ -46,8 +46,12 @@ function spiel(seed, rollen, klug){
   S=V.aktion(S,'p0',{t:'start',mindestens:1}); if(S.phase!=='erkunden') throw new Error('Start');
   let schritte=0, lager=0, gold=0;
   while(S.phase!=='ende' && schritte++<3000){
-    if(S.phase==='erkunden'){ S=punkte(S,klug); const e=S.entscheidung; for(const p of S.teilnehmer){ let i=Math.floor(Math.random()*e.optionen.length);
-        if(e.art==='tuer'&&klug){const ok=e.optionen.findIndex(o=>o.typ==='rast'); const q=S.teilnehmer.reduce((a,x)=>a+S.helden[x].hp/S.helden[x].max,0)/S.teilnehmer.length; if(ok>=0&&q<0.6)i=ok;}
+    if(S.phase==='erkunden'){ S=punkte(S,klug); const e=S.entscheidung; const q=S.teilnehmer.reduce((a,x)=>a+S.helden[x].hp/S.helden[x].max,0)/S.teilnehmer.length;
+      const frei=e.optionen.map((o,i)=>i).filter(i=>!e.optionen[i].gesperrt);
+      for(const p of S.teilnehmer){ let i=frei[Math.floor(Math.random()*frei.length)];
+        if(e.art==='karte'&&klug){ const ohne=frei.filter(j=>!e.optionen[j].geheim); i=ohne[Math.floor(Math.random()*ohne.length)]; const f=t=>ohne.find(j=>e.optionen[j].typ===t);
+          if(f('kammer')!==undefined)i=f('kammer'); else if(q<0.6&&f('rast')!==undefined)i=f('rast'); else if(V.goldSumme(S)/S.teilnehmer.length>=45&&f('haendler')!==undefined)i=f('haendler'); }
+        if(e.art==='rast'&&klug) i=q<0.75?0:1;
         if(e.art==='truhe')i=0; S=V.aktion(S,p,{t:'stimme',i,nr:S.spielNr}); if(S.entscheidung!==e && !(S.entscheidung&&S.entscheidung.stimmen[p]!==undefined)) break; } }
     else if(S.phase==='lager'){ lager++; gold+=V.goldSumme(S)/S.teilnehmer.length; for(const p of S.teilnehmer) { if(S.phase!=='lager')break; S=einkaufen(S,p,klug);} }
     else if(S.phase==='kampf'){ const r=S.kampf.runde;
@@ -58,6 +62,7 @@ function spiel(seed, rollen, klug){
     for(const g of S.gegner) if(isNaN(g.hp)||g.hp>g.max||g.hp<0) throw new Error('Gegner kaputt '+JSON.stringify(g));
   }
   if(S.phase!=='ende') throw new Error('endet nicht');
+  if(klug){ STATS.spiele++; for(const id of S.karte.weg){ const t=S.karte.knoten[id].typ; STATS.raeume[t]=(STATS.raeume[t]||0)+1; } }
   if(klug){ for(const p of S.teilnehmer){ STATS.stufe+=S.helden[p].stufe; STATS.n++; STATS.raenge+=Object.values(S.helden[p].rang).reduce((a,b)=>a+b-1,0);} }
   return {sieg:S.ergebnis==='sieg', lager, goldVorLager:gold/Math.max(1,lager)};
 }
@@ -67,6 +72,7 @@ const N=+process.argv[2]||300; const zeilen=[];
 for(const t of trios){ let sk=0,ss=0,lg=0,gl=0; for(let i=1;i<=N;i++){ const r=spiel(i*7919+t.join().length,t,true); if(r.sieg)sk++; lg+=r.lager; gl+=r.goldVorLager; if(spiel(i*104729,t,false).sieg)ss++; }
   zeilen.push([t.join('+'),Math.round(100*sk/N),Math.round(100*ss/N),(lg/N).toFixed(1),Math.round(gl/N)]); }
 zeilen.sort((a,b)=>b[1]-a[1]); for(const z of zeilen) console.log(z[0].padEnd(30),'klug',String(z[1]).padStart(3)+'%','simpel',String(z[2]).padStart(3)+'%','Lager',z[3],'Ø Gold je Lager',z[4]);
+console.log('Räume je Partie (klug):', Object.entries(STATS.raeume).map(([t,n])=>t+' '+(n/STATS.spiele).toFixed(2)).join(', '));
 console.log('Ø Stufe am Ende', (STATS.stufe/STATS.n).toFixed(1), 'Ø verbesserte Ränge', (STATS.raenge/STATS.n).toFixed(1));
 const k=zeilen.map(z=>z[1]); console.log('klug: min',Math.min(...k),'max',Math.max(...k),'Schnitt',Math.round(k.reduce((a,b)=>a+b)/k.length));
 const s2=zeilen.map(z=>z[2]); console.log('simpel Schnitt',Math.round(s2.reduce((a,b)=>a+b)/s2.length));

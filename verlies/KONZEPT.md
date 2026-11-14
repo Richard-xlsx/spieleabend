@@ -253,6 +253,15 @@ Nach jedem Schritt: Simulation aller Rollenkombinationen für die Balance und ei
 
 ---
 
+### Stand der Umsetzung
+
+- **Schritt 1 fertig** (14.11.2026): Kampfbühne, angekündigte Gegnerzüge.
+- **Schritt 2 fertig** (14.11.2026): Karte. Abweichungen vom Plan oben: 7 Reihen statt 6 (damit es wie bisher 8 Räume
+  bis zum Endgegner sind und die Balance passt); vor dem Thronsaal kommt immer noch einmal der Händler; die Rast ist eine
+  Gruppenentscheidung (Ausruhen oder Üben); den Geheimgang gibt es ab Raum 1. Die drei Elite-Gegner (Ork-Häuptling,
+  Knochenwächter, Spinnenmutter) sind Platzhalter, bis Schritt 4 die richtigen Gegner-Eigenschaften bringt.
+  Schlüssel gibt es bei Elite-Gegnern, selten auch als Fundstück in unbekannten Räumen.
+
 ## 11. Entscheidungen (14.11.2026)
 
 1. **Partielänge:** Eine Partie soll an **einem Abend** fertig werden. Standard ist „Normal“ (2 Ebenen, etwa 1 Stunde),

@@ -74,6 +74,27 @@ button:focus-visible,input:focus-visible,a:focus-visible{outline:3px solid var(-
 
 /* Buchseite */
 .seite{background:var(--pergament);color:var(--tinte);border-radius:6px 18px 18px 6px;padding:16px 18px 18px;box-shadow:inset 6px 0 0 var(--pergament2),0 6px 0 rgba(0,0,0,.25);display:flex;flex-direction:column;gap:8px;font:1.06rem/1.5 var(--buch)}
+.kartenblatt{padding:14px 10px 12px;border-radius:12px}
+.kartenblatt h2,.kartenblatt>p{padding:0 8px}
+.karte-svg{width:100%;height:auto;display:block;touch-action:manipulation}
+.k-raum.besucht{opacity:.5}
+.k-raum[data-stimme]{cursor:pointer}
+.k-raum[data-stimme]:focus{outline:none}
+.k-raum[data-stimme]:focus .k-ring{stroke-width:4}
+.k-puls{transform-box:fill-box;transform-origin:center;animation:kpuls 1.8s ease-in-out infinite}
+@keyframes kpuls{50%{transform:scale(1.18);opacity:.25}}
+.k-weg{animation:kweg 1.2s linear infinite}
+@keyframes kweg{to{stroke-dashoffset:-22}}
+@media (prefers-reduced-motion:reduce){.k-puls,.k-weg{animation:none}}
+.legende{display:flex;flex-wrap:wrap;gap:4px 12px;justify-content:center;font:.8rem/1.3 var(--buch);color:var(--tinte);padding:4px 6px 0}
+.legende span{display:inline-flex;align-items:center;gap:4px}
+.legende svg{width:18px;height:18px}
+.kartenklapp>summary{cursor:pointer;color:var(--leise);font-size:.92rem;padding:6px 0;list-style:none;text-align:center}
+.kartenklapp>summary::-webkit-details-marker{display:none}
+.kartenklapp>summary::before{content:"▸ "}
+.kartenklapp[open]>summary::before{content:"▾ "}
+.option.gesperrt{opacity:.55}
+.marke.schluessel{background:#E8C24A;color:#2A2118}
 .seite svg.bild{width:100%;height:auto;max-height:170px;display:block}
 .seite h2{font-family:var(--buch);font-weight:700;font-size:1.35rem;color:var(--tinte)}
 .seite p{margin:0}
@@ -184,6 +205,7 @@ button:focus-visible,input:focus-visible,a:focus-visible{outline:3px solid var(-
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <script src="bilder.js"></script>
 <script src="buehne.js"></script>
+<script src="karte.js"></script>
 <script src="verlies-logic.js"></script>
 <script src="verlies.js"></script>
 </body>

@@ -75,7 +75,11 @@
       <path d="M-20 -124l4-18 8 10 8-14 8 14 8-10 4 18z" ${F("#E8C24A")}/><circle cx="0" cy="-132" r="3" fill="#B83A2A"/>
       <g class="waffe"><path d="M44 -10v-110" ${L(5, "#D9CDB6")}/><circle cx="44" cy="-124" r="10" ${F("#EDE4D0")}/><circle cx="40" cy="-126" r="2.5" fill="${T}"/><circle cx="48" cy="-126" r="2.5" fill="${T}"/></g>` }
   };
-  const GROESSE = { koenig: 5, ork: 4, skelett: 3, schamane: 2, goblin: 2, spinne: 2, ratte: 1 };
+  // Elite: Zeichnung des Grundgegners plus Kennzeichen (Krone, Helm, Sanduhr), etwas größer
+  GEG.orkhaeuptling = { h: 156, svg: `<g transform="scale(1.08)">${GEG.ork.svg}<path d="M-18 -138l2-16 8 9 8-14 8 14 8-9 2 16z" ${F("#C99A2E")}/><circle cx="0" cy="-142" r="2.5" fill="#B83A2A"/></g>` };
+  GEG.knochenwaechter = { h: 138, svg: `<g transform="scale(1.1)">${GEG.skelett.svg}<path d="M-19 -106q0-26 19-26 19 0 19 26z" ${F("#8A8F99")}/><path d="M0 -132q6-14 18-12" ${L(4, "#B83A2A")}/><path d="M-30 -82l12-6 4 10-12 6zM30 -82l-12-6-4 10 12 6z" ${F("#8A8F99", 2)}/></g>` };
+  GEG.spinnenmutter = { h: 96, svg: `<g transform="scale(1.35)">${GEG.spinne.svg}<path d="M-5 -38h10l-5 7zM-5 -24h10l-5-7z" fill="#E23B2E"/></g>` };
+  const GROESSE = { koenig: 5, orkhaeuptling: 4.5, ork: 4, knochenwaechter: 3.5, skelett: 3, spinnenmutter: 3, schamane: 2, goblin: 2, spinne: 2, ratte: 1 };
   const kurzName = n => { const k = n.replace("Goblin-", "").replace("Höhlen", "").replace(/^Der /, ""); return k.charAt(0).toUpperCase() + k.slice(1); };
 
   // ---------- Hintergrund ----------
@@ -120,8 +124,10 @@
   const farbeBalken = q => q <= .3 ? "#FF6B57" : q <= .6 ? "#FFD447" : "#5BD69A";
   function plakette(id, x, y, w, name, hp, max, marken) {
     const q = Math.max(0, hp / max);
+    // langer Name auf schmalem Schild: zusammendrücken, damit die Lebenszahl frei bleibt
+    const platz = w - 14 - (String(max).length * 2 + 1) * 5.8 - 6, eng = name.length * 6.8 > platz ? ` textLength="${Math.round(platz)}" lengthAdjust="spacingAndGlyphs"` : "";
     return `<g id="vl-pl-${id}" class="vl-plakette"><rect x="${x}" y="${y}" width="${w}" height="${marken ? 46 : 34}" rx="8" fill="#1C1A33" opacity=".88" stroke="#3D3868"/>
-      <text x="${x + 7}" y="${y + 14}" font-family="Inter,system-ui" font-weight="700" font-size="11" fill="#F3F0FF">${esc(name)}</text>
+      <text x="${x + 7}" y="${y + 14}" font-family="Inter,system-ui" font-weight="700" font-size="11" fill="#F3F0FF"${eng}>${esc(name)}</text>
       <text id="vl-z-${id}" x="${x + w - 7}" y="${y + 14}" text-anchor="end" font-family="Inter,system-ui" font-size="10" fill="#A8A2CC">${Math.max(0, hp)}/${max}</text>
       <rect x="${x + 7}" y="${y + 21}" width="${w - 14}" height="6" rx="3" fill="#0E0C18"/>
       <rect id="vl-b-${id}" x="${x + 7}" y="${y + 21}" width="${w - 14}" height="6" rx="3" fill="${farbeBalken(q)}" style="transform-box:fill-box;transform-origin:0 50%;transform:scaleX(${q})"/>
@@ -146,7 +152,7 @@
       s += `<g ${g.hp <= 0 ? 'opacity=".25"' : ""}>${plakette(g.id, p.x - w / 2, y, w, kurzName(g.name), g.hp, g.max, marken)}</g>`;
       const a = daten.absicht && daten.absicht[g.id];
       if (a && g.hp > 0) {
-        const txt = a.a === "beben" ? "⟁ Beben → alle" : a.a === "heilen" ? `✚ → ${kurzName((daten.gegner.find(x => x.id === a.ziel) || { name: "?" }).name)}` : `⚔ → ${(daten.helden.find(x => x.id === a.ziel) || { name: "?" }).name}`;
+        const txt = a.a === "beben" ? `⟁ ${a.name || "Beben"} → alle` : a.a === "heilen" ? `✚ → ${kurzName((daten.gegner.find(x => x.id === a.ziel) || { name: "?" }).name)}` : `⚔ → ${(daten.helden.find(x => x.id === a.ziel) || { name: "?" }).name}`;
         const bw = Math.min(w + 6, txt.length * 6.6 + 16);
         s += `<g id="vl-ab-${g.id}" class="vl-absicht"><rect x="${p.x - bw / 2}" y="${y - 24}" width="${bw}" height="20" rx="10" fill="#FFD447" stroke="${T}" stroke-width="2"/>
           <text x="${p.x}" y="${y - 10}" text-anchor="middle" font-family="Inter,system-ui" font-weight="700" font-size="10.5" fill="#1C1A33">${esc(txt)}</text></g>`;
@@ -477,7 +483,7 @@
       if (e.a === "daneben") { await wort(ziel, "daneben", "#F3F0FF"); }
       else {
         const prallt = !opfer.length;
-        sfx(prallt ? "schutz" : "treffer"); if (!prallt) { bebenBild(art === "ork" || art === "koenig" ? 7 : 4); blitz(e.a === "biss" ? "#8BD14A" : "#E23B2E", .18); }
+        sfx(prallt ? "schutz" : "treffer"); if (!prallt) { bebenBild(art === "ork" || art === "koenig" || art === "orkhaeuptling" ? 7 : 4); blitz(e.a === "biss" ? "#8BD14A" : "#E23B2E", .18); }
         if (e.a === "biss") partikel(M(ziel).x, M(ziel).y, "#8BD14A", 10, 50, 30, 600);
         if (prallt) wort(ziel, "abgeprallt", "#9EC5FF");
         await folgen(e);

@@ -17,11 +17,13 @@ Vorher im Ordner spieleabend einen Webserver starten:  python3 -m http.server 87
 Andere Adresse (z. B. die Live-Seite):  VERLIES_URL=https://richard-xlsx.github.io/spieleabend node ...
   node drei-browser.js [rolle1,rolle2,rolle3] [kürzel]
                                      Drei getrennte Browser im iPhone-Format spielen eine ganze Partie: Rollenwahl,
-                                     Türen, Händler, Fähigkeiten verbessern, Kämpfe mit Wiedergabe. Dazwischen lädt eine
+                                     Abstimmung auf der Karte, Händler, Fähigkeiten verbessern, Kämpfe mit Wiedergabe. Dazwischen lädt eine
                                      Mitspielerin (Raum 3) und der Spielleiter (Raum 5) neu. Am Ende: Fehler [] und
                                      „Gleicher Stand auf allen: true“. Bilder: kürzel-1-lobby.png usw.
   node endgegner-runde-abspielen.js  Spielt die gespeicherte Endgegner-Runde auf der Kampfbühne ab (vorher …-finden.js).
   node vorschau-kampf.js             Prüft verlies/vorschau-kampf.html (beide Runden, Überspringen, alle Einzeleffekte).
+  node karte-ansicht.js              Zeichnet eine Karte mitten in einer Partie (karte-mitte.png) und die drei Elite-Gegner
+                                     auf der Bühne (elite-buehne.png).
   node zeichnungen.js                Zeichnet alle Bilder aus bilder.js auf eine Seite (bilder.png) zum Anschauen.
 
 Nach Änderungen an den Regeln: simulation.js und rundenaufzeichnung.js.

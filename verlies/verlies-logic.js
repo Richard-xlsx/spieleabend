@@ -1,11 +1,13 @@
 // Verlies zu dritt: Spielregeln ohne Netzwerk und ohne Oberfläche.
 // Der ganze Spielstand steckt in S (wird nach jeder Änderung an alle geschickt). Zufall kommt aus S.rng,
 // damit ein übernehmender Spielleiter genau dort weitermacht, wo der alte aufgehört hat.
-// Ablauf: Lobby (Rolle wählen, 6 Rollen, höchstens 3 Helden) → 7 Räume (vor jedem Raum Abstimmung über zwei Türen)
-// → Endgegner in Raum 8. Nach Raum 2, 4 und 7 schlägt ein Händler sein Lager auf; jeder kauft mit seinem eigenen Gold.
+// Ablauf: Lobby (Rolle wählen, 6 Rollen, höchstens 3 Helden) → Karte mit 7 Reihen; vor jedem Raum stimmt die Gruppe
+// auf der Karte ab, wohin es geht → Endgegner in Reihe 8. Händler stehen als Räume auf der Karte, vor dem Thronsaal
+// schlägt der Händler immer noch einmal sein Lager auf. Jeder kauft mit seinem eigenen Gold.
 (function () {
-  const RAEUME = 8;
-  const LAGER_NACH = [2, 4, 7];
+  const RAEUME = 8;                   // 7 Reihen Räume + Thronsaal
+  const REIHEN = RAEUME - 1;
+  const LAGER_NACH = [REIHEN];
   const MAX_HELDEN = 3;
   const kopie = x => JSON.parse(JSON.stringify(x));
 
@@ -150,8 +152,16 @@
     skelett: { name: "Skelett", hp: 30, dmg: [5, 7], ep: 15 },
     schamane: { name: "Goblin-Schamane", hp: 20, dmg: [3, 4], heiler: true, ep: 14 },
     ork: { name: "Ork", hp: 48, dmg: [7, 9], ep: 22 },
-    koenig: { name: "Der Knochenkönig", hp: 260, dmg: [9, 13], boss: true, ep: 0 }
+    koenig: { name: "Der Knochenkönig", hp: 260, dmg: [9, 13], boss: true, ep: 0 },
+    // Elite: ein starker Gegner mit Begleiter und Flächenangriff (jede 3. Runde, angekündigt), trägt einen Schlüssel
+    orkhaeuptling: { name: "Ork-Häuptling", bild: "ork", hp: 70, dmg: [8, 10], ep: 40, elite: true, begleiter: "goblin",
+      wucht: { n: 5, name: "Rundumschlag", text: "Der Ork-Häuptling wirbelt seine Axt im Kreis!" } },
+    knochenwaechter: { name: "Knochenwächter", bild: "skelett", hp: 58, dmg: [6, 8], ep: 36, elite: true, begleiter: "ratte",
+      wucht: { n: 4, name: "Knochensturm", text: "Der Knochenwächter zerbirst fast: Splitter fliegen durch den Raum!" } },
+    spinnenmutter: { name: "Spinnenmutter", bild: "spinne", hp: 50, dmg: [4, 6], gift: true, ep: 34, elite: true, begleiter: "spinne",
+      wucht: { n: 3, name: "Giftregen", text: "Die Spinnenmutter speit einen Regen aus Gift!", gift: true } }
   };
+  const ELITEN = ["orkhaeuptling", "knochenwaechter", "spinnenmutter"];
   const GRUPPEN = [
     [["ratte", "ratte"], ["goblin", "ratte"], ["spinne", "ratte"]],
     [["skelett", "goblin"], ["spinne", "spinne"], ["ork"], ["goblin", "goblin", "ratte"]],
@@ -160,27 +170,30 @@
   const stufe = nr => (nr <= 3 ? 0 : nr <= 5 ? 1 : 2);
   function gegnerErzeugen(S, art) {
     // zu zweit schwächer; je tiefer, desto zäher (Helden steigen ja auch auf)
-    const g = GEGNER[art], f = (S.teilnehmer.length === 2 ? 0.55 : 1) * (g.boss ? 1 : 1 + 0.06 * Math.max(0, S.raumNr - 1));
+    const g = GEGNER[art], f = (S.teilnehmer.length === 2 ? 0.55 : 1) * (g.boss ? 1 : 1 + 0.06 * Math.max(0, S.raumNr - 1)) * (1 + (S.karte ? S.karte.fluch || 0 : 0));
     const hp = Math.max(4, Math.round(g.hp * f));
     S.gegnerNr = (S.gegnerNr || 0) + 1;
-    return { id: "g" + S.gegnerNr, art, name: g.name, hp, max: hp, gift: 0, giftR: 0, starr: 0, markiert: 0 };
+    return Object.assign({ id: "g" + S.gegnerNr, art, name: g.name, hp, max: hp, gift: 0, giftR: 0, starr: 0, markiert: 0 }, g.elite ? { elite: true } : {});
   }
 
   // ---------- Räume ----------
-  const TUERTYPEN = [["kampf", 50], ["schatz", 15], ["rast", 13], ["ereignis", 22]];
   const TUERBILD = {
     kampf: ["Kratzspuren am Holz, dahinter Knurren", "Frische Spuren im Staub", "Waffengeklirr hinter der Tür", "Ein fauliger Geruch"],
     schatz: ["Ein goldener Schimmer unter der Tür", "Ein Schloss mit Edelsteinbesatz", "Es klimpert leise"],
     rast: ["Warme Luft und Holzrauch", "Leises Wasserplätschern", "Eine Tür mit eingeritzter Sonne"],
-    ereignis: ["Seltsame Zeichen am Türrahmen", "Eine Stimme flüstert", "Die Tür ist halb offen, Licht flackert"]
+    ereignis: ["Seltsame Zeichen am Türrahmen", "Eine Stimme flüstert", "Die Tür ist halb offen, Licht flackert"],
+    haendler: ["Eine Laterne und das Knarren eines Karrens", "Jemand pfeift ein Händlerlied"],
+    schrein: ["Grünliches Leuchten aus einer Nische", "Ein Steinkreis summt leise"],
+    boss: ["Ein Tor aus schwarzem Eisen. Dahinter: der Thronsaal."]
   };
   const TEXTE = {
     eingang: ["Feuchte Stufen führen hinab. Hinter euch fällt das Gitter ins Schloss. Irgendwo tief unten sitzt der Knochenkönig auf seinem Thron, und er erwartet keine Gäste."],
     kampf: ["Kaum seid ihr drin, rührt sich etwas in der Dunkelheit.", "Knochen knirschen unter euren Stiefeln. Ihr seid nicht allein.",
       "Eine Fackel flammt auf und zeigt, wer hier wohnt.", "Ein Hinterhalt! Sie haben auf euch gewartet."],
     schatz: ["Mitten im Raum steht eine schwere, beschlagene Truhe.", "In einer Nische wartet eine staubige Truhe. Das Schloss ist alt, aber kunstvoll."],
-    rast: ["Ein stiller Raum mit einer kalten Feuerstelle. Ihr macht Feuer, verbindet eure Wunden und atmet durch.",
+    rast: ["Ein stiller Raum mit einer kalten Feuerstelle. Ihr macht Feuer und atmet durch.",
       "Eine Quelle sprudelt aus dem Fels. Das Wasser ist klar und kalt. Für einen Moment ist es ruhig."],
+    karte: ["Auf einem Fass liegt ein vergilbter Plan des Kerkers, gezeichnet von einem verschollenen Abenteurer. Die oberen Gänge sind gut zu erkennen, weiter unten ist die Tinte verblasst."],
     boss: ["Ein Thronsaal aus Gebeinen. Grünes Licht flackert in leeren Augenhöhlen. Der Knochenkönig erhebt sich: „Noch mehr Knochen für meine Sammlung.“"],
     lager: ["Zwischen zwei Gängen brennt eine Laterne. Ein Händler mit Kapuze hat seinen Karren abgestellt: „Klingen, Rüstung, Tränke. Und ein paar Kniffe, die man nicht in Büchern findet.“",
       "Der Kapuzenhändler wartet schon. „Ihr lebt noch? Gut fürs Geschäft.“",
@@ -193,6 +206,95 @@
     altar: { titel: "Ein Altar mit Inschrift", text: "„Gib Gold, und das Leben wird stärker.“ Eine Schale wartet.", optionen: ["Jeder opfert 15 Gold", "Nichts geben"] },
     bruecke: { titel: "Eine wackelige Brücke", text: "Unter euch nur Dunkelheit. Die Seile ächzen.", optionen: ["Vorsichtig hinübertasten", "Hinüberrennen"] }
   };
+
+  const SEGEN = {
+    leben: { name: "Segen des Lebens", text: "Jeder bekommt +6 Höchstleben." },
+    klinge: { name: "Segen der Klinge", text: "Jeder macht +1 Schaden mit allen Angriffen." },
+    quelle: { name: "Segen der Quelle", text: "Alle sind voll geheilt, jeder bekommt einen Trank." },
+    wissen: { name: "Segen des Wissens", text: "Jeder bekommt 20 Erfahrung." },
+    blut: { name: "Blutpakt (Fluch)", text: "Jeder verliert ein Drittel seiner Leben und bekommt dafür 30 Gold." },
+    gier: { name: "Gier (Fluch)", text: "Jeder bekommt 40 Gold, aber alle Gegner dieser Ebene haben 12 % mehr Leben, auch der Endgegner." }
+  };
+  const UMVERTEILEN = 10;   // Gold für neu verteilte Fähigkeitspunkte am Schrein
+
+  // ---------- Karte ----------
+  // 7 Reihen mit 2 bis 4 Räumen, Wege ohne Kreuzungen. Erzeugt aus S.rng, also für alle gleich.
+  const RAUMNAME = { kampf: "Kampf", elite: "Elite", schatz: "Truhe", rast: "Rast", haendler: "Händler", schrein: "Schrein", ereignis: "Unbekannt", kammer: "Schatzkammer", boss: "Thronsaal", eingang: "Eingang" };
+  const KARTENTYPEN = {
+    erste: [["kampf", 55], ["ereignis", 25], ["schatz", 20]],
+    mitte: [["kampf", 40], ["elite", 11], ["ereignis", 18], ["schatz", 8], ["rast", 11], ["haendler", 7], ["schrein", 5]],
+    letzte: [["kampf", 50], ["rast", 25], ["ereignis", 25]]
+  };
+  function gewichtet(S, l) { let r = zufall(S) * l.reduce((a, x) => a + x[1], 0); for (const [x, w] of l) { if (r < w) return x; r -= w; } return l[0][0]; }
+  function karteErzeugen(S) {
+    const K = { knoten: {}, pos: "e", weg: ["e"], geheimgang: false, schluessel: 0, fluch: 0 };
+    K.knoten.e = { id: "e", r: 0, x: 0.5, typ: "eingang", nach: [] };
+    const reihen = [["e"]];
+    for (let r = 1; r <= REIHEN; r++) {
+      const n = r === 1 ? 3 : r === REIHEN ? wurf(S, 2, 3) : wurf(S, 2, 4), ids = [];
+      const l = r === 1 ? KARTENTYPEN.erste : r === REIHEN ? KARTENTYPEN.letzte : KARTENTYPEN.mitte.filter(([t]) => r >= 3 || (t !== "elite" && t !== "schrein"));
+      for (let i = 0; i < n; i++) {
+        const id = `r${r}n${i}`;
+        K.knoten[id] = { id, r, x: Math.round(((i + 0.5) / n + (zufall(S) - 0.5) * 0.06) * 1000) / 1000, typ: gewichtet(S, l), nach: [] };
+        ids.push(id);
+      }
+      reihen.push(ids);
+    }
+    K.knoten.b = { id: "b", r: REIHEN + 1, x: 0.5, typ: "boss", nach: [] };
+    reihen.push(["b"]);
+    // Wege: Raum i der oberen Reihe führt zu einem zusammenhängenden Stück der unteren Reihe. Die Stücke überdecken
+    // die ganze Reihe und überlappen höchstens an den Rändern, so kreuzen sich keine Wege.
+    for (let r = 0; r < reihen.length - 1; r++) {
+      const A = reihen[r], B = reihen[r + 1], n = A.length, m = B.length, lo = [], hi = [];
+      for (let i = 0; i < n; i++) { lo.push(Math.floor(i * m / n)); hi.push(Math.ceil((i + 1) * m / n) - 1); }
+      for (let i = 0; i < n; i++) {
+        if (hi[i] + 1 < m && (i === n - 1 || hi[i] + 1 <= lo[i + 1]) && chance(S, 0.3)) hi[i] += 1;
+        if (lo[i] > 0 && (i === 0 || lo[i] - 1 >= hi[i - 1]) && chance(S, 0.3)) lo[i] -= 1;
+      }
+      for (let i = 0; i < n; i++) for (let j = lo[i]; j <= hi[i]; j++) K.knoten[A[i]].nach.push(B[j]);
+    }
+    const inReihen = (a, b) => reihen.slice(a, b + 1).flat().map(id => K.knoten[id]);
+    const sorge = (a, b, typ) => {
+      const l = inReihen(a, b);
+      if (l.some(k => k.typ === typ)) return;
+      const c = l.filter(k => k.typ === "kampf"), z = c.length ? eins(S, c) : eins(S, l.filter(k => k.typ !== "haendler" && k.typ !== "elite"));
+      if (z) z.typ = typ;
+    };
+    sorge(2, 3, "haendler"); sorge(4, 6, "haendler"); sorge(3, 4, "elite"); sorge(3, 6, "schrein");
+    // Schatzkammer: ein Raum in Reihe 5 oder 6, an dem jeder Weg auch vorbeiführt (jeder Vorgänger hat noch einen anderen Ausgang)
+    const eltern = id => Object.values(K.knoten).filter(k => k.nach.includes(id));
+    const kand = inReihen(5, 6).filter(k => k.typ !== "haendler" && k.typ !== "elite" && k.typ !== "schrein" && eltern(k.id).every(e => e.nach.length >= 2));
+    if (kand.length) eins(S, kand).typ = "kammer";
+    for (const k of Object.values(K.knoten)) if (k.typ === "elite") k.elite = eins(S, ELITEN);
+    return K;
+  }
+  // Wie weit die Gruppe auf der Karte sieht: 2 Reihen, mit Waldläufer oder Dieb 3
+  const sicht = S => (S.teilnehmer.some(p => S.helden[p].rolle === "waldlaeufer" || S.helden[p].rolle === "dieb") ? 3 : 2);
+  const geheimgangMoeglich = S => !S.karte.geheimgang && S.teilnehmer.some(p => S.helden[p].rolle === "dieb" && S.helden[p].hp > 0);
+  function raumOption(S, k, geheim) {
+    const o = { knoten: k.id, typ: k.typ, text: (geheim ? "Geheimgang: " : "") + RAUMNAME[k.typ] };
+    if (k.typ === "boss") { o.text = "Tor zum Thronsaal aufstoßen"; o.hinweis = TUERBILD.boss[0]; }
+    else if (k.typ === "elite") { o.text += ": " + GEGNER[k.elite].name; o.hinweis = "Stark, dafür doppelte Erfahrung, Beute und ein Schlüssel."; }
+    else if (k.typ === "kammer") {
+      o.gesperrt = S.karte.schluessel < 1;
+      o.hinweis = o.gesperrt ? "Verschlossen. Elite-Gegner tragen Schlüssel." : "Ihr habt einen Schlüssel. Dahinter wartet ein Schatz.";
+    } else o.hinweis = eins(S, TUERBILD[k.typ] || TUERBILD.ereignis);
+    if (geheim) { o.geheim = true; o.hinweis = "Der Dieb kennt einen Weg, der eine Reihe überspringt (einmal pro Ebene). " + o.hinweis; }
+    return o;
+  }
+  function karteZeigen(S) {
+    const K = S.karte, hier = K.knoten[K.pos];
+    S.phase = "erkunden";
+    const opt = hier.nach.map(id => raumOption(S, K.knoten[id], false));
+    if (hier.r >= 1 && hier.r + 2 <= REIHEN && geheimgangMoeglich(S)) {
+      let zwei = [...new Set(hier.nach.flatMap(id => K.knoten[id].nach))].filter(id => K.knoten[id].typ !== "kammer");
+      while (zwei.length > 2) zwei.splice(Math.floor(zufall(S) * zwei.length), 1);
+      opt.push(...zwei.map(id => raumOption(S, K.knoten[id], true)));
+    }
+    opt.sort((a, b) => (a.gesperrt ? 1 : 0) - (b.gesperrt ? 1 : 0));
+    S.seite = { bild: "tueren", titel: hier.r ? `Nach Raum ${hier.r}` : "Die Karte", text: [hier.r ? "Der Plan zeigt die nächsten Gänge. Wohin jetzt?" : TEXTE.karte[0]] };
+    entscheiden(S, "karte", hier.nach[0] === "b" ? "Bereit für den Endkampf?" : "Wohin geht ihr?", opt);
+  }
 
   // ---------- Neues Spiel ----------
   function neu(code, hostPid, hostName, seed) {
@@ -225,67 +327,103 @@
     S.entscheidung = Object.assign({ art, frage, optionen, stimmen: {} }, extra || {});
   }
   const EREIGNISSE_FREI = S => Object.keys(EREIGNISSE).filter(e => !S.benutzt.includes(e));
-  function tuerenZeigen(S) {
-    const nr = S.raumNr + 1;
-    S.phase = "erkunden";
-    if (nr >= RAEUME) {
-      S.seite = { bild: "boss-tuer", titel: "Das große Tor", text: ["Vor euch ragt ein Tor aus schwarzem Eisen auf. Dahinter: der Thronsaal."] };
-      entscheiden(S, "tuer", "Bereit für den Endkampf?", [{ text: "Tor aufstoßen", typ: "boss" }]);
-      return;
-    }
-    const typen = [];
-    while (typen.length < 2) {
-      let r = zufall(S) * 100, t = "kampf";
-      for (const [x, w] of TUERTYPEN) { if (r < w) { t = x; break; } r -= w; }
-      if (t === "ereignis" && !EREIGNISSE_FREI(S).length) t = "kampf";
-      if (typen.includes(t) && t !== "kampf") continue;
-      if (typen.length === 1 && t === typen[0] && t === "kampf" && chance(S, 0.5)) continue;
-      typen.push(t);
-    }
-    S.seite = { bild: "tueren", titel: `Raum ${nr} von ${RAEUME}`, text: ["Zwei Türen. Was liegt dahinter?"] };
-    entscheiden(S, "tuer", "Welche Tür?", typen.map((t, i) => ({ text: (i ? "Rechte" : "Linke") + " Tür", hinweis: eins(S, TUERBILD[t]), typ: t })));
-  }
   function weiterziehen(S) {
     S.log = [];
-    if (LAGER_NACH.includes(S.raumNr) && !(S.lagerBesucht || []).includes(S.raumNr)) lagerOeffnen(S);
-    else tuerenZeigen(S);
+    if (S.raumNr === REIHEN && !(S.lagerBesucht || []).includes(REIHEN)) lagerOeffnen(S, true);
+    else karteZeigen(S);
   }
-  function lagerOeffnen(S) {
-    S.lagerBesucht = (S.lagerBesucht || []).concat(S.raumNr);
-    const i = LAGER_NACH.indexOf(S.raumNr);
+  function lagerOeffnen(S, vorDemTor) {
+    if (vorDemTor) S.lagerBesucht = (S.lagerBesucht || []).concat(S.raumNr);
     S.phase = "lager";
     S.entscheidung = null;
     S.lager = { fertig: {}, kaeufe: [] };
-    S.seite = { bild: "haendler", titel: "Das Händlerlager", text: [TEXTE.lager[Math.max(0, i)]] };
+    S.seite = vorDemTor ? { bild: "haendler", titel: "Vor dem großen Tor", text: [TEXTE.lager[2]] }
+      : { bild: "haendler", titel: `Raum ${S.raumNr}: Der Händler`, text: [eins(S, TEXTE.lager.slice(0, 2))] };
   }
 
-  function raumBetreten(S, typ) {
-    S.raumNr += 1;
+  function kampfRaum(S, gruppe, titel, text) {
+    S.seite = { bild: GEGNER[gruppe[0]].bild || gruppe[0], titel, text: [text] };
+    kampfStarten(S, gruppe);
+  }
+  function raumBetreten(S, kid, geheim) {
+    const K = S.karte, k = K.knoten[kid], typ = k.typ, n = k.r;
+    if (geheim) K.geheimgang = true;
+    K.pos = kid; K.weg.push(kid);
+    S.raumNr = n;
     S.log = [];
     if (typ === "boss") {
       S.seite = { bild: "koenig", titel: "Der Thronsaal", text: [TEXTE.boss[0]] };
       kampfStarten(S, ["koenig"]);
     } else if (typ === "kampf") {
-      const gruppe = eins(S, GRUPPEN[stufe(S.raumNr)]);
-      S.seite = { bild: gruppe[0], titel: `Raum ${S.raumNr}`, text: [eins(S, TEXTE.kampf)] };
-      kampfStarten(S, gruppe);
+      kampfRaum(S, eins(S, GRUPPEN[stufe(n)]), `Raum ${n}`, eins(S, TEXTE.kampf));
+    } else if (typ === "elite") {
+      const e = GEGNER[k.elite];
+      kampfRaum(S, [k.elite, e.begleiter], `Raum ${n}: ${e.name}`, `${e.name} versperrt den Weg. Am Gürtel baumelt ein schwerer Schlüssel.`);
     } else if (typ === "schatz") {
-      S.seite = { bild: "truhe", titel: `Raum ${S.raumNr}: Eine Truhe`, text: [eins(S, TEXTE.schatz)] };
+      S.seite = { bild: "truhe", titel: `Raum ${n}: Eine Truhe`, text: [eins(S, TEXTE.schatz)] };
       entscheiden(S, "truhe", "Öffnen?", [{ text: "Truhe öffnen" }, { text: "Liegen lassen" }]);
     } else if (typ === "rast") {
-      const log = [eins(S, TEXTE.rast)];
-      for (const p of S.teilnehmer) { const h = S.helden[p]; heldHeilen(S, p, Math.ceil(h.max * 0.4)); h.cd = {}; }
-      log.push("Alle erholen sich um 40 % ihrer Leben. Alle Fähigkeiten sind wieder bereit.");
-      S.seite = { bild: "feuer", titel: `Raum ${S.raumNr}: Rast`, text: log };
+      S.seite = { bild: "feuer", titel: `Raum ${n}: Rast`, text: [eins(S, TEXTE.rast)] };
+      entscheiden(S, "rast", "Wie nutzt ihr die Rast?", [
+        { text: "Ausruhen", hinweis: "Alle heilen 40 % ihrer Leben, alle Fähigkeiten sind wieder bereit." },
+        { text: "Üben", hinweis: "Jeder bekommt 1 Fähigkeitspunkt, aber niemand heilt." }]);
+    } else if (typ === "haendler") {
+      lagerOeffnen(S, false);
+    } else if (typ === "schrein") {
+      const l = Object.keys(SEGEN), wahl = [];
+      while (wahl.length < 2) { const x = eins(S, l); if (!wahl.includes(x)) wahl.push(x); }
+      S.seite = { bild: "schrein", titel: `Raum ${n}: Ein Schrein`, text: ["In einer Nische glimmt ein uralter Schrein. Wer hier betet, bekommt etwas, aber nicht immer umsonst.",
+        `Solange ihr hier seid, kann jeder unter „Fähigkeiten“ seine Punkte für ${UMVERTEILEN} Gold neu verteilen.`] };
+      entscheiden(S, "schrein", "Was erbittet ihr?", wahl.map(id => ({ text: SEGEN[id].name, hinweis: SEGEN[id].text, segen: id }))
+        .concat([{ text: "Nichts nehmen", hinweis: "Ihr verneigt euch und geht weiter." }]));
+    } else if (typ === "kammer") {
+      K.schluessel -= 1;
+      const t = ["Der Schlüssel dreht sich schwer im Schloss. Dahinter stapeln sich Gold, Waffen und Tränke.", goldFuerJeden(S, 26, 34)];
+      for (const p of S.teilnehmer) {
+        const h = S.helden[p];
+        if (h.waffe < MAX.waffe && (h.ruestung >= MAX.ruestung || chance(S, 0.55))) { h.waffe += 1; t.push(`${heldName(S, p)} nimmt eine bessere Waffe: +1 Schaden.`); }
+        else if (h.ruestung < MAX.ruestung) { h.ruestung += 1; t.push(`${heldName(S, p)} nimmt ein Rüstungsteil: −1 Schaden pro Treffer.`); }
+        else { h.max += 6; h.hp += 6; t.push(`${heldName(S, p)} findet ein Amulett: +6 Höchstleben.`); }
+        if (h.traenke < MAX.traenke) h.traenke += 1;
+      }
+      t.push("Jeder steckt einen Heiltrank ein (soweit Platz ist).", ...erfahrung(S, 15));
+      S.seite = { bild: "truhe", titel: `Raum ${n}: Die Schatzkammer`, text: t };
       entscheiden(S, "weiter", "", [{ text: "Weiterziehen" }]);
     } else {
-      const frei = EREIGNISSE_FREI(S), id = eins(S, frei);
-      S.benutzt.push(id);
-      const e = EREIGNISSE[id];
-      S.seite = { bild: id, titel: `Raum ${S.raumNr}: ${e.titel}`, text: [e.text] };
-      entscheiden(S, "ereignis", "Was tut ihr?", e.optionen.map(t => ({ text: t })), { id });
+      // Unbekannt: Hinterhalt, Fundstück oder eines der Ereignisse
+      const frei = EREIGNISSE_FREI(S), r = zufall(S);
+      if (r < 0.22 || !frei.length) kampfRaum(S, eins(S, GRUPPEN[stufe(n)]), `Raum ${n}: Ein Hinterhalt!`, "Kaum seid ihr drin, fällt hinter euch ein Gitter herab. Aus den Schatten kommen sie.");
+      else if (r < 0.32) {
+        const t = ["Zwischen alten Knochen liegt ein Lederbeutel.", goldFuerJeden(S, 6, 10)];
+        if (!K.schluessel && Object.values(K.knoten).some(x => x.typ === "kammer" && x.r > n)) { K.schluessel += 1; t.push("Darin: ein schwerer, alter Schlüssel."); }
+        t.push(...erfahrung(S, 8));
+        S.seite = { bild: "truhe", titel: `Raum ${n}: Ein Fundstück`, text: t };
+        entscheiden(S, "weiter", "", [{ text: "Weiterziehen" }]);
+      } else {
+        const id = eins(S, frei);
+        S.benutzt.push(id);
+        const e = EREIGNISSE[id];
+        S.seite = { bild: id, titel: `Raum ${n}: ${e.titel}`, text: [e.text] };
+        entscheiden(S, "ereignis", "Was tut ihr?", e.optionen.map(t => ({ text: t })), { id });
+      }
     }
-    S.phase = S.kampf ? "kampf" : "erkunden";
+    if (S.phase !== "lager") S.phase = S.kampf ? "kampf" : "erkunden";
+  }
+
+  function segenAusfuehren(S, id) {
+    const t = [];
+    for (const p of S.teilnehmer) {
+      const h = S.helden[p];
+      if (id === "leben") { h.max += 6; h.hp += 6; }
+      else if (id === "klinge") h.waffe += 1;
+      else if (id === "quelle") { h.hp = h.max; if (h.traenke < MAX.traenke) h.traenke += 1; }
+      else if (id === "blut") { h.hp = Math.max(1, h.hp - Math.ceil(h.hp / 3)); h.gold += 30; }
+      else if (id === "gier") h.gold += 40;
+    }
+    if (id === "gier") S.karte.fluch = (S.karte.fluch || 0) + 0.12;
+    t.push(`${SEGEN[id].name}: ${SEGEN[id].text}`);
+    if (id === "wissen") t.push(...erfahrung(S, 20));
+    return t;
   }
 
   function ereignisAusfuehren(S, id, wahl) {
@@ -359,6 +497,7 @@
     for (const g of gegnerLebend(S)) {
       const art = GEGNER[g.art];
       if (art.boss && k.runde % 3 === 0) { a[g.id] = { a: "beben" }; continue; }
+      if (art.wucht && k.runde % 3 === 2) { a[g.id] = { a: "beben", name: art.wucht.name }; continue; }
       if (art.heiler) {
         const v = gegnerLebend(S).filter(x => x !== g && x.hp < x.max * 0.6).sort((x, y) => x.hp / x.max - y.hp / y.max)[0];
         if (v) { a[g.id] = { a: "heilen", ziel: v.id }; continue; }
@@ -571,6 +710,16 @@
         for (const p of lebend(S)) treffer(S, p, 5, log, null);
         return { a: "beben" };
       }
+      if (art.wucht && plan.a === "beben") {
+        log.push(art.wucht.text);
+        for (const p of lebend(S)) {
+          treffer(S, p, art.wucht.n, log, null);
+          const h = S.helden[p];
+          if (art.wucht.gift && h.hp > 0 && !h.immun) { h.gift = 2; h.giftR = 2; }
+        }
+        if (art.wucht.gift) log.push("Wer noch steht, ist vergiftet.");
+        return { a: "beben" };
+      }
       if (k.nebel && chance(S, 0.5)) { log.push(`${g.name} schlägt im Rauch ins Leere.`); return { a: "daneben", ziel: plan.ziel || null }; }
       const zieher = lebend(S).filter(p => S.helden[p].schild || S.helden[p].fels);
       const ziele = lebend(S).filter(p => !S.helden[p].versteckt);
@@ -647,8 +796,11 @@
       S.seite = { bild: "krone", titel: "Der Knochenkönig ist besiegt!", text: ["Sein Thron zerfällt zu Staub. Unter den Trümmern: sein Schatz.", g].concat(t) };
       return;
     }
-    const s = stufe(S.raumNr);
-    S.seite = { bild: "sieg", titel: `Raum ${S.raumNr}: geschafft`, text: ["Alle Gegner sind besiegt. " + goldFuerJeden(S, 9 + 9 * s, 13 + 11 * s)].concat(erfahrung(S, ep), t, beute(S, 0.4, 0.15)) };
+    const s = stufe(S.raumNr), elite = S.gegner.some(g => g.elite);
+    const extra = [];
+    if (elite) { S.karte.schluessel += 1; extra.push("Ihr nehmt den schweren Schlüssel an euch. Irgendwo gibt es eine verschlossene Tür."); }
+    S.seite = { bild: "sieg", titel: `Raum ${S.raumNr}: geschafft`, text: ["Alle Gegner sind besiegt. " + (elite ? goldFuerJeden(S, 22 + 6 * s, 30 + 8 * s) : goldFuerJeden(S, 9 + 9 * s, 13 + 11 * s))]
+      .concat(extra, erfahrung(S, ep), t, elite ? beute(S, 0.8, 0.8) : beute(S, 0.4, 0.15)) };
     S.phase = "erkunden";
     entscheiden(S, "weiter", "", [{ text: "Weiterziehen" }]);
   }
@@ -656,14 +808,23 @@
   function entscheidungAufloesen(S) {
     const e = S.entscheidung, zaehl = e.optionen.map(() => 0);
     for (const p in e.stimmen) if (e.optionen[e.stimmen[p]]) zaehl[e.stimmen[p]]++;
-    const max = Math.max(...zaehl);
-    const beste = zaehl.map((z, i) => (z === max ? i : -1)).filter(i => i >= 0);
+    const offen = zaehl.map((z, i) => i).filter(i => !e.optionen[i].gesperrt);
+    const max = Math.max(...offen.map(i => zaehl[i]));
+    const beste = offen.filter(i => zaehl[i] === max);
     const wahl = beste.length === 1 ? beste[0] : eins(S, beste);
     S.entscheidung = null;
-    if (e.art === "tuer") { raumBetreten(S, e.optionen[wahl].typ); return; }
+    if (e.art === "karte") { raumBetreten(S, e.optionen[wahl].knoten, e.optionen[wahl].geheim); return; }
     if (e.art === "weiter") { weiterziehen(S); return; }
-    const t = e.art === "truhe" ? truheOeffnen(S, wahl) : ereignisAusfuehren(S, e.id, wahl);
-    t.push(...erfahrung(S, 8));            // auch Truhen und Ereignisse bringen etwas Erfahrung
+    let t;
+    if (e.art === "rast") {
+      t = [];
+      if (wahl === 0) { for (const p of S.teilnehmer) { const h = S.helden[p]; heldHeilen(S, p, Math.ceil(h.max * 0.4)); h.cd = {}; } t.push("Alle erholen sich um 40 % ihrer Leben. Alle Fähigkeiten sind wieder bereit."); }
+      else { for (const p of S.teilnehmer) S.helden[p].punkte += 1; t.push("Ihr übt bis spät in die Nacht. Jeder bekommt 1 Fähigkeitspunkt."); }
+    } else if (e.art === "schrein") t = e.optionen[wahl].segen ? segenAusfuehren(S, e.optionen[wahl].segen) : ["Ihr lasst den Schrein in Frieden."];
+    else {
+      t = e.art === "truhe" ? truheOeffnen(S, wahl) : ereignisAusfuehren(S, e.id, wahl);
+      t.push(...erfahrung(S, 8));            // auch Truhen und Ereignisse bringen etwas Erfahrung
+    }
     S.seite = Object.assign({}, S.seite, { text: S.seite.text.concat([`Ihr entscheidet: ${e.optionen[wahl].text}.`], t) });
     entscheiden(S, "weiter", "", [{ text: "Weiterziehen" }]);
   }
@@ -717,6 +878,7 @@
             stats: { schaden: 0, geheilt: 0, umgefallen: 0 } };
         }
         Object.assign(S, { raumNr: 0, gegner: [], kampf: null, lager: null, lagerBesucht: [], log: [], benutzt: [], ergebnis: null, gegnerNr: 0, letzte: null, spielNr: (S.spielNr || 0) + 1 });
+        S.karte = karteErzeugen(S);
         S.phase = "erkunden";
         S.seite = { bild: "eingang", titel: "Der Abstieg", text: [TEXTE.eingang[0]] };
         entscheiden(S, "weiter", "", [{ text: "Hinabsteigen" }]);
@@ -724,7 +886,7 @@
       }
       case "stimme": {
         const e = S.entscheidung;
-        if (S.phase !== "erkunden" || !e || !S.teilnehmer.includes(pid) || !e.optionen[m.i] || m.nr !== S.spielNr) return S0;
+        if (S.phase !== "erkunden" || !e || !S.teilnehmer.includes(pid) || !e.optionen[m.i] || e.optionen[m.i].gesperrt || m.nr !== S.spielNr) return S0;
         e.stimmen[pid] = m.i;
         if (S.teilnehmer.every(p => e.stimmen[p] !== undefined)) entscheidungAufloesen(S);
         break;
@@ -732,7 +894,7 @@
       case "beenden": {                    // Spielleiter: Abstimmung oder Lager ohne die Fehlenden beenden
         if (!istHost) return S0;
         if (S.phase === "erkunden" && S.entscheidung) entscheidungAufloesen(S);
-        else if (S.phase === "lager") { S.lager = null; tuerenZeigen(S); }
+        else if (S.phase === "lager") { S.lager = null; weiterziehen(S); }
         else return S0;
         break;
       }
@@ -744,7 +906,7 @@
       case "fertig": {
         if (S.phase !== "lager" || !S.teilnehmer.includes(pid) || m.nr !== S.spielNr) return S0;
         if (m.wert === false) delete S.lager.fertig[pid]; else S.lager.fertig[pid] = true;
-        if (S.teilnehmer.every(p => S.lager.fertig[p])) { S.lager = null; tuerenZeigen(S); }
+        if (S.teilnehmer.every(p => S.lager.fertig[p])) { S.lager = null; weiterziehen(S); }
         break;
       }
       case "wahl": {
@@ -770,9 +932,17 @@
         h.punkte -= 1;
         break;
       }
+      case "umverteilen": {                // am Schrein: alle Fähigkeitspunkte zurück, kostet Gold
+        const h = S.helden[pid], e = S.entscheidung;
+        if (!h || S.phase !== "erkunden" || !e || e.art !== "schrein" || m.nr !== S.spielNr || h.gold < UMVERTEILEN) return S0;
+        const zurueck = Object.values(h.rang).reduce((a, r) => a + r - 1, 0);
+        if (!zurueck) return S0;
+        h.gold -= UMVERTEILEN; h.rang = {}; h.punkte += zurueck;
+        break;
+      }
       case "neustart": {
         if (!istHost) return S0;
-        Object.assign(S, { phase: "lobby", teilnehmer: [], helden: {}, gegner: [], kampf: null, lager: null, entscheidung: null, seite: null, log: [], ergebnis: null, spielNr: (S.spielNr || 0) + 1 });
+        Object.assign(S, { karte: null, phase: "lobby", teilnehmer: [], helden: {}, gegner: [], kampf: null, lager: null, entscheidung: null, seite: null, log: [], ergebnis: null, spielNr: (S.spielNr || 0) + 1 });
         break;
       }
       default: return S0;
@@ -781,6 +951,6 @@
     return S;
   }
 
-  window.VL = { RAEUME, MAX_HELDEN, LAGER_NACH, ROLLEN, ROLLEN_REIHE, AKTIONEN, LERNBAR, TRANK, GEGNER, EP_STUFEN, MAX_STUFE, MAX_RANG,
+  window.VL = { RAEUME, REIHEN, RAUMNAME, SEGEN, UMVERTEILEN, sicht, MAX_HELDEN, LAGER_NACH, ROLLEN, ROLLEN_REIHE, AKTIONEN, LERNBAR, TRANK, GEGNER, EP_STUFEN, MAX_STUFE, MAX_RANG,
     neu, aktion, aktionenVon, angebot, standardWahl, lebend, gegnerLebend, goldSumme, rangVon, rangText, cdVon };
 })();

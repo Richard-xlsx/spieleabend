@@ -69,7 +69,7 @@ const OUT = path.join(AUS, (process.argv[3] || 'b') + '-');
         continue;
       }
       const opt = await p.$('[data-stimme]:not([disabled])');
-      if (opt && !(await p.$('.option.meins'))) { const all = await p.$$('[data-stimme]'); await all[Math.floor(Math.random() * all.length)].click(); continue; }
+      if (opt && !(await p.$('.option.meins'))) { const all = await p.$$('[data-stimme]:not([disabled])'); await all[Math.floor(Math.random() * all.length)].click(); continue; }
       const akt = await p.$$('[data-aktion]:not([disabled])');
       if (akt.length) {
         await akt[Math.floor(Math.random() * akt.length)].click(); await p.waitForTimeout(150);
