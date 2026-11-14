@@ -25,7 +25,7 @@
   const hostId = ep => PREFIX + code + "-" + ep;
   const antwKey = () => "slf:antw:" + code + ":" + (S ? S.runde : 0);
   const link = () => location.origin + location.pathname + "?raum=" + code;
-  const leer = () => (S ? S.kategorien : L.KATEGORIEN).map(() => "");
+  const leer = () => (S && S.kategorien && S.kategorien.length ? S.kategorien : Array(L.ANZAHL || 5).fill("")).map(() => "");
 
   // ---------- Bildschirm wach halten ----------
   let wake = null;
@@ -252,7 +252,7 @@
       ${qr ? `<div class="qr">${qr}</div>` : ""}
       <div class="reihe"><button class="knopf zweit" id="teilen">Link teilen</button><button class="knopf zweit" id="kopieren">Link kopieren</button></div>
       <div class="karte"><h2>Im Raum (${n})</h2><ul class="spieler" id="spielerliste"></ul></div>
-      <div class="karte"><h2>Kategorien</h2><ol class="kats">${S.kategorien.map(k => `<li>${esc(k)}</li>`).join("")}</ol>
+      <div class="karte"><h2>Kategorien</h2><p class="leise">${L.ANZAHL || 5} Überraschungskategorien pro Runde, gelost aus ${L.POOL ? L.POOL.length : "vielen"}. Welche es sind, seht ihr erst mit dem Buchstaben.</p>
         <p class="leise klein">${S.runden} Runden · ${S.rundenzeit / 60} Minuten pro Runde</p></div>
       ${host ? `<div class="unten"><button class="knopf" id="start" ${n < 2 ? "disabled" : ""}>${n < 2 ? "Warte auf Mitspieler …" : "Spiel starten"}</button></div>`
         : `<p class="leise mitte">Warte, bis ${esc(sp(S.host).name)} das Spiel startet.</p>`}

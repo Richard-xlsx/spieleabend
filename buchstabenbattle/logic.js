@@ -1,6 +1,13 @@
 // Spiellogik ohne Netzwerk und ohne Oberfläche. Der Spielleiter hält den Zustand und wendet Aktionen an.
 (function () {
-  const KATEGORIEN = ["Song", "Promi", "Film", "Ausrede fürs Zuspätkommen", "Was man um 3 Uhr nachts googelt"];
+  // Pool: Jede Runde werden daraus 5 Kategorien gelost. Erst wenn alle dran waren, kommen Kategorien wieder.
+  const POOL = ["Stadt", "Land", "Fluss oder See", "Tier", "Beruf", "Vorname", "Song", "Promi", "Film", "Serie",
+    "Band oder Musiker", "Marke", "Essen oder Gericht", "Getränk", "Obst oder Gemüse", "Sportart", "Pflanze oder Blume",
+    "Körperteil", "Kleidungsstück", "Spiel (Brett-, Karten- oder Videospiel)", "Fantasiefigur oder Comicheld",
+    "Krankheit oder Wehwehchen", "Werkzeug", "Instrument", "Fahrzeug", "Etwas Rundes", "Schlechte Geschäftsidee",
+    "Süßigkeit", "Möbelstück", "Adjektiv, das eine Person beschreibt", "Hobby"];
+  const ANZAHL = 5;
+  const KATEGORIEN = POOL;                                  // (alter Name, falls noch irgendwo benutzt)
   const BUCHSTABEN = "ABDEFGHIJKLMNOPRSTUVWZ".split("");   // ohne C, Q, X, Y
   const STOPP_SEKUNDEN = 10;
 
@@ -9,7 +16,7 @@
     return {
       v: 1, code, epoch: 0, host: hostPid, phase: "lobby",
       runde: 0, runden: einst.runden || 5, rundenzeit: einst.rundenzeit || 180,
-      kategorien: KATEGORIEN.slice(), buchstabe: null, benutzt: [],
+      kategorien: [], katBenutzt: [], buchstabe: null, benutzt: [],
       spieler: { [hostPid]: { name: hostName, punkte: 0 } }, reihenfolge: [hostPid],
       antworten: {}, stopp: null, rest: null, bewertung: {}, ergebnis: null, aenderung: Date.now()
     };
@@ -22,6 +29,18 @@
     const frei = BUCHSTABEN.filter(b => !s.benutzt.includes(b));
     const pool = frei.length ? frei : BUCHSTABEN;
     return pool[Math.floor((zufall ? zufall() : Math.random()) * pool.length)];
+  }
+
+  // 5 Kategorien losen, bevorzugt solche, die in diesem Raum noch nicht dran waren
+  function kategorienZiehen(s, zufall) {
+    const z = () => (zufall ? zufall() : Math.random());
+    if (!Array.isArray(s.katBenutzt)) s.katBenutzt = [];
+    let frei = POOL.filter(k => !s.katBenutzt.includes(k));
+    if (frei.length < ANZAHL) { s.katBenutzt = []; frei = POOL.slice(); }
+    const gezogen = [];
+    while (gezogen.length < ANZAHL) gezogen.push(frei.splice(Math.floor(z() * frei.length), 1)[0]);
+    s.katBenutzt.push(...gezogen);
+    return gezogen;
   }
 
   // Aktion eines Spielers anwenden. Gibt den neuen Zustand zurück (oder den alten, wenn nichts passiert).
@@ -48,6 +67,7 @@
         if (s.phase === "rundenende" && s.runde >= s.runden) return s0;
         s.runde += 1; s.phase = "spielen";
         s.buchstabe = buchstabeZiehen(s, zufall); s.benutzt.push(s.buchstabe);
+        s.kategorien = kategorienZiehen(s, zufall);
         s.antworten = {}; s.bewertung = {}; s.stopp = null; s.rest = s.rundenzeit; s.ergebnis = null;
         break;
       case "antwort":
@@ -85,7 +105,7 @@
       case "neustart":
         if (!istHost) return s0;
         for (const p in s.spieler) s.spieler[p].punkte = 0;
-        Object.assign(s, { phase: "lobby", runde: 0, benutzt: [], buchstabe: null, antworten: {}, bewertung: {}, stopp: null, rest: null, ergebnis: null });
+        Object.assign(s, { phase: "lobby", runde: 0, benutzt: [], kategorien: [], buchstabe: null, antworten: {}, bewertung: {}, stopp: null, rest: null, ergebnis: null });
         break;
       default:
         return s0;
@@ -149,5 +169,5 @@
     return { runde: s.runde, buchstabe: s.buchstabe, det, summe };
   }
 
-  window.SLF = { KATEGORIEN, BUCHSTABEN, STOPP_SEKUNDEN, neu, aktion, tick, auswerten, norm, ersterBuchstabe };
+  window.SLF = { KATEGORIEN, POOL, ANZAHL, kategorienZiehen, BUCHSTABEN, STOPP_SEKUNDEN, neu, aktion, tick, auswerten, norm, ersterBuchstabe };
 })();

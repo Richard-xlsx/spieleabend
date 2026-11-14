@@ -17,7 +17,8 @@ Aufbau
   _entwurf/                       Kartenentwürfe, wird nicht hochgeladen
 
 Buchstabenbattle (ab 2 Spielern)
-  Ein Buchstabe, fünf Kategorien: Song, Promi, Film, Ausrede fürs Zuspätkommen, Was man um 3 Uhr nachts googelt.
+  Ein Buchstabe, fünf Kategorien. Die Kategorien werden jede Runde neu aus einem Pool von 31 gelost (POOL in
+  buchstabenbattle/logic.js); erst wenn alle dran waren, wiederholen sie sich.
   3, 5 oder 8 Runden; 2, 3 oder 4 Minuten. Wer alle fünf Felder hat, darf STOPP drücken, dann haben alle noch 10 Sekunden.
   Auswertung: 👎 bei Quatsch (lehnt die Mehrheit der anderen ab, gibt es 0 Punkte), ♥ für die Lieblingsantwort.
   Punkte: allein gültig in der Kategorie 20 · einzigartig 10 · gleiche Antwort wie jemand anderes 5 ·
