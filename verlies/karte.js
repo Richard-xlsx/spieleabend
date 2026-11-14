@@ -1,4 +1,4 @@
-// Verlies zu dritt: die Karte einer Ebene als Pergament (SVG). Nur Darstellung, die Regeln stehen in verlies-logic.js.
+// Verlies der Helden: die Karte einer Ebene als Pergament (SVG). Nur Darstellung, die Regeln stehen in verlies-logic.js.
 // Oben der Eingang, unten der Thronsaal. Besuchte Räume blass, der gegangene Weg mit Fußspuren, Wahlmöglichkeiten
 // mit Korallenring (antippbar: data-stimme), weiter unten liegt Nebel.
 (function () {

@@ -1,4 +1,4 @@
-// Verlies zu dritt: Spielregeln ohne Netzwerk und ohne Oberfläche.
+// Verlies der Helden: Spielregeln ohne Netzwerk und ohne Oberfläche.
 // Der ganze Spielstand steckt in S (wird nach jeder Änderung an alle geschickt). Zufall kommt aus S.rng,
 // damit ein übernehmender Spielleiter genau dort weitermacht, wo der alte aufgehört hat.
 // Ablauf: Lobby (Rolle wählen, 6 Rollen, höchstens 3 Helden) → Karte mit 7 Reihen; vor jedem Raum stimmt die Gruppe

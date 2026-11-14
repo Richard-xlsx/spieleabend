@@ -1,4 +1,4 @@
-# Verlies zu dritt – Konzept für den großen Ausbau
+# Verlies der Helden – Konzept für den großen Ausbau
 
 Stand: 14.11.2026. Bauplan für Karte, Talentbaum, mehr Gegner, Ebenen und Schwierigkeitsstufen.
 Grundlage ist das laufende Spiel (8 Räume, 6 Rollen, Händler, Stufen 1–8, Ränge I–III) und die Vorschau der Kampfbühne

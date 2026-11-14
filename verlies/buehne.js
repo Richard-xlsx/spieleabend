@@ -1,4 +1,4 @@
-// Verlies zu dritt: Kampfbühne. Zeichnet Gegner (oben) und Helden (unten, von hinten) in ein SVG
+// Verlies der Helden: Kampfbühne. Zeichnet Gegner (oben) und Helden (unten, von hinten) in ein SVG
 // und spielt eine Kampfrunde als Animation ab (Ereignisliste S.letzte aus verlies-logic.js).
 // zeichne(): ruhende Bühne mit angekündigten Gegnerzügen und antippbaren Zielen.
 // abspielen(): Wiedergabe einer Runde, gleich auf allen Handys.
@@ -698,5 +698,50 @@
     }
   }
 
-  window.VBuehne = { zeichne, abspielen, audio, figur: art => GEG[art] || null };
+  // Titelbild: vier Helden von hinten vor dem Tor ins Verlies, drinnen glühen Augen
+  function titelbild() {
+    const stein = "#3A3458", fuge = "#26223F", T = "#1C1A33";
+    let s = `<defs>
+      <linearGradient id="tb-himmel" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2B2650"/><stop offset="1" stop-color="#1C1A33"/></linearGradient>
+      <radialGradient id="tb-tor" cx=".5" cy=".75" r=".7"><stop offset="0" stop-color="#3B1A12"/><stop offset=".55" stop-color="#140F1E"/><stop offset="1" stop-color="#07060C"/></radialGradient>
+      <radialGradient id="tb-schein" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#FFB347" stop-opacity=".55"/><stop offset="1" stop-color="#FFB347" stop-opacity="0"/></radialGradient>
+      <radialGradient id="tb-auge" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#FFF3B0"/><stop offset=".5" stop-color="#FF9A3C"/><stop offset="1" stop-color="#E2421F" stop-opacity="0"/></radialGradient>
+      <linearGradient id="tb-boden" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2E2A4A"/><stop offset="1" stop-color="#1A1830"/></linearGradient>
+    </defs><rect width="400" height="300" fill="url(#tb-himmel)"/>`;
+    // Mauer
+    for (let r = 0; r < 6; r++) for (let c = -1; c < 8; c++) {
+      const x = c * 60 + (r % 2 ? 30 : 0), y = r * 36;
+      s += `<rect x="${x + 2}" y="${y + 2}" width="56" height="32" rx="4" fill="${stein}" stroke="${fuge}" stroke-width="2" opacity="${(.5 + ((r * 7 + c * 3) % 5) * .08).toFixed(2)}"/>`;
+    }
+    // Torbogen mit Keilsteinen, dahinter Dunkel und Glut
+    s += `<path d="M118 228V120a82 82 0 0 1 164 0v108z" fill="url(#tb-tor)"/>`;
+    for (let i = 0; i <= 10; i++) {
+      const w = Math.PI - i * Math.PI / 10, x1 = 200 + 82 * Math.cos(w), y1 = 120 - 82 * Math.sin(w), x2 = 200 + 104 * Math.cos(w), y2 = 120 - 104 * Math.sin(w);
+      s += `<path d="M${x1.toFixed(1)} ${y1.toFixed(1)}L${x2.toFixed(1)} ${y2.toFixed(1)}" stroke="${T}" stroke-width="3"/>`;
+    }
+    s += `<path d="M96 228V120a104 104 0 0 1 208 0v108h-22V120a82 82 0 0 0-164 0v108z" fill="#4A4370" stroke="${T}" stroke-width="3"/>`;
+    for (const y of [150, 180, 210]) s += `<path d="M96 ${y}h22M282 ${y}h22" stroke="${T}" stroke-width="3"/>`;
+    // Schlussstein mit Krone
+    s += `<path d="M186 12h28l-4 22h-20z" fill="#5A5288" stroke="${T}" stroke-width="3"/><path d="M192 28l2-9 4 4 2-6 2 6 4-4 2 9z" fill="#FFD447" stroke="${T}" stroke-width="1.5"/>`;
+    // Stufen hinab ins Dunkel
+    for (let i = 0; i < 5; i++) s += `<path d="M${130 + i * 6} ${228 - i * 14}h${140 - i * 12}" stroke="#4A4370" stroke-width="3" opacity="${(.8 - i * .14).toFixed(2)}"/>`;
+    // glühende Augen (groß: der Drache, klein: was sonst noch lauert)
+    s += `<ellipse cx="200" cy="140" rx="70" ry="50" fill="url(#tb-schein)" opacity=".5"/>
+      <g class="tb-augen"><ellipse cx="186" cy="132" rx="9" ry="4" fill="url(#tb-auge)"/><ellipse cx="214" cy="132" rx="9" ry="4" fill="url(#tb-auge)"/>
+      <path d="M184 132h4M212 132h4" stroke="${T}" stroke-width="2"/></g>
+      <g class="tb-augen b"><circle cx="146" cy="176" r="2.4" fill="#9BF0C4"/><circle cx="154" cy="176" r="2.4" fill="#9BF0C4"/></g>
+      <g class="tb-augen c"><circle cx="252" cy="190" r="2.2" fill="#FF6B57"/><circle cx="259" cy="190" r="2.2" fill="#FF6B57"/></g>`;
+    // Fackeln links und rechts
+    for (const x of [62, 338]) s += `<circle cx="${x}" cy="118" r="46" fill="url(#tb-schein)"/><path d="M${x - 7} 132h14l-4 34h-6z" fill="#5A3A22" stroke="${T}" stroke-width="2.5"/>
+      <g class="vl-flamme"><path d="M${x} 104c-10 10-10 22 0 28 10-6 10-18 0-28z" fill="#FF9A3C" stroke="${T}" stroke-width="2"/><path d="M${x} 116c-4 5-4 10 0 13 4-3 4-8 0-13z" fill="#FFF3B0"/></g>`;
+    // Boden
+    s += `<path d="M0 228h400v72H0z" fill="url(#tb-boden)"/>` + [60, 140, 260, 340].map(x => `<path d="M200 228L${x * 2 - 200} 300" stroke="#26223F" stroke-width="2"/>`).join("") + `<path d="M0 252h400M0 278h400" stroke="#26223F" stroke-width="2"/>`;
+    // vier Helden von hinten
+    [["kaempfer", 92], ["magierin", 164], ["heilerin", 236], ["waldlaeufer", 308]].forEach(([r, x], i) => {
+      s += `<g transform="translate(${x} ${292 - (i % 3 ? 4 : 0)}) scale(.66)"><g class="vl-atmen ${["", "b", "c", ""][i]}">${HELD[r] || ""}</g></g>`;
+    });
+    return `<svg class="titelbild" viewBox="0 0 400 300" role="img" aria-label="Vier Helden vor dem Tor ins Verlies, im Dunkel glühen Augen">${s}</svg>`;
+  }
+
+  window.VBuehne = { zeichne, abspielen, audio, titelbild, figur: art => GEG[art] || null };
 })();

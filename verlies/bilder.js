@@ -1,4 +1,4 @@
-// Verlies zu dritt: Tuschezeichnungen für Räume, Gegner und Helden (inline SVG, Tinte auf Pergament).
+// Verlies der Helden: Tuschezeichnungen für Räume, Gegner und Helden (inline SVG, Tinte auf Pergament).
 (function () {
   const T = "#2A2118";            // Tinte
   const R = "#9E2B1F";            // Rötel
