@@ -288,7 +288,7 @@
   function buehnenDaten(zielModus) {
     const k = S.kampf;
     return {
-      gegner: S.gegner.map(g => ({ id: g.id, art: g.art, name: g.name, hp: g.hp, max: g.max, giftR: g.giftR, markiert: g.markiert, starr: g.starr })),
+      gegner: S.gegner.map(g => ({ id: g.id, art: g.art, name: g.name, hp: g.hp, max: g.max, giftR: g.giftR, markiert: g.markiert, starr: g.starr, schild: V.knochenschild(S, g) })),
       helden: S.teilnehmer.map(p => { const x = S.helden[p];
         const m = [x.hp <= 0 ? "bewusstlos" : k.wahl[p] ? "✓ bereit" : !online(p) ? "nicht verbunden" : "", x.giftR > 0 && x.hp > 0 ? "vergiftet" : "", x.lauer ? "lauert" : "", x.segen ? "gesegnet" : ""].filter(Boolean).join(" · ");
         return { id: p, rolle: x.rolle, name: sp(p).name, hp: x.hp, max: x.max, marken: m }; }),
@@ -403,6 +403,9 @@
     if (k.runde === 1 && S.seite) h += `<div class="chronik"><p>${esc(S.seite.text[0])}</p></div>`;
     // Bühne: Gegner oben mit angekündigtem Zug, Helden unten; Ziele werden hier angetippt
     h += `<div class="buehne" id="buehne"></div>`;
+    // Was die Gegner besonders macht (Erklärung zu den Schildern auf der Bühne)
+    const eig = [...new Set(V.gegnerLebend(S).flatMap(g => V.eigenschaften(g.art)))], schild = S.gegner.some(g => V.knochenschild(S, g));
+    if (eig.length || schild) h += `<details class="chronik gegnerkunde"${k.runde === 1 || schild ? " open" : ""}><summary class="etikett">Gegner-Eigenschaften</summary>${schild ? `<p><b>Knochenschild:</b> Der Knochenkönig nimmt nur halben Schaden, solange ein Skelett steht.</p>` : ""}${eig.map(e => { const [n, t] = V.EIGENSCHAFTEN[e]; return `<p><b>${esc(n.charAt(0).toUpperCase() + n.slice(1))}:</b> ${esc(t)}</p>`; }).join("")}</details>`;
     if (S.log && S.log.length) h += `<details class="chronik"><summary class="etikett">Was in Runde ${k.runde - 1} geschah</summary>${S.log.map(t => `<p>${esc(t)}</p>`).join("")}</details>`;
     // Eigene Wahl
     if (!mitspieler()) h += `<p class="leise mitte">Du schaust zu.</p>`;

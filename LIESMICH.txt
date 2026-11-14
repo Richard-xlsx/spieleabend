@@ -57,7 +57,7 @@ Verlies zu dritt (2 bis 3 Spieler; Stufe 1 und Ausbau mit Händler und 6 Rollen 
   Jeder startet mit 1 Heiltrank und 10 Gold. Gold gehört jedem selbst (Beute bekommt jeder gleich viel).
   Händler (als Raum auf der Karte und immer vor dem Thronsaal): Waffe schärfen (+1 Schaden, 15/30/45/60 Gold, bis +4), Rüstung (−1 Schaden je Treffer,
   15/30/45, bis −3), Stärkungselixier (+6 Höchstleben, 25, bis 3×), Heiltrank (10, höchstens 3 tragen). Weiter geht es, wenn alle „Fertig“ getippt haben (Spielleiter kann abkürzen).
-  Erfahrung und Stufen: Jeder gewonnene Kampf bringt allen Helden Erfahrung (je nach Gegner 8 bis 22, Elite 34 bis 40),
+  Erfahrung und Stufen: Jeder gewonnene Kampf bringt allen Helden Erfahrung (je nach Gegner 6 bis 22, Elite 38 bis 40),
   Truhen und Ereignisse 8. Stufen 1 bis 20 (ab 15, 35, 60, 90, 125, 165, 210, 260, … 1140 Erfahrung); jede Stufe +3 Höchstleben
   und 1 Talentpunkt. Stufe 5 und 20: +1 Schaden, Stufe 10: −1 Schaden pro Treffer, Stufe 15: ein Trankplatz mehr.
   Talentbaum (Knopf „Talentbaum“, nur außerhalb des Kampfes): je Rolle 3 Äste mit 6 Knoten, ein Knoten braucht den darunter.
@@ -72,8 +72,7 @@ Verlies zu dritt (2 bis 3 Spieler; Stufe 1 und Ausbau mit Händler und 6 Rollen 
   Nach Neuladen wird die letzte Runde nicht noch einmal abgespielt. Vorschau zum Ausprobieren: verlies/vorschau-kampf.html.
   Karte (karte.js): 7 Reihen mit 2 bis 4 Räumen, Wege ohne Kreuzungen, unten der Thronsaal des Knochenkönigs. Vor jedem Raum
   stimmt die Gruppe ab, indem jeder einen Raum mit rotem Ring auf der Karte (oder in der Liste darunter) antippt.
-  Raumarten: Kampf, Elite (Ork-Häuptling, Knochenwächter oder Spinnenmutter mit Begleiter und angekündigtem Flächenangriff
-  jede 3. Runde; mehr Gold, Erfahrung und Beute, dazu ein Schlüssel), Truhe, Rast (Ausruhen: 40 % Leben und alle Fähigkeiten
+  Raumarten: Kampf, Elite (Kerkerwärter oder Totenbeschwörer mit Begleiter; mehr Gold, Erfahrung und Beute, dazu ein Schlüssel), Truhe, Rast (Ausruhen: 40 % Leben und alle Fähigkeiten
   bereit, oder Üben: jeder 1 Fähigkeitspunkt), Händler, Schrein (zwei Segen oder Flüche zur Wahl, z. B. +6 Höchstleben,
   +1 Schaden, Blutpakt, Gier; dort kann jeder seine Punkte für 10 Gold neu verteilen), Unbekannt (Ereignis, Hinterhalt oder
   Fundstück) und Schatzkammer (nur mit Schlüssel; Gold, Ausrüstung und Trank für jeden).
@@ -84,15 +83,30 @@ Verlies zu dritt (2 bis 3 Spieler; Stufe 1 und Ausbau mit Händler und 6 Rollen 
   (zuerst Schutz und Heilung, dann Angriffe, dann Gift, dann die Gegner). Heilende Fähigkeiten holen Bewusstlose zurück,
   nach dem Kampf stehen sie mit 5 Leben wieder auf. Fallen alle, ist das Spiel verloren. Fähigkeiten haben Abklingzeiten.
   Ist jemand nicht verbunden, kann der Spielleiter für ihn automatisch ziehen lassen.
-  Gegner: Riesenratte, Goblin, Höhlenspinne (Gift), Skelett, Goblin-Schamane (heilt), Ork (je tiefer der Raum, desto mehr Leben: +6 % je Raum); Knochenkönig mit 260 Leben,
-  Beben in jeder 3. Runde, ruft bei halben Leben zwei Skelette. Zu zweit haben Gegner 55 % der Leben.
+  Gegner im Kerker (je tiefer der Raum, desto mehr Leben: +11 % je Raum; zu zweit 55 % der Leben). Eigenschaften stehen
+  gelb auf dem Namensschild und werden unter der Bühne erklärt („Gegner-Eigenschaften“):
+    untot: Licht (Lichtstab, Heiliges Licht, Sonnenstrahl, Gottesurteil …) trifft doppelt, Gift wirkt nur halb.
+    gepanzert: −3 Schaden pro Treffer, außer durch Gift, Magie, Licht und Dolche.
+    steht hinten: Nahkampf macht nur halben Schaden, Pfeile und Zauber treffen voll.
+    Rudel: +2 Schaden für jeden lebenden Artgenossen.  Heiler: heilt verletzte Gegner.
+    Langfinger: stiehlt bei jedem Treffer 5 bis 8 Gold und kündigt für die 3. Runde die Flucht an (erstarrt bleibt er da);
+      wer ihn vorher besiegt, bekommt das Gold zurück. Beschwörer: ruft jede 3. Runde ein Skelett (höchstens 4 Gegner).
+  Normale Gegner: Riesenratte, Schwarmratte (Rudel, kommen zu dritt), Goblin, Goblin-Langfinger, Goblin-Schamane (Heiler),
+  Skelett (untot), Skelett-Bogenschütze (untot, steht hinten), Ghul (untot, Gift).
+  Elite: Kerkerwärter (gepanzert, Kettenschlag auf alle jede 3. Runde, mit einem Langfinger), Totenbeschwörer (Beschwörer, mit einem Skelett).
+  Gerufene Gegner bringen keine Erfahrung. Endgegner Knochenkönig (290 Leben, untot): Phase 1 Beben jede 3. Runde. Ab halben Leben
+  Phase 2: zwei Skelette und Knochenschild (nur halber Schaden, solange ein Skelett steht); sind alle Skelette weg, ruft er
+  in der nächsten Bebenrunde ein neues statt zu beben. Ork, Höhlenspinne, Ork-Häuptling und Spinnenmutter kommen später
+  in den Ebenen 2 und 3.
   Ereignisse: Brunnen, schlafender Troll, Händler (Trank 8 Gold), Altar (jeder 15 Gold für +5 Höchstleben), Brücke.
   Zufall steckt im Spielstand (S.rng), eine Übernahme der Spielleitung würfelt also genau so weiter.
-  Simuliert mit Karte und Talenten (alle 20 Dreiergruppen, je 100 Partien, jeder Held folgt einem zufälligen Ast):
-  kluges Spiel gewinnt 82 bis 100 % (Schnitt 94 %), alle 18 Äste zwischen 80 und 98 %. Nur Grundangriff: Schnitt 2 %.
-  Am Ende im Schnitt Stufe 5 mit knapp 5 Talenten. Zu zweit: Kämpfer+Heilerin rund 85 %, Paladin+Magierin rund 76 %,
-  Dieb+Waldläufer rund 42 %. Dafür sind die Gegner etwas zäher (+11 % Leben je Raum statt +6 %), der Knochenkönig hat 310 Leben.
-  Noch nicht drin (siehe verlies/KONZEPT.md): neue Gegner mit Eigenschaften, Ebenen 2 und 3,
+  Simuliert mit Karte, Talenten und Gegner-Eigenschaften (alle 20 Dreiergruppen, je 100 Partien, jeder Held folgt einem
+  zufälligen Ast; kluge Spieler schalten Langfinger, Heiler, Beschwörer und unter dem Knochenschild die Skelette zuerst aus):
+  kluges Spiel gewinnt 79 bis 100 % (Schnitt 93 %), alle 18 Äste zwischen 81 und 99 %. Nur Grundangriff: Schnitt 3 %.
+  Fast alle Niederlagen passieren beim Knochenkönig. Am Ende im Schnitt Stufe 5 mit knapp 5 Talenten.
+  Zu zweit: Kämpfer+Heilerin rund 81 %, Paladin+Magierin rund 77 %, Dieb+Waldläufer rund 37 %.
+  Dolchstich und Pfeilschuss machen 7–9 Schaden (vorher 6–8), damit Dieb und Waldläufer mithalten.
+  Noch nicht drin (siehe verlies/KONZEPT.md): Ebenen 2 und 3,
   Schwierigkeitsstufen, Speichern zwischen Ebenen.
 
 Verbindung (Handy des Spielleiters ist der Server, gilt für alle Spiele)

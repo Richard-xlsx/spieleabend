@@ -1,4 +1,4 @@
-// Zeichnet eine Karte mitten in einer Partie (Reihe 4, mit Weg und Nebel) und die drei Elite-Gegner auf der Bühne.
+// Zeichnet eine Karte mitten in einer Partie (Reihe 4, mit Weg und Nebel) und die Elite-Gegner auf der Bühne.
 const path = require('path'), os = require('os'), fs = require('fs'), vm = require('vm');
 const AUS = path.join(os.tmpdir(), 'verlies-tests'); fs.mkdirSync(AUS, { recursive: true });
 const URL_BASIS = process.env.VERLIES_URL || 'http://localhost:8765';
@@ -25,8 +25,8 @@ for (let n = 0; n < 400 && !(S.entscheidung && S.entscheidung.art === 'karte' &&
   await p.evaluate(S => {
     const e = S.entscheidung;
     document.getElementById('app').innerHTML = `<article class="seite kartenblatt" id="k">${VKarte.svg(S, { optionen: e.optionen.map((o, i) => ({ knoten: o.knoten, i, gesperrt: o.gesperrt, geheim: o.geheim })), meine: 0, stimmen: { [e.optionen[0].knoten]: ['Ri', 'Le'] }, klickbar: true, namen: { p0: 'Richard', p1: 'Lena', p2: 'Jens' } })}${VKarte.legende()}</article><div class="buehne" id="bt"></div>`;
-    VBuehne.zeichne(document.getElementById('bt'), { gegner: ['orkhaeuptling', 'knochenwaechter', 'spinnenmutter'].map((a, i) => ({ id: 'g' + i, art: a, name: VL.GEGNER[a].name, hp: 40, max: 60, giftR: 0, markiert: 0 })),
-      helden: S.teilnehmer.map(x => ({ id: x, rolle: S.helden[x].rolle, name: x, hp: 20, max: 30, marken: '' })), absicht: { g0: { a: 'beben', name: 'Rundumschlag' }, g1: { a: 'angriff', ziel: 'p0' } }, zielModus: null, zielHelden: [] });
+    VBuehne.zeichne(document.getElementById('bt'), { gegner: ['kerkerwaerter', 'totenbeschwoerer', 'langfinger'].map((a, i) => ({ id: 'g' + i, art: a, name: VL.GEGNER[a].name, hp: 40, max: 60, giftR: 0, markiert: 0 })),
+      helden: S.teilnehmer.map(x => ({ id: x, rolle: S.helden[x].rolle, name: x, hp: 20, max: 30, marken: '' })), absicht: { g0: { a: 'beben', name: 'Kettenschlag' }, g1: { a: 'angriff', ziel: 'p0' } }, zielModus: null, zielHelden: [] });
   }, S);
   await p.waitForTimeout(400);
   await (await p.$('#k')).screenshot({ path: path.join(AUS, 'karte-mitte.png') });

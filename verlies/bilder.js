@@ -40,7 +40,11 @@
   };
 
   window.VB = {
-    bild(k, cls) { const s = B[k]; return s ? `<svg class="${cls || "bild"}" viewBox="0 0 200 120" role="img" aria-hidden="true">${s}</svg>` : ""; },
+    bild(k, cls) {
+      // Gegner ohne eigene Seitenzeichnung: die Figur von der Kampfbühne, verkleinert auf den Boden gestellt
+      const fig = !B[k] && window.VBuehne && window.VBuehne.figur(k);
+      const s = B[k] || (fig ? `${boden}<g transform="translate(100 104) scale(${Math.min(0.62, 86 / fig.h).toFixed(2)})">${fig.svg}</g>` : "");
+      return s ? `<svg class="${cls || "bild"}" viewBox="0 0 200 120" role="img" aria-hidden="true">${s}</svg>` : ""; },
     held(rolle) { return `<svg class="heldbild" viewBox="40 8 120 108" aria-hidden="true">${B[rolle] || ""}</svg>`; }
   };
 })();

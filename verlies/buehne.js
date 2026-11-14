@@ -79,8 +79,45 @@
   GEG.orkhaeuptling = { h: 156, svg: `<g transform="scale(1.08)">${GEG.ork.svg}<path d="M-18 -138l2-16 8 9 8-14 8 14 8-9 2 16z" ${F("#C99A2E")}/><circle cx="0" cy="-142" r="2.5" fill="#B83A2A"/></g>` };
   GEG.knochenwaechter = { h: 138, svg: `<g transform="scale(1.1)">${GEG.skelett.svg}<path d="M-19 -106q0-26 19-26 19 0 19 26z" ${F("#8A8F99")}/><path d="M0 -132q6-14 18-12" ${L(4, "#B83A2A")}/><path d="M-30 -82l12-6 4 10-12 6zM30 -82l-12-6-4 10 12 6z" ${F("#8A8F99", 2)}/></g>` };
   GEG.spinnenmutter = { h: 96, svg: `<g transform="scale(1.35)">${GEG.spinne.svg}<path d="M-5 -38h10l-5 7zM-5 -24h10l-5-7z" fill="#E23B2E"/></g>` };
-  const GROESSE = { koenig: 5, orkhaeuptling: 4.5, ork: 4, knochenwaechter: 3.5, skelett: 3, spinnenmutter: 3, schamane: 2, goblin: 2, spinne: 2, ratte: 1 };
-  const kurzName = n => { const k = n.replace("Goblin-", "").replace("Höhlen", "").replace(/^Der /, ""); return k.charAt(0).toUpperCase() + k.slice(1); };
+  // Kerker: neue Gegner
+  const arm = (d, c, w = 9) => `<path d="${d}" ${L(w + 4)}/><path d="${d}" ${L(w, c)}/>`;
+  GEG.schwarm = { h: 40, svg: `<g transform="scale(.72)">${GEG.ratte.svg.replace("#8C7A6B", "#6E5E52")}</g>` };
+  GEG.langfinger = { h: 98, svg: `${schatten(32)}<path d="M-14 0v-26h10v26zM4 0v-26h10v26z" ${F("#3A2E26")}/>
+      <path d="M-36 -66q-14 8-10 32 12 8 24 0 4-24-14-32z" ${F("#C79A5B")}/><path d="M-30 -68l5 7" ${L(2.5)}/><circle cx="-26" cy="-40" r="3.5" ${F("#E8C24A", 1.5)}/>
+      <path d="M-20 -26q-4-32 20-38 24 6 20 38z" ${F("#4A3F5A")}/>
+      <circle cx="0" cy="-76" r="17" ${F("#7C8F64")}/><path d="M-15 -80l-22-10 16 16M15 -80l22-10-16 16" ${F("#7C8F64")}/>
+      <path d="M-18 -80q0-26 18-26 18 0 18 26-18-8-36 0z" ${F("#4A3F5A")}/>
+      <circle cx="-6" cy="-75" r="2.6" fill="#F5CF4A"/><circle cx="6" cy="-75" r="2.6" fill="#F5CF4A"/><path d="M-6 -66q6 4 12 0" ${L(2)}/>
+      <g class="waffe"><path d="M20 -42l16-20" ${L(4, "#D9DCE4")}/><path d="M17 -38l5-6" ${L(5, "#6B4A2E")}/></g>` };
+  GEG.bogenschuetze = { h: 124, svg: `${schatten(34)}<path d="M8 -96l14-5 7 34-14 5z" ${F("#6B4A2E", 2.5)}/><path d="M12 -98l-2-10M18 -100v-10" ${L(2.5, "#D9CDB6")}/>
+      <circle cx="0" cy="-104" r="17" ${F("#EDE4D0")}/><path d="M-18 -104q0-26 18-26 18 0 18 26q-8-12-18-12-10 0-18 12z" ${F("#5A5560", 2.5)}/>
+      <circle cx="-6" cy="-102" r="4" fill="${T}"/><circle cx="6" cy="-102" r="4" fill="${T}"/><path d="M-4 -92h8" ${L(2)}/>
+      <path d="M0 -87v40M-16 -78q16 7 32 0M-16 -68q16 7 32 0M-14 -58q14 6 28 0M0 -47l-14 47M0 -47l14 47M0 -82l-30 0M0 -82l20 16" ${L(4, "#EDE4D0")}/>
+      <path d="M0 -87v40M0 -47l-14 47M0 -47l14 47" ${L(1.2)}/>
+      <g class="waffe"><path d="M-32 -124q-24 42 0 84" ${L(4.5, "#6B4A2E")}/><path d="M-32 -124v84" ${L(1.2, "#D9CDB6")}/></g>` };
+  GEG.ghul = { h: 118, svg: `${schatten(42)}<path d="M-18 0l4-34h10l-2 34zM6 0l2-34h10l4 34z" ${F("#6F7A64")}/>
+      <path d="M-30 -34q-8-48 32-60 34 10 30 60z" ${F("#8A9A7A")}/><path d="M-12 -62q12 6 24 0M-14 -52q14 6 28 0" ${L(2, "#5A6650")}/>
+      <path d="M-30 -36h62l-6 12-8-7-8 9-8-9-8 9-8-8-8 7z" ${F("#4A3E48", 2)}/>
+      ${arm("M-24 -80q-24 20-26 56", "#8A9A7A")}<path d="M-54 -24l-4 9M-50 -22v10M-46 -24l4 9" ${L(2.5, "#EDE4D0")}/>
+      <circle cx="6" cy="-96" r="18" ${F("#8A9A7A")}/><path d="M-6 -106l8 4M18 -106l-8 4" ${L(3)}/>
+      <circle cx="0" cy="-98" r="3.2" fill="#BFF5D0"/><circle cx="12" cy="-98" r="3.2" fill="#BFF5D0"/><path d="M-3 -86l3 4 3-4 3 4 3-4 3 4" ${L(2)}/>
+      <g class="waffe">${arm("M30 -78q22 20 22 54", "#8A9A7A")}<path d="M48 -24l-4 9M52 -22v10M56 -24l4 9" ${L(2.5, "#EDE4D0")}/></g>` };
+  GEG.kerkerwaerter = { h: 150, svg: `${schatten(56)}<path d="M-26 0v-40h18v40zM8 0v-40h18v40z" ${F("#4A4E58")}/>
+      ${arm("M-46 -88q-14 24-8 48", "#5A5E68", 12)}
+      <path d="M-40 -40q-6-54 40-64 46 10 40 64z" ${F("#7D808C")}/><path d="M-20 -94q20 10 40 0M-24 -76q24 10 48 0" ${L(2.5, "#5A5E68")}/>
+      <path d="M-40 -42h80" ${L(7, "#6B4A2E")}/><circle cx="-18" cy="-30" r="8" ${L(3, "#C99A2E")}/><path d="M-22 -24l-3 13M-15 -23l3 12M-18 -22v14" ${L(3, "#C99A2E")}/>
+      <ellipse cx="-36" cy="-96" rx="17" ry="10" ${F("#A6A9B2")}/><ellipse cx="36" cy="-96" rx="17" ry="10" ${F("#A6A9B2")}/>
+      <path d="M-22 -104q0-40 22-40 22 0 22 40z" ${F("#A6A9B2")}/><path d="M-17 -118h34" ${L(5)}/><circle cx="-7" cy="-118" r="2" fill="#E23B2E"/><circle cx="7" cy="-118" r="2" fill="#E23B2E"/>
+      <path d="M0 -144v-8" ${L(4)}/><path d="M-22 -104h44" ${L(3)}/>
+      <g class="waffe">${arm("M46 -88q12 22 8 46", "#5A5E68", 12)}<path d="M54 -44q26 2 30-30 4-24-8-44" ${L(5, "#8A8F99")} stroke-dasharray="6 3"/><circle cx="76" cy="-122" r="10" ${F("#4A4E58")}/><path d="M68 -130l-4-4M84 -130l4-4M76 -133v-5" ${L(3)}/></g>` };
+  GEG.totenbeschwoerer = { h: 152, svg: `${schatten(42)}<path d="M-36 0q-4-72 36-94 40 22 36 94z" ${F("#2E2638")}/><path d="M-18 0q0-40 18-62 18 22 18 62" ${L(2, "#5B3A6E")}/><path d="M-36 -3q36 9 72 0" ${L(3.5, "#3E7A55")}/>
+      ${arm("M-24 -66q-16-10-22-30", "#2E2638")}<path d="M-48 -98l-5-8M-46 -100v-9M-43 -99l4-8" ${L(2.2, "#EDE4D0")}/><circle cx="-47" cy="-112" r="8" fill="#7BE3A0" opacity=".55"/>
+      <path d="M-22 -88q-2-40 22-44 24 4 22 44-22 10-44 0z" ${F("#3A2E48")}/><ellipse cx="0" cy="-96" rx="12" ry="14" fill="#120E18"/>
+      <circle cx="-5" cy="-98" r="2.8" fill="#7BE3A0"/><circle cx="5" cy="-98" r="2.8" fill="#7BE3A0"/>
+      <g class="waffe"><path d="M36 0v-126" ${L(5, "#3A2E26")}/><circle cx="36" cy="-130" r="10" ${F("#EDE4D0")}/><circle cx="32" cy="-132" r="2.5" fill="${T}"/><circle cx="40" cy="-132" r="2.5" fill="${T}"/>
+      <path d="M36 -141c-9-8-3-18 0-24 4 7 9 15 0 24z" fill="#7BE3A0" stroke="${T}" stroke-width="2"/></g>` };
+  const GROESSE = { koenig: 5, orkhaeuptling: 4.5, kerkerwaerter: 4.5, totenbeschwoerer: 4.4, ork: 4, ghul: 3.5, skelett: 3, spinnenmutter: 3, bogenschuetze: 2.5, schamane: 2, langfinger: 2, goblin: 2, spinne: 2, ratte: 1, schwarm: 0.5 };
+  const kurzName = n => { const k = n.replace("Goblin-", "").replace("Skelett-", "").replace("Höhlen", "").replace(/^Der /, ""); return k.charAt(0).toUpperCase() + k.slice(1); };
 
   // ---------- Hintergrund ----------
   function hintergrund() {
@@ -115,7 +152,7 @@
     const plaetze = c === 1 ? [200] : c === 2 ? [112, 288] : c === 3 ? [200, 72, 328] : [148, 252, 52, 348];
     const skala = c <= 2 ? 1 : c === 3 ? .8 : .66;
     const sortiert = gegner.slice().sort((a, b) => (GROESSE[b.art] || 0) - (GROESSE[a.art] || 0) || (a.id < b.id ? -1 : 1));
-    sortiert.forEach((g, i) => { const x = plaetze[i] !== undefined ? plaetze[i] : 50 + i * 60; pos[g.id] = { x, y: c >= 3 && i > 0 ? 234 : 226, s: skala, held: false, w: i === 0 && c >= 3 ? 150 : Math.min(116, 400 / Math.max(c, 1) - 10) }; });
+    sortiert.forEach((g, i) => { const x = plaetze[i] !== undefined ? plaetze[i] : 50 + i * 60; pos[g.id] = { x, y: c >= 3 && i > 0 ? 234 : 226, s: skala, held: false, w: c >= 4 ? 92 : i === 0 && c === 3 ? 150 : Math.min(116, 400 / Math.max(c, 1) - 10) }; });
     return pos;
   }
   const mitte = (pos, id, art) => { const p = pos[id]; if (!p) return { x: 200, y: 250 }; return p.held ? { x: p.x, y: p.y - 62 } : { x: p.x, y: p.y - (GEG[art] ? GEG[art].h : 80) * p.s * .55 }; };
@@ -131,7 +168,7 @@
       <text id="vl-z-${id}" x="${x + w - 7}" y="${y + 14}" text-anchor="end" font-family="Inter,system-ui" font-size="10" fill="#A8A2CC">${Math.max(0, hp)}/${max}</text>
       <rect x="${x + 7}" y="${y + 21}" width="${w - 14}" height="6" rx="3" fill="#0E0C18"/>
       <rect id="vl-b-${id}" x="${x + 7}" y="${y + 21}" width="${w - 14}" height="6" rx="3" fill="${farbeBalken(q)}" style="transform-box:fill-box;transform-origin:0 50%;transform:scaleX(${q})"/>
-      ${marken ? `<text x="${x + 7}" y="${y + 40}" font-family="Inter,system-ui" font-weight="600" font-size="9.5" fill="#FFD447">${esc(marken)}</text>` : ""}</g>`;
+      ${marken ? `<text x="${x + 7}" y="${y + 40}" font-family="Inter,system-ui" font-weight="600" font-size="9.5" fill="#FFD447"${marken.length * 5.4 > w - 14 ? ` textLength="${w - 14}" lengthAdjust="spacingAndGlyphs"` : ""}>${esc(marken)}</text>` : ""}</g>`;
   }
   // daten: { gegner:[{id,art,name,hp,max,giftR,markiert,starr}], helden:[{id,rolle,name,hp,max,marken}], absicht, zielModus, zielHelden:[ids] }
   function svgBauen(daten) {
@@ -148,14 +185,16 @@
     // Plaketten, Absichten, Ziele
     for (const g of daten.gegner) {
       const p = pos[g.id], hoehe = (GEG[g.art] ? GEG[g.art].h : 80) * p.s, w = p.w, y = Math.max(28, p.y - hoehe - 42);
-      const marken = [g.giftR > 0 ? "Gift" : "", g.markiert > 0 ? "markiert" : "", g.starr > 0 ? "erstarrt" : ""].filter(Boolean).join(" · ");
+      const V = window.VL, eig = V ? V.eigenschaften(g.art).filter(e => e !== "wucht" && e !== "gift").map(e => V.EIGENSCHAFTEN[e][0]) : [];
+      const marken = [g.schild ? "Knochenschild" : "", g.giftR > 0 ? "Gift" : "", g.markiert > 0 ? "markiert" : "", g.starr > 0 ? "erstarrt" : ""].concat(eig).filter(Boolean).join(" · ");
       s += `<g ${g.hp <= 0 ? 'opacity=".25"' : ""}>${plakette(g.id, p.x - w / 2, y, w, kurzName(g.name), g.hp, g.max, marken)}</g>`;
       const a = daten.absicht && daten.absicht[g.id];
       if (a && g.hp > 0) {
-        const txt = a.a === "beben" ? `⟁ ${a.name || "Beben"} → alle` : a.a === "heilen" ? `✚ → ${kurzName((daten.gegner.find(x => x.id === a.ziel) || { name: "?" }).name)}` : `⚔ → ${(daten.helden.find(x => x.id === a.ziel) || { name: "?" }).name}`;
+        const txt = a.a === "beben" ? `⟁ ${a.name || "Beben"} → alle` : a.a === "ruf" ? "☠ ruft Verstärkung" : a.a === "flucht" ? "↯ will fliehen!"
+          : a.a === "stehlen" ? `✋ Gold → ${(daten.helden.find(x => x.id === a.ziel) || { name: "?" }).name}` : a.a === "heilen" ? `✚ → ${kurzName((daten.gegner.find(x => x.id === a.ziel) || { name: "?" }).name)}` : `⚔ → ${(daten.helden.find(x => x.id === a.ziel) || { name: "?" }).name}`;
         const bw = Math.min(w + 6, txt.length * 6.6 + 16);
         s += `<g id="vl-ab-${g.id}" class="vl-absicht"><rect x="${p.x - bw / 2}" y="${y - 24}" width="${bw}" height="20" rx="10" fill="#FFD447" stroke="${T}" stroke-width="2"/>
-          <text x="${p.x}" y="${y - 10}" text-anchor="middle" font-family="Inter,system-ui" font-weight="700" font-size="10.5" fill="#1C1A33">${esc(txt)}</text></g>`;
+          <text x="${p.x}" y="${y - 10}" text-anchor="middle" font-family="Inter,system-ui" font-weight="700" font-size="10.5" fill="#1C1A33"${txt.length * 6.6 + 16 > bw ? ` textLength="${bw - 14}" lengthAdjust="spacingAndGlyphs"` : ""}>${esc(txt)}</text></g>`;
       }
     }
     for (const h of daten.helden) { const p = pos[h.id]; s += plakette(h.id, p.x - 54, p.y + 10, 108, h.name, h.hp, h.max, h.marken); }
@@ -226,7 +265,7 @@
     const elt = (tag, attr, inner) => { const e = document.createElementNS(NS, tag); for (const k in attr || {}) e.setAttribute(k, attr[k]); if (inner) e.innerHTML = inner; return e; };
 
     // Ausgangslage aufbauen
-    const gegner = R.start.gegner.map(g => Object.assign({}, g));
+    let gegner = R.start.gegner.map(g => Object.assign({}, g));
     const heldIds = Object.keys(R.start.helden);
     const helden = heldIds.map(p => ({ id: p, rolle: info.rolle(p), name: info.name(p), hp: R.start.helden[p].hp, max: R.start.helden[p].max, marken: "" }));
     const zust = {}; for (const g of gegner) zust[g.id] = g; for (const h of helden) zust[h.id] = h;
@@ -466,6 +505,16 @@
       const ab = $("vl-ab-" + g); if (ab) animiere(ab, [{ transform: "scale(1)" }, { transform: "scale(1.12)" }, { transform: "scale(1)" }], 300);
       if (e.a === "starr") { blitz("#BFE8FF", .12); await animiere($("vl-f-" + g), [{ transform: "translateX(0)" }, { transform: "translateX(-3px)" }, { transform: "translateX(3px)" }, { transform: "translateX(0)" }], 300); await wort(g, "erstarrt", "#BFE8FF"); return; }
       if (e.a === "keinziel") { await wackeln(g); await wort(g, "?", "#F3F0FF"); return; }
+      if (e.a === "flucht") {
+        // huscht seitlich davon, ohne Schadenszahl
+        const z = zust[g]; if (z) z.hp = 0;
+        const ab2 = $("vl-ab-" + g); if (ab2) ab2.remove();
+        wort(g, "flieht!", "#FFD447");
+        const pl = $("vl-pl-" + g); if (pl) animiere(pl, [{ opacity: 1 }, { opacity: .25 }], 400);
+        await animiere($("vl-f-" + g), [{ transform: "translateX(0)", opacity: 1 }, { transform: `translateX(${pos[g] && pos[g].x > 200 ? 160 : -160}px)`, opacity: 0 }], 700, { easing: "ease-in" });
+        return;
+      }
+      if (e.a === "beute") { const m = M(g); sfx("heil"); await partikel(m.x, m.y, "#E8C24A", 16, 70, 50, 700); return; }
       if (e.a === "heilen") {
         sfx("heil"); const a1 = M(g), b = M(e.ziel);
         await flug({ x: a1.x + 20, y: a1.y - 30 }, b, `<circle r="12" fill="url(#vl-heil)"/><circle r="5" fill="#BFF5D0" stroke="${T}" stroke-width="1.5"/>`, 450, 40, false, "#7BE3A0");
@@ -481,6 +530,7 @@
       if (e.a === "ruf") {
         sfx("ruf");
         await animiere($("vl-f-" + g), [{ transform: "scale(1)" }, { transform: "scale(1.08)" }, { transform: "scale(1)" }], 500);
+        gegner = gegner.filter(x => x.hp > 0);    // Besiegte machen Platz
         for (const n of e.neu || []) { const z = Object.assign({ giftR: 0, markiert: 0 }, n); gegner.push(z); zust[z.id] = z; }
         // neu aufstellen: Bühne mit allen Gegnern neu zeichnen, die neuen steigen aus dem Boden
         bau = svgBauen({ gegner, helden, absicht: {} }); el.innerHTML = bau.svg; pos = bau.pos;
@@ -502,6 +552,7 @@
         sfx(prallt ? "schutz" : "treffer"); if (!prallt) { bebenBild(art === "ork" || art === "koenig" || art === "orkhaeuptling" ? 7 : 4); blitz(e.a === "biss" ? "#8BD14A" : "#E23B2E", .18); }
         if (e.a === "biss") partikel(M(ziel).x, M(ziel).y, "#8BD14A", 10, 50, 30, 600);
         if (prallt) wort(ziel, "abgeprallt", "#9EC5FF");
+        if (e.a === "stehlen" && e.gold) { const m = M(ziel); partikel(m.x, m.y, "#E8C24A", 10, 50, 40, 600); setTimeout(() => wort(ziel, `−${e.gold} Gold`, "#FFD447"), 450); }
         await folgen(e);
       }
       if (w) animiere(w, [{ transform: "rotate(0)" }], 260);
@@ -522,5 +573,5 @@
     }
   }
 
-  window.VBuehne = { zeichne, abspielen, audio };
+  window.VBuehne = { zeichne, abspielen, audio, figur: art => GEG[art] || null };
 })();

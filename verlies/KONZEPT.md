@@ -267,6 +267,13 @@ Nach jedem Schritt: Simulation aller Rollenkombinationen für die Balance und ei
   Begleiters; Meisterdieb stiehlt Gold und einen Trank). Die Wächterin bekommt „Obhut“, die Kampfpriesterin „Sonnenstrahl“.
   „Untot“ gibt es schon jetzt für Skelett, Knochenwächter und Knochenkönig (für Untotenjäger und Gottesurteil).
   In einer Partie mit einer Ebene erreicht man etwa Stufe 5, Meisterfähigkeiten also erst mit mehreren Ebenen (Schritt 5).
+- **Schritt 4 fertig** (14.11.2026): Gegner-Eigenschaften und der Kerker mit 8 normalen Gegnern, 2 Elite-Gegnern und dem
+  Knochenkönig in zwei Phasen. Abweichungen: Untote nehmen Gift nur halb statt gar nicht (sonst wäre der Giftmischer gegen
+  den Endgegner nutzlos). Dolche finden Lücken in der Panzerung. Der Rattenschwarm sind drei „Schwarmratten“ mit Rudel.
+  Der Skelett-Bogenschütze „steht hinten“ (Nahkampf halb, wie später „fliegend“). Knochenschild: halber Schaden, solange
+  ein Skelett steht; ohne Skelette ruft der König ein neues. Gerufene Gegner geben keine Erfahrung, besiegte machen ihnen
+  Platz (höchstens 4 Gegner). Die Eigenschaften schnell, Regeneration, explosiv, Netz, fliegend und Schildträger kommen mit
+  den Gegnern der Ebenen 2 und 3 in Schritt 5. Dolchstich und Pfeilschuss machen jetzt 7–9 Schaden.
 
 ## 11. Entscheidungen (14.11.2026)
 
