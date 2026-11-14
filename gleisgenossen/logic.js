@@ -143,25 +143,29 @@
     }
     return adj;
   }
-  function weg(adj, a, b) {          // kürzester Weg auf vorhandenen Gleisen (Breitensuche)
+  // kürzester Weg auf vorhandenen Gleisen (Breitensuche), ohne die Gleisstücke in „verboten“
+  function weg(adj, a, b, verboten) {
     if (a === b) return [a];
     const vor = new Map([[a, -1]]), q = [a];
     while (q.length) {
       const x = q.shift();
-      for (const n of adj.get(x) || []) if (!vor.has(n)) { vor.set(n, x); if (n === b) { const p = [b]; let y = x; while (y !== -1) { p.push(y); y = vor.get(y); } return p.reverse(); } q.push(n); }
+      for (const n of adj.get(x) || []) if (!vor.has(n) && !(verboten && verboten.has(kante(x, n)))) { vor.set(n, x); if (n === b) { const p = [b]; let y = x; while (y !== -1) { p.push(y); y = vor.get(y); } return p.reverse(); } q.push(n); }
     }
     return null;
   }
   const streckenWeg = (S, a, b) => weg(netz(S), a, b);
   // Weg einer Zuglinie über alle Halte: Felder und Position jedes Halts (in Feldern ab Start)
-  function linienWeg(S, linie, adj) {
+  // Rundkurs: nach dem letzten Halt geht es zurück zum ersten, ohne ein Gleisstück doppelt zu befahren.
+  function linienWeg(S, linie, adj, rund) {
     adj = adj || netz(S);
-    const pfad = [linie[0]], pos = [0];
-    for (let k = 1; k < linie.length; k++) {
-      const w = weg(adj, linie[k - 1], linie[k]); if (!w || w.length < 2) return null;
-      pfad.push(...w.slice(1)); pos.push(pfad.length - 1);
+    const pfad = [linie[0]], pos = [0], benutzt = rund ? new Set() : null;
+    const n = linie.length, bis = rund ? n : n - 1;
+    for (let k = 1; k <= bis; k++) {
+      const w = weg(adj, linie[k - 1], linie[k % n], benutzt); if (!w || w.length < 2) return null;
+      if (rund) for (let i = 1; i < w.length; i++) benutzt.add(kante(w[i - 1], w[i]));
+      pfad.push(...w.slice(1)); if (k < n) pos.push(pfad.length - 1);
     }
-    return { pfad, pos };
+    return { pfad, pos, rund: !!rund, laenge: pfad.length - 1 };
   }
   const imNetz = (S, zelle) => Object.keys(S.gleise).some(k => k.split("-").map(Number).includes(zelle));
   const darfStarten = (S, zelle) => !!ortBei(S, zelle) || imNetz(S, zelle);
@@ -188,11 +192,13 @@
     return { kosten, kanten, bahnhoefe };
   }
   // Günstigster neuer Weg von a nach b (vorhandene Gleise fast kostenlos, fremde Orte gemieden)
-  function bauWeg(S, a, b) {
+  // neu = eigene Trasse: vorhandene Gleisstücke werden nicht mitbenutzt (für Kreise und zweite Strecken)
+  function bauWeg(S, a, b, neu) {
     const K = S.karte, n = K.B * K.H;
     if (K.g[b] === "x" || K.g[a] === "x") return null;
     const dist = new Array(n).fill(Infinity), vor = new Array(n).fill(-1), fertig = new Array(n).fill(false);
     dist[a] = 0;
+    const mitGleis = neu ? new Set(netz(S).keys()) : null;
     for (;;) {
       let x = -1, m = Infinity;
       for (let i = 0; i < n; i++) if (!fertig[i] && dist[i] < m) { m = dist[i]; x = i; }
@@ -200,7 +206,7 @@
       if (x === b) break;
       fertig[x] = true;
       for (const y of nachbarn(K, x)) {
-        if (fertig[y] || K.g[y] === "x") continue;
+        if (fertig[y] || K.g[y] === "x" || (neu && (S.gleise[kante(x, y)] || (y !== b && mitGleis.has(y))))) continue;
         let w = S.gleise[kante(x, y)] ? .01 : (feldKosten(S, x) + feldKosten(S, y)) / 2;
         if (y !== b && ortBei(S, y) && !S.bahnhoefe.includes(y)) w += BAHNHOF * 4;
         if (dist[x] + w < dist[y]) { dist[y] = dist[x] + w; vor[y] = x; }
@@ -209,7 +215,7 @@
     const p = []; let y = b; while (y !== -1) { p.push(y); y = vor[y]; }
     return p.reverse();
   }
-  function linieOk(S, linie) {
+  function linieOk(S, linie, rund) {
     if (!Array.isArray(linie) || linie.length < 2) return { fehler: "Eine Linie braucht mindestens zwei Bahnhöfe." };
     if (linie.length > MAX_HALTE) return { fehler: "Höchstens " + MAX_HALTE + " Halte pro Linie." };
     for (let k = 0; k < linie.length; k++) {
@@ -217,6 +223,7 @@
       if (k && linie[k] === linie[k - 1]) return { fehler: "Zweimal derselbe Halt hintereinander." };
     }
     if (!linienWeg(S, linie)) return { fehler: "Zwischen zwei Halten fehlt die Gleisverbindung." };
+    if (rund && !linienWeg(S, linie, null, true)) return { fehler: "Für einen Rundkurs fehlt eine zweite Strecke zurück nach " + (ortBei(S, linie[0]) || { name: "zum Start" }).name + ". Ohne doppelt befahrene Gleise muss es einen Kreis geben." };
     return { ok: true };
   }
   // Was ein Zug mit dieser Ladung auf der Linie tun würde (für Hinweise in der Oberfläche)
@@ -319,24 +326,24 @@
         if (!l || l.monat !== S.monat || l.pid !== pid) return nein("Nur der eigene letzte Bau in diesem Monat lässt sich zurücknehmen.");
         l.kanten.forEach(x => { delete S.gleise[x]; });
         S.bahnhoefe = S.bahnhoefe.filter(b => !l.bahnhoefe.includes(b));
-        if (S.zuege.some(z => !linieOk(S, z.linie).ok)) return nein("Ein Zug fährt schon über diese Strecke.");
+        if (S.zuege.some(z => !linieOk(S, z.linie, z.rund).ok)) return nein("Ein Zug fährt schon über diese Strecke.");
         S.kasse += l.kosten; S.baulog.pop();
         break;
       }
       case "zugKaufen": {
         if (S.phase !== "planen") return nein("Züge kauft man in der Planungsphase.");
         const L = LOKS[m.lok]; if (!L || !LADUNG[m.ladung]) return nein("Unbekannter Zug.");
-        const ok = linieOk(S, m.linie); if (!ok.ok) return nein(ok.fehler);
+        const ok = linieOk(S, m.linie, !!m.rund); if (!ok.ok) return nein(ok.fehler);
         if (L.preis > S.kasse) return nein("Dafür reicht die Kasse nicht (" + L.preis + " T).");
         S.kasse -= L.preis; S.zugNr += 1;
-        S.zuege.push({ id: "z" + S.zugNr, nr: S.zugNr, lok: m.lok, ladung: m.ladung, linie: m.linie.slice(), farbe: FARBEN[(S.zugNr - 1) % FARBEN.length], gekauft: S.monat, letzter: null });
+        S.zuege.push({ id: "z" + S.zugNr, nr: S.zugNr, lok: m.lok, ladung: m.ladung, linie: m.linie.slice(), rund: !!m.rund, farbe: FARBEN[(S.zugNr - 1) % FARBEN.length], gekauft: S.monat, letzter: null });
         break;
       }
       case "linie": {
         if (S.phase !== "planen") return nein("Linien ändert man in der Planungsphase.");
         const z = S.zuege.find(x => x.id === m.id); if (!z) return nein("Diesen Zug gibt es nicht mehr.");
-        const ok = linieOk(S, m.linie); if (!ok.ok) return nein(ok.fehler);
-        z.linie = m.linie.slice();
+        const ok = linieOk(S, m.linie, !!m.rund); if (!ok.ok) return nein(ok.fehler);
+        z.linie = m.linie.slice(); z.rund = !!m.rund;
         if (LADUNG[m.ladung]) z.ladung = m.ladung;
         break;
       }
@@ -463,12 +470,14 @@
       b.betrieb += L.betrieb;
       const fertig = () => { b.zuege.push(e); z.letzter = e; };
       if (ev.typ === "lokschaden" && ev.zug === z.id) { e.hinweis = "Lokschaden, stand in der Werkstatt"; fertig(); continue; }
-      const w = linienWeg(S, z.linie, adj);
+      const w = linienWeg(S, z.linie, adj, z.rund);
       if (!w) { e.hinweis = "Strecke unterbrochen"; fertig(); continue; }
       if (ev.typ === "hochwasser" && w.pfad.some(i => S.karte.g[i] === "~")) { e.hinweis = "Brücke wegen Hochwasser gesperrt"; fertig(); continue; }
       const tempo = L.tempo * (ev.typ === "schnee" ? .6 : 1);
-      const laenge = w.pfad.length - 1, tage = laenge / tempo + z.linie.length * .5;
-      const fahrten = Math.max(1, Math.floor(TAGE / tage)), kap = L.wagen * WAGEN_PLATZ;
+      // Pendelzug: jede Fahrt eine Richtung, an den Enden wenden. Rundkurs: eine Runde zählt wie Hin- und Rückfahrt, ohne Wenden.
+      const laenge = w.laenge, tage = laenge / tempo + z.linie.length * .5 + (z.rund ? 0 : .5);
+      const fahrten = z.rund ? 2 * Math.max(1, Math.floor(TAGE / tage)) : Math.max(1, Math.floor(TAGE / tage)), kap = L.wagen * WAGEN_PLATZ;
+      const ab = (p, q) => { const d = Math.abs(p - q); return z.rund ? Math.min(d, laenge - d) : d; };
       e.fahrten = fahrten;
       const halte = [], gesehen = new Set();
       z.linie.forEach((zelle, k) => { const o = ortBei(S, zelle); if (o && !gesehen.has(o.id)) { gesehen.add(o.id); halte.push({ o, pos: w.pos[k], zelle }); } });
@@ -481,7 +490,7 @@
           st.forEach(h => {
             const n = Math.floor(vorrat[h.o.id] * anteil); vorrat[h.o.id] -= n;
             const andere = st.filter(x => x !== h);
-            const d = andere.reduce((a, x) => a + Math.abs(x.pos - h.pos), 0) / andere.length;
+            const d = andere.reduce((a, x) => a + ab(x.pos, h.pos), 0) / andere.length;
             const geld = Math.round(n * satz * d);
             e.menge += n; e.einnahmen += geld; muenze(h.zelle, geld);
             andere.forEach(x => gib(x.o.id, "fahrgaeste", n / andere.length));
@@ -498,8 +507,8 @@
           let frei = Math.ceil(fahrten / 2) * kap;
           q.forEach(h => {
             const n = Math.min(frei, vorrat[h.o.id]); frei -= n; vorrat[h.o.id] -= n;
-            const ziel = a.reduce((x, y) => Math.abs(y.pos - h.pos) > Math.abs(x.pos - h.pos) ? y : x);
-            const geld = lager ? 0 : Math.round(n * satz * Math.abs(ziel.pos - h.pos));
+            const ziel = a.reduce((x, y) => ab(y.pos, h.pos) > ab(x.pos, h.pos) ? y : x);
+            const geld = lager ? 0 : Math.round(n * satz * ab(ziel.pos, h.pos));
             e.menge += n; e.einnahmen += geld; muenze(ziel.zelle, geld);
             gib(ziel.o.id, z.ladung, n);
             if (lager) insLager += n;

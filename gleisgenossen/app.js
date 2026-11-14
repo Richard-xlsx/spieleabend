@@ -245,7 +245,7 @@ function bildschirmLobby() {
     <div class="karte-box"><h2>So geht's</h2><ul class="regeln">
       <li>Alle planen <b>gleichzeitig</b> mit einer <b>gemeinsamen Kasse</b>: Gleise bauen, Züge kaufen, Linien festlegen.</li>
       <li><b>Gleis bauen:</b> Start antippen (Ort oder Gleis), dann das Ziel. Der günstigste Weg erscheint mit Kosten. Wiese 20 T, Wald 40, Hügel 60, Brücke 150, Tunnel 250 pro Feld. Erreicht das Gleis einen Ort, entsteht dort ein Bahnhof (100 T).</li>
-      <li><b>Züge:</b> Lok und Ladung wählen, dann die Bahnhöfe der Reihe nach antippen. Der Zug pendelt auf dieser Linie.</li>
+      <li><b>Züge:</b> Lok und Ladung wählen, dann die Bahnhöfe der Reihe nach antippen. Der Zug pendelt hin und her. Gibt es einen Gleiskreis, macht den ersten Bahnhof nochmal antippen einen <b>Rundkurs</b>: kein Wenden, etwas mehr Fahrten.</li>
       <li><b>Fahrgäste</b> fahren zwischen Orten, <b>Kohle</b> von der Zeche zum Kraftwerk, <b>Holz</b> vom Holzfäller zum Sägewerk. Je weiter, desto mehr Geld.</li>
       <li><b>Kohle in einen Ort</b> füllt euer Kohlenlager: Damit fahren eure Loks, sonst muss Kohle teuer zugekauft werden.</li>
       <li>Das Sägewerk macht aus Holz <b>Bretter</b>. Bretter in einen Ort lassen ihn <b>wachsen</b>: mehr Fahrgäste.</li>
@@ -280,8 +280,8 @@ function spielRender() {
     marken.push({ zelle: ui.bau[0], farbe: 0xFFD447, text: ui.bau.length === 1 ? "Start" : "" });
     if (ui.bau.length > 1) marken.push({ zelle: ui.bau[ui.bau.length - 1], farbe: 0xFF6B57, text: "Ziel", bg: "#FF6B57" });
   } else if (ui.modus === "zuege" && ui.zug) {
-    const w = ui.zug.linie.length >= 2 ? G.linienWeg(S, ui.zug.linie) : null;
-    welt.vorschau(w ? w.pfad : null, 0xFFD447);
+    const w = ui.zug.linie.length >= 2 ? G.linienWeg(S, ui.zug.linie, null, ui.zug.rund) : null;
+    welt.vorschau(w ? w.pfad : null, 0xFFD447, ui.zug.rund);
     ui.zug.linie.forEach((z, k) => marken.push({ zelle: z, text: String(k + 1) }));
     S.bahnhoefe.filter(b => !ui.zug.linie.includes(b)).forEach(b => marken.push({ zelle: b, farbe: 0xF3F0FF }));
   } else {
@@ -304,7 +304,7 @@ function stehendeZuege() {
   const st = new Set(), ev = S.phase === "planen" ? S.ereignis : null;
   if (!ev) return st;
   if (ev.typ === "lokschaden") st.add(ev.zug);
-  if (ev.typ === "hochwasser") S.zuege.forEach(z => { const w = G.linienWeg(S, z.linie); if (w && w.pfad.some(i => S.karte.g[i] === "~")) st.add(z.id); });
+  if (ev.typ === "hochwasser") S.zuege.forEach(z => { const w = G.linienWeg(S, z.linie, null, z.rund); if (w && w.pfad.some(i => S.karte.g[i] === "~")) st.add(z.id); });
   return st;
 }
 const rufSterne = r => "★".repeat(r) + "☆".repeat(G.RUF_MAX - r);
@@ -379,7 +379,7 @@ function bauPanel() {
   if (!b.length) return `<div class="panel"><div class="kopf"><h3>Gleis bauen</h3><button class="zu" id="modzu" aria-label="Schließen">✕</button></div>
     <p class="klein">Tippe auf den <b>Start</b>: einen Ort, eine Zeche, ein Werk oder ein vorhandenes Gleis.</p>${zurueck}</div>`;
   if (b.length === 1) return `<div class="panel kompakt"><div class="kopf"><h3>Start: ${esc(ortName(b[0]) === "Feld" ? "Gleis" : ortName(b[0]))}</h3><button class="zu" id="bauweg" aria-label="Verwerfen">✕</button></div>
-    <p class="klein">Tippe jetzt auf das <b>Ziel</b>. Der günstigste Weg wird vorgeschlagen. Weitere Felder verlängern ihn.</p></div>`;
+    <p class="klein">Tippe jetzt auf das <b>Ziel</b>. Der günstigste Weg wird vorgeschlagen. Weitere Felder verlängern ihn.</p><button class="schalterchip ${ui.bauNeu ? "an" : ""}" id="bauneu" aria-pressed="${!!ui.bauNeu}">${ui.bauNeu ? "✓ " : ""}Neue Trasse (nicht über vorhandene Gleise, z. B. für einen Kreis)</button></div>`;
   const k = G.pfadKosten(S, b);
   if (k.fehler) return `<div class="panel"><p class="warn">${esc(k.fehler)}</p><button class="knopf zweit klein" id="bauweg">Verwerfen</button></div>`;
   const gleis = k.kosten - k.bahnhoefe.length * G.BAHNHOF, teuer = k.kosten > S.kasse;
@@ -388,21 +388,24 @@ function bauPanel() {
   const teile = [`${k.kanten.length} Gleisstücke${arten ? " (" + arten + ")" : ""}`].concat(k.bahnhoefe.map(z => "Bahnhof " + ortName(z)));
   return `<div class="panel kompakt"><div class="kopf"><h3>${esc(ortName(b[0]) === "Feld" ? "Gleis" : ortName(b[0]))} → ${esc(ortName(b[b.length - 1]))}</h3><button class="zu" id="bauweg" aria-label="Verwerfen">✕</button></div>
     <p class="leise klein">${esc(teile.join(" · "))}${teuer ? ` · <span class="warn">Kasse reicht nicht</span>` : ""}</p>
+    <button class="schalterchip ${ui.bauNeu ? "an" : ""}" id="bauneu" aria-pressed="${!!ui.bauNeu}">${ui.bauNeu ? "✓ " : ""}Neue Trasse (nicht über vorhandene Gleise, z. B. für einen Kreis)</button>
     <button class="knopf" id="bauen" ${teuer || (!k.kanten.length && !k.bahnhoefe.length) ? "disabled" : ""}>Bauen · ${zahl(k.kosten)} T</button></div>`;
 }
 function lokText(l) { const L = G.LOKS[l]; return `<b>${L.name}</b>${zahl(L.preis)} T · ${L.tempo} Felder/Tag<br>${L.wagen} Wagen (${L.wagen * G.WAGEN_PLATZ} Plätze)<br>Betrieb ${L.betrieb} T + ${L.kohle} Kohle/Monat`; }
-function linieText(z) { return z.linie.map(ortName).map(esc).join(" ⇄ "); }
+function linieText(z) { const n = z.linie.map(ortName).map(esc); return z.rund ? "↻ Rundkurs: " + n.join(" → ") + " → " + n[0] : n.join(" ⇄ "); }
+const halteChips = f => `<div class="halte">${f.linie.map((z, k) => `<span>${k + 1} ${esc(ortName(z))}</span>`).join("")}${f.rund ? `<span class="kreis">↻ zurück nach ${esc(ortName(f.linie[0]))}</span>` : ""}</div>`;
 function zugPanel() {
   const f = ui.zug;
   if (f) {
-    const ok = f.linie.length >= 2 ? G.linieOk(S, f.linie) : { fehler: "" };
+    const ok = f.linie.length >= 2 ? G.linieOk(S, f.linie, f.rund) : { fehler: "" };
     const info = ok.ok ? G.linieInfo(S, f.linie, f.ladung) : null;
     const zug = f.id ? S.zuege.find(z => z.id === f.id) : null;
     const preis = zug ? 0 : G.LOKS[f.lok].preis, teuer = preis > S.kasse;
     const kaufen = `<button class="knopf" id="zugok" ${ok.ok && !teuer ? "" : "disabled"}>${zug ? "Linie speichern" : `Kaufen · ${zahl(preis)} T`}</button>`;
     if (!f.offen) return `<div class="panel kompakt"><div class="kopf"><h3>${zug ? `Zug ${zug.nr}` : G.LOKS[f.lok].name} · ${ladungName(f.ladung)}</h3><button class="link" id="zugwahl" style="padding:0 6px">ändern</button><button class="zu" id="formzu" aria-label="Abbrechen">✕</button></div>
-      ${f.linie.length ? `<div class="halte">${f.linie.map((z, k) => `<span>${k + 1} ${esc(ortName(z))}</span>`).join("")}</div>` : `<p class="klein">Tippe die <b>Bahnhöfe</b> der Reihe nach an (weiß umrandet).</p>`}
+      ${f.linie.length ? halteChips(f) : `<p class="klein">Tippe die <b>Bahnhöfe</b> der Reihe nach an (weiß umrandet).</p>`}
       ${ok.fehler ? `<p class="warn klein">${esc(ok.fehler)}</p>` : info ? `<p class="klein ${info.ok ? "leise" : "warn"}">${esc(info.text)}</p>` : f.linie.length === 1 ? `<p class="leise klein">Jetzt den nächsten Bahnhof antippen. Den letzten nochmal antippen nimmt ihn heraus.</p>` : ""}
+      ${f.linie.length >= 2 && !f.rund && !ok.fehler ? `<p class="leise klein">${f.linie.length >= 2 && G.linienWeg(S, f.linie, null, true) ? "Tipp: Ersten Bahnhof nochmal antippen = Rundkurs, der Zug fährt im Kreis statt hin und her." : "Pendelzug: fährt hin und her. Für einen Rundkurs braucht es einen Gleiskreis zurück zum Start."}</p>` : ""}
       ${teuer ? `<p class="warn klein">Dafür reicht die Kasse nicht.</p>` : ""}
       ${kaufen}</div>`;
     return `<div class="panel"><div class="kopf"><h3>${zug ? `Zug ${zug.nr}: neue Linie` : "Neuer Zug"}</h3><button class="zu" id="formzu" aria-label="Abbrechen">✕</button></div>
@@ -410,7 +413,7 @@ function zugPanel() {
       <div class="wahl">${Object.keys(G.LADUNG).map(l => `<button data-ladung="${l}" class="${f.ladung === l ? "an" : ""}">${ladungName(l)}</button>`).join("")}</div>
       ${S.bahnhoefe.length < 2 ? `<p class="warn klein">Es gibt noch keine zwei Bahnhöfe. Baut zuerst ein Gleis zwischen zwei Orten.</p>` :
         `<p class="klein">Tippe die <b>Bahnhöfe</b> der Reihe nach auf der Karte an (weiß umrandet).</p>`}
-      ${f.linie.length ? `<div class="halte">${f.linie.map((z, k) => `<span>${k + 1} ${esc(ortName(z))}</span>`).join("")}</div><button class="link" id="halteweg" style="align-self:flex-start;padding:0">Letzten Halt entfernen</button>` : ""}
+      ${f.linie.length ? `${halteChips(f)}<button class="link" id="halteweg" style="align-self:flex-start;padding:0">Letzten Halt entfernen</button>` : ""}
       ${ok.fehler ? `<p class="warn klein">${esc(ok.fehler)}</p>` : ""}
       ${info ? `<p class="klein ${info.ok ? "" : "warn"}">${esc(info.text)}</p>` : ""}
       ${teuer ? `<p class="warn klein">Dafür reicht die Kasse nicht.</p>` : ""}
@@ -507,18 +510,27 @@ function feldGetippt(i) {
   ui.info = ui.info === i ? null : i;
   render();
 }
+// Der Bauweg entsteht aus den angetippten Punkten; zwischen ihnen wird jeweils der günstigste Weg gesucht.
+function bauBerechnen(punkte) {
+  let p = [punkte[0]];
+  for (let k = 1; k < punkte.length; k++) { const w = G.bauWeg(S, p[p.length - 1], punkte[k], ui.bauNeu); if (!w) return null; p = p.concat(w.slice(1)); }
+  return p;
+}
 function bauTippen(i) {
   const b = ui.bau;
   if (!b.length) {
     if (!G.darfStarten(S, i)) return zeigeHinweis("Gleise beginnen an einem Ort, einer Zeche, einem Werk oder einem vorhandenen Gleis.");
-    ui.bau = [i];
+    ui.bau = [i]; ui.bauP = [i];
   } else {
     const k = b.indexOf(i);
-    if (k >= 0) ui.bau = b.slice(0, k + 1);
-    else {
-      const w = G.bauWeg(S, b[b.length - 1], i);
-      if (!w) return zeigeHinweis(S.karte.g[i] === "x" ? "Bebaute Felder bleiben frei." : "Dorthin kann kein Gleis führen.");
-      ui.bau = b.concat(w.slice(1));
+    if (k >= 0) {
+      const P = (ui.bauP || [b[0]]).filter(x => b.indexOf(x) >= 0 && b.indexOf(x) <= k);
+      if (P[P.length - 1] !== i) P.push(i);
+      ui.bauP = P; ui.bau = bauBerechnen(P) || b.slice(0, k + 1);
+    } else {
+      const P = (ui.bauP || [b[0]]).concat(i), p = bauBerechnen(P);
+      if (!p) return zeigeHinweis(S.karte.g[i] === "x" ? "Bebaute Felder bleiben frei." : ui.bauNeu ? "Ohne vorhandene Gleise kommt man dort nicht hin." : "Dorthin kann kein Gleis führen.");
+      ui.bauP = P; ui.bau = p;
     }
   }
   render();
@@ -527,6 +539,12 @@ function halteTippen(i) {
   const f = ui.zug;
   if (!S.bahnhoefe.includes(i)) return zeigeHinweis(G.ortBei(S, i) ? "Hier gibt es noch keinen Bahnhof. Erst ein Gleis hierher bauen." : "Halte sind nur an Bahnhöfen möglich.");
   f.offen = false;
+  // ersten Bahnhof nochmal antippen schließt den Kreis (oder öffnet ihn wieder)
+  if (f.rund) { if (i === f.linie[0]) { f.rund = false; render(); return; } return zeigeHinweis("Der Rundkurs ist geschlossen. Ersten Bahnhof antippen öffnet ihn wieder."); }
+  if (f.linie.length >= 2 && i === f.linie[0]) {
+    if (G.linienWeg(S, f.linie, null, true)) { f.rund = true; render(); return; }
+    return zeigeHinweis("Für einen Rundkurs muss ein zweites Gleis zurück nach " + ortName(i) + " führen.");
+  }
   if (f.linie[f.linie.length - 1] === i) { f.linie.pop(); render(); return; }
   if (f.linie.length >= G.MAX_HALTE) return zeigeHinweis("Höchstens " + G.MAX_HALTE + " Halte.");
   f.linie.push(i);
@@ -552,7 +570,12 @@ function hudBinden() {
   an("modzu", () => { ui.modus = "schauen"; ui.bau = []; ui.zug = null; render(); });
   an("infozu", () => { ui.info = null; render(); });
   an("willkommenzu", () => { ui.willkommenZu = true; render(); });
-  an("vonhier", () => { ui.modus = "bauen"; ui.bau = [ui.info]; ui.info = null; render(); });
+  an("vonhier", () => { ui.modus = "bauen"; ui.bau = [ui.info]; ui.bauP = [ui.info]; ui.info = null; render(); });
+  an("bauneu", () => {
+    ui.bauNeu = !ui.bauNeu;
+    if (ui.bauP && ui.bauP.length > 1) { const p = bauBerechnen(ui.bauP); if (p) ui.bau = p; else { ui.bauNeu = !ui.bauNeu; zeigeHinweis("Ohne vorhandene Gleise geht dieser Weg nicht."); return; } }
+    render();
+  });
   an("bauweg", () => { ui.bau = []; render(); }); an("bauweg2", () => { ui.bau = []; render(); });
   an("bauen", () => { const p = ui.bau; ui.bau = []; tun({ t: "bauen", pfad: p }); render(); });
   an("rueckgaengig", () => tun({ t: "rueckgaengig" }));
@@ -566,10 +589,10 @@ function hudBinden() {
   an("zugwahl", () => { ui.zug.offen = true; render(); });
   an("halteweiter", () => { ui.zug.offen = false; render(); });
   an("formzu", () => { ui.zug = null; render(); });
-  an("halteweg", () => { ui.zug.linie.pop(); render(); });
+  an("halteweg", () => { if (ui.zug.rund) ui.zug.rund = false; else ui.zug.linie.pop(); render(); });
   an("zugok", () => {
     const f = ui.zug; ui.zug = null;
-    tun(f.id ? { t: "linie", id: f.id, linie: f.linie, ladung: f.ladung } : { t: "zugKaufen", lok: f.lok, ladung: f.ladung, linie: f.linie });
+    tun(f.id ? { t: "linie", id: f.id, linie: f.linie, rund: !!f.rund, ladung: f.ladung } : { t: "zugKaufen", lok: f.lok, ladung: f.ladung, linie: f.linie, rund: !!f.rund });
     render();
   });
   document.querySelectorAll("[data-lok]").forEach(b => b.onclick = () => { ui.zug.lok = b.dataset.lok; render(); });

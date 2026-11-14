@@ -243,9 +243,16 @@ export class Welt {
 
   // ---------- Gleise und Bahnhöfe ----------
   // Linienzug eines Gleiswegs durch die Felder (Bögen in den Feldern, Mitte → Kante → Mitte)
-  zellenLinie(zellen) {
+  zellenLinie(zellen, rund) {
     const pts = [], halt = [];
     const push = (x, z) => { const l = pts[pts.length - 1]; if (!l || Math.hypot(l.x - x, l.z - z) > 1e-4) pts.push({ x, z }); };
+    const bogen = (a, c, b, k, ab) => { for (let t = ab; t <= 8; t++) { const u = t / 8; push((1 - u) ** 2 * a.x + 2 * (1 - u) * u * c.x + u * u * b.x, (1 - u) ** 2 * a.z + 2 * (1 - u) * u * c.z + u * u * b.z); if (t === 4) halt[k] = pts.length - 1; } };
+    // Rundkurs: letzte Zelle = erste; jedes Feld als Bogen, der Kreis schließt sich ohne Knick
+    if (rund && zellen.length > 3) {
+      const m = zellen.length - 1;
+      for (let k = 0; k < m; k++) bogen(this.mitte(zellen[(k - 1 + m) % m], zellen[k]), this.pos(zellen[k]), this.mitte(zellen[k], zellen[k + 1]), k, k ? 1 : 0);
+      return { pts, halt };
+    }
     const n = zellen.length;
     if (n === 1) { const p = this.pos(zellen[0]); return { pts: [p, p], halt: [0] }; }
     for (let k = 0; k < n; k++) {
@@ -421,14 +428,15 @@ export class Welt {
     return schatten(g);
   }
   zuegeSetzen(S, linienWeg, LOKS, steht = new Set()) {
-    const key = this.karteKey + "|" + this.netzKey + "|" + JSON.stringify(S.zuege.map(z => [z.id, z.lok, z.ladung, z.linie, z.farbe, steht.has(z.id)]));
+    const key = this.karteKey + "|" + this.netzKey + "|" + JSON.stringify(S.zuege.map(z => [z.id, z.lok, z.ladung, z.linie, !!z.rund, z.farbe, steht.has(z.id)]));
     if (key === this.zugKey) return;
     this.zugKey = key;
     const alt = new Map(this.zuege.map(z => [z.id, z]));
     leeren(this.gZuege); this.zuege = [];
     S.zuege.forEach((z, k) => {
-      const w = linienWeg(S, z.linie); if (!w) return;
-      const { pts, halt } = this.zellenLinie(w.pfad);
+      const w = linienWeg(S, z.linie, null, z.rund); if (!w) return;
+      const rund = !!z.rund && w.pfad.length > 3;
+      const { pts, halt } = this.zellenLinie(w.pfad, rund);
       const len = [0]; for (let i = 1; i < pts.length; i++) len.push(len[i - 1] + Math.hypot(pts[i].x - pts[i - 1].x, pts[i].z - pts[i - 1].z));
       const L = len[len.length - 1], L0 = LOKS[z.lok];
       const teile = [z.lok === "feld" ? this.feldbahn(z.farbe) : this.lok(z.farbe)];
@@ -437,14 +445,14 @@ export class Welt {
       teile.forEach(t => this.gZuege.add(t));
       const laenge = abst[abst.length - 1];
       const stops = w.pos.map(pi => len[halt[pi]] ?? 0);
-      const ziele = [...new Set(stops.map(s => Math.max(laenge, Math.min(L, s + laenge / 2))))].sort((a, b) => a - b);
+      const ziele = [...new Set(stops.map(s => rund ? (s + laenge / 2) % L : Math.max(laenge, Math.min(L, s + laenge / 2))))].sort((a, b) => a - b);
       const vorher = alt.get(z.id);
-      const zug = { id: z.id, steht: steht.has(z.id), pts, len, L, teile, abst, laenge, ziele, tempo: L0.tempo * .32, s: vorher && vorher.L === L ? vorher.s : ziele[k % ziele.length] ?? laenge, dir: vorher ? vorher.dir : 1, warten: vorher ? vorher.warten : .5 + k * .7, v: 0 };
+      const zug = { id: z.id, rund, steht: steht.has(z.id), pts, len, L, teile, abst, laenge, ziele, tempo: L0.tempo * .32, s: vorher && vorher.L === L ? vorher.s : ziele[k % ziele.length] ?? laenge, dir: vorher ? vorher.dir : 1, warten: vorher ? vorher.warten : .5 + k * .7, v: 0 };
       this.zuege.push(zug); this.zugStellen(zug);
     });
   }
   punktBei(z, s) {
-    s = Math.max(0, Math.min(z.L, s));
+    s = z.rund ? ((s % z.L) + z.L) % z.L : Math.max(0, Math.min(z.L, s));
     let lo = 0, hi = z.len.length - 1;
     while (hi - lo > 1) { const m = (lo + hi) >> 1; if (z.len[m] <= s) lo = m; else hi = m; }
     const a = z.pts[lo], b = z.pts[hi], d = z.len[hi] - z.len[lo] || 1, u = (s - z.len[lo]) / d;
@@ -459,6 +467,15 @@ export class Welt {
   zugBewegen(z, dt) {
     if (z.L < .5 || z.steht) return;
     if (z.warten > 0) { z.warten -= dt; return; }
+    if (z.rund) {
+      // immer vorwärts im Kreis, an jedem Halt kurz stoppen
+      const weite = x => ((x - z.s) % z.L + z.L) % z.L;
+      const vor = z.ziele.reduce((m, x) => (weite(x) > 1e-3 && (m === null || weite(x) < weite(m)) ? x : m), null);
+      const d = vor === null ? z.L : weite(vor);
+      z.v = Math.min(z.v + 1.5 * dt, z.tempo, Math.max(.25, Math.sqrt(2 * 1.2 * d)));
+      if (vor !== null && d <= z.v * dt) { z.s = vor; z.v = 0; z.warten = 1.6; } else z.s = (z.s + z.v * dt) % z.L;
+      this.zugStellen(z); return;
+    }
     const vor = z.dir > 0 ? z.ziele.find(x => x > z.s + 1e-3) : [...z.ziele].reverse().find(x => x < z.s - 1e-3);
     if (vor === undefined) { z.dir = -z.dir; z.warten = .4; return; }
     const d = Math.abs(vor - z.s);
@@ -468,10 +485,10 @@ export class Welt {
   }
 
   // ---------- Vorschau, Markierungen, Münzen ----------
-  vorschau(zellen, farbe = 0xFF6B57) {
+  vorschau(zellen, farbe = 0xFF6B57, rund) {
     leeren(this.gVorschau);
     if (!zellen || zellen.length < 2) return;
-    const { pts } = this.zellenLinie(zellen);
+    const { pts } = this.zellenLinie(zellen, rund);
     this.gleisMeshes([pts], this.gVorschau, farbe);
   }
   markieren(liste) {

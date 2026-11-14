@@ -121,7 +121,10 @@ body.spiel #app{display:none}
 .lokwahl button{appearance:none;border:2px solid var(--linie);background:var(--flaeche2);color:var(--text);border-radius:14px;padding:7px 9px;text-align:left;font:500 .72rem/1.35 var(--fliess);cursor:pointer}
 .lokwahl button b{display:block;font-size:.92rem}
 .lokwahl button.an{border-color:var(--gelb)}
-.halte{display:flex;flex-wrap:wrap;gap:6px}
+.halte{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.schalterchip{appearance:none;align-self:flex-start;border:1px solid var(--linie);background:var(--flaeche2);color:var(--leise);border-radius:999px;padding:6px 12px;font:600 .78rem var(--fliess);cursor:pointer;text-align:left}
+.schalterchip.an{background:var(--gut);color:var(--bg);border-color:var(--gut)}
+.halte span.kreis{background:var(--gut)}
 .halte span{background:var(--gelb);color:var(--bg);border-radius:999px;padding:4px 10px;font-weight:700;font-size:.82rem}
 .mitglieder{display:flex;flex-wrap:wrap;gap:6px}
 .mitglieder span{background:var(--flaeche2);border-radius:999px;padding:4px 10px 4px 8px;font-size:.8rem;font-weight:600;display:inline-flex;align-items:center;gap:6px}
