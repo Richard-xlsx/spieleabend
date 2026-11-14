@@ -212,8 +212,25 @@
   }
   setInterval(() => { if (rolle === "client" && offlineSeit) render(); }, 5000);
 
+  // Banner: Kartenfächer aus dem Holzschnitt-Blatt auf grünem Filz, daneben der Stapel und ein „Mau!“
+  let bannerSvg = null;
+  function titelbild() {
+    if (bannerSvg) return bannerSvg;
+    const karte = (svg, x, y, w, dreh, tief = 0) => `<g transform="rotate(${dreh} ${x + w / 2} ${y + w * 1.4 + tief})">${svg.replace(/^<svg class="karte"/, `<svg x="${x}" y="${y}" width="${w}" height="${(w * 1.4).toFixed(1)}"`)}</g>`;
+    const r = HZ.rueckseite("schwarz");
+    const facher = [["kreuz", "7", -24], ["pik", "8", -12], ["herz", "B", 0], ["karo", "A", 12], ["herz", "D", 24]]
+      .map(([f, w, d]) => karte(HZ.karte(f, w), 136, 34, 60, d * .8, 60)).join("");
+    return (bannerSvg = `<svg class="titelbild" viewBox="0 0 320 150" role="img" aria-label="Kartenfächer mit Bube, Ass und Dame auf grünem Tisch">
+      <defs><radialGradient id="bn-filz" cx="50%" cy="40%" r="75%"><stop offset="0" stop-color="#2A8A60"/><stop offset="1" stop-color="#1A5C40"/></radialGradient></defs>
+      <rect x="2" y="2" width="316" height="146" rx="20" fill="url(#bn-filz)"/>
+      ${karte(r, 34, 46, 50, -8)}${karte(r, 38, 42, 50, -4)}${karte(r, 42, 38, 50, 0)}
+      ${facher}
+      <g transform="rotate(8 268 40)"><path d="M232 18h70a10 10 0 0 1 10 10v22a10 10 0 0 1-10 10h-36l-14 12 2-12h-22a10 10 0 0 1-10-10V28a10 10 0 0 1 10-10z" fill="#FF6B5B" stroke="#1C1A33" stroke-width="2.5" stroke-linejoin="round"/>
+        <text x="267" y="47" text-anchor="middle" font-family="Unbounded,Segoe UI,system-ui,sans-serif" font-weight="800" font-size="19" fill="#1C1A33">Mau!</text></g>
+    </svg>`);
+  }
   function bildschirmStart() {
-    return `<header class="titel"><h1>Mau-Mau</h1><p class="leise">Mit dem Holzschnitt-Blatt. Jeder hat seine Karten auf dem eigenen Handy.</p></header>
+    return `<header class="titel">${titelbild()}<h1>Mau-Mau</h1><p class="leise">Mit dem Holzschnitt-Blatt. Jeder hat seine Karten auf dem eigenen Handy.</p></header>
       <label class="feld">Dein Name<input id="name" maxlength="20" value="${esc(name)}" autocomplete="nickname" placeholder="z. B. Richard"></label>
       <div class="karte-box"><h2>Neues Spiel</h2>
         <div class="wahl" id="wRunden">${[3, 5, 8].map(r => `<button data-v="${r}" class="${r === 5 ? "an" : ""}">${r} Runden</button>`).join("")}</div>
@@ -224,7 +241,7 @@
       <a class="link" href="../">Alle Spiele</a>`;
   }
   function bildschirmName() {
-    return `<header class="titel"><h1>Mau-Mau</h1><p class="leise">Du wurdest in Raum <b>${esc(code)}</b> eingeladen.</p></header>
+    return `<header class="titel">${titelbild()}<h1>Mau-Mau</h1><p class="leise">Du wurdest in Raum <b>${esc(code)}</b> eingeladen.</p></header>
       <label class="feld">Dein Name<input id="name" maxlength="20" value="${esc(name)}" autocomplete="nickname" placeholder="z. B. Lena"></label>
       <button class="knopf" id="mitspielen">Mitspielen</button>`;
   }
