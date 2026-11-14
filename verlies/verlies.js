@@ -368,7 +368,7 @@
     return `<header class="titel"><p class="etikett">Verlies · Raumcode</p><div class="code">${esc(code)}</div></header>
       ${qr ? `<div class="qr">${qr}</div>` : ""}
       <div class="reihe"><button class="knopf zweit" id="teilen">Link teilen</button><button class="knopf zweit" id="kopieren">Link kopieren</button></div>
-      <div class="karte"><h2>Wähle deine Rolle</h2><p class="leise klein">Sechs Rollen, zwei bis vier gehen hinab. Jede Rolle kann beim Händler zwei weitere Fähigkeiten lernen.</p>${rollenKarten()}
+      <div class="karte"><h2>Wähle deine Rolle</h2><p class="leise klein">Sechs Rollen, zwei bis vier gehen hinab. Neue Fähigkeiten lernt jeder im Talentbaum.</p>${rollenKarten()}
         ${ohneRolle.length ? `<p class="leise klein">Noch ohne Rolle: ${ohneRolle.map(p => esc(sp(p).name)).join(", ")}${leute.length > V.MAX_HELDEN ? ". Wer keine Rolle hat, schaut zu." : ""}</p>` : ""}</div>
       ${laengeHtml(host)}
       ${schwereHtml(host)}
