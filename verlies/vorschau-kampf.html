@@ -1,0 +1,533 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#1C1A33">
+<title>Kampfbühne Vorschau</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@600;800&family=Inter:wght@400;500;600;700&family=Alegreya:ital,wght@0,500;0,700;1,500&display=swap">
+<style>
+/* Vorschau der Kampfbühne für „Verlies zu dritt“: Gegner oben, Helden unten von hinten, Attacken als Animationen.
+   Alles in einem SVG (viewBox 400×500), animiert mit der Web Animations API. Ändert nichts am echten Spiel. */
+:root{
+  --bg:#1C1A33; --flaeche:#272447; --flaeche2:#322E5A; --text:#F3F0FF; --leise:#A8A2CC; --linie:#3D3868;
+  --akzent:#FF6B57; --akzent-text:#1C1A33; --karte-gelb:#FFD447; --gut:#5BD69A;
+  --pergament:#F3E6CC; --tinte:#2A2118;
+  --display:"Unbounded","Segoe UI",system-ui,sans-serif; --fliess:"Inter","Segoe UI",system-ui,sans-serif; --buch:"Alegreya",Georgia,serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);font:16px/1.45 var(--fliess);-webkit-text-size-adjust:100%}
+body{padding:max(12px,env(safe-area-inset-top)) max(12px,env(safe-area-inset-right)) max(20px,env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-left))}
+main{max-width:520px;margin:0 auto;display:flex;flex-direction:column;gap:12px}
+h1{font-family:var(--display);font-weight:800;font-size:1.35rem;margin:0}
+.leise{color:var(--leise);margin:0}
+.klein{font-size:.85rem}
+.etikett{font-size:.72rem;text-transform:uppercase;letter-spacing:.1em;color:var(--leise);font-weight:600;margin:0}
+.buehne{position:relative;width:100%;aspect-ratio:4/5;border-radius:18px;overflow:hidden;border:1px solid var(--linie);background:#120F1E;box-shadow:0 8px 0 rgba(0,0,0,.3)}
+.buehne svg{display:block;width:100%;height:100%}
+.anim{transform-box:fill-box;transform-origin:50% 100%}
+.mitte{transform-box:fill-box;transform-origin:50% 50%}
+.flamme{transform-box:fill-box;transform-origin:50% 100%;animation:flackern .35s infinite alternate ease-in-out}
+.flamme.b{animation-duration:.47s;animation-delay:-.2s}
+@keyframes flackern{from{transform:scale(1,1) rotate(-3deg)}to{transform:scale(.88,1.12) rotate(3deg)}}
+.atmen{animation:atmen 2.6s infinite ease-in-out}
+.atmen.b{animation-delay:-.9s}.atmen.c{animation-delay:-1.7s}
+@keyframes atmen{50%{transform:translateY(-2px) scale(1.01,.99)}}
+.chronik{min-height:3.2em;background:var(--pergament);color:var(--tinte);border-radius:14px;padding:10px 14px;font:1.02rem/1.4 var(--buch);display:flex;align-items:center}
+.knoepfe{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.knopf{appearance:none;border:0;border-radius:14px;padding:13px 14px;font:700 .98rem var(--fliess);background:var(--akzent);color:var(--akzent-text);cursor:pointer}
+.knopf.zweit{background:var(--flaeche2);color:var(--text);border:1px solid var(--linie);font-weight:600}
+.knopf:disabled{opacity:.45;cursor:default}
+.voll{grid-column:1/-1}
+.reihe{display:flex;gap:8px;flex-wrap:wrap}
+.schalter{appearance:none;border:1px solid var(--linie);background:var(--flaeche);color:var(--text);border-radius:999px;padding:8px 14px;font:600 .88rem var(--fliess);cursor:pointer}
+.schalter.an{background:var(--text);color:var(--bg)}
+.karte{background:var(--flaeche);border:1px solid var(--linie);border-radius:18px;padding:14px 16px;display:flex;flex-direction:column;gap:8px}
+button:focus-visible{outline:3px solid var(--karte-gelb);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){.flamme,.atmen{animation:none}}
+</style>
+</head>
+<body>
+<main>
+  <header><p class="etikett">Verlies zu dritt · Vorschau, nicht das echte Spiel</p><h1>Die Kampfbühne</h1></header>
+
+  <div class="buehne"><svg id="svg" viewBox="0 0 400 500" role="img" aria-label="Kampfszene: Ork und Höhlenspinne gegen Kämpfer, Magierin und Heilerin"></svg></div>
+  <div class="chronik" id="chronik" aria-live="polite">Der Ork kündigt an, wen er angreift. Tippe auf „Runde 1 abspielen“.</div>
+
+  <div class="knoepfe">
+    <button class="knopf" id="r1">Runde 1 abspielen</button>
+    <button class="knopf" id="r2">Runde 2 abspielen</button>
+    <button class="knopf zweit voll" id="ueberspringen" disabled>Überspringen</button>
+  </div>
+  <div class="reihe">
+    <button class="schalter an" id="ton">Ton an</button>
+    <button class="schalter" id="schnell">Schnell</button>
+    <button class="schalter" id="neu">Von vorn</button>
+  </div>
+
+  <div class="karte">
+    <p class="etikett">Effekte einzeln ansehen</p>
+    <div class="knoepfe" id="einzeln"></div>
+  </div>
+  <p class="leise klein">So würde jede Kampfrunde auf allen Handys gleichzeitig abgespielt, wenn alle ihren Zug gewählt haben. Darunter blieben wie bisher die eigenen Aktionen. Ton: am iPhone nur bei ausgeschaltetem Stummschalter.</p>
+</main>
+
+<script>
+(function () {
+  "use strict";
+  const NS = "http://www.w3.org/2000/svg";
+  const svg = document.getElementById("svg");
+  const chronik = document.getElementById("chronik");
+  const T = "#2A2118";
+  let tempo = 1, tonAn = true, laeuft = false, abbrechen = false;
+  const warte = ms => new Promise(r => setTimeout(r, abbrechen ? 0 : ms * tempo));
+  const el = (tag, attr, kinder) => { const e = document.createElementNS(NS, tag); for (const k in attr || {}) e.setAttribute(k, attr[k]); if (kinder) e.innerHTML = kinder; return e; };
+  function animiere(e, frames, ms, opt) {
+    if (abbrechen) ms = 1;
+    const a = e.animate(frames, Object.assign({ duration: ms * tempo, easing: "ease-in-out", fill: "forwards" }, opt || {}));
+    return a.finished.catch(() => {});
+  }
+
+  // ---------- Ton (ohne Dateien, im Browser erzeugt) ----------
+  let ac = null;
+  function audio() { if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} } if (ac && ac.state === "suspended") ac.resume(); return ac; }
+  function rauschen(dauer, freq, laut) {
+    const c = audio(); if (!c || !tonAn) return;
+    const n = c.createBuffer(1, Math.floor(c.sampleRate * dauer), c.sampleRate), d = n.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / d.length);
+    const q = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain();
+    q.buffer = n; f.type = "bandpass"; f.frequency.value = freq; f.Q.value = 1.2; g.gain.value = laut;
+    q.connect(f); f.connect(g); g.connect(c.destination); q.start();
+  }
+  function ton(frequenzen, dauer, typ, laut) {
+    const c = audio(); if (!c || !tonAn) return;
+    frequenzen.forEach((fr, i) => {
+      const o = c.createOscillator(), g = c.createGain(), t0 = c.currentTime + i * dauer * 0.7;
+      o.type = typ || "sine"; o.frequency.value = fr; g.gain.setValueAtTime(0, t0);
+      g.gain.linearRampToValueAtTime(laut || .12, t0 + .02); g.gain.exponentialRampToValueAtTime(.001, t0 + dauer);
+      o.connect(g); g.connect(c.destination); o.start(t0); o.stop(t0 + dauer + .05);
+    });
+  }
+  const SFX = {
+    hieb() { rauschen(.18, 2400, .5); setTimeout(() => ton([110], .12, "square", .08), 80); },
+    treffer() { ton([90, 60], .1, "triangle", .2); },
+    feuer() { rauschen(.5, 600, .5); },
+    knall() { rauschen(.35, 200, .9); ton([70], .25, "sawtooth", .08); },
+    eis() { ton([1800, 2400, 3100], .09, "triangle", .06); },
+    heil() { ton([523, 659, 784, 1046], .16, "sine", .09); },
+    segen() { ton([392, 523, 659, 784], .3, "sine", .07); },
+    gift() { rauschen(.25, 900, .35); ton([220, 180], .15, "sawtooth", .04); },
+    tod() { rauschen(.7, 300, .45); ton([200, 150, 100], .2, "triangle", .07); },
+    stampfen() { ton([55, 45], .2, "sine", .3); }
+  };
+
+  // ---------- Bühne zeichnen ----------
+  const L = (w = 3, c = T) => `fill="none" stroke="${c}" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round"`;
+  const F = (c, w = 3) => `fill="${c}" stroke="${T}" stroke-width="${w}" stroke-linejoin="round"`;
+  function hintergrund() {
+    let s = `<defs>
+      <linearGradient id="wand" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1B1626"/><stop offset="1" stop-color="#2E2638"/></linearGradient>
+      <linearGradient id="boden" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3A3040"/><stop offset="1" stop-color="#4A3E48"/></linearGradient>
+      <radialGradient id="licht1" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#FFB547" stop-opacity=".35"/><stop offset="1" stop-color="#FFB547" stop-opacity="0"/></radialGradient>
+      <radialGradient id="glut" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#FFF3B0"/><stop offset=".45" stop-color="#FF9A3C"/><stop offset="1" stop-color="#E2421F" stop-opacity="0"/></radialGradient>
+      <radialGradient id="heilglut" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#E9FFD9"/><stop offset=".5" stop-color="#7BE3A0" stop-opacity=".7"/><stop offset="1" stop-color="#4FB98A" stop-opacity="0"/></radialGradient>
+      <radialGradient id="vignette" cx=".5" cy=".45" r=".75"><stop offset=".55" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".55"/></radialGradient>
+    </defs>
+    <rect width="400" height="250" fill="url(#wand)"/>`;
+    // Steinquader
+    for (let r = 0; r < 6; r++) for (let c = -1; c < 8; c++) {
+      const x = c * 60 + (r % 2 ? 30 : 0), y = r * 40;
+      s += `<rect x="${x + 2}" y="${y + 2}" width="56" height="36" rx="4" fill="#251E30" stroke="#120E18" stroke-width="2" opacity="${.55 + ((r * 7 + c * 3) % 5) * .08}"/>`;
+    }
+    s += `<path d="M0 248 Q200 228 400 248 V500 H0Z" fill="url(#boden)"/>`;
+    for (let i = 0; i < 9; i++) s += `<path d="M${200 + (i - 4) * 18} 240 L${200 + (i - 4) * 110} 500" stroke="#2A2230" stroke-width="2" opacity=".6"/>`;
+    for (let i = 0; i < 5; i++) s += `<path d="M0 ${280 + i * i * 9} Q200 ${270 + i * i * 9} 400 ${280 + i * i * 9}" stroke="#2A2230" stroke-width="2" fill="none" opacity=".5"/>`;
+    // Fackeln
+    for (const [x, b] of [[34, ""], [366, "b"]]) {
+      s += `<circle cx="${x}" cy="92" r="70" fill="url(#licht1)"/><path d="M${x - 7} 100 l4 34 h6 l4-34z" ${F("#6B4A2E")}/><path d="M${x - 10} 96 h20" ${L(3)}/>
+        <g class="flamme ${b}"><path d="M${x} 62 c-12 14-12 26 0 34 12-8 12-20 0-34z" fill="#FF9A3C" stroke="${T}" stroke-width="2.5"/><path d="M${x} 74 c-5 7-5 13 0 17 5-4 5-10 0-17z" fill="#FFE27A"/></g>`;
+    }
+    // Ketten und Knochen als Schmuck
+    s += `<path d="M120 0v40M118 44a4 6 0 1 0 4 0M280 0v28M278 32a4 6 0 1 0 4 0" ${L(2.5, "#5A5060")}/>
+      <path d="M48 470l18-6M60 476l-4-14" ${L(3.5, "#BDB2A0")}/><circle cx="352" cy="468" r="7" fill="#D9CDB6" stroke="${T}" stroke-width="2"/>`;
+    return s;
+  }
+
+  // Figuren: Ursprung = Mitte der Füße
+  const HELD = {
+    kaempfer: { name: "Richard", rolle: "Kämpfer", hp: 20, max: 37, x: 78, y: 430,
+      svg: `<ellipse cx="0" cy="0" rx="34" ry="8" fill="#000" opacity=".35"/>
+        <path d="M-14 0v-30h10v30zM4 0v-30h10v30z" ${F("#4A3426")}/>
+        <path d="M-26 -84q-10 30-8 62h68q2-32-8-62z" ${F("#B83A2A")}/><path d="M-6 -78q-6 26-4 54M8 -78q4 26 2 54" ${L(2, "#7E2318")}/>
+        <path d="M-24 -86q24-12 48 0" ${F("#8C8F9A")}/>
+        <circle cx="0" cy="-100" r="16" ${F("#9EA2AE")}/><path d="M0 -118v-14M-6 -128q6-10 12 0" ${F("#B83A2A")}/><path d="M-14 -96h28" ${L(2)}/>
+        <path d="M-50 -76q-2 30 14 44 16-14 14-44z" ${F("#7A5434")}/><path d="M-36 -74v40M-48 -60h26" ${L(2.5, "#4A3426")}/>
+        <g class="mitte" id="schwert"><path d="M30 -70l14 -62" ${L(5, "#D9DCE4")}/><path d="M30 -70l14 -62" ${L(1.5)}/><path d="M22 -76l18 6" ${L(4)}/><path d="M28 -68l-4 12" ${L(5, "#6B4A2E")}/></g>` },
+    magierin: { name: "Lena", rolle: "Magierin", hp: 23, max: 26, x: 200, y: 440,
+      svg: `<ellipse cx="0" cy="0" rx="30" ry="7" fill="#000" opacity=".35"/>
+        <path d="M-22 -78q-14 40-14 78h72q0-38-14-78z" ${F("#3E5BB8")}/><path d="M-30 -20q30 10 60 0" ${L(2.5, "#F5CF4A")}/>
+        <path d="M-20 -80q20-10 40 0" ${F("#2F4690")}/><circle cx="0" cy="-92" r="13" ${F("#3A2A22")}/>
+        <ellipse cx="0" cy="-100" rx="26" ry="6" ${F("#2F4690")}/><path d="M-16 -102l22 -48 10 20-14 28z" ${F("#3E5BB8")}/><path d="M2 -138l3 6 6 1-4 4 1 6-6-3-5 3 1-6-4-4 6-1z" fill="#F5CF4A"/>
+        <path d="M30 -6v-118" ${L(5, "#6B4A2E")}/><circle id="stabspitze" cx="30" cy="-128" r="8" fill="#FFE27A" stroke="${T}" stroke-width="2.5"/>` },
+    heilerin: { name: "Jens", rolle: "Heilerin", hp: 26, max: 29, x: 322, y: 430,
+      svg: `<ellipse cx="0" cy="0" rx="30" ry="7" fill="#000" opacity=".35"/>
+        <path d="M-24 -76q-12 40-12 76h72q0-36-12-76z" ${F("#3E8C62")}/><path d="M0 -70v68" ${L(2, "#2C6648")}/>
+        <path d="M-22 -80q-4-36 22-42 26 6 22 42-22 8-44 0z" ${F("#4FB98A")}/><path d="M-8 -110q8-8 16 0" ${L(2, "#2C6648")}/>
+        <path d="M-34 -4v-112" ${L(5, "#6B4A2E")}/><path d="M-34 -116q-16-4-16-18 14-2 16 12 2-14 16-12 0 14-16 18z" ${F("#7BE3A0")}/>` }
+  };
+  const GEGNER = {
+    spinne: { name: "Höhlenspinne", hp: 19, max: 19, x: 112, y: 222,
+      svg: `<ellipse cx="0" cy="0" rx="50" ry="10" fill="#000" opacity=".35"/>
+        ${[-1, 1].map(s => [0, 1, 2, 3].map(i => `<path d="M${s * 10} ${-34 + i * 4} q${s * (26 + i * 8)} ${-24 + i * 6} ${s * (40 + i * 5)} ${30 - i * 2}" ${L(4.5, "#7A6352")}/>`).join("")).join("")}
+        <ellipse cx="0" cy="-30" rx="26" ry="20" ${F("#3A2E26")}/><path d="M-10 -40q10-8 20 0M-14 -28q14-8 28 0" ${L(2, "#5A4A3E")}/>
+        <circle cx="0" cy="-54" r="13" ${F("#3A2E26")}/>
+        <circle cx="-5" cy="-56" r="3" fill="#E23B2E"/><circle cx="5" cy="-56" r="3" fill="#E23B2E"/><circle cx="-9" cy="-50" r="2" fill="#E23B2E"/><circle cx="9" cy="-50" r="2" fill="#E23B2E"/>
+        <path d="M-4 -44l-2 7M4 -44l2 7" ${L(2.5, "#C9C1B0")}/>` },
+    ork: { name: "Ork", hp: 48, max: 48, x: 278, y: 228,
+      svg: `<ellipse cx="0" cy="0" rx="56" ry="11" fill="#000" opacity=".35"/>
+        <path d="M-26 0v-40h18v40zM8 0v-40h18v40z" ${F("#4A3426")}/>
+        <path d="M-40 -40q-6-50 40-62 46 12 40 62z" ${F("#5E7350")}/><path d="M-36 -46h72" ${L(7, "#6B4A2E")}/><rect x="-7" y="-51" width="14" height="10" rx="2" ${F("#C99A2E")}/>
+        <path d="M-40 -88q-22 10-24 40" ${L(13, "#5E7350")}/><path d="M-40 -88q-22 10-24 40" ${L(1)}/>
+        <path d="M-12 -98q-10-30 12-36 22 6 12 36z" ${F("#5E7350")}/>
+        <circle cx="0" cy="-122" r="22" ${F("#5E7350")}/><path d="M-14 -132l10 5M14 -132l-10 5" ${L(3.5)}/>
+        <circle cx="-8" cy="-124" r="3.5" fill="#E23B2E"/><circle cx="8" cy="-124" r="3.5" fill="#E23B2E"/>
+        <path d="M-10 -108v-8M10 -108v-8" ${L(4.5, "#EDE4D0")}/><path d="M-8 -110q8 4 16 0" ${L(2)}/>
+        <g class="mitte" id="axt"><path d="M40 -88q14 6 16 30" ${L(13, "#5E7350")}/><path d="M56 -40v-80" ${L(5, "#6B4A2E")}/><path d="M56 -118q28 4 26 30-14-10-26-8z" ${F("#A6A9B2")}/></g>` }
+  };
+
+  let zustand;
+  function schildchen(id, f, unten) {
+    // Name und Lebensbalken: Helden unten, Gegner oben über der Figur
+    const w = Math.max(92, f.name.length * 7 + 44), x = f.x - w / 2, y = unten ? f.y + 14 : f.y - (id === "ork" ? 196 : 108);
+    return `<g id="schild-${id}"><rect x="${x}" y="${y}" width="${w}" height="34" rx="8" fill="#1C1A33" opacity=".85" stroke="#3D3868"/>
+      <text x="${x + 8}" y="${y + 14}" font-family="Inter" font-weight="700" font-size="11" fill="#F3F0FF">${f.name}</text>
+      <text id="zahl-${id}" x="${x + w - 8}" y="${y + 14}" text-anchor="end" font-family="Inter" font-size="10" fill="#A8A2CC">${f.hp}/${f.max}</text>
+      <rect x="${x + 8}" y="${y + 21}" width="${w - 16}" height="6" rx="3" fill="#0E0C18"/>
+      <rect id="balken-${id}" class="links" x="${x + 8}" y="${y + 21}" width="${w - 16}" height="6" rx="3" fill="${farbeBalken(f.hp / f.max)}" style="transform-box:fill-box;transform-origin:0 50%;transform:scaleX(${f.hp / f.max})"/>
+      <g id="marke-${id}"></g></g>`;
+  }
+  const farbeBalken = q => q <= .3 ? "#FF6B57" : q <= .6 ? "#FFD447" : "#5BD69A";
+
+  function aufbauen() {
+    zustand = { held: JSON.parse(JSON.stringify(HELD)), gegner: JSON.parse(JSON.stringify(GEGNER)) };
+    let s = hintergrund();
+    for (const [id, f] of Object.entries(zustand.gegner)) s += `<g transform="translate(${f.x},${f.y})"><g class="anim" id="fig-${id}"><g class="atmen ${id === "ork" ? "b" : ""}">${f.svg}</g></g></g>`;
+    for (const [id, f] of Object.entries(zustand.held)) s += `<g transform="translate(${f.x},${f.y})"><g class="anim" id="fig-${id}"><g class="atmen ${id === "magierin" ? "b" : id === "heilerin" ? "c" : ""}">${f.svg}</g></g></g>`;
+    for (const [id, f] of Object.entries(zustand.gegner)) s += schildchen(id, f, false);
+    for (const [id, f] of Object.entries(zustand.held)) s += schildchen(id, f, true);
+    s += `<g id="ansagen"></g><g id="fx"></g><rect id="blitz" width="400" height="500" fill="#fff" opacity="0" pointer-events="none"/><rect width="400" height="500" fill="url(#vignette)" pointer-events="none"/>`;
+    svg.innerHTML = s;
+    ansagen([["ork", "⚔", "Lena"], ["spinne", "☠", "Richard"]]);
+  }
+
+  // ---------- Bausteine für Effekte ----------
+  const $ = id => document.getElementById(id);
+  const fx = () => $("fx");
+  const fig = id => zustand.held[id] || zustand.gegner[id];
+  const mitteVon = id => { const f = fig(id); return { x: f.x, y: f.y - (zustand.gegner[id] ? (id === "ork" ? 80 : 34) : 60) }; };
+  function sag(t) { chronik.textContent = t; }
+
+  function ansagen(liste) {
+    const g = $("ansagen"); g.innerHTML = "";
+    for (const [id, sym, ziel] of liste) {
+      const f = zustand.gegner[id]; if (!f || f.hp <= 0) continue;
+      const y = f.y - (id === "ork" ? 222 : 134), w = 84;
+      g.appendChild(el("g", { id: "ansage-" + id }, `<rect x="${f.x - w / 2}" y="${y}" width="${w}" height="22" rx="11" fill="#FFD447" stroke="${T}" stroke-width="2"/>
+        <text x="${f.x}" y="${y + 15}" text-anchor="middle" font-family="Inter" font-weight="700" font-size="11" fill="#1C1A33">${sym} → ${ziel}</text>`));
+    }
+  }
+
+  async function zahl(id, text, farbe) {
+    const m = mitteVon(id), x = m.x + (Math.random() * 30 - 15);
+    const t = el("text", { x, y: m.y, "text-anchor": "middle", "font-family": "Unbounded", "font-weight": "800", "font-size": "26", fill: farbe, stroke: T, "stroke-width": "5", "paint-order": "stroke" });
+    t.textContent = text; fx().appendChild(t);
+    await animiere(t, [{ transform: "translateY(0) scale(.6)", opacity: 0 }, { transform: "translateY(-18px) scale(1.15)", opacity: 1, offset: .25 }, { transform: "translateY(-46px) scale(1)", opacity: 0 }], 900, { easing: "ease-out" });
+    t.remove();
+  }
+  async function leben(id, delta) {
+    const f = fig(id); f.hp = Math.max(0, Math.min(f.max, f.hp + delta));
+    const b = $("balken-" + id), q = f.hp / f.max;
+    $("zahl-" + id).textContent = `${f.hp}/${f.max}`;
+    b.setAttribute("fill", farbeBalken(q));
+    await animiere(b, [{ transform: `scaleX(${q})` }], 450, { easing: "ease-out" });
+  }
+  async function getroffen(id, farbe) {
+    const g = $("fig-" + id);
+    animiere(g, [{ transform: "translateX(0)" }, { transform: "translateX(-7px)" }, { transform: "translateX(7px)" }, { transform: "translateX(-4px)" }, { transform: "translateX(0)" }], 320);
+    const blink = el("g", {}, ""); blink.innerHTML = g.innerHTML; blink.setAttribute("transform", g.parentNode.getAttribute("transform"));
+    blink.querySelectorAll("*").forEach(n => { if (n.getAttribute("fill") && n.getAttribute("fill") !== "none") n.setAttribute("fill", farbe || "#fff"); n.removeAttribute("id"); });
+    blink.style.mixBlendMode = "screen"; fx().appendChild(blink);
+    await animiere(blink, [{ opacity: .85 }, { opacity: 0 }], 280);
+    blink.remove();
+    if (zustand.held[id]) { try { navigator.vibrate && navigator.vibrate(60); } catch (e) {} }
+  }
+  async function wackeln(staerke) {
+    await animiere(svg, [{ transform: "translate(0,0)" }, { transform: `translate(${staerke}px,${-staerke}px)` }, { transform: `translate(${-staerke}px,${staerke / 2}px)` }, { transform: "translate(0,0)" }], 260);
+  }
+  async function vorstossen(id, zu, weite) {
+    const a = fig(id), b = mitteVon(zu), dx = (b.x - a.x) * weite, dy = (b.y - (a.y - 40)) * weite;
+    await animiere($("fig-" + id), [{ transform: "translate(0,0)" }, { transform: `translate(${dx * -.08}px,${dy * -.08}px)`, offset: .3 }, { transform: `translate(${dx}px,${dy}px)` }], 260, { easing: "cubic-bezier(.5,0,.9,.6)" });
+  }
+  async function zurueck(id) { await animiere($("fig-" + id), [{ transform: "translate(0,0)" }], 300, { easing: "ease-out" }); }
+  async function partikel(x, y, farbe, n, streu, steigen, ms) {
+    const alle = [];
+    for (let i = 0; i < n; i++) {
+      const p = el("circle", { cx: x + (Math.random() - .5) * streu, cy: y + (Math.random() - .5) * streu * .5, r: 2 + Math.random() * 3.5, fill: farbe, stroke: T, "stroke-width": 1 });
+      fx().appendChild(p);
+      const dx = (Math.random() - .5) * streu, dy = -steigen * (.5 + Math.random());
+      alle.push(animiere(p, [{ transform: "translate(0,0)", opacity: 1 }, { transform: `translate(${dx}px,${dy}px)`, opacity: 0 }], ms * (.7 + Math.random() * .6), { easing: "ease-out", delay: Math.random() * 150 * tempo }).then(() => p.remove()));
+    }
+    await Promise.all(alle);
+  }
+  async function besiegt(id) {
+    const f = zustand.gegner[id]; SFX.tod();
+    const a = $("ansage-" + id); if (a) a.remove();
+    partikel(f.x, f.y - 40, "#8C8070", 26, 90, 70, 900);
+    await animiere($("fig-" + id), [{ transform: "scale(1,1)", opacity: 1, filter: "blur(0)" }, { transform: "scale(1.15,.4) translateY(10px)", opacity: 0, filter: "blur(4px)" }], 900, { easing: "ease-in" });
+    animiere($("schild-" + id), [{ opacity: 1 }, { opacity: .25 }], 400);
+  }
+  function marke(id, text, farbe) {
+    const f = fig(id), m = $("marke-" + id), unten = !!zustand.held[id];
+    const x = f.x - 46, y = unten ? f.y - 4 : f.y - (id === "ork" ? 196 : 108) + 38;
+    m.innerHTML = `<rect x="${x}" y="${y}" width="${text.length * 6.4 + 14}" height="16" rx="8" fill="${farbe}"/><text x="${x + 7}" y="${y + 12}" font-family="Inter" font-weight="700" font-size="10" fill="#F3F0FF">${text}</text>`;
+  }
+
+  // ---------- Die Effekte ----------
+  const EFFEKT = {
+    async schwerthieb(ziel, schaden, nurZeigen) {
+      sag(`Richard trifft ${fig(ziel).name}: ${schaden} Schaden.`);
+      await vorstossen("kaempfer", ziel, .55);
+      SFX.hieb();
+      const m = mitteVon(ziel);
+      const bogen = el("path", { d: `M${m.x - 46} ${m.y - 40} Q${m.x + 30} ${m.y - 30} ${m.x + 40} ${m.y + 42}`, fill: "none", stroke: "#FFF6D8", "stroke-width": 9, "stroke-linecap": "round", "stroke-dasharray": "200", "stroke-dashoffset": "200" });
+      const kern = bogen.cloneNode(); kern.setAttribute("stroke", "#FFD447"); kern.setAttribute("stroke-width", 3);
+      fx().append(bogen, kern);
+      animiere($("schwert"), [{ transform: "rotate(0)" }, { transform: "rotate(-70deg)" }], 160);
+      await Promise.all([animiere(bogen, [{ strokeDashoffset: 200, opacity: 1 }, { strokeDashoffset: 0, opacity: 1, offset: .6 }, { strokeDashoffset: 0, opacity: 0 }], 360),
+        animiere(kern, [{ strokeDashoffset: 200 }, { strokeDashoffset: 0, offset: .6 }, { strokeDashoffset: 0, opacity: 0 }], 360)]);
+      bogen.remove(); kern.remove();
+      SFX.treffer();
+      getroffen(ziel, "#FFF6D8"); zahl(ziel, "−" + schaden, "#FFFFFF");
+      if (!nurZeigen) leben(ziel, -schaden);
+      animiere($("schwert"), [{ transform: "rotate(0)" }], 200);
+      await zurueck("kaempfer");
+      await warte(250);
+    },
+    async wirbelschlag(ziele, schaden, nurZeigen) {
+      sag(`Richard wirbelt herum: ${schaden} Schaden an allen.`);
+      await vorstossen("kaempfer", "spinne", .3);
+      SFX.hieb(); setTimeout(SFX.hieb, 140 * tempo);
+      const g = $("fig-kaempfer");
+      const ring = el("ellipse", { cx: 200, cy: 190, rx: 180, ry: 50, fill: "none", stroke: "#FFF6D8", "stroke-width": 4, opacity: .9, class: "mitte" });
+      fx().appendChild(ring);
+      await Promise.all([animiere(g, [{ transform: `translate(${(mitteVon("spinne").x - fig("kaempfer").x) * .3}px,-50px) rotate(0)` }, { transform: `translate(${(mitteVon("spinne").x - fig("kaempfer").x) * .3}px,-50px) rotate(360deg)` }], 420, { easing: "linear" }),
+        animiere(ring, [{ transform: "scale(.05)", opacity: .9 }, { transform: "scale(1)", opacity: 0 }], 520, { easing: "ease-out" })]);
+      ring.remove();
+      for (const z of ziele) { SFX.treffer(); getroffen(z); zahl(z, "−" + schaden, "#FFFFFF"); if (!nurZeigen) leben(z, -schaden); }
+      await zurueck("kaempfer");
+      await warte(350);
+    },
+    async feuerball(ziele, schaden, nurZeigen) {
+      sag(`Lena wirft einen Feuerball: ${schaden} Schaden an allen.`);
+      const st = fig("magierin"), a = { x: st.x + 30, y: st.y - 128 };
+      const ziel = { x: (mitteVon("spinne").x + mitteVon("ork").x) / 2, y: 150 };
+      await animiere($("fig-magierin"), [{ transform: "translateY(0)" }, { transform: "translateY(-10px) scale(1.04)" }], 220);
+      SFX.feuer();
+      const ball = el("g", {}, `<circle r="22" fill="url(#glut)"/><circle r="9" fill="#FFF3B0" stroke="${T}" stroke-width="2"/>`);
+      ball.setAttribute("transform", `translate(${a.x},${a.y})`); fx().appendChild(ball);
+      const schritte = [];
+      for (let i = 0; i <= 12; i++) { const t = i / 12, x = a.x + (ziel.x - a.x) * t, y = a.y + (ziel.y - a.y) * t - Math.sin(Math.PI * t) * 90; schritte.push({ transform: `translate(${x}px,${y}px) scale(${1 + t * .6})` }); }
+      ball.removeAttribute("transform");
+      const spur = setInterval(() => { const r = ball.getBoundingClientRect(), b = svg.getBoundingClientRect(); const sx = (r.x + r.width / 2 - b.x) * 400 / b.width, sy = (r.y + r.height / 2 - b.y) * 500 / b.height; partikel(sx, sy, "#FF9A3C", 2, 10, 14, 380); }, 50);
+      await animiere(ball, schritte, 620, { easing: "ease-in" });
+      clearInterval(spur);
+      ball.remove();
+      SFX.knall(); wackeln(5);
+      animiere($("blitz"), [{ opacity: .35 }, { opacity: 0 }], 260);
+      const explo = el("circle", { cx: ziel.x, cy: ziel.y, r: 170, fill: "url(#glut)", class: "mitte" });
+      fx().appendChild(explo);
+      partikel(ziel.x, ziel.y, "#FFB547", 24, 220, 80, 700);
+      await animiere(explo, [{ transform: "scale(.06)", opacity: 1 }, { transform: "scale(1)", opacity: 0 }], 520, { easing: "ease-out" });
+      explo.remove();
+      for (const z of ziele) { getroffen(z, "#FFB547"); zahl(z, "−" + schaden, "#FFB547"); if (!nurZeigen) leben(z, -schaden); }
+      animiere($("fig-magierin"), [{ transform: "translateY(0) scale(1)" }], 250);
+      await warte(600);
+    },
+    async eislanze(ziel, schaden, nurZeigen) {
+      sag(`Lena durchbohrt ${fig(ziel).name} mit Eis: ${schaden} Schaden. ${fig(ziel).name} erstarrt.`);
+      const st = fig("magierin"), a = { x: st.x + 30, y: st.y - 128 }, b = mitteVon(ziel);
+      await animiere($("fig-magierin"), [{ transform: "translateY(0)" }, { transform: "translateY(-8px)" }], 200);
+      SFX.eis();
+      const w = Math.atan2(b.y - a.y, b.x - a.x) * 180 / Math.PI;
+      const lanze = el("g", {}, `<path d="M-26 0 L0 -7 L30 0 L0 7z" fill="#BFE8FF" stroke="${T}" stroke-width="2.5"/><path d="M-20 0h44" stroke="#fff" stroke-width="2"/>`);
+      fx().appendChild(lanze);
+      const spur = setInterval(() => { const r = lanze.getBoundingClientRect(), bb = svg.getBoundingClientRect(); partikel((r.x + r.width / 2 - bb.x) * 400 / bb.width, (r.y + r.height / 2 - bb.y) * 500 / bb.height, "#DFF4FF", 1, 8, 6, 300); }, 40);
+      await animiere(lanze, [{ transform: `translate(${a.x}px,${a.y}px) rotate(${w}deg)` }, { transform: `translate(${b.x}px,${b.y}px) rotate(${w}deg)` }], 380, { easing: "ease-in" });
+      clearInterval(spur);
+      lanze.remove(); SFX.eis(); SFX.treffer();
+      getroffen(ziel, "#BFE8FF"); zahl(ziel, "−" + schaden, "#BFE8FF");
+      if (!nurZeigen) leben(ziel, -schaden);
+      // Frost: Eiskristalle um den Gegner, Figur bläulich
+      const f = fig(ziel), kristalle = el("g", {});
+      for (let i = 0; i < 7; i++) { const x = f.x + (i - 3) * 16, y = f.y - 6 - (i % 2) * 10; kristalle.innerHTML += `<path d="M${x} ${y}l6-${18 + (i % 3) * 8}l6 ${18 + (i % 3) * 8}z" fill="#DFF4FF" stroke="${T}" stroke-width="2"/>`; }
+      fx().appendChild(kristalle);
+      animiere(kristalle, [{ opacity: 0, transform: "translateY(10px)" }, { opacity: 1, transform: "translateY(0)" }], 300);
+      $("fig-" + ziel).style.filter = "saturate(.4) hue-rotate(160deg) brightness(1.1)";
+      zustand.eis = { ziel, kristalle };
+      marke(ziel, "erstarrt", "#2F6FA0");
+      const an = $("ansage-" + ziel); if (an) animiere(an, [{ opacity: 1 }, { opacity: .25 }], 300);
+      animiere($("fig-magierin"), [{ transform: "translateY(0)" }], 250);
+      await warte(700);
+    },
+    async lichtstab(ziel, schaden, nurZeigen) {
+      sag(`Jens brennt Licht in ${fig(ziel).name}: ${schaden} Schaden.`);
+      const st = fig("heilerin"), a = { x: st.x - 34, y: st.y - 128 }, b = mitteVon(ziel);
+      SFX.segen();
+      const strahl = el("path", { d: `M${a.x} ${a.y} L${b.x} ${b.y}`, stroke: "#FFF3B0", "stroke-width": 10, "stroke-linecap": "round", opacity: 0 });
+      const kern = el("path", { d: `M${a.x} ${a.y} L${b.x} ${b.y}`, stroke: "#fff", "stroke-width": 3, "stroke-linecap": "round", opacity: 0 });
+      fx().append(strahl, kern);
+      await Promise.all([animiere(strahl, [{ opacity: 0 }, { opacity: .9, offset: .3 }, { opacity: 0 }], 520), animiere(kern, [{ opacity: 0 }, { opacity: 1, offset: .3 }, { opacity: 0 }], 520)]);
+      strahl.remove(); kern.remove(); SFX.treffer();
+      getroffen(ziel, "#FFF3B0"); zahl(ziel, "−" + schaden, "#FFF3B0");
+      if (!nurZeigen) leben(ziel, -schaden);
+      await warte(400);
+    },
+    async heilen(ziel, menge, nurZeigen) {
+      sag(`Jens heilt ${fig(ziel).name}: +${menge} Leben.`);
+      await animiere($("fig-heilerin"), [{ transform: "translateY(0)" }, { transform: "translateY(-8px)" }], 200);
+      SFX.heil();
+      const f = fig(ziel), glut = el("ellipse", { cx: f.x, cy: f.y - 50, rx: 60, ry: 80, fill: "url(#heilglut)", class: "mitte" });
+      fx().appendChild(glut);
+      animiere(glut, [{ transform: "scale(.17)", opacity: 0 }, { transform: "scale(.85)", opacity: 1, offset: .4 }, { transform: "scale(1)", opacity: 0 }], 900);
+      // Funken steigen auf, dazu kleine Kreuze
+      for (let i = 0; i < 5; i++) {
+        const k = el("path", { d: `M${f.x + (i - 2) * 16} ${f.y - 20}m-5 0h10m-5-5v10`, stroke: "#E9FFD9", "stroke-width": 3, "stroke-linecap": "round" });
+        fx().appendChild(k);
+        animiere(k, [{ transform: "translateY(0)", opacity: 0 }, { opacity: 1, offset: .3 }, { transform: `translateY(${-70 - i * 8}px)`, opacity: 0 }], 900, { delay: i * 70 * tempo }).then(() => k.remove());
+      }
+      await partikel(f.x, f.y - 30, "#7BE3A0", 16, 60, 90, 900);
+      glut.remove();
+      zahl(ziel, "+" + menge, "#7BE3A0");
+      if (!nurZeigen) leben(ziel, menge);
+      animiere($("fig-heilerin"), [{ transform: "translateY(0)" }], 250);
+      await warte(500);
+    },
+    async orkangriff(ziel, schaden, nurZeigen) {
+      if (zustand.eis && zustand.eis.ziel === "ork" && !nurZeigen) { sag("Der Ork ist erstarrt und kann nicht angreifen."); await animiere($("fig-ork"), [{ transform: "translateX(0)" }, { transform: "translateX(-3px)" }, { transform: "translateX(3px)" }, { transform: "translateX(0)" }], 300); await warte(500); return; }
+      sag(`Der Ork trifft ${fig(ziel).name}: −${schaden} Leben.`);
+      const a = $("ansage-ork"); if (a) animiere(a, [{ transform: "scale(1)" }, { transform: "scale(1.15)" }, { transform: "scale(1)" }], 300);
+      animiere($("axt"), [{ transform: "rotate(0)" }, { transform: "rotate(-35deg)" }], 260);
+      await warte(200);
+      await vorstossen("ork", ziel, .6);
+      animiere($("axt"), [{ transform: "rotate(-35deg)" }, { transform: "rotate(70deg)" }], 140);
+      SFX.stampfen(); SFX.treffer(); wackeln(7);
+      animiere($("blitz"), [{ opacity: .25, fill: "#E23B2E" }, { opacity: 0 }], 260);
+      getroffen(ziel, "#FF6B57"); zahl(ziel, "−" + schaden, "#FF6B57");
+      if (!nurZeigen) leben(ziel, -schaden);
+      animiere($("axt"), [{ transform: "rotate(0)" }], 300);
+      await zurueck("ork");
+      await warte(350);
+    },
+    async spinnengift(ziel, schaden, nurZeigen) {
+      sag(`Die Höhlenspinne spuckt Gift auf ${fig(ziel).name}: −${schaden} Leben. ${fig(ziel).name} ist vergiftet.`);
+      const s = fig("spinne"), a = { x: s.x, y: s.y - 46 }, b = mitteVon(ziel);
+      await animiere($("fig-spinne"), [{ transform: "scale(1,1)" }, { transform: "scale(1.08,.9)" }], 180);
+      SFX.gift();
+      const tropfen = [];
+      for (let i = 0; i < 3; i++) {
+        const t = el("circle", { r: 6 - i, fill: "#8BD14A", stroke: T, "stroke-width": 2 }); fx().appendChild(t);
+        const schritte = []; for (let j = 0; j <= 10; j++) { const u = j / 10; schritte.push({ transform: `translate(${a.x + (b.x - a.x) * u + i * 6}px,${a.y + (b.y - a.y) * u - Math.sin(Math.PI * u) * 50}px)` }); }
+        tropfen.push(animiere(t, schritte, 480, { delay: i * 90 * tempo, easing: "ease-in" }).then(() => t.remove()));
+      }
+      animiere($("fig-spinne"), [{ transform: "scale(1,1)" }], 200);
+      await Promise.all(tropfen);
+      partikel(b.x, b.y, "#8BD14A", 14, 60, 30, 700);
+      getroffen(ziel, "#8BD14A"); zahl(ziel, "−" + schaden, "#B6F07A");
+      if (!nurZeigen) { leben(ziel, -schaden); marke(ziel, "vergiftet", "#2E5A3E"); }
+      await warte(500);
+    },
+    async segen(menge, nurZeigen) {
+      sag(`Jens spricht einen Segen: alle +${menge} Leben, nächster Angriff +3.`);
+      SFX.segen();
+      for (const id of ["kaempfer", "magierin", "heilerin"]) {
+        const f = fig(id);
+        const strahl = el("path", { d: `M${f.x - 20} 0 L${f.x + 20} 0 L${f.x + 34} ${f.y} L${f.x - 34} ${f.y}z`, fill: "#FFE27A", opacity: 0 });
+        fx().appendChild(strahl);
+        animiere(strahl, [{ opacity: 0 }, { opacity: .35, offset: .3 }, { opacity: 0 }], 1000).then(() => strahl.remove());
+        partikel(f.x, f.y - 60, "#FFE27A", 8, 50, 70, 900);
+      }
+      await warte(600);
+      for (const id of ["kaempfer", "magierin", "heilerin"]) { zahl(id, "+" + menge, "#FFE27A"); if (!nurZeigen) leben(id, menge); }
+      await warte(600);
+    }
+  };
+
+  // ---------- Runden ----------
+  const RUNDE1 = [
+    () => EFFEKT.schwerthieb("ork", 9),
+    () => EFFEKT.feuerball(["spinne", "ork"], 7),
+    () => EFFEKT.heilen("kaempfer", 10),
+    () => EFFEKT.orkangriff("magierin", 8),
+    () => EFFEKT.spinnengift("kaempfer", 4)
+  ];
+  const RUNDE2 = [
+    () => EFFEKT.eislanze("ork", 9),
+    () => EFFEKT.wirbelschlag(["spinne", "ork"], 6),
+    async () => { await EFFEKT.lichtstab("spinne", 6); if (zustand.gegner.spinne.hp <= 0) { sag("Die Höhlenspinne fällt!"); await besiegt("spinne"); } },
+    () => EFFEKT.orkangriff("magierin", 8)
+  ];
+  let gespielt = 0;
+  async function abspielen(liste, nr) {
+    if (laeuft) return;
+    laeuft = true; abbrechen = false; knoepfe();
+    try { for (const s of liste) { await s(); } } catch (e) { console.error(e); }
+    laeuft = false; abbrechen = false;
+    gespielt = Math.max(gespielt, nr);
+    if (nr === 1) { ansagen([["ork", "⚔", "Lena"]]); sag("Runde 1 vorbei. Der Ork will wieder auf Lena los. Jetzt „Runde 2“: Eislanze lässt ihn erstarren."); }
+    if (nr === 2) sag("Runde 2 vorbei: Die Spinne ist besiegt, der Ork war erstarrt. Mit „Von vorn“ geht es noch einmal los.");
+    knoepfe();
+  }
+  function knoepfe() {
+    $("r1").disabled = laeuft || gespielt >= 1;
+    $("r2").disabled = laeuft || gespielt !== 1;
+    $("ueberspringen").disabled = !laeuft;
+    document.querySelectorAll("#einzeln button").forEach(b => b.disabled = laeuft);
+  }
+  $("r1").onclick = () => { audio(); abspielen(RUNDE1, 1); };
+  $("r2").onclick = () => { audio(); abspielen(RUNDE2, 2); };
+  $("ueberspringen").onclick = () => { abbrechen = true; };
+  $("neu").onclick = () => { if (laeuft) return; gespielt = 0; aufbauen(); sag("Der Ork kündigt an, wen er angreift. Tippe auf „Runde 1 abspielen“."); knoepfe(); };
+  $("ton").onclick = e => { tonAn = !tonAn; e.target.classList.toggle("an", tonAn); e.target.textContent = tonAn ? "Ton an" : "Ton aus"; if (tonAn) audio(); };
+  $("schnell").onclick = e => { tempo = tempo === 1 ? .5 : 1; e.target.classList.toggle("an", tempo !== 1); };
+
+  // Einzelne Effekte (ändern die Lebenspunkte nicht)
+  const EINZELN = [
+    ["Schwerthieb", () => EFFEKT.schwerthieb("ork", 9, true)],
+    ["Wirbelschlag", () => EFFEKT.wirbelschlag(["spinne", "ork"], 6, true)],
+    ["Feuerball", () => EFFEKT.feuerball(["spinne", "ork"], 7, true)],
+    ["Eislanze", async () => { await EFFEKT.eislanze("spinne", 9, true); await warte(500); auftauen(); }],
+    ["Lichtstab", () => EFFEKT.lichtstab("ork", 5, true)],
+    ["Heilen", () => EFFEKT.heilen("magierin", 10, true)],
+    ["Segen", () => EFFEKT.segen(6, true)],
+    ["Ork greift an", () => EFFEKT.orkangriff("kaempfer", 8, true)],
+    ["Spinnengift", () => EFFEKT.spinnengift("heilerin", 4, true)]
+  ];
+  function auftauen() {
+    if (!zustand.eis) return;
+    $("fig-" + zustand.eis.ziel).style.filter = ""; zustand.eis.kristalle.remove(); $("marke-" + zustand.eis.ziel).innerHTML = ""; zustand.eis = null;
+  }
+  const box = $("einzeln");
+  for (const [n, f] of EINZELN) {
+    const b = document.createElement("button"); b.className = "knopf zweit"; b.textContent = n;
+    b.onclick = async () => { if (laeuft) return; audio(); laeuft = true; abbrechen = false; knoepfe(); try { await f(); } catch (e) { console.error(e); } laeuft = false; knoepfe(); };
+    box.appendChild(b);
+  }
+
+  aufbauen(); knoepfe();
+  window.__vorschau = { EFFEKT, abspielen: n => abspielen(n === 2 ? RUNDE2 : RUNDE1, n), get laeuft() { return laeuft; } };
+})();
+</script>
+</body>
+</html>
