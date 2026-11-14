@@ -12,6 +12,10 @@ for (let seed = 1; seed <= 400; seed++) {
   for (let i = 1; i < 3; i++) S = V.aktion(S, P[i], { t: 'join', name: 'S' + i });
   P.forEach((p, i) => S = V.aktion(S, p, { t: 'rolle', rolle: R[i] }));
   S = V.aktion(S, 'p0', { t: 'start', mindestens: 1 });
+  // Damit alle Talente vorkommen: jeder Held bekommt 12 Punkte und verteilt sie zufällig (auch Meisterfähigkeiten)
+  for (const p of S.teilnehmer) { S.helden[p].punkte = 12; for (let k = 0; k < 12; k++) {
+    const h = S.helden[p], frei = Object.keys(V.TALENT).filter(id => V.talentWaehlbar(h, id)); if (!frei.length) break;
+    S = V.aktion(S, p, { t: 'talent', id: frei[Math.floor(Math.random() * frei.length)], nr: S.spielNr }); } }
   let n = 0;
   while (S.phase !== 'ende' && n++ < 3000) {
     if (S.phase === 'erkunden') { for (const p of S.teilnehmer) { if (S.phase !== 'erkunden') break; S = V.aktion(S, p, { t: 'stimme', i: 0, nr: S.spielNr }); } }
@@ -21,7 +25,7 @@ for (let seed = 1; seed <= 400; seed++) {
       const r = S.kampf.runde, vorher = JSON.parse(JSON.stringify(S));
       for (const p of V.lebend(S)) {
         if (S.phase !== 'kampf' || S.kampf.runde !== r) break;
-        const h = S.helden[p], akt = V.aktionenVon(h).filter(a => !(a.cd && (h.cd[a.id] || 0) > 0));
+        const h = S.helden[p], akt = V.aktionenVon(h).filter(a => !((h.cd[a.id] || 0) > 0));
         const a = akt[Math.floor(Math.random() * akt.length)];
         const g = V.gegnerLebend(S); const ziel = a.ziel === 'gegner' ? g[0].id : a.ziel === 'held' ? p : a.ziel === 'anderer' ? S.teilnehmer.find(q => q !== p && S.helden[q].hp > 0) : null;
         const vor = S; S = V.aktion(S, p, { t: 'wahl', runde: r, a: a.id, ziel });

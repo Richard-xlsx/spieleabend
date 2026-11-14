@@ -28,6 +28,7 @@
   // damit nach Neuladen nichts doppelt läuft.
   let gespielt = null, wiedergabe = false, ueberspringen = false;
   let karteOffen = false;
+  let talentAst = null, talentFokus = null;   // Talentbaum: angezeigter Ast und angetippter Knoten
   let tonAn = ls.get("vl:ton") !== false, schnell = !!ls.get("vl:schnell");
 
   const hostId = ep => PREFIX + code + "-" + ep;
@@ -167,12 +168,11 @@
   const online = p => !!(S && S.online && S.online.includes(p));
   const ich = () => S && S.helden && S.helden[PID];
   const mitspieler = () => S && S.teilnehmer.includes(PID);
-  const ROEM = ["", "", " II", " III"];
-  const mitRang = (h, a) => a.name + (a.id === "trank" ? "" : ROEM[V.rangVon(h, a.id)] || "");
+
   function faehigkeitenKnopf() {
     if (!mitspieler()) return "";
     const h = ich();
-    return `<button class="knopf ${h.punkte ? "" : "zweit"}" id="faehigkeiten">${h.punkte ? `Fähigkeiten verbessern (${h.punkte} ${h.punkte === 1 ? "Punkt" : "Punkte"})` : `Stufe ${h.stufe} · Fähigkeiten ansehen`}</button>`;
+    return `<button class="knopf ${h.punkte ? "" : "zweit"}" id="faehigkeiten">${h.punkte ? `Talentbaum (${h.punkte} ${h.punkte === 1 ? "Punkt" : "Punkte"} frei)` : `Stufe ${h.stufe} · Talentbaum ansehen`}</button>`;
   }
   function balken(hp, max) {
     const q = max ? hp / max : 0;
@@ -364,7 +364,8 @@
     const marken = imKampf ? [x.hp <= 0 ? `<span class="marke">bewusstlos</span>` : "", x.giftR > 0 && x.hp > 0 ? `<span class="marke gift">vergiftet</span>` : "",
       x.lauer ? `<span class="marke schatten">lauert</span>` : "", x.segen ? `<span class="marke">gesegnet</span>` : "",
       k && k.wahl[p] ? `<span class="marke ok">bereit</span>` : ""].join("") : "";
-    const unter = `${V.ROLLEN[x.rolle].name} · Stufe ${x.stufe}${online(p) ? "" : " · nicht verbunden"}${imKampf ? "" : ` · ${x.gold} Gold · ${x.traenke} ${x.traenke === 1 ? "Trank" : "Tränke"}`}`;
+    const ast = V.hauptast(x);
+    const unter = `${V.ROLLEN[x.rolle].name}${ast ? " · " + ast.name : ""} · Stufe ${x.stufe}${online(p) ? "" : " · nicht verbunden"}${imKampf ? "" : ` · ${x.gold} Gold · ${x.traenke} ${x.traenke === 1 ? "Trank" : "Tränke"}`}`;
     return `<button class="heldzeile ${x.hp <= 0 && !ziel ? "weg" : ""} ${ziel ? "ziel" : ""}" ${ziel ? `data-ziel="${p}"` : "disabled"}>
       ${VB.held(x.rolle)}<span class="mitte-sp"><span class="kopfzeile"><b>${esc(sp(p).name)}</b><small>${unter}</small></span>${balken(x.hp, x.max)}${marken ? `<span class="marken">${marken}</span>` : ""}</span>
       <span class="hp">${x.hp}<small>/${x.max}</small></span></button>`;
@@ -407,15 +408,15 @@
     if (!mitspieler()) h += `<p class="leise mitte">Du schaust zu.</p>`;
     else if (!lebt) h += `<div class="hinweis">Du bist bewusstlos. Nur eine heilende Fähigkeit kann dich zurückholen.</div>`;
     else if (meineWahl && !auswahl) {
-      const a0 = V.aktionenVon(mh).find(x => x.id === meineWahl.a), a = a0 ? { name: mitRang(mh, a0) } : { name: meineWahl.a };
+      const a0 = V.aktionenVon(mh).find(x => x.id === meineWahl.a), a = a0 ? { name: a0.name } : { name: meineWahl.a };
       const zn = meineWahl.ziel ? (S.gegner.find(g => g.id === meineWahl.ziel) || {}).name || sp(meineWahl.ziel).name : "";
       h += `<div class="karte"><p class="etikett">Dein Zug</p><h2>${esc(a.name)}${zn ? " → " + esc(zn) : ""}</h2><button class="knopf zweit" id="aendern">Ändern</button></div>`;
     } else {
       if (zielModus) h += `<div class="hinweis">${esc(auswahl.name)}: Tippe auf der Bühne auf ${zielModus === "gegner" ? "einen Gegner" : zielModus === "anderer" ? "einen anderen Helden" : "einen Helden"} (gelb umrandet).</div>`;
       h += `<p class="etikett">Dein Zug</p><div class="aktionen">${V.aktionenVon(mh).map(a => {
-        const cd = a.cd ? (mh.cd[a.id] || 0) : 0;
+        const cd = mh.cd[a.id] || 0, meister = a.meister && cd > 50;
         const ohneZiel = a.ziel === "anderer" && !S.teilnehmer.some(p => p !== PID && S.helden[p].hp > 0);
-        return `<button class="aktion ${auswahl && auswahl.id === a.id ? "an" : ""}" data-aktion="${a.id}" ${cd || ohneZiel ? "disabled" : ""}><b>${esc(mitRang(mh, a))}${a.id === "trank" ? ` (${mh.traenke})` : ""}</b><small>${cd ? `Wieder bereit in ${cd} ${cd === 1 ? "Runde" : "Runden"}` : esc(a.text) + rangZusatz(mh, a)}</small></button>`;
+        return `<button class="aktion ${auswahl && auswahl.id === a.id ? "an" : ""}" data-aktion="${a.id}" ${cd || ohneZiel ? "disabled" : ""}><b>${a.meister ? "★ " : ""}${esc(a.name)}${a.id === "trank" ? ` (${mh.traenke})` : ""}</b><small>${meister ? "Schon eingesetzt, im nächsten Kampf wieder" : cd ? `Wieder bereit in ${cd} ${cd === 1 ? "Runde" : "Runden"}` : esc(a.text) + V.aktionZusatz(mh, a)}</small></button>`;
       }).join("")}</div>
       ${auswahl ? `<button class="link" id="abbrechen">Abbrechen</button>` : ""}`;
     }
@@ -426,36 +427,59 @@
     return h;
   }
 
-  // was die bisherigen Ränge schon bringen, als kurzer Zusatz zum Grundtext
-  function rangZusatz(h, a) {
-    const r = V.rangVon(h, a.id); if (a.id === "trank" || r <= 1) return "";
-    const t = V.rangText(h, Object.assign({}, a)) || "";
-    const m = t.match(/^\+(\d+) (.*)$/);
-    if (m) return ` · Rang${ROEM[r]}: +${(r - 1) * +m[1]} ${m[2]}`;
-    return a.cd ? ` · alle ${V.cdVon(h, a) + 1} Runden` : "";
+  // ---------- Talentbaum ----------
+  // Oben der gezeichnete Baum (drei Äste, sechs Rauten), darunter der gewählte Ast als Liste.
+  // Antippen einer Raute zeigt sie in der Liste, nochmal antippen lernt sie (wenn möglich).
+  function talentBaumSvg(h) {
+    const aeste = V.AESTE[h.rolle], X = [58, 165, 272], Y = i => 236 - i * 38;
+    let s = `<svg class="talentbaum" viewBox="0 0 330 290" role="group" aria-label="Talentbaum">`;
+    s += `<path d="M165 266V254" stroke="#2A2118" stroke-width="8" stroke-linecap="round"/><path d="M150 268q15-6 30 0" fill="none" stroke="#2A2118" stroke-width="3" stroke-linecap="round"/>`;
+    X.forEach(x => { s += `<path d="M165 266Q165 252 ${x} 252V${Y(0)}" fill="none" stroke="#2A2118" stroke-width="${x === 165 ? 6 : 4.5}" stroke-linecap="round"/>`; });
+    aeste.forEach((a, ai) => {
+      const x = X[ai];
+      for (let i = 1; i < 6; i++) { const an = h.talente.includes(a.knoten[i - 1]) && h.talente.includes(a.knoten[i]); s += `<path d="M${x} ${Y(i - 1)}V${Y(i)}" stroke="${an ? "#C99A2E" : "#8C7A6B"}" stroke-width="${an ? 4 : 2.5}" ${an ? "" : 'stroke-dasharray="4 4"'}/>`; }
+      a.knoten.forEach((id, i) => {
+        const t = V.TALENT[id], hat = h.talente.includes(id), frei = !hat && V.talentWaehlbar(h, id), r = i === 5 ? 17 : 12;
+        const fill = hat ? "#E8C24A" : frei ? "#FBF3E2" : "#D9CBB0", stroke = hat ? "#2A2118" : frei ? "#FF6B57" : "#8C7A6B";
+        s += `<g class="t-knoten ${frei && h.punkte ? "t-frei" : ""} ${talentFokus === id ? "fokus" : ""}" data-tknoten="${id}" role="button" tabindex="0" aria-label="${esc(t.name)}${hat ? ", gelernt" : frei ? ", wählbar" : ", gesperrt"}" transform="translate(${x} ${Y(i)})">
+          <circle r="${r + 8}" fill="transparent"/>${talentFokus === id ? `<rect x="${-r - 6}" y="${-r - 6}" width="${2 * r + 12}" height="${2 * r + 12}" rx="3" transform="rotate(45)" fill="none" stroke="#2A2118" stroke-width="1.5" stroke-dasharray="3 3"/>` : ""}
+          <rect x="${-r}" y="${-r}" width="${2 * r}" height="${2 * r}" rx="3" transform="rotate(45)" fill="${fill}" stroke="${stroke}" stroke-width="${frei ? 3 : 2}"/>
+          ${i === 5 ? `<path d="M0-8l2.4 5 5.6.8-4 3.9 1 5.5L0 9.6l-5 2.6 1-5.5-4-3.9 5.6-.8z" fill="${hat ? "#B83A2A" : "#8C7A6B"}"/>` : hat ? `<path d="M-5 0l3.5 3.5L5-4" fill="none" stroke="#2A2118" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>` : ""}</g>`;
+      });
+      s += `<text x="${x}" y="282" text-anchor="middle" font-family="Alegreya, Georgia, serif" font-weight="700" font-size="14" fill="#2A2118">${esc(a.name)}</text>`;
+    });
+    return s + `</svg>`;
   }
   function bildschirmFaehigkeiten() {
     const h = ich(), st = h.stufe, naechste = V.EP_STUFEN[st];
     const von = V.EP_STUFEN[st - 1], q = naechste ? (h.ep - von) / (naechste - von) : 1;
-    const liste = V.aktionenVon(h).filter(a => a.id !== "trank");
+    const aeste = V.AESTE[h.rolle];
+    if (talentAst === null) { const ha = V.hauptast(h); talentAst = ha ? Math.max(0, aeste.findIndex(a => a.name === ha.name)) : 0; }
+    const ast = aeste[talentAst];
+    const meisterGewaehlt = V.talenteVon(h).find(t => t.e.meister);
+    const boni = Object.keys(V.STUFENBONUS).filter(x => st >= +x).map(x => V.STUFENBONUS[x]);
     return `<header class="titel"><p class="etikett">${V.ROLLEN[h.rolle].name} · ${esc(name)}</p><h1>Stufe ${st}</h1>
         <div class="balken"><i style="width:${Math.round(q * 100)}%"></i></div>
-        <p class="leise klein">${naechste ? `${h.ep} von ${naechste} Erfahrung bis Stufe ${st + 1}` : `Höchste Stufe erreicht (${h.ep} Erfahrung)`} · Jede Stufe: +3 Höchstleben und 1 Fähigkeitspunkt.</p></header>
-      <div class="hinweis">${h.punkte ? `Du hast ${h.punkte} ${h.punkte === 1 ? "Fähigkeitspunkt" : "Fähigkeitspunkte"}. Jeder hebt eine Fähigkeit um einen Rang.` : "Keine Punkte frei. Neue gibt es mit der nächsten Stufe."}</div>
-      <div class="waren">${liste.map(a => {
-        const r = V.rangVon(h, a.id), next = V.rangText(h, a), voll = r >= V.MAX_RANG || !next;
-        const pips = [1, 2, 3].map(i => `<i class="${i <= r ? "an" : ""}"></i>`).join("");
-        return `<button class="ware faehigkeit ${voll ? "aus" : ""}" data-verbessern="${a.id}" ${voll || !h.punkte ? "disabled" : ""}>
-          <b>${esc(mitRang(h, a))}</b><span class="preis rang">${pips}</span>
-          <small>${esc(a.text)}${rangZusatz(h, a)}${voll ? (r >= V.MAX_RANG ? " · höchster Rang" : "") : ` · Nächster Rang: ${esc(next)}`}</small></button>`;
+        <p class="leise klein">${naechste ? `${h.ep} von ${naechste} Erfahrung bis Stufe ${st + 1}` : `Höchste Stufe erreicht (${h.ep} Erfahrung)`} · Jede Stufe: +3 Höchstleben und 1 Talentpunkt. Stufe 5, 10, 15 und 20 bringen noch etwas extra.${boni.length ? " Du hast: " + boni.join(", ") + "." : ""}</p></header>
+      <div class="hinweis">${h.punkte ? `Du hast ${h.punkte} ${h.punkte === 1 ? "Talentpunkt" : "Talentpunkte"}. Tippe eine Raute an, nochmal antippen lernt sie.` : "Keine Punkte frei. Neue gibt es mit der nächsten Stufe oder beim Üben an der Rast."}</div>
+      <div class="seite talentblatt">${talentBaumSvg(h)}</div>
+      <div class="ast-reiter">${aeste.map((a, i) => `<button class="${i === talentAst ? "an" : ""}" data-tast="${i}">${esc(a.name)}<small>${a.knoten.filter(id => h.talente.includes(id)).length}/6</small></button>`).join("")}</div>
+      <p class="leise klein mitte">${esc(ast.kurz)}</p>
+      <div class="waren">${ast.knoten.map((id, i) => {
+        const t = V.TALENT[id], hat = h.talente.includes(id), frei = !hat && V.talentWaehlbar(h, id);
+        const grund = hat ? "✓" : frei ? (h.punkte ? "1 Punkt" : "kein Punkt") : i === 5 && meisterGewaehlt ? "nur eine" : "gesperrt";
+        return `<button class="ware talent ${hat ? "gelernt" : ""} ${talentFokus === id ? "fokus" : ""} ${t.e.meister ? "meister" : ""}" data-talent="${id}" ${frei && h.punkte ? "" : "disabled"}>
+          <b>${i + 1}. ${t.e.meister ? "★ " : ""}${esc(t.name)}</b><span class="preis ${hat || (frei && h.punkte) ? "" : "leise-preis"}">${grund}</span><small>${esc(t.text)}${i === 5 && meisterGewaehlt && !hat ? ` Du hast schon ${esc(meisterGewaehlt.name)} als Meisterfähigkeit.` : ""}</small></button>`;
       }).join("")}</div>
+      <h3>Deine Fähigkeiten</h3>
+      <div class="faehigkeitsliste">${V.aktionenVon(h).filter(a => a.id !== "trank").map(a => `<p><b>${a.meister ? "★ " : ""}${esc(a.name)}</b> <span class="leise">${esc(a.text)}${esc(V.aktionZusatz(h, a))}</span></p>`).join("")}</div>
       ${amSchrein() ? umverteilenHtml(h) : ""}
       <div class="unten"><button class="knopf" id="zurueck-f">Zurück</button></div>`;
   }
   const amSchrein = () => S.phase === "erkunden" && S.entscheidung && S.entscheidung.art === "schrein";
   function umverteilenHtml(h) {
-    const vergeben = Object.values(h.rang).reduce((a, r) => a + r - 1, 0);
-    return `<div class="karte"><h2>Am Schrein</h2><p class="leise klein">Alle Ränge zurück auf I, du bekommst deine ${vergeben} vergebenen Punkte zurück und verteilst sie neu.</p>
+    const vergeben = h.talente.length;
+    return `<div class="karte"><h2>Am Schrein</h2><p class="leise klein">Alle Talente vergessen: Du bekommst deine ${vergeben} Punkte zurück und verteilst sie neu.</p>
       <button class="knopf zweit" id="umverteilen" ${vergeben && h.gold >= V.UMVERTEILEN ? "" : "disabled"}>Punkte neu verteilen (${V.UMVERTEILEN} Gold)</button>
       ${!vergeben ? `<p class="leise klein">Du hast noch keine Punkte vergeben.</p>` : h.gold < V.UMVERTEILEN ? `<p class="leise klein">Du hast nicht genug Gold.</p>` : ""}</div>`;
   }
@@ -465,7 +489,7 @@
     const offen = S.teilnehmer.filter(p => !L.fertig[p]);
     let h = fortschritt() + buchseite(S.seite);
     if (mitspieler()) {
-      const gelernt = V.LERNBAR[mh.rolle].filter(a => mh.gelernt.includes(a.id)).map(a => a.name);
+      const gelernt = [];
       h += `<div class="karte"><div class="kopf"><h2>Dein Einkauf</h2><span class="gold">${mh.gold} Gold</span></div>
         <div class="ausruestung"><span class="marke">Waffe +${mh.waffe}</span><span class="marke">Rüstung −${mh.ruestung}</span><span class="marke">${mh.hp}/${mh.max} Leben</span><span class="marke">${mh.traenke} ${mh.traenke === 1 ? "Trank" : "Tränke"}</span>${gelernt.map(n => `<span class="marke schatten">${esc(n)}</span>`).join("")}</div>
         <div class="waren">${V.angebot(mh).map(w => `<button class="ware ${w.faehigkeit ? "faehigkeit" : ""} ${w.aus ? "aus" : ""}" data-kauf="${w.id}" ${w.aus || w.preis > mh.gold || fertig ? "disabled" : ""}>
@@ -516,9 +540,20 @@
     });
     if ($("beenden")) $("beenden").onclick = () => tun({ t: "beenden" });
     document.querySelectorAll("[data-kauf]").forEach(b => b.onclick = () => tun({ t: "kaufen", id: b.dataset.kauf, nr: S.spielNr }));
-    if ($("faehigkeiten")) $("faehigkeiten").onclick = () => { zeigeFaehigkeiten = true; letzteSig = ""; window.scrollTo(0, 0); render(); };
+    if ($("faehigkeiten")) $("faehigkeiten").onclick = () => { zeigeFaehigkeiten = true; talentAst = null; talentFokus = null; letzteSig = ""; window.scrollTo(0, 0); render(); };
     if ($("zurueck-f")) $("zurueck-f").onclick = () => { zeigeFaehigkeiten = false; letzteSig = ""; window.scrollTo(0, 0); render(); };
-    document.querySelectorAll("[data-verbessern]").forEach(b => b.onclick = () => tun({ t: "verbessern", id: b.dataset.verbessern, nr: S.spielNr }));
+    const lernen = id => { tun({ t: "talent", id, nr: S.spielNr }); talentFokus = id; letzteSig = ""; render(); };
+    document.querySelectorAll("[data-talent]").forEach(b => b.onclick = () => lernen(b.dataset.talent));
+    document.querySelectorAll("[data-tast]").forEach(b => b.onclick = () => { talentAst = +b.dataset.tast; talentFokus = null; letzteSig = ""; render(); });
+    document.querySelectorAll("[data-tknoten]").forEach(b => {
+      b.onclick = () => {
+        const id = b.dataset.tknoten, h = ich();
+        if (talentFokus === id && h.punkte && V.talentWaehlbar(h, id)) { lernen(id); return; }
+        talentFokus = id; talentAst = V.AESTE[h.rolle].findIndex(a => a.knoten.includes(id)); letzteSig = ""; render();
+        const z = document.querySelector(`[data-talent="${id}"]`); if (z) z.scrollIntoView({ block: "nearest", behavior: "smooth" });
+      };
+      b.onkeydown = ev => { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); b.onclick(); } };
+    });
     if ($("kartenklapp")) $("kartenklapp").ontoggle = e => { karteOffen = e.target.open; };
     if ($("umverteilen")) $("umverteilen").onclick = () => tun({ t: "umverteilen", nr: S.spielNr });
     if ($("fertig")) $("fertig").onclick = () => tun({ t: "fertig", wert: !S.lager.fertig[PID], nr: S.spielNr });

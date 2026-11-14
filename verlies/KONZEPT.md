@@ -261,6 +261,12 @@ Nach jedem Schritt: Simulation aller Rollenkombinationen für die Balance und ei
   Gruppenentscheidung (Ausruhen oder Üben); den Geheimgang gibt es ab Raum 1. Die drei Elite-Gegner (Ork-Häuptling,
   Knochenwächter, Spinnenmutter) sind Platzhalter, bis Schritt 4 die richtigen Gegner-Eigenschaften bringt.
   Schlüssel gibt es bei Elite-Gegnern, selten auch als Fundstück in unbekannten Räumen.
+- **Schritt 3 fertig** (14.11.2026): Talentbaum für alle 6 Rollen, Stufen bis 20, Ränge und kaufbare Fähigkeiten entfallen.
+  Abweichungen: Meisterfähigkeiten sind einmal pro Kampf einsetzbar und teils vereinfacht (z. B. Schlachtruf und Zeitriss
+  lassen niemanden doppelt handeln, sondern heilen bzw. machen Abklingzeiten frei; Wolfsrudel sind drei Bisse statt eines
+  Begleiters; Meisterdieb stiehlt Gold und einen Trank). Die Wächterin bekommt „Obhut“, die Kampfpriesterin „Sonnenstrahl“.
+  „Untot“ gibt es schon jetzt für Skelett, Knochenwächter und Knochenkönig (für Untotenjäger und Gottesurteil).
+  In einer Partie mit einer Ebene erreicht man etwa Stufe 5, Meisterfähigkeiten also erst mit mehreren Ebenen (Schritt 5).
 
 ## 11. Entscheidungen (14.11.2026)
 

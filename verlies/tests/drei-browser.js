@@ -56,7 +56,7 @@ const OUT = path.join(AUS, (process.argv[3] || 'b') + '-');
       const fk = await p.$('#faehigkeiten:not(.zweit)');
       if (fk) {
         await fk.click(); await p.waitForTimeout(200);
-        const v = await p.$('[data-verbessern]:not([disabled])');
+        const v = await p.$('[data-talent]:not([disabled])');
         if (v) { await v.click(); await p.waitForTimeout(400); }
         if (!shots.faehigkeiten) { shots.faehigkeiten = 1; await p.screenshot({ path: OUT + '2-faehigkeiten.png', fullPage: true }); }
         await p.click('#zurueck-f'); await p.waitForTimeout(150);

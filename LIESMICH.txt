@@ -46,22 +46,25 @@ Mau-Mau (2 bis 8 Spieler)
   Fällt der Spielleiter ganz aus und jemand übernimmt, wird die laufende Runde neu gegeben (die Karten kannte nur sein Handy);
   die Punkte bleiben. Ist jemand nicht verbunden und dran, kann der Spielleiter ihn auslassen.
 
-Verlies zu dritt (2 bis 3 Spieler; Stufe 1 und Ausbau mit Händler und 6 Rollen vom 13.11.2026, Kampfbühne und Karte vom 14.11.2026)
+Verlies zu dritt (2 bis 3 Spieler; Stufe 1 und Ausbau mit Händler und 6 Rollen vom 13.11.2026, Kampfbühne, Karte und Talentbaum vom 14.11.2026)
   Gemeinsam gegen das Spiel. Sechs Rollen, höchstens drei Helden (jede Rolle einmal):
-    Kämpfer (34 Leben; Schwerthieb, Schildwall, Wirbelschlag | lernbar: Vernichtender Hieb, Kriegsschrei)
-    Paladin (32; Hammerschlag, Handauflegen, Beschützen | Heiliges Licht, Unerschütterlich)
-    Dieb (29; Dolchstich, Giftklinge, In die Schatten | Taschendieb, Rauchbombe)
-    Waldläufer (28; Pfeilschuss, Doppelschuss, Markieren | Pfeilhagel, Kräuterkunde)
-    Magierin (23; Funkenstrahl, Feuerball, Eislanze | Arkaner Schild, Meteor)
-    Heilerin (26; Lichtstab, Heilen, Segen | Läuterung, Wiedergeburt)
+    Kämpfer (34 Leben; Schwerthieb, Schildwall, Wirbelschlag | Äste: Beschützer, Berserker, Feldherr)
+    Paladin (32; Hammerschlag, Handauflegen, Beschützen | Schutzherr, Rächer, Gnade)
+    Dieb (29; Dolchstich, Giftklinge, In die Schatten | Assassine, Giftmischer, Gauner)
+    Waldläufer (28; Pfeilschuss, Doppelschuss, Markieren | Scharfschütze, Jäger, Naturkunde)
+    Magierin (23; Funkenstrahl, Feuerball, Eislanze | Feuer, Eis, Arkan)
+    Heilerin (26; Lichtstab, Heilen, Segen | Licht, Wächterin, Kampfpriesterin)
   Jeder startet mit 1 Heiltrank und 10 Gold. Gold gehört jedem selbst (Beute bekommt jeder gleich viel).
   Händler (als Raum auf der Karte und immer vor dem Thronsaal): Waffe schärfen (+1 Schaden, 15/30/45/60 Gold, bis +4), Rüstung (−1 Schaden je Treffer,
-  15/30/45, bis −3), Stärkungselixier (+6 Höchstleben, 25, bis 3×), Heiltrank (10, höchstens 3 tragen), zwei Fähigkeiten
-  je Rolle (30 bis 50 Gold). Weiter geht es, wenn alle „Fertig“ getippt haben (Spielleiter kann abkürzen).
-  Erfahrung und Stufen: Jeder gewonnene Kampf bringt allen Helden Erfahrung (je nach Gegner 8 bis 22 je Gegner),
-  Truhen und Ereignisse 8. Stufen 1 bis 8 (ab 15, 35, 60, 90, 125, 165, 210 Erfahrung); jede Stufe +3 Höchstleben und
-  1 Fähigkeitspunkt. Punkte gibt man außerhalb des Kampfes aus (Knopf „Fähigkeiten“): jede Fähigkeit hat Rang I bis III.
-  Angriffe +1 bis +3 Schaden je Rang, Heilungen +2 bis +3 Leben, Schutz-Fähigkeiten 1 Runde schneller bereit, Gift +1.
+  15/30/45, bis −3), Stärkungselixier (+6 Höchstleben, 25, bis 3×), Heiltrank (10, höchstens 3 tragen). Weiter geht es, wenn alle „Fertig“ getippt haben (Spielleiter kann abkürzen).
+  Erfahrung und Stufen: Jeder gewonnene Kampf bringt allen Helden Erfahrung (je nach Gegner 8 bis 22, Elite 34 bis 40),
+  Truhen und Ereignisse 8. Stufen 1 bis 20 (ab 15, 35, 60, 90, 125, 165, 210, 260, … 1140 Erfahrung); jede Stufe +3 Höchstleben
+  und 1 Talentpunkt. Stufe 5 und 20: +1 Schaden, Stufe 10: −1 Schaden pro Treffer, Stufe 15: ein Trankplatz mehr.
+  Talentbaum (Knopf „Talentbaum“, nur außerhalb des Kampfes): je Rolle 3 Äste mit 6 Knoten, ein Knoten braucht den darunter.
+  Knoten machen Fähigkeiten stärker oder schneller bereit, wirken immer (z. B. −1 Schaden pro Treffer, Blutrausch, Gift +1,
+  +25 % Gold) oder schalten neue Fähigkeiten frei (unter anderem die früher kaufbaren). Ganz oben eine Meisterfähigkeit
+  (einmal pro Kampf, nur eine pro Held). Zeichnung des Baums oben, Liste des Asts darunter; Raute antippen zeigt, nochmal
+  antippen lernt. In der Gruppe steht beim Namen der Hauptast. Neu verteilen nur am Schrein für 10 Gold.
   Kampfbühne (buehne.js): Gegner oben, Helden unten von hinten. Jeder Gegner kündigt zu Beginn der Runde an, was er vorhat
   (gelbes Schild, z. B. „⚔ → Lena“); Schildwall/Unerschütterlich ziehen den Angriff trotzdem auf sich, Versteckte werden nicht
   gefunden. Ziele tippt man direkt auf der Bühne an. Jede ausgewertete Runde wird auf allen Handys als Animation abgespielt
@@ -85,10 +88,11 @@ Verlies zu dritt (2 bis 3 Spieler; Stufe 1 und Ausbau mit Händler und 6 Rollen 
   Beben in jeder 3. Runde, ruft bei halben Leben zwei Skelette. Zu zweit haben Gegner 55 % der Leben.
   Ereignisse: Brunnen, schlafender Troll, Händler (Trank 8 Gold), Altar (jeder 15 Gold für +5 Höchstleben), Brücke.
   Zufall steckt im Spielstand (S.rng), eine Übernahme der Spielleitung würfelt also genau so weiter.
-  Simuliert mit Karte (alle 20 Dreiergruppen, je 100 Partien, mit Einkaufen und Punkten): kluges Spiel gewinnt 67 bis 100 %
-  (Schnitt 92 %), am schwersten ohne jede Heilung. Nur Grundangriff: Schnitt 9 %. Am Ende im Schnitt Stufe 5.
-  Zu zweit: Kämpfer+Heilerin rund 74 %, Paladin+Magierin rund 78 %, Dieb+Waldläufer rund 9 %.
-  Noch nicht drin (siehe verlies/KONZEPT.md): Talentbaum, Stufen bis 20, neue Gegner mit Eigenschaften, Ebenen 2 und 3,
+  Simuliert mit Karte und Talenten (alle 20 Dreiergruppen, je 100 Partien, jeder Held folgt einem zufälligen Ast):
+  kluges Spiel gewinnt 82 bis 100 % (Schnitt 94 %), alle 18 Äste zwischen 80 und 98 %. Nur Grundangriff: Schnitt 2 %.
+  Am Ende im Schnitt Stufe 5 mit knapp 5 Talenten. Zu zweit: Kämpfer+Heilerin rund 85 %, Paladin+Magierin rund 76 %,
+  Dieb+Waldläufer rund 42 %. Dafür sind die Gegner etwas zäher (+11 % Leben je Raum statt +6 %), der Knochenkönig hat 310 Leben.
+  Noch nicht drin (siehe verlies/KONZEPT.md): neue Gegner mit Eigenschaften, Ebenen 2 und 3,
   Schwierigkeitsstufen, Speichern zwischen Ebenen.
 
 Verbindung (Handy des Spielleiters ist der Server, gilt für alle Spiele)

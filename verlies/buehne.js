@@ -337,8 +337,24 @@
       schutz: ["schild", "fels", "arkan", "beschuetzen"]
     };
     const typVon = a => Object.keys(HFX).find(k => HFX[k].includes(a)) || a;
+    // Frost und Ewiger Winter: kalte Welle über alle Gegner
+    async function frostwelle(e) {
+      sfx("eis"); await heben(e.von);
+      const lebende = gegner.filter(g => g.hp > 0).map(g => g.id);
+      blitz("#BFE8FF", .35);
+      for (const id of lebende) { const m = M(id); partikel(m.x, m.y, "#DFF4FF", 14, 80, 40, 800); glut(m.x, m.y, "vl-heil", 55, 700); }
+      await warte(450); senken(e.von); await folgen(e, "#BFE8FF");
+    }
     const FARBE = { schlag: "#FFD447", vernichten: "#FF6B57", dolch: "#C9B8FF", gift: "#8BD14A", taschendieb: "#FFD447", hammer: "#FFE27A" };
-    async function heldAktion(e) {
+    // Talent-Fähigkeiten nutzen die Effekte verwandter Grundfähigkeiten
+    const AEHNLICH = { spott: "schlag", raserei: "wirbel", gottesurteil: "vernichten", todesstoss: "vernichten", meisterdieb: "taschendieb",
+      kopfschuss: "pfeil", ranken: "eis", durchschuss: "hagel", treibjagd: "hagel", wolfsrudel: "hagel", inferno: "meteor", sonnenstrahl: "licht",
+      sonnenzorn: "licht", giftwolke: "rauch", seuche: "rauch", bollwerk: "fels", wall: "fels", obhut: "arkan", taktik: "arkan",
+      schlachtruf: "kriegsschrei", gnadenlicht: "wiedergeburt", auferstehung: "wiedergeburt", erloesung: "wiedergeburt", heiligtum: "wiedergeburt",
+      heiligtumTick: "laeutern", zeitriss: "segen" };
+    async function heldAktion(e0) {
+      if (e0.a === "frost" || e0.a === "winter") { await frostwelle(e0); return; }
+      const e = AEHNLICH[e0.a] ? Object.assign({}, e0, { a: AEHNLICH[e0.a], phase: (e0.a === "sonnenstrahl" || e0.a === "sonnenzorn") ? 2 : e0.phase }) : e0;
       const p = e.von, a = e.a, typ = typVon(a), ziele = getroffene(e, true), ziel = e.ziel && zust[e.ziel] ? e.ziel : ziele[0];
       const spitze = () => { const q = pos[p], s = SPITZE[zust[p].rolle] || [0, -100]; return { x: q.x + s[0], y: q.y + s[1] }; };
       if (typ === "nah" && ziel) {

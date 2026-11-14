@@ -6,10 +6,11 @@ Bilder und Zwischendateien landen im Temp-Ordner unter verlies-tests (z. B. /tmp
 
 Ohne Browser (nur Node.js):
   node simulation.js [Partien]       Alle 20 Dreiergruppen und drei Zweiergruppen, je „klug“ (Fähigkeiten, Einkaufen,
-                                     Punkte verteilen) und „simpel“ (nur Grundangriff). Zeigt Siegquoten, Ø Stufe, Ø Gold.
+                                     Talente; jeder Held folgt einem zufälligen Ast) und „simpel“ (nur Grundangriff). Zeigt Siegquoten, Ø Stufe, Ø Gold und die Siegquote je Ast.
                                      Standard 300 Partien je Gruppe; für einen schnellen Blick 50 bis 100.
   node rundenaufzeichnung.js         400 zufällige Partien: Ausgangslage + Ereignisse in S.letzte müssen genau das
-                                     Rundenergebnis ergeben, jeder Gegner braucht eine angekündigte Absicht. Erwartet: Fehler 0.
+                                     Rundenergebnis ergeben, jeder Gegner braucht eine angekündigte Absicht. Jeder Held bekommt 12 zufällige Talente,
+                                     damit alle Fähigkeiten vorkommen. Erwartet: Fehler 0.
   node endgegner-runde-finden.js     Sucht eine Runde, in der der Knochenkönig Skelette ruft, und speichert sie (ruf.json).
 
 Mit Browser (Playwright und Chromium sind in der Cloud-Umgebung vorinstalliert).
@@ -17,7 +18,7 @@ Vorher im Ordner spieleabend einen Webserver starten:  python3 -m http.server 87
 Andere Adresse (z. B. die Live-Seite):  VERLIES_URL=https://richard-xlsx.github.io/spieleabend node ...
   node drei-browser.js [rolle1,rolle2,rolle3] [kürzel]
                                      Drei getrennte Browser im iPhone-Format spielen eine ganze Partie: Rollenwahl,
-                                     Abstimmung auf der Karte, Händler, Fähigkeiten verbessern, Kämpfe mit Wiedergabe. Dazwischen lädt eine
+                                     Abstimmung auf der Karte, Händler, Talente lernen, Kämpfe mit Wiedergabe. Dazwischen lädt eine
                                      Mitspielerin (Raum 3) und der Spielleiter (Raum 5) neu. Am Ende: Fehler [] und
                                      „Gleicher Stand auf allen: true“. Bilder: kürzel-1-lobby.png usw.
   node endgegner-runde-abspielen.js  Spielt die gespeicherte Endgegner-Runde auf der Kampfbühne ab (vorher …-finden.js).

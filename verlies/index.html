@@ -187,6 +187,25 @@ button:focus-visible,input:focus-visible,a:focus-visible{outline:3px solid var(-
 .ware.aus .preis{color:var(--gut)}
 .ausruestung{display:flex;flex-wrap:wrap;gap:6px}
 .kaeufe{font-size:.85rem;color:var(--leise);margin:0}
+.talentblatt{padding:10px 8px 6px;border-radius:12px}
+.talentbaum{width:100%;height:auto;display:block}
+.t-knoten{cursor:pointer}
+.t-knoten:focus{outline:none}
+.t-frei rect{animation:tfrei 1.4s ease-in-out infinite}
+@keyframes tfrei{50%{stroke-opacity:.35}}
+@media (prefers-reduced-motion:reduce){.t-frei rect{animation:none}}
+.ast-reiter{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.ast-reiter button{appearance:none;border:2px solid var(--linie);background:var(--flaeche2);color:inherit;border-radius:12px;padding:8px 4px;font:600 .9rem var(--sans,inherit);display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer}
+.ast-reiter button small{font-weight:500;opacity:.7}
+.ast-reiter button.an{border-color:var(--karte-gelb);color:var(--karte-gelb)}
+.ware.talent.gelernt{border-color:var(--karte-gelb)}
+.ware.talent.gelernt .preis{color:var(--karte-gelb)}
+.ware.talent.fokus{box-shadow:0 0 0 3px var(--koralle,#FF6B57)}
+.ware.talent.meister b{color:var(--karte-gelb)}
+.ware.talent:disabled{opacity:.75}
+.ware .preis.leise-preis{color:var(--leise);font-weight:500;font-size:.85rem}
+.faehigkeitsliste{display:flex;flex-direction:column;gap:6px;font-size:.92rem}
+.faehigkeitsliste p{margin:0}
 .preis.rang{display:flex;gap:4px}
 .preis.rang i{width:12px;height:12px;border-radius:3px;background:#15132A;border:1px solid var(--linie);transform:rotate(45deg)}
 .preis.rang i.an{background:var(--karte-gelb);border-color:var(--karte-gelb)}

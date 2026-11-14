@@ -10,30 +10,31 @@ function waehle(S,p,klug){
   const g=V.gegnerLebend(S), tot=S.teilnehmer.find(q=>S.helden[q].hp<=0), schwach=S.teilnehmer.filter(q=>S.helden[q].hp>0&&S.helden[q].hp<S.helden[q].max*0.45);
   const hat=id=>akt.find(a=>a.id===id);
   if(h.hp<h.max*0.35&&hat('trank')) return {a:'trank'};
-  if(tot){ for(const id of ['wiedergeburt']) if(hat(id)) return {a:id}; for(const id of ['heilen','handauflegen','kraeuter']) if(hat(id)) return {a:id,ziel:tot}; }
-  if(schwach.length>=2) for(const id of ['laeutern','segen','licht','wiedergeburt']) if(hat(id)) return {a:id};
+  if(tot){ for(const id of ['auferstehung','erloesung','wiedergeburt','gnadenlicht']) if(hat(id)) return {a:id}; for(const id of ['heilen','handauflegen','kraeuter']) if(hat(id)) return {a:id,ziel:tot}; }
+  if(schwach.length>=2) for(const id of ['erloesung','heiligtum','wall','bollwerk','schlachtruf','gnadenlicht','laeutern','segen','licht','wiedergeburt','frost']) if(hat(id)) return {a:id};
   if(schwach.length) { for(const id of ['heilen','handauflegen','kraeuter']) if(hat(id)) return {a:id,ziel:schwach[0]};
     if(hat('schild')&&!schwach.includes(p)) return {a:'schild'}; if(hat('fels')) return {a:'fels'};
-    if(hat('arkan')) return {a:'arkan',ziel:schwach[0]}; if(hat('beschuetzen')&&schwach[0]!==p) return {a:'beschuetzen',ziel:schwach[0]}; if(hat('rauch')) return {a:'rauch'}; }
-  if(g.length>=2) for(const id of ['meteor','hagel','feuerball','wirbel','licht','doppel']) if(hat(id)) return {a:id};
+    if(hat('arkan')) return {a:'arkan',ziel:schwach[0]}; if(hat('obhut')) return {a:'obhut',ziel:schwach[0]}; if(hat('beschuetzen')&&schwach[0]!==p) return {a:'beschuetzen',ziel:schwach[0]}; if(hat('rauch')) return {a:'rauch'}; }
+  if(g.length>=2) for(const id of ['inferno','durchschuss','seuche','winter','sonnenzorn','treibjagd','raserei','wolfsrudel','meteor','giftwolke','hagel','sonnenstrahl','feuerball','wirbel','licht','doppel']) if(hat(id)) return {a:id};
   const gross=g.slice().sort((a,b)=>b.hp-a.hp)[0];
-  for(const id of ['vernichten','eis','markieren','gift','kriegsschrei','taschendieb']) if(hat(id)) { const a=hat(id); return {a:id,ziel:a.ziel==='gegner'?gross.id:null}; }
+  for(const id of ['gottesurteil','todesstoss','meisterdieb','vernichten','kopfschuss','eis','ranken','markieren','gift','kriegsschrei','spott','taschendieb']) if(hat(id)) { const a=hat(id); return {a:id,ziel:a.ziel==='gegner'?gross.id:null}; }
   if(h.rolle==='dieb'&&hat('verstecken')&&h.hp<h.max*0.5) return {a:'verstecken'};
   return {a:V.AKTIONEN[h.rolle][0].id, ziel:g.sort((a,b)=>a.hp-b.hp)[0].id};
 }
-const STATS={stufe:0,n:0,raenge:0,raeume:{},elite:0,kammer:0,spiele:0};
+const STATS={ast:{},stufe:0,n:0,raenge:0,raeume:{},elite:0,kammer:0,spiele:0};
+// Talentpunkte: jeder Held folgt einem zufällig gewählten Ast (fest für die Partie), danach dem nächsten
 function punkte(S,klug){
   if(!klug) return S;
-  for(const p of S.teilnehmer){ for(let n=0;n<10;n++){ const h=S.helden[p]; if(h.punkte<1)break;
-    const l=V.aktionenVon(h).filter(a=>a.id!=='trank'&&V.rangVon(h,a.id)<V.MAX_RANG&&V.rangText(h,a));
-    if(!l.length)break; const a=l.sort((x,y)=>V.rangVon(h,x.id)-V.rangVon(h,y.id))[0];
-    const vor=S; S=V.aktion(S,p,{t:'verbessern',id:a.id,nr:S.spielNr}); if(S===vor) throw new Error('Verbessern abgelehnt '+a.id); } }
+  for(const p of S.teilnehmer){ for(let n=0;n<20;n++){ const h=S.helden[p]; if(h.punkte<1)break;
+    if(!h.__ast){ const ae=V.AESTE[h.rolle].map(a=>a.id); for(let i=ae.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[ae[i],ae[j]]=[ae[j],ae[i]];} h.__ast=ae; }
+    let id=null; for(const ast of h.__ast){ const a=V.AESTE[h.rolle].find(x=>x.id===ast); id=a.knoten.find(k=>V.talentWaehlbar(h,k)); if(id)break; }
+    if(!id)break; const vor=S; const reihe=h.__ast; S=V.aktion(S,p,{t:'talent',id,nr:S.spielNr}); if(S===vor) throw new Error('Talent abgelehnt '+id); S.helden[p].__ast=reihe; } }
   return S;
 }
 function einkaufen(S,p,klug){
   for(let n=0;n<10;n++){ const h=S.helden[p]; const ang=V.angebot(h).filter(w=>!w.aus&&w.preis<=h.gold);
     if(!ang.length) break;
-    const pr=klug?['lernen:','waffe','ruestung','leben','trank']:['trank','waffe'];
+    const pr=klug?['waffe','ruestung','leben','trank']:['trank','waffe'];
     let w=null; for(const k of pr){ w=ang.find(x=>x.id.startsWith(k)); if(w) break; } if(!w) break;
     const vor=S; S=V.aktion(S,p,{t:'kaufen',id:w.id,nr:S.spielNr}); if(S===vor) throw new Error('Kauf abgelehnt');
   }
@@ -63,7 +64,7 @@ function spiel(seed, rollen, klug){
   }
   if(S.phase!=='ende') throw new Error('endet nicht');
   if(klug){ STATS.spiele++; for(const id of S.karte.weg){ const t=S.karte.knoten[id].typ; STATS.raeume[t]=(STATS.raeume[t]||0)+1; } }
-  if(klug){ for(const p of S.teilnehmer){ STATS.stufe+=S.helden[p].stufe; STATS.n++; STATS.raenge+=Object.values(S.helden[p].rang).reduce((a,b)=>a+b-1,0);} }
+  if(klug){ for(const p of S.teilnehmer){ STATS.stufe+=S.helden[p].stufe; STATS.n++; STATS.raenge+=S.helden[p].talente.length; const ast=S.helden[p].rolle+'/'+S.helden[p].__ast[0]; const z=STATS.ast[ast]=STATS.ast[ast]||[0,0]; z[0]++; if(S.ergebnis==='sieg')z[1]++;} }
   return {sieg:S.ergebnis==='sieg', lager, goldVorLager:gold/Math.max(1,lager)};
 }
 const R=['kaempfer','dieb','heilerin','magierin','waldlaeufer','paladin'];
@@ -73,7 +74,9 @@ for(const t of trios){ let sk=0,ss=0,lg=0,gl=0; for(let i=1;i<=N;i++){ const r=s
   zeilen.push([t.join('+'),Math.round(100*sk/N),Math.round(100*ss/N),(lg/N).toFixed(1),Math.round(gl/N)]); }
 zeilen.sort((a,b)=>b[1]-a[1]); for(const z of zeilen) console.log(z[0].padEnd(30),'klug',String(z[1]).padStart(3)+'%','simpel',String(z[2]).padStart(3)+'%','Lager',z[3],'Ø Gold je Lager',z[4]);
 console.log('Räume je Partie (klug):', Object.entries(STATS.raeume).map(([t,n])=>t+' '+(n/STATS.spiele).toFixed(2)).join(', '));
-console.log('Ø Stufe am Ende', (STATS.stufe/STATS.n).toFixed(1), 'Ø verbesserte Ränge', (STATS.raenge/STATS.n).toFixed(1));
+console.log('Ø Stufe am Ende', (STATS.stufe/STATS.n).toFixed(1), 'Ø Talente', (STATS.raenge/STATS.n).toFixed(1));
 const k=zeilen.map(z=>z[1]); console.log('klug: min',Math.min(...k),'max',Math.max(...k),'Schnitt',Math.round(k.reduce((a,b)=>a+b)/k.length));
 const s2=zeilen.map(z=>z[2]); console.log('simpel Schnitt',Math.round(s2.reduce((a,b)=>a+b)/s2.length));
 for(const d of [['kaempfer','heilerin'],['paladin','magierin'],['dieb','waldlaeufer']]){ let w=0; for(let i=1;i<=N;i++) if(spiel(i*31,d,true).sieg)w++; console.log('zu zweit',d.join('+'),Math.round(100*w/N)+'%'); }
+
+console.log('Siegquote nach Hauptast (klug, Dreiergruppen):');for(const [k,[n,w]] of Object.entries(STATS.ast).sort()) console.log('  '+k.padEnd(30), Math.round(100*w/n)+'%', '('+n+')');
