@@ -489,11 +489,12 @@
     X.forEach(x => { s += `<path d="M165 266Q165 252 ${x} 252V${Y(0)}" fill="none" stroke="#2A2118" stroke-width="${x === 165 ? 6 : 4.5}" stroke-linecap="round"/>`; });
     aeste.forEach((a, ai) => {
       const x = X[ai];
-      for (let i = 1; i < 6; i++) { const an = h.talente.includes(a.knoten[i - 1]) && h.talente.includes(a.knoten[i]); s += `<path d="M${x} ${Y(i - 1)}V${Y(i)}" stroke="${an ? "#C99A2E" : "#8C7A6B"}" stroke-width="${an ? 4 : 2.5}" ${an ? "" : 'stroke-dasharray="4 4"'}/>`; }
-      a.knoten.forEach((id, i) => {
-        const t = V.TALENT[id], hat = h.talente.includes(id), frei = !hat && V.talentWaehlbar(h, id), r = i === 5 ? 17 : 12;
+      for (let i = 1; i < 6; i++) { const an = V.hatKnoten(h, a.knoten[i - 1]) && V.hatKnoten(h, a.knoten[i]); s += `<path d="M${x} ${Y(i - 1)}V${Y(i)}" stroke="${an ? "#C99A2E" : "#8C7A6B"}" stroke-width="${an ? 4 : 2.5}" ${an ? "" : 'stroke-dasharray="4 4"'}/>`; }
+      // Wahlknoten: zwei kleine Rauten nebeneinander
+      a.knoten.flatMap((id, i) => V.TALENT[id].alt ? [[id, i, -13], [V.TALENT[id].alt, i, 13]] : [[id, i, 0]]).forEach(([id, i, dx]) => {
+        const t = V.TALENT[id], hat = h.talente.includes(id), frei = !hat && V.talentWaehlbar(h, id), r = i === 5 ? 17 : dx ? 9 : 12;
         const fill = hat ? "#E8C24A" : frei ? "#FBF3E2" : "#D9CBB0", stroke = hat ? "#2A2118" : frei ? "#FF6B57" : "#8C7A6B";
-        s += `<g class="t-knoten ${frei && h.punkte ? "t-frei" : ""} ${talentFokus === id ? "fokus" : ""}" data-tknoten="${id}" role="button" tabindex="0" aria-label="${esc(t.name)}${hat ? ", gelernt" : frei ? ", wählbar" : ", gesperrt"}" transform="translate(${x} ${Y(i)})">
+        s += `<g class="t-knoten ${frei && h.punkte ? "t-frei" : ""} ${talentFokus === id ? "fokus" : ""}" data-tknoten="${id}" role="button" tabindex="0" aria-label="${esc(t.name)}${hat ? ", gelernt" : frei ? ", wählbar" : ", gesperrt"}" transform="translate(${x + dx} ${Y(i)})">
           <circle r="${r + 8}" fill="transparent"/>${talentFokus === id ? `<rect x="${-r - 6}" y="${-r - 6}" width="${2 * r + 12}" height="${2 * r + 12}" rx="3" transform="rotate(45)" fill="none" stroke="#2A2118" stroke-width="1.5" stroke-dasharray="3 3"/>` : ""}
           <rect x="${-r}" y="${-r}" width="${2 * r}" height="${2 * r}" rx="3" transform="rotate(45)" fill="${fill}" stroke="${stroke}" stroke-width="${frei ? 3 : 2}"/>
           ${i === 5 ? `<path d="M0-8l2.4 5 5.6.8-4 3.9 1 5.5L0 9.6l-5 2.6 1-5.5-4-3.9 5.6-.8z" fill="${hat ? "#B83A2A" : "#8C7A6B"}"/>` : hat ? `<path d="M-5 0l3.5 3.5L5-4" fill="none" stroke="#2A2118" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>` : ""}</g>`;
@@ -513,16 +514,16 @@
     return `<header class="titel"><p class="etikett">${V.ROLLEN[h.rolle].name} · ${esc(name)}</p><h1>Stufe ${st}</h1>
         <div class="balken"><i style="width:${Math.round(q * 100)}%"></i></div>
         <p class="leise klein">${h.ep} von ${naechste} Erfahrung bis Stufe ${st + 1} · Jede Stufe: +3 Höchstleben und ${st < V.AUFSTIEG_STUFE ? "1 Talentpunkt" : "1 Ruhmespunkt"}. Stufe 5, 10, 15 und 20 bringen noch etwas extra, ab Stufe 20 gibt es Ruhmespunkte.${boni.length ? " Du hast: " + boni.join(", ") + "." : ""}</p></header>
-      <div class="hinweis">${h.punkte ? `Du hast ${h.punkte} ${h.punkte === 1 ? "Talentpunkt" : "Talentpunkte"}. Tippe eine Raute an, nochmal antippen lernt sie.` : "Keine Punkte frei. Neue gibt es mit der nächsten Stufe oder beim Üben an der Rast."}</div>
+      <div class="hinweis">${h.punkte ? `Du hast ${h.punkte} ${h.punkte === 1 ? "Talentpunkt" : "Talentpunkte"}. Tippe eine Raute an, nochmal antippen lernt sie. Beim 2. und 4. Knoten jedes Asts wählst du eins von zwei Talenten.` : "Keine Punkte frei. Neue gibt es mit der nächsten Stufe oder beim Üben an der Rast."}</div>
       <div class="seite talentblatt">${talentBaumSvg(h)}</div>
-      <div class="ast-reiter">${aeste.map((a, i) => `<button class="${i === talentAst ? "an" : ""}" data-tast="${i}">${esc(a.name)}<small>${a.knoten.filter(id => h.talente.includes(id)).length}/6</small></button>`).join("")}</div>
+      <div class="ast-reiter">${aeste.map((a, i) => `<button class="${i === talentAst ? "an" : ""}" data-tast="${i}">${esc(a.name)}<small>${a.knoten.filter(id => V.hatKnoten(h, id)).length}/6</small></button>`).join("")}</div>
       <p class="leise klein mitte">${esc(ast.kurz)}</p>
-      <div class="waren">${ast.knoten.map((id, i) => {
-        const t = V.TALENT[id], hat = h.talente.includes(id), frei = !hat && V.talentWaehlbar(h, id);
-        const grund = hat ? "✓" : frei ? (h.punkte ? "1 Punkt" : "kein Punkt") : i === 5 && meisterGewaehlt ? "nur eine" : "gesperrt";
-        return `<button class="ware talent ${hat ? "gelernt" : ""} ${talentFokus === id ? "fokus" : ""} ${t.e.meister ? "meister" : ""}" data-talent="${id}" ${frei && h.punkte ? "" : "disabled"}>
-          <b>${i + 1}. ${t.e.meister ? "★ " : ""}${esc(t.name)}</b><span class="preis ${hat || (frei && h.punkte) ? "" : "leise-preis"}">${grund}</span><small>${esc(t.text)}${i === 5 && meisterGewaehlt && !hat ? ` Du hast schon ${esc(meisterGewaehlt.name)} als Meisterfähigkeit.` : ""}</small></button>`;
-      }).join("")}</div>
+      <div class="waren">${ast.knoten.map((id0, i) => (V.TALENT[id0].alt ? [id0, V.TALENT[id0].alt] : [id0]).map((id, j, l) => {
+        const t = V.TALENT[id], hat = h.talente.includes(id), frei = !hat && V.talentWaehlbar(h, id), andere = l.length > 1 && h.talente.includes(t.alt);
+        const grund = hat ? "✓" : andere ? "andere gewählt" : frei ? (h.punkte ? "1 Punkt" : "kein Punkt") : i === 5 && meisterGewaehlt ? "nur eine" : "gesperrt";
+        return `${l.length > 1 && j === 1 ? `<p class="oder">oder</p>` : ""}<button class="ware talent ${hat ? "gelernt" : ""} ${l.length > 1 ? "wahl" : ""} ${talentFokus === id ? "fokus" : ""} ${t.e.meister ? "meister" : ""}" data-talent="${id}" ${frei && h.punkte ? "" : "disabled"}>
+          <b>${i + 1}${l.length > 1 ? "abc"[j] : ""}. ${t.e.meister ? "★ " : ""}${esc(t.name)}</b><span class="preis ${hat || (frei && h.punkte) ? "" : "leise-preis"}">${grund}</span><small>${esc(t.text)}${i === 5 && meisterGewaehlt && !hat ? ` Du hast schon ${esc(meisterGewaehlt.name)} als Meisterfähigkeit.` : ""}</small></button>`;
+      }).join("")).join("")}</div>
       ${aufstiegHtml(h)}
       <h3>Deine Fähigkeiten</h3>
       <div class="faehigkeitsliste">${V.aktionenVon(h).filter(a => a.id !== "trank").map(a => `<p><b>${a.meister ? "★ " : ""}${esc(a.name)}</b> <span class="leise">${esc(a.text)}${esc(V.aktionZusatz(h, a))}</span></p>`).join("")}</div>
@@ -629,7 +630,7 @@
       b.onclick = () => {
         const id = b.dataset.tknoten, h = ich();
         if (talentFokus === id && h.punkte && V.talentWaehlbar(h, id)) { lernen(id); return; }
-        talentFokus = id; talentAst = V.AESTE[h.rolle].findIndex(a => a.knoten.includes(id)); letzteSig = ""; render();
+        talentFokus = id; talentAst = V.AESTE[h.rolle].findIndex(a => a.id === V.TALENT[id].ast); letzteSig = ""; render();
         const z = document.querySelector(`[data-talent="${id}"]`); if (z) z.scrollIntoView({ block: "nearest", behavior: "smooth" });
       };
       b.onkeydown = ev => { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); b.onclick(); } };

@@ -31,7 +31,7 @@ function punkte(S,klug){
   if(!klug) return S;
   for(const p of S.teilnehmer){ for(let n=0;n<20;n++){ const h=S.helden[p]; if(h.punkte<1)break;
     if(!h.__ast){ const ae=V.AESTE[h.rolle].map(a=>a.id); for(let i=ae.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[ae[i],ae[j]]=[ae[j],ae[i]];} h.__ast=ae; }
-    let id=null; for(const ast of h.__ast){ const a=V.AESTE[h.rolle].find(x=>x.id===ast); id=a.knoten.find(k=>V.talentWaehlbar(h,k)); if(id)break; }
+    let id=null; for(const ast of h.__ast){ const a=V.AESTE[h.rolle].find(x=>x.id===ast); id=a.knoten.map(k=>V.TALENT[k].alt&&V.talentWaehlbar(h,k)&&Math.random()<(+process.env.WAHL_B||.5)?V.TALENT[k].alt:k).find(k=>V.talentWaehlbar(h,k)); if(id)break; }
     if(!id)break; const vor=S; const reihe=h.__ast; S=V.aktion(S,p,{t:'talent',id,nr:S.spielNr}); if(S===vor) throw new Error('Talent abgelehnt '+id); S.helden[p].__ast=reihe; }
     // Ruhmespunkte: erst die Spezialisierung (zufällig, fest), dann Kraft, Hornhaut, Leben im Wechsel
     for(let n=0;n<40;n++){ const h=S.helden[p]; if(!(h.ruhm>0))break; const reihe=h.__ast, spez=h.__spez;

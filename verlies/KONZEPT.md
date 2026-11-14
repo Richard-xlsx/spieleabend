@@ -306,4 +306,4 @@ Nach jedem Schritt: Simulation aller Rollenkombinationen für die Balance und ei
 - **Die Tiefe** (14.11.2026): Partielänge „Die Tiefe“, endlos (Ebene 4, 5, … wiederholen die drei Gegenden, stärker,
   gemischte Gegner, ein Fluch je Ebene, kostenloses Umverteilen im Lager, Bestenliste auf dem Handy des Spielleiters).
   Stufen ohne Grenze; ab Stufe 20 Ruhmespunkte für den **Aufstieg** (zwei Spezialisierungen je Rolle, eine wählbar,
-  4 Knoten mit zweiter Meisterfähigkeit) und **Ruhmesboni**. Als Nächstes geplant: Wahlknoten im Talentbaum.
+  4 Knoten mit zweiter Meisterfähigkeit) und **Ruhmesboni**. Wahlknoten im Talentbaum: 2. und 4. Knoten jedes Asts mit Alternative (fertig).

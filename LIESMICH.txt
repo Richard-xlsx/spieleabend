@@ -118,7 +118,10 @@ Gegner-Eigenschaften, drei Ebenen und Schwierigkeitsstufen vom 14.11.2026)
   Knoten machen Fähigkeiten stärker oder schneller bereit, wirken immer (z. B. −1 Schaden pro Treffer, Blutrausch, Gift +1,
   +25 % Gold) oder schalten neue Fähigkeiten frei (unter anderem die früher kaufbaren). Ganz oben eine Meisterfähigkeit
   (einmal pro Kampf, nur eine pro Held). Zeichnung des Baums oben, Liste des Asts darunter; Raute antippen zeigt, nochmal
-  antippen lernt. In der Gruppe steht beim Namen der Hauptast. Neu verteilen nur am Schrein für 10 Gold.
+  antippen lernt. In der Gruppe steht beim Namen der Hauptast.
+  Wahlknoten (vom 14.11.2026): Der 2. und 4. Knoten jedes Asts hat eine Alternative, man lernt eins von beiden (36 neue
+  Talente, z. B. Kälteschock: Eislanze trifft alle anderen mit 4; Zweites Licht: Heilen springt auf den Schwächsten über;
+  Schildstoß; Giftspitze; Rudeljagd). Simulation: nur erste Wahl 87 %, gemischt 84 %, nur zweite Wahl 83 %. Neu verteilen nur am Schrein für 10 Gold.
   Kampfbühne (buehne.js): Gegner oben, Helden unten von hinten. Jeder Gegner kündigt zu Beginn der Runde an, was er vorhat
   (gelbes Schild, z. B. „⚔ → Lena“); Schildwall/Unerschütterlich ziehen den Angriff trotzdem auf sich, Versteckte werden nicht
   gefunden. Ziele tippt man direkt auf der Bühne an. Jede ausgewertete Runde wird auf allen Handys als Animation abgespielt
