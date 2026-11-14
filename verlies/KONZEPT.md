@@ -212,7 +212,6 @@ Wer Legende geschafft hat, kann zusätzlich **Flüche** einschalten. Jeder Fluch
 - **Zähe Brut:** alle Gegner +20 % Leben
 - **Wütende Herrscher:** Endgegner bekommen eine zusätzliche Phase
 - **Ohne Rückweg:** keine Tränke beim Händler
-- **Zeitdruck (optional):** 60 Sekunden pro Kampfrunde, danach Standardzug
 
 ---
 
@@ -254,10 +253,12 @@ Nach jedem Schritt: Simulation aller Rollenkombinationen für die Balance und ei
 
 ---
 
-## 11. Offene Fragen
+## 11. Entscheidungen (14.11.2026)
 
-1. **Partielänge:** Spielt ihr eher kurz (eine Ebene an einem Abend) oder lieber lange Kampagnen?
-2. **Legende:** Soll auf der höchsten Stufe ein gefallener Held endgültig ausscheiden, oder reicht „steht nicht von selbst auf“?
-3. **Talente neu verteilen:** nur am Schrein gegen Gold, oder jederzeit kostenlos zwischen zwei Partien?
-4. **Zeitdruck:** als Fluch interessant, oder lieber nie?
-5. **Reihenfolge:** Ist Schritt 1 (Kampfbühne) als Nächstes richtig, oder lieber zuerst Karte oder Talentbaum?
+1. **Partielänge:** Eine Partie soll an **einem Abend** fertig werden. Standard ist „Normal“ (2 Ebenen, etwa 1 Stunde),
+   „Lang“ (3 Ebenen) bleibt wählbar, soll aber auch an einem Abend schaffbar sein (Ziel: höchstens ~90 Minuten).
+   Speichern zwischen Ebenen (Schritt 7) ist damit nur noch ein Sicherheitsnetz, keine Kampagne über mehrere Abende.
+2. **Legende:** Ein gefallener Held scheidet **endgültig** aus (schaut für den Rest der Partie zu).
+3. **Talente neu verteilen:** nur **am Schrein gegen Gold**.
+4. **Zeitdruck:** **nie**, auch nicht als Fluch. Der Fluch „Zeitdruck“ entfällt.
+5. **Reihenfolge:** wie in Abschnitt 10.
