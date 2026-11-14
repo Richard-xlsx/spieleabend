@@ -51,13 +51,13 @@ export class Welt {
     r.shadowMap.enabled = true; r.shadowMap.type = THREE.PCFSoftShadowMap;
     el.appendChild(r.domElement);
     const sc = this.scene = new THREE.Scene();
-    sc.fog = new THREE.Fog(0xD7EDF6, 50, 110);
+    sc.fog = new THREE.Fog(0xD7EDF6, 70, 170);
     this.camera = new THREE.PerspectiveCamera(45, 1, .1, 250);
     sc.add(new THREE.HemisphereLight(0xffffff, 0x5f7f4a, 1.7));
     const s = this.sonne = new THREE.DirectionalLight(0xfff1d6, 2.6);
     s.castShadow = true; s.shadow.mapSize.set(2048, 2048); s.shadow.bias = -.0006; sc.add(s); sc.add(s.target);
     const c = this.controls = new MapControls(this.camera, r.domElement);
-    c.enableDamping = true; c.dampingFactor = .08; c.minDistance = 4; c.maxDistance = 50;
+    c.enableDamping = true; c.dampingFactor = .08; c.minDistance = 4; c.maxDistance = 75;
     c.minPolarAngle = .2; c.maxPolarAngle = 1.22; c.zoomToCursor = true;
     c.addEventListener("change", () => this.begrenzen());
     this.gTerrain = new THREE.Group(); this.gNetz = new THREE.Group(); this.gZuege = new THREE.Group(); this.gVorschau = new THREE.Group(); this.gMarken = new THREE.Group(); this.gEffekte = new THREE.Group();
@@ -86,12 +86,13 @@ export class Welt {
     const vx = Math.max(-bx, Math.min(bx, t.x)) - t.x, vz = Math.max(-bz, Math.min(bz, t.z)) - t.z;
     if (vx || vz) { t.x += vx; t.z += vz; this.camera.position.x += vx; this.camera.position.z += vz; }
   }
-  uebersicht() {
+  // ganz = ganze Karte, sonst ein mittlerer Ausschnitt (etwa 15 Felder breit)
+  uebersicht(ganz) {
     if (!this.K) return;
-    const hoch = this.camera.aspect < 1, breit = W3 * this.K.B, tief = 1.5 * this.K.H;
-    // so weit weg, dass die Breite (hochkant) bzw. die Tiefe (quer) ins Bild passt
-    const d = hoch ? breit / this.camera.aspect * .82 : Math.max(tief * 1.15, breit / this.camera.aspect * .6);
-    this.controls.target.set(0, 0, hoch ? tief * .1 : tief * .05);
+    const hoch = this.camera.aspect < 1, tief = 1.5 * this.K.H;
+    const breit = ganz ? W3 * this.K.B : Math.min(W3 * this.K.B, 26);
+    const d = hoch ? breit / this.camera.aspect * .82 : Math.max((ganz ? tief : Math.min(tief, 18)) * 1.15, breit / this.camera.aspect * .6);
+    this.controls.target.set(0, 0, hoch ? Math.min(tief, 20) * .1 : tief * .05);
     this.camera.position.set(-d * .12, d * .78, this.controls.target.z + d * .6);
     this.controls.update();
   }
@@ -438,7 +439,7 @@ export class Welt {
       const stops = w.pos.map(pi => len[halt[pi]] ?? 0);
       const ziele = [...new Set(stops.map(s => Math.max(laenge, Math.min(L, s + laenge / 2))))].sort((a, b) => a - b);
       const vorher = alt.get(z.id);
-      const zug = { id: z.id, steht: steht.has(z.id), pts, len, L, teile, abst, laenge, ziele, tempo: L0.tempo * .45, s: vorher && vorher.L === L ? vorher.s : ziele[k % ziele.length] ?? laenge, dir: vorher ? vorher.dir : 1, warten: vorher ? vorher.warten : .5 + k * .7, v: 0 };
+      const zug = { id: z.id, steht: steht.has(z.id), pts, len, L, teile, abst, laenge, ziele, tempo: L0.tempo * .32, s: vorher && vorher.L === L ? vorher.s : ziele[k % ziele.length] ?? laenge, dir: vorher ? vorher.dir : 1, warten: vorher ? vorher.warten : .5 + k * .7, v: 0 };
       this.zuege.push(zug); this.zugStellen(zug);
     });
   }

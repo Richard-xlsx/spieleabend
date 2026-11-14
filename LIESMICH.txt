@@ -170,8 +170,9 @@ Getestet am 13.11.2026 mit drei simulierten Spielern im Browser (alle Spiele: ga
 Neuladen eines Mitspielers, Neuladen der Spielleiterin, Übernahme der Spielleitung). Noch nicht auf echten Handys.
 
 Gleisgenossen (1 bis 6 Spieler, kooperativ)
-  Eine Eisenbahn-Genossenschaft mit gemeinsamer Kasse (Start 2.000 T). 3D-Landschaft aus Sechsecken (Three.js 0.160 vom CDN),
-  Karte wird jedes Spiel neu erzeugt: 1–2 Spieler 14 × 11 Felder, 3–4 Spieler 16 × 12, 5–6 Spieler 18 × 13.
+  Eine Eisenbahn-Genossenschaft mit gemeinsamer Kasse (Start 2.500 T). 3D-Landschaft aus Sechsecken (Three.js 0.160 vom CDN),
+  Karte wird jedes Spiel neu erzeugt: 1–2 Spieler 20 × 15 Felder, 3–4 Spieler 22 × 16, 5–6 Spieler 24 × 18;
+  Orte und Betriebe mindestens 6 Felder auseinander (wenn es eng wird, weniger).
   Ein Monat: alle planen gleichzeitig, dann „Monat beenden“; sind alle verbundenen fertig, wird abgerechnet. 8, 12 oder 16 Monate.
   Gleis bauen: Start (Ort, Betrieb oder Gleis) und Ziel antippen, der günstigste Weg wird vorgeschlagen.
   Kosten pro Feld: Wiese 20, Wald 40, Hügel 60, Fluss (Brücke) 150, Berg (Tunnel) 250 T; Bahnhof 100 T, entsteht automatisch.

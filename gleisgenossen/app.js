@@ -316,7 +316,9 @@ function hudHtml() {
     <button class="rund" id="kamera" aria-label="Ganze Karte zeigen">⌖</button>
     <button class="rund" id="menue" aria-label="Menü" aria-expanded="${ui.menue}">☰</button></div>
     ${S.phase === "planen" && S.ereignis && S.ereignis.typ !== "ruhig" ? `<button class="ereignis" id="ereignisknopf">⚡ ${esc(S.ereignis.titel)}</button>` : ""}</div>`;
-  h += `<div class="hud-unten">${panelHtml()}${S.phase === "planen" ? werkzeugeHtml() : ""}${fertigHtml()}</div>`;
+  // Beim Auswählen auf der Karte nur die schmale Tafel zeigen, damit die Karte frei bleibt
+  const waehlen = S.phase === "planen" && !ui.menue && ((ui.modus === "bauen" && ui.bau.length) || (ui.modus === "zuege" && ui.zug));
+  h += `<div class="hud-unten">${panelHtml()}${S.phase === "planen" && !waehlen ? werkzeugeHtml() : ""}${waehlen ? "" : fertigHtml()}</div>`;
   if (hinweis) h += `<div class="toast" role="status">${esc(hinweis)}</div>`;
   return h;
 }
@@ -343,7 +345,7 @@ function panelHtml() {
   if (ui.modus === "auftraege") return auftragPanel();
   if (ui.ereignis && S.ereignis) return `<div class="panel"><div class="kopf"><h3>⚡ ${esc(S.ereignis.titel)}</h3><button class="zu" id="ereigniszu" aria-label="Schließen">✕</button></div><p class="klein">${esc(S.ereignis.text)}</p></div>`;
   if (ui.info !== null) return infoPanel(ui.info);
-  if (S.monat === 1 && !Object.keys(S.gleise).length) return `<div class="panel"><p><b>Willkommen, Gleisgenossen!</b> Startkapital: ${zahl(G.START_KASSE)} T.</p><p class="leise klein">Tippe auf ein Feld für Infos. Mit „Gleis bauen“ verbindet ihr Orte, Zechen und Werke. Ein Finger verschiebt die Karte, zwei Finger zoomen, drehen und neigen.</p></div>`;
+  if (S.monat === 1 && !Object.keys(S.gleise).length && !ui.willkommenZu) return `<div class="panel kompakt"><div class="kopf"><h3>Willkommen, Gleisgenossen!</h3><button class="zu" id="willkommenzu" aria-label="Schließen">✕</button></div><p class="leise klein">Feld antippen zeigt Infos. Ein Finger verschiebt, zwei Finger zoomen und drehen. Los geht es mit „Gleis bauen“.</p></div>`;
   return "";
 }
 function infoPanel(i) {
@@ -376,20 +378,17 @@ function bauPanel() {
   const zurueck = letzter && letzter.monat === S.monat && letzter.pid === PID ? `<button class="link" id="rueckgaengig">Letzten eigenen Bau zurücknehmen (+${zahl(letzter.kosten)} T)</button>` : "";
   if (!b.length) return `<div class="panel"><div class="kopf"><h3>Gleis bauen</h3><button class="zu" id="modzu" aria-label="Schließen">✕</button></div>
     <p class="klein">Tippe auf den <b>Start</b>: einen Ort, eine Zeche, ein Werk oder ein vorhandenes Gleis.</p>${zurueck}</div>`;
-  if (b.length === 1) return `<div class="panel"><div class="kopf"><h3>Start: ${esc(ortName(b[0]) === "Feld" ? "Gleis" : ortName(b[0]))}</h3><button class="zu" id="bauweg" aria-label="Verwerfen">✕</button></div>
-    <p class="klein">Tippe jetzt auf das <b>Ziel</b>. Der günstigste Weg wird vorgeschlagen.</p></div>`;
+  if (b.length === 1) return `<div class="panel kompakt"><div class="kopf"><h3>Start: ${esc(ortName(b[0]) === "Feld" ? "Gleis" : ortName(b[0]))}</h3><button class="zu" id="bauweg" aria-label="Verwerfen">✕</button></div>
+    <p class="klein">Tippe jetzt auf das <b>Ziel</b>. Der günstigste Weg wird vorgeschlagen. Weitere Felder verlängern ihn.</p></div>`;
   const k = G.pfadKosten(S, b);
   if (k.fehler) return `<div class="panel"><p class="warn">${esc(k.fehler)}</p><button class="knopf zweit klein" id="bauweg">Verwerfen</button></div>`;
   const gleis = k.kosten - k.bahnhoefe.length * G.BAHNHOF, teuer = k.kosten > S.kasse;
   const gel = {}; for (let i = 1; i < b.length; i++) if (!S.gleise[G.kante(b[i - 1], b[i])]) { const t = S.karte.g[b[i]]; gel[t] = (gel[t] || 0) + 1; }
   const arten = Object.entries(gel).map(([t, n]) => `${n}× ${t === "~" ? "Brücke" : t === "b" ? "Tunnel" : G.GELAENDE[t].name}`).join(", ");
-  return `<div class="panel"><div class="kopf"><h3>${esc(ortName(b[0]) === "Feld" ? "Gleis" : ortName(b[0]))} → ${esc(ortName(b[b.length - 1]))}</h3><button class="zu" id="bauweg" aria-label="Verwerfen">✕</button></div>
-    <div class="zeile"><b>Kosten</b><b class="${teuer ? "minus" : ""}">${zahl(k.kosten)} T</b></div>
-    ${teuer ? `<p class="warn klein">Dafür reicht die Kasse nicht.</p>` : ""}
-    <div class="reihe"><button class="knopf zweit" id="bauweg2">Verwerfen</button><button class="knopf" id="bauen" ${teuer || (!k.kanten.length && !k.bahnhoefe.length) ? "disabled" : ""}>Bauen</button></div>
-    <div class="zeile klein"><span>${k.kanten.length} Gleisstücke${arten ? ` <span class="leise">(${arten})</span>` : ""}</span><span>${zahl(gleis)} T</span></div>
-    ${k.bahnhoefe.map(z => `<div class="zeile klein"><span>Bahnhof ${esc(ortName(z))}</span><span>${G.BAHNHOF} T</span></div>`).join("")}
-    <p class="leise klein">Weiteres Feld antippen verlängert die Strecke, ein Feld auf ihr kürzt sie.</p></div>`;
+  const teile = [`${k.kanten.length} Gleisstücke${arten ? " (" + arten + ")" : ""}`].concat(k.bahnhoefe.map(z => "Bahnhof " + ortName(z)));
+  return `<div class="panel kompakt"><div class="kopf"><h3>${esc(ortName(b[0]) === "Feld" ? "Gleis" : ortName(b[0]))} → ${esc(ortName(b[b.length - 1]))}</h3><button class="zu" id="bauweg" aria-label="Verwerfen">✕</button></div>
+    <p class="leise klein">${esc(teile.join(" · "))}${teuer ? ` · <span class="warn">Kasse reicht nicht</span>` : ""}</p>
+    <button class="knopf" id="bauen" ${teuer || (!k.kanten.length && !k.bahnhoefe.length) ? "disabled" : ""}>Bauen · ${zahl(k.kosten)} T</button></div>`;
 }
 function lokText(l) { const L = G.LOKS[l]; return `<b>${L.name}</b>${zahl(L.preis)} T · ${L.tempo} Felder/Tag<br>${L.wagen} Wagen (${L.wagen * G.WAGEN_PLATZ} Plätze)<br>Betrieb ${L.betrieb} T + ${L.kohle} Kohle/Monat`; }
 function linieText(z) { return z.linie.map(ortName).map(esc).join(" ⇄ "); }
@@ -400,6 +399,12 @@ function zugPanel() {
     const info = ok.ok ? G.linieInfo(S, f.linie, f.ladung) : null;
     const zug = f.id ? S.zuege.find(z => z.id === f.id) : null;
     const preis = zug ? 0 : G.LOKS[f.lok].preis, teuer = preis > S.kasse;
+    const kaufen = `<button class="knopf" id="zugok" ${ok.ok && !teuer ? "" : "disabled"}>${zug ? "Linie speichern" : `Kaufen · ${zahl(preis)} T`}</button>`;
+    if (!f.offen) return `<div class="panel kompakt"><div class="kopf"><h3>${zug ? `Zug ${zug.nr}` : G.LOKS[f.lok].name} · ${ladungName(f.ladung)}</h3><button class="link" id="zugwahl" style="padding:0 6px">ändern</button><button class="zu" id="formzu" aria-label="Abbrechen">✕</button></div>
+      ${f.linie.length ? `<div class="halte">${f.linie.map((z, k) => `<span>${k + 1} ${esc(ortName(z))}</span>`).join("")}</div>` : `<p class="klein">Tippe die <b>Bahnhöfe</b> der Reihe nach an (weiß umrandet).</p>`}
+      ${ok.fehler ? `<p class="warn klein">${esc(ok.fehler)}</p>` : info ? `<p class="klein ${info.ok ? "leise" : "warn"}">${esc(info.text)}</p>` : f.linie.length === 1 ? `<p class="leise klein">Jetzt den nächsten Bahnhof antippen. Den letzten nochmal antippen nimmt ihn heraus.</p>` : ""}
+      ${teuer ? `<p class="warn klein">Dafür reicht die Kasse nicht.</p>` : ""}
+      ${kaufen}</div>`;
     return `<div class="panel"><div class="kopf"><h3>${zug ? `Zug ${zug.nr}: neue Linie` : "Neuer Zug"}</h3><button class="zu" id="formzu" aria-label="Abbrechen">✕</button></div>
       ${zug ? "" : `<div class="lokwahl">${Object.keys(G.LOKS).map(l => `<button data-lok="${l}" class="${f.lok === l ? "an" : ""}">${lokText(l)}</button>`).join("")}</div>`}
       <div class="wahl">${Object.keys(G.LADUNG).map(l => `<button data-ladung="${l}" class="${f.ladung === l ? "an" : ""}">${ladungName(l)}</button>`).join("")}</div>
@@ -409,7 +414,7 @@ function zugPanel() {
       ${ok.fehler ? `<p class="warn klein">${esc(ok.fehler)}</p>` : ""}
       ${info ? `<p class="klein ${info.ok ? "" : "warn"}">${esc(info.text)}</p>` : ""}
       ${teuer ? `<p class="warn klein">Dafür reicht die Kasse nicht.</p>` : ""}
-      <div class="aktion"><button class="knopf" id="zugok" ${ok.ok && !teuer ? "" : "disabled"}>${zug ? "Linie speichern" : `Zug kaufen · ${zahl(preis)} T`}</button></div></div>`;
+      <div class="aktion"><button class="knopf" id="halteweiter">Weiter: Bahnhöfe auf der Karte antippen</button></div></div>`;
   }
   return `<div class="panel"><div class="kopf"><h3>Züge (${S.zuege.length})</h3><button class="zu" id="modzu" aria-label="Schließen">✕</button></div>
     ${S.zuege.length ? `<div class="zuglist">${S.zuege.map(z => {
@@ -521,6 +526,7 @@ function bauTippen(i) {
 function halteTippen(i) {
   const f = ui.zug;
   if (!S.bahnhoefe.includes(i)) return zeigeHinweis(G.ortBei(S, i) ? "Hier gibt es noch keinen Bahnhof. Erst ein Gleis hierher bauen." : "Halte sind nur an Bahnhöfen möglich.");
+  f.offen = false;
   if (f.linie[f.linie.length - 1] === i) { f.linie.pop(); render(); return; }
   if (f.linie.length >= G.MAX_HALTE) return zeigeHinweis("Höchstens " + G.MAX_HALTE + " Halte.");
   f.linie.push(i);
@@ -531,7 +537,7 @@ function halteTippen(i) {
 function hudBinden() {
   const $ = id => document.getElementById(id), an = (id, f) => { const e = $(id); if (e) e.onclick = f; };
   an("uebernehmen", uebernehmen);
-  an("kamera", () => welt && welt.uebersicht());
+  an("kamera", () => welt && welt.uebersicht(true));
   an("menue", () => { ui.menue = !ui.menue; render(); });
   an("menuezu", () => { ui.menue = false; render(); });
   an("teilen", teilen); an("kopieren", kopieren);
@@ -545,6 +551,7 @@ function hudBinden() {
   });
   an("modzu", () => { ui.modus = "schauen"; ui.bau = []; ui.zug = null; render(); });
   an("infozu", () => { ui.info = null; render(); });
+  an("willkommenzu", () => { ui.willkommenZu = true; render(); });
   an("vonhier", () => { ui.modus = "bauen"; ui.bau = [ui.info]; ui.info = null; render(); });
   an("bauweg", () => { ui.bau = []; render(); }); an("bauweg2", () => { ui.bau = []; render(); });
   an("bauen", () => { const p = ui.bau; ui.bau = []; tun({ t: "bauen", pfad: p }); render(); });
@@ -555,7 +562,9 @@ function hudBinden() {
   an("ereigniszu", () => { ui.ereignis = false; render(); });
   document.querySelectorAll("[data-annehmen]").forEach(b => b.onclick = () => tun({ t: "annehmen", id: b.dataset.annehmen }));
   document.querySelectorAll("[data-zeigen-ort]").forEach(b => b.onclick = () => { const o = S.karte.orte[+b.dataset.zeigenOrt]; if (o && welt) welt.hinfliegen(o.zelle); });
-  an("neuerzug", () => { ui.zug = { lok: "feld", ladung: "fahrgaeste", linie: [], id: null }; render(); });
+  an("neuerzug", () => { ui.zug = { lok: "feld", ladung: "fahrgaeste", linie: [], id: null, offen: true }; render(); });
+  an("zugwahl", () => { ui.zug.offen = true; render(); });
+  an("halteweiter", () => { ui.zug.offen = false; render(); });
   an("formzu", () => { ui.zug = null; render(); });
   an("halteweg", () => { ui.zug.linie.pop(); render(); });
   an("zugok", () => {
@@ -565,7 +574,7 @@ function hudBinden() {
   });
   document.querySelectorAll("[data-lok]").forEach(b => b.onclick = () => { ui.zug.lok = b.dataset.lok; render(); });
   document.querySelectorAll("[data-ladung]").forEach(b => b.onclick = () => { ui.zug.ladung = b.dataset.ladung; render(); });
-  document.querySelectorAll("[data-linie]").forEach(b => b.onclick = () => { const z = S.zuege.find(x => x.id === b.dataset.linie); ui.zug = { lok: z.lok, ladung: z.ladung, linie: [], id: z.id }; render(); });
+  document.querySelectorAll("[data-linie]").forEach(b => b.onclick = () => { const z = S.zuege.find(x => x.id === b.dataset.linie); ui.zug = { lok: z.lok, ladung: z.ladung, linie: [], id: z.id, offen: false }; render(); });
   document.querySelectorAll("[data-verkaufen]").forEach(b => b.onclick = () => { const z = S.zuege.find(x => x.id === b.dataset.verkaufen); if (confirm(`Zug ${z.nr} für ${zahl(G.zugWert(S, z))} T verkaufen?`)) tun({ t: "verkaufen", id: z.id }); });
   document.querySelectorAll("[data-zeigen]").forEach(b => b.onclick = () => { const z = S.zuege.find(x => x.id === b.dataset.zeigen); if (z && welt) welt.hinfliegen(z.linie[0]); });
 }

@@ -6,7 +6,7 @@
     ".": { name: "Wiese", kosten: 20 }, w: { name: "Wald", kosten: 40 }, h: { name: "Hügel", kosten: 60 },
     "~": { name: "Fluss", kosten: 150 }, b: { name: "Berg", kosten: 250 }, x: { name: "Bebaut", kosten: null }
   };
-  const BAHNHOF = 100, START_KASSE = 2000, WARTUNG_GLEIS = 2, WARTUNG_BAHNHOF = 5, TAGE = 30, WAGEN_PLATZ = 5;
+  const BAHNHOF = 100, START_KASSE = 2500, WARTUNG_GLEIS = 2, WARTUNG_BAHNHOF = 5, TAGE = 30, WAGEN_PLATZ = 5;
   // Betrieb in T pro Monat, dazu Kohle als Treibstoff (aus dem eigenen Lager, sonst zugekauft)
   const LOKS = {
     feld: { name: "Feldbahn", preis: 250, tempo: 3, wagen: 2, betrieb: 15, kohle: 3 },
@@ -64,15 +64,15 @@
   // ---------- Karte ----------
   function karteErzeugen(seed, spieler) {
     const z = rng(seed);
-    const [B, H] = spieler <= 2 ? [14, 11] : spieler <= 4 ? [16, 12] : [18, 13];
+    const [B, H] = spieler <= 2 ? [20, 15] : spieler <= 4 ? [22, 16] : [24, 18];
     const K = { seed, B, H, g: "", orte: [] };
     const ph = Array.from({ length: 8 }, () => z() * 6.283);
     const g = [];
     for (let r = 0; r < H; r++) for (let c = 0; c < B; c++) {
-      const x = c + .5 * (r & 1), y = r * .866;
+      const x = (c + .5 * (r & 1)) * .72, y = r * .866 * .72;   // gestreckt: größere Wälder, Hügel, Gebirge
       const n1 = Math.sin(x * .42 + ph[0]) * Math.cos(y * .5 + ph[1]) + .5 * Math.sin(x * .9 - y * .7 + ph[2]) + .3 * Math.cos(x * 1.4 + y * 1.2 + ph[3]);
       const n2 = Math.sin(x * .55 + ph[4]) * Math.sin(y * .6 + ph[5]) + .45 * Math.cos(x * 1.1 + y * .4 + ph[6]);
-      const rand = Math.max(Math.abs(x - (B - .5) / 2) / (B / 2), Math.abs(r - (H - 1) / 2) / (H / 2));
+      const rand = Math.max(Math.abs(c + .5 * (r & 1) - (B - .5) / 2) / (B / 2), Math.abs(r - (H - 1) / 2) / (H / 2));
       g.push(rand > .7 && n1 > .05 ? "b" : n1 > .62 ? "h" : n2 > .35 ? "w" : ".");
     }
     // Fluss von oben nach unten, schlängelt sich durch die Mitte
@@ -91,7 +91,7 @@
     const frei = i => !belegt.has(i) && g[i] !== "~" && g[i] !== "b" && !istRand(i);
     const umfeld = (i, t) => nachbarn(K, i).filter(n => g[n] === t).length;
     function setze(typ, name, groesse, wertung) {
-      for (let min = 4; min >= 2; min--) {
+      for (let min = 6; min >= 3; min--) {
         let best = -1, bw = -1e9;
         for (let i = 0; i < B * H; i++) {
           if (!frei(i) || K.orte.some(o => hexAbstand(K, o.zelle, i) < min)) continue;
