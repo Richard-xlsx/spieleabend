@@ -1556,7 +1556,8 @@
     k.runde += 1;
 
     if (gegnerLebend(S).length && lebend(S).length) planeGegner(S);
-    if (!gegnerLebend(S).length) kampfGewonnen(S);
+    // Legende: Steht am Ende niemand mehr, wären alle gefallen, also verloren, auch wenn die Gegner ebenfalls liegen
+    if (!gegnerLebend(S).length && (lebend(S).length || (S.schwere || 2) < 4)) kampfGewonnen(S);
     else if (!lebend(S).length) { S.phase = "ende"; S.ergebnis = "niederlage"; S.seite = { bild: "grab", titel: "Ihr seid gefallen", text: [ebeneVon(S).niederlage] }; S.kampf = null; }
   }
   function setzeGift(h, n, runden, brand) { h.gift = n; h.giftR = runden; h.giftArt = brand ? "Brand" : "Gift"; }
