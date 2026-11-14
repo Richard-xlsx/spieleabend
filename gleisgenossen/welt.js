@@ -116,8 +116,10 @@ export class Welt {
 
   // ---------- Karte ----------
   karteSetzen(K) {
-    if (this.K && this.K.seed === K.seed && this.K.B === K.B && this.K.g === K.g) return;
-    this.K = K; this.ox = W3 * (K.B - .5) / 2; this.oz = 1.5 * (K.H - 1) / 2;
+    const key = K.seed + "|" + K.g + "|" + K.orte.map(o => o.groesse || 0).join(",");
+    if (key === this.karteKey) return;
+    const neueKarte = !this.K || this.K.seed !== K.seed || this.K.g !== K.g;
+    this.karteKey = key; this.K = K; this.rad = []; this.ox = W3 * (K.B - .5) / 2; this.oz = 1.5 * (K.H - 1) / 2;
     leeren(this.gTerrain); leeren(this.gNetz); leeren(this.gZuege); leeren(this.gVorschau); leeren(this.gMarken);
     this.netzKey = null; this.zugKey = null; this.zuege = []; this.rauchQuellen = [];
     const z = rng(K.seed + 17), n = K.B * K.H, hilf = new THREE.Object3D(), col = new THREE.Color();
@@ -162,7 +164,7 @@ export class Welt {
     baeume.forEach((b, i) => { kr.setColorAt(i, col.setHex([0x2F8A4A, 0x3A9A52, 0x2A7D44, 0x4BA35A][b.f])); });
     this.baeumeSetzen(new Set());
     [kr, st].forEach(m => { m.castShadow = true; m.receiveShadow = true; this.gTerrain.add(m); });
-    this.uebersicht();
+    if (neueKarte) this.uebersicht();
   }
   baeumeSetzen(gerodet) {
     const hilf = new THREE.Object3D();
@@ -189,13 +191,13 @@ export class Welt {
     const um = (q, r) => ({ x: q.x + (z() - .5) * r, z: q.z + (z() - .5) * r });
     if (o.typ === "stadt") {
       dk.forEach(({ p: q }) => {
-        const n = 3 + Math.floor(z() * 2);
+        const n = 2 + Math.min(3, o.groesse) + Math.floor(z() * 1.5);
         for (let k = 0; k < n; k++) {
           const w = k / n * Math.PI * 2 + z() * .6, rr = k === 0 ? 0 : .52;
           this.haus(g, q.x + Math.cos(w) * rr, q.z + Math.sin(w) * rr, GY, .45 + z() * .3, .5 + z() * .35, .4 + z() * (.25 + o.groesse * .18), WAND[Math.floor(z() * 5)], DACH[Math.floor(z() * 4)], Math.floor(z() * 4) * Math.PI / 2);
         }
       });
-      // Kirchturm im größten Ort
+      // Kirchturm ab Stadtgröße
       if (o.groesse >= 3 && dk[0]) {
         const q = dk[0].p, t = new THREE.Mesh(new THREE.BoxGeometry(.32, 1.3, .32), mat(0xF3E6CC)); t.position.set(q.x, GY + .65, q.z); g.add(schatten(t));
         const s = new THREE.Mesh(new THREE.ConeGeometry(.26, .6, 4), mat(0x3E7D6B)); s.position.set(q.x, GY + 1.6, q.z); s.rotation.y = Math.PI / 4; g.add(schatten(s));
@@ -232,7 +234,7 @@ export class Welt {
       for (let k = 0; k < 4; k++) { const b = new THREE.Mesh(new THREE.BoxGeometry(.7, .05, .3), mat(0xE5C08A)); b.position.set(.1, .03 + k * .055, .5); gr.add(b); }
       gr.position.set(q.x, GY, q.z); gr.rotation.y = z() * 6; g.add(schatten(gr));
     }
-    const unter = { stadt: ["", "kleiner Ort", "Ort", "Stadt"][o.groesse], zeche: "Kohle", kraftwerk: "nimmt Kohle", holzfaeller: "Holz", saegewerk: "nimmt Holz" }[o.typ];
+    const unter = { stadt: ["", "kleiner Ort", "Ort", "Stadt", "Großstadt"][o.groesse], zeche: "Kohle", kraftwerk: "nimmt Kohle", holzfaeller: "Holz", saegewerk: "Holz → Bretter" }[o.typ];
     const s = schild(o.name, { unter, bg: o.typ === "stadt" ? "#1C1A33" : "#3B3561" });
     s.position.set(p.x, 1.55, p.z); g.add(s);
     this.gTerrain.add(g);
@@ -406,6 +408,10 @@ export class Welt {
     } else if (ladung === "kohle") {
       add(new THREE.BoxGeometry(.44, .24, .78), mat(0x7A5A3F), 0, .31, 0);
       add(new THREE.BoxGeometry(.38, .1, .7), mat(0x24242A), 0, .44, 0);
+    } else if (ladung === "bretter") {
+      add(new THREE.BoxGeometry(.44, .06, .8), mat(0x7A5A3F), 0, .22, 0);
+      for (let k = 0; k < 4; k++) add(new THREE.BoxGeometry(.38, .045, .74), mat(k % 2 ? 0xE5C08A : 0xD9AE72), 0, .27 + k * .05, 0);
+      [-.2, .2].forEach(x => add(new THREE.BoxGeometry(.03, .2, .03), mat(0x3A3A44), x, .33, .3));
     } else {
       add(new THREE.BoxGeometry(.44, .06, .8), mat(0x7A5A3F), 0, .22, 0);
       [-.13, 0, .13].forEach(x => [0, 1].forEach(y => add(new THREE.CylinderGeometry(.065, .065, .76, 7), mat(0xA0663A), x + y * .065 - .03, .3 + y * .11, 0, 0).rotation.x = Math.PI / 2));
@@ -413,8 +419,8 @@ export class Welt {
     [-.25, .25].forEach(z => add(new THREE.CylinderGeometry(.07, .07, .46, 10), schwarz, 0, .08, z, Math.PI / 2));
     return schatten(g);
   }
-  zuegeSetzen(S, linienWeg, LOKS) {
-    const key = this.netzKey + "|" + JSON.stringify(S.zuege.map(z => [z.id, z.lok, z.ladung, z.linie, z.farbe]));
+  zuegeSetzen(S, linienWeg, LOKS, steht = new Set()) {
+    const key = this.karteKey + "|" + this.netzKey + "|" + JSON.stringify(S.zuege.map(z => [z.id, z.lok, z.ladung, z.linie, z.farbe, steht.has(z.id)]));
     if (key === this.zugKey) return;
     this.zugKey = key;
     const alt = new Map(this.zuege.map(z => [z.id, z]));
@@ -432,7 +438,7 @@ export class Welt {
       const stops = w.pos.map(pi => len[halt[pi]] ?? 0);
       const ziele = [...new Set(stops.map(s => Math.max(laenge, Math.min(L, s + laenge / 2))))].sort((a, b) => a - b);
       const vorher = alt.get(z.id);
-      const zug = { id: z.id, pts, len, L, teile, abst, laenge, ziele, tempo: L0.tempo * .45, s: vorher && vorher.L === L ? vorher.s : ziele[k % ziele.length] ?? laenge, dir: vorher ? vorher.dir : 1, warten: vorher ? vorher.warten : .5 + k * .7, v: 0 };
+      const zug = { id: z.id, steht: steht.has(z.id), pts, len, L, teile, abst, laenge, ziele, tempo: L0.tempo * .45, s: vorher && vorher.L === L ? vorher.s : ziele[k % ziele.length] ?? laenge, dir: vorher ? vorher.dir : 1, warten: vorher ? vorher.warten : .5 + k * .7, v: 0 };
       this.zuege.push(zug); this.zugStellen(zug);
     });
   }
@@ -450,7 +456,7 @@ export class Welt {
     });
   }
   zugBewegen(z, dt) {
-    if (z.L < .5) return;
+    if (z.L < .5 || z.steht) return;
     if (z.warten > 0) { z.warten -= dt; return; }
     const vor = z.dir > 0 ? z.ziele.find(x => x > z.s + 1e-3) : [...z.ziele].reverse().find(x => x < z.s - 1e-3);
     if (vor === undefined) { z.dir = -z.dir; z.warten = .4; return; }
@@ -489,12 +495,12 @@ export class Welt {
   }
   puff(p, kraft) { const w = this.wolken[this.wNr++ % this.wolken.length]; w.m.position.copy(p); w.alter = 0; w.kraft = kraft; w.m.visible = true; w.dx = (Math.random() - .5) * .2; }
   bild() {
-    const dt = Math.min(this.uhr.getDelta(), .05);
+    const echt = this.uhr.getDelta(), dt = Math.min(echt, .05);
     if (!this.K || document.hidden) { if (this.K) this.renderer.render(this.scene, this.camera); return; }
     this.zuege.forEach(z => this.zugBewegen(z, dt));
     this.rauchTakt = (this.rauchTakt || 0) - dt; this.kwTakt = (this.kwTakt || 0) - dt;
     const wp = new THREE.Vector3();
-    if (this.rauchTakt <= 0) { this.zuege.forEach(z => { if (z.v > .05 || Math.random() < .3) this.puff(z.teile[0].localToWorld(wp.set(0, .7, .32)), z.v > .3 ? .8 : .45); }); this.rauchTakt = .2; }
+    if (this.rauchTakt <= 0) { this.zuege.forEach(z => { if (z.steht) return; if (z.v > .05 || Math.random() < .3) this.puff(z.teile[0].localToWorld(wp.set(0, .7, .32)), z.v > .3 ? .8 : .45); }); this.rauchTakt = .2; }
     if (this.kwTakt <= 0) { this.rauchQuellen.forEach(q => this.puff(q.g.localToWorld(wp.copy(q.lokal)), 1.3)); this.kwTakt = .4; }
     this.wolken.forEach(w => {
       if (w.alter > 2.4) { w.m.visible = false; return; }
@@ -503,7 +509,7 @@ export class Welt {
     });
     (this.rad || []).forEach(r => { r.rotation.z += dt * 1.5; });
     this.muenzenListe = this.muenzenListe.filter(m => {
-      m.alter += dt; if (m.alter < 0) return true;
+      m.alter += Math.min(echt, .5); if (m.alter < 0) return true;
       m.s.position.y = 1.2 + m.alter * .55; m.s.material.opacity = m.alter < .3 ? m.alter / .3 : Math.max(0, 1 - (m.alter - 2.4) / .8);
       if (m.alter > 3.2) { this.gEffekte.remove(m.s); m.s.material.map.dispose(); m.s.material.dispose(); return false; }
       return true;

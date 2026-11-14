@@ -176,10 +176,16 @@ Gleisgenossen (1 bis 6 Spieler, kooperativ)
   Gleis bauen: Start (Ort, Betrieb oder Gleis) und Ziel antippen, der günstigste Weg wird vorgeschlagen.
   Kosten pro Feld: Wiese 20, Wald 40, Hügel 60, Fluss (Brücke) 150, Berg (Tunnel) 250 T; Bahnhof 100 T, entsteht automatisch.
   Der eigene letzte Bau im selben Monat lässt sich zurücknehmen.
-  Züge: Feldbahn 250 T (3 Felder/Tag, 10 Plätze, 30 T/Monat), Dampflok 550 T (5 Felder/Tag, 20 Plätze, 60 T/Monat).
-  Ladung Fahrgäste (Orte, 14/24/36 pro Monat je Größe), Kohle (Zeche → Kraftwerk), Holz (Holzfäller → Sägewerk).
-  Einnahmen = Menge × Satz × Entfernung in Feldern (Fahrgäste 1,2 · Kohle 1,0 · Holz 0,9). Wartung 2 T je Gleisstück, 5 T je Bahnhof.
-  Kasse im Minus nach der Abrechnung = Pleite. Am Ende Wert = Kasse + halber Zugpreis; bis zu drei Sterne,
+  Züge: Feldbahn 250 T (3 Felder/Tag, 10 Plätze, 15 T + 3 Kohle/Monat), Dampflok 550 T (5 Felder/Tag, 20 Plätze, 30 T + 6 Kohle/Monat).
+  Ladung: Fahrgäste (Orte, 14/24/36/50 pro Monat je Größe, mal Ruf-Faktor 0,7–1,2), Kohle (Zeche → Kraftwerk gibt Geld,
+  Zeche → Ort füllt das Kohlenlager, max. 200), Holz (Holzfäller → Sägewerk, wird im nächsten Monat zu Brettern),
+  Bretter (Sägewerk → Ort: Ort wächst bei 30/50/80 Brettern um eine Größe).
+  Einnahmen = Menge × Satz × Entfernung in Feldern (Fahrgäste 1,2 · Kohle 1,0 · Holz 0,9 · Bretter 1,3). Wartung 2 T je Gleisstück, 5 T je Bahnhof.
+  Kohle für die Loks kommt aus dem Lager, fehlende wird für 5 T je Stück zugekauft.
+  Aufträge: jeden Monat 2 Angebote mit Frist (2–3 Monate), höchstens 3 angenommen. Erfüllt: Belohnung und Ruf +1, verpasst: Ruf −1.
+  Ruf 0–5 Sterne (Start 3), bei 0 ist das Spiel verloren. Kredit in 500er-Schritten bis 1.000 + 500 × Ruf, 5 % Zinsen pro Monat.
+  Ereignis für den nächsten Monat (EREIGNISSE in logic.js): Stadtfest, Hochwasser (Brücken gesperrt), Schneesturm,
+  Lokschaden, Kohle knapp, Holzfäller-Streik, Baustoffe −25 %, Fördergeld 300 T, ruhiger Monat.
+  Kasse im Minus nach der Abrechnung = Pleite. Am Ende Wert = Kasse − Kredit + halber Zugpreis; bis zu drei Sterne,
   die Grenzen richten sich nach der Karte (sterneGrenzen in logic.js).
-  Geplant: Etappe 2 (Aufträge, Ruf, Ereignisse, Kredite, Verarbeitung, wachsende Orte),
-  Etappe 3 (Rollen mit Geheimwissen, Szenarien, Bestenliste).
+  Geplant: Etappe 3 (Rollen mit Geheimwissen, Szenarien, Bestenliste).

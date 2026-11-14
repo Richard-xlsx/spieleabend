@@ -77,6 +77,13 @@ body.spiel #app{display:none}
 .chip small{font-size:.66rem;color:var(--leise);font-weight:600;text-transform:uppercase;letter-spacing:.08em}
 .chip b{font:800 .95rem var(--display);white-space:nowrap}
 .chip.gross{flex:1}
+.chip .ruf{color:var(--gelb);letter-spacing:.05em;text-transform:none}
+.ereignis{pointer-events:auto;display:block;margin:6px auto 0;max-width:620px;width:100%;appearance:none;border:0;background:var(--gelb);color:var(--bg);border-radius:12px;padding:8px 12px;font:700 .85rem var(--fliess);text-align:left;box-shadow:0 4px 14px rgba(0,0,0,.18);cursor:pointer}
+.karteEreignis{background:var(--gelb);color:var(--bg);border-radius:14px;padding:10px 12px;display:flex;flex-direction:column;gap:2px;transform:rotate(-1deg)}
+.karteEreignis small{font-size:.66rem;text-transform:uppercase;letter-spacing:.1em;font-weight:700;opacity:.7}
+.karteEreignis b{font-family:var(--display);font-size:.95rem}
+.karteEreignis span{font-size:.85rem}
+.zugkarte .knoepfe button:disabled{opacity:.4}
 .chip.minus b{color:#FF8A7A}
 .rund{appearance:none;border:0;background:var(--glas);color:var(--text);border-radius:14px;width:46px;font-size:1.25rem;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.18)}
 .hud-unten{display:flex;flex-direction:column;gap:8px;max-width:620px;width:100%;margin:0 auto}
@@ -90,6 +97,7 @@ body.spiel #app{display:none}
 .werkzeuge{display:flex;gap:6px}
 .werkzeuge button{appearance:none;flex:1;border:0;border-radius:14px;padding:9px 4px 8px;background:var(--glas);color:var(--leise);font:700 .74rem var(--fliess);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;box-shadow:0 4px 14px rgba(0,0,0,.18)}
 .werkzeuge button i{font-style:normal;font-size:1.15rem;line-height:1.2}
+.werkzeuge button em{font-style:normal;background:var(--akzent);color:var(--bg);border-radius:999px;padding:0 6px;margin-left:4px;font-size:.7rem}
 .werkzeuge button.an{background:var(--text);color:var(--bg)}
 .fertig{display:flex;gap:6px}
 .fertig .knopf{box-shadow:0 6px 18px rgba(0,0,0,.25)}

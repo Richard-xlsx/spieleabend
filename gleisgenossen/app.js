@@ -24,7 +24,7 @@ const conns = new Map();
 let retryTimer = null, token = 0, versuch = 0, hinweis = "", hinweisTimer = null;
 let welt = null, muenzenGezeigt = null;
 // Bedienzustand nur auf diesem Handy
-const ui = { modus: "schauen", info: null, bau: [], zug: null, menue: false };
+const ui = { modus: "schauen", info: null, bau: [], zug: null, menue: false, ereignis: false };
 
 const hostId = ep => PREFIX + code + "-" + ep;
 const link = () => location.origin + location.pathname + "?raum=" + code;
@@ -39,7 +39,7 @@ document.addEventListener("click", wachHalten);
 // ---------- Spielleiter ----------
 function speichernHost() { ls.set("gg:host:" + code, S); }
 function hostStarten(s) {
-  rolle = "host"; S = s; S.host = PID;
+  rolle = "host"; S = G.nachruesten(s); S.host = PID;
   if (S.spieler[PID]) S.spieler[PID].name = name || S.spieler[PID].name;
   speichernHost(); oeffneHostPeer(); geaendert();
 }
@@ -81,7 +81,7 @@ function geaendert() {
 // ---------- Mitspieler ----------
 function clientStarten() {
   rolle = "client";
-  const k = ls.get("gg:kopie:" + code); if (k) S = k;
+  const k = ls.get("gg:kopie:" + code); if (k) S = G.nachruesten(k);
   if (peer) { try { peer.destroy(); } catch (e) {} }
   const p = peer = new Peer(undefined, PEER_OPT);
   p.on("open", () => { if (p === peer && !hostConn) verbindeZumHost(); });
@@ -105,7 +105,7 @@ function verbindeZumHost() {
   });
   c.on("data", m => {
     if (!m) return;
-    if (m.t === "zustand") { S = m.s; ls.set("gg:kopie:" + code, S); render(); }
+    if (m.t === "zustand") { S = G.nachruesten(m.s); ls.set("gg:kopie:" + code, S); render(); }
     else if (m.t === "fehler") zeigeHinweis(m.text);
   });
   c.on("close", () => { if (hostConn === c) { hostConn = null; verloren(); } });
@@ -247,7 +247,11 @@ function bildschirmLobby() {
       <li><b>Gleis bauen:</b> Start antippen (Ort oder Gleis), dann das Ziel. Der günstigste Weg erscheint mit Kosten. Wiese 20 T, Wald 40, Hügel 60, Brücke 150, Tunnel 250 pro Feld. Erreicht das Gleis einen Ort, entsteht dort ein Bahnhof (100 T).</li>
       <li><b>Züge:</b> Lok und Ladung wählen, dann die Bahnhöfe der Reihe nach antippen. Der Zug pendelt auf dieser Linie.</li>
       <li><b>Fahrgäste</b> fahren zwischen Orten, <b>Kohle</b> von der Zeche zum Kraftwerk, <b>Holz</b> vom Holzfäller zum Sägewerk. Je weiter, desto mehr Geld.</li>
-      <li>Sind alle fertig, wird abgerechnet: Einnahmen minus Betriebskosten und Wartung. Wer ins Minus rutscht, ist pleite.</li>
+      <li><b>Kohle in einen Ort</b> füllt euer Kohlenlager: Damit fahren eure Loks, sonst muss Kohle teuer zugekauft werden.</li>
+      <li>Das Sägewerk macht aus Holz <b>Bretter</b>. Bretter in einen Ort lassen ihn <b>wachsen</b>: mehr Fahrgäste.</li>
+      <li><b>Aufträge</b> bringen Belohnung und Ruf. Verpasst ihr die Frist, sinkt der Ruf. Bei null Sternen ist das Spiel verloren.</li>
+      <li>Jeden Monat gibt es ein <b>Ereignis</b>: Hochwasser, Stadtfest, Schneesturm, Fördergeld …</li>
+      <li>Sind alle fertig, wird abgerechnet. Wer ins Minus rutscht, ist pleite. Zur Not hilft ein <b>Kredit</b> (5 % Zinsen pro Monat).</li>
       <li>Am Ende zählt der Wert der Genossenschaft (Kasse plus halber Zugwert). Dafür gibt es bis zu drei Sterne.</li></ul></div>
     ${host ? `<div class="unten"><button class="knopf" id="start">Spiel starten${da.length === 1 ? " (allein)" : ` (${da.length} Personen)`}</button></div>`
       : `<p class="leise mitte">Warte, bis ${esc(sp(S.host).name)} das Spiel startet.</p>`}
@@ -264,7 +268,7 @@ function spielRender() {
   welt.karteSetzen(S.karte);
   const adj = G.netz(S);
   welt.netzSetzen(S, adj);
-  welt.zuegeSetzen(S, G.linienWeg, G.LOKS);
+  welt.zuegeSetzen(S, G.linienWeg, G.LOKS, stehendeZuege());
   if (S.phase !== "planen") { ui.modus = "schauen"; ui.bau = []; ui.zug = null; }
   if (ui.zug && ui.zug.id && !S.zuege.some(z => z.id === ui.zug.id)) ui.zug = null;
   ui.bau = ui.bau.filter(i => i >= 0 && i < S.karte.B * S.karte.H);
@@ -295,20 +299,31 @@ function spielRender() {
   const neuPanel = hud.querySelector(".panel"); if (neuPanel) neuPanel.scrollTop = scroll;
   hudBinden();
 }
+// Züge, die wegen des Ereignisses in diesem Monat nicht fahren
+function stehendeZuege() {
+  const st = new Set(), ev = S.phase === "planen" ? S.ereignis : null;
+  if (!ev) return st;
+  if (ev.typ === "lokschaden") st.add(ev.zug);
+  if (ev.typ === "hochwasser") S.zuege.forEach(z => { const w = G.linienWeg(S, z.linie); if (w && w.pfad.some(i => S.karte.g[i] === "~")) st.add(z.id); });
+  return st;
+}
+const rufSterne = r => "★".repeat(r) + "☆".repeat(G.RUF_MAX - r);
 function hudHtml() {
   const phasen = { planen: "Planen", bericht: "Abrechnung", ende: S.ergebnis && S.ergebnis.pleite ? "Pleite" : "Geschafft" };
   let h = `<div>${statusHtml()}<div class="hud-oben">
-    <div class="chip gross"><small>${S.phase === "ende" ? "Spielende" : `Monat ${S.monat} / ${S.monate}`}</small><b>${phasen[S.phase] || ""}</b></div>
+    <div class="chip gross"><small>${S.phase === "ende" ? "Spielende" : `Monat ${S.monat} / ${S.monate}`} <span class="ruf" title="Ruf">${rufSterne(S.ruf)}</span></small><b>${phasen[S.phase] || ""}</b></div>
     <div class="chip ${S.kasse < 0 ? "minus" : ""}"><small>Kasse</small><b>${zahl(S.kasse)} T</b></div>
     <button class="rund" id="kamera" aria-label="Ganze Karte zeigen">⌖</button>
-    <button class="rund" id="menue" aria-label="Menü" aria-expanded="${ui.menue}">☰</button></div></div>`;
+    <button class="rund" id="menue" aria-label="Menü" aria-expanded="${ui.menue}">☰</button></div>
+    ${S.phase === "planen" && S.ereignis && S.ereignis.typ !== "ruhig" ? `<button class="ereignis" id="ereignisknopf">⚡ ${esc(S.ereignis.titel)}</button>` : ""}</div>`;
   h += `<div class="hud-unten">${panelHtml()}${S.phase === "planen" ? werkzeugeHtml() : ""}${fertigHtml()}</div>`;
   if (hinweis) h += `<div class="toast" role="status">${esc(hinweis)}</div>`;
   return h;
 }
 function werkzeugeHtml() {
   const b = (m, i, t) => `<button data-modus="${m}" class="${ui.modus === m ? "an" : ""}"><i>${i}</i>${t}</button>`;
-  return `<div class="werkzeuge">${b("bauen", "⛏", "Gleis bauen")}${b("zuege", "🚂", "Züge")}${b("bilanz", "📊", "Bilanz")}</div>`;
+  const neu = S.angebote.length && S.auftraege.length < G.MAX_AUFTRAEGE ? `<em>${S.angebote.length}</em>` : "";
+  return `<div class="werkzeuge">${b("bauen", "⛏", "Gleis bauen")}${b("zuege", "🚂", "Züge")}${b("auftraege", "📜", "Aufträge" + neu)}${b("bilanz", "📊", "Kasse")}</div>`;
 }
 function fertigHtml() {
   if (S.phase === "ende") return "";
@@ -325,6 +340,8 @@ function panelHtml() {
   if (ui.modus === "bauen") return bauPanel();
   if (ui.modus === "zuege") return zugPanel();
   if (ui.modus === "bilanz") return bilanzPanel();
+  if (ui.modus === "auftraege") return auftragPanel();
+  if (ui.ereignis && S.ereignis) return `<div class="panel"><div class="kopf"><h3>⚡ ${esc(S.ereignis.titel)}</h3><button class="zu" id="ereigniszu" aria-label="Schließen">✕</button></div><p class="klein">${esc(S.ereignis.text)}</p></div>`;
   if (ui.info !== null) return infoPanel(ui.info);
   if (S.monat === 1 && !Object.keys(S.gleise).length) return `<div class="panel"><p><b>Willkommen, Gleisgenossen!</b> Startkapital: ${zahl(G.START_KASSE)} T.</p><p class="leise klein">Tippe auf ein Feld für Infos. Mit „Gleis bauen“ verbindet ihr Orte, Zechen und Werke. Ein Finger verschiebt die Karte, zwei Finger zoomen, drehen und neigen.</p></div>`;
   return "";
@@ -335,9 +352,14 @@ function infoPanel(i) {
   let titel = G.GELAENDE[t].name;
   if (o) {
     titel = o.name;
-    if (o.typ === "stadt") zeilen.push(`${["", "Kleiner Ort", "Ort", "Stadt"][o.groesse]}: ${G.produktion(o)} Fahrgäste pro Monat, nimmt Fahrgäste aus anderen Orten.`);
-    else if (G.ORTE[o.typ].liefert) zeilen.push(`Liefert ${G.produktion(o)} ${ladungName(G.ORTE[o.typ].liefert)} pro Monat.`);
-    else zeilen.push(`Nimmt ${ladungName(G.ORTE[o.typ].nimmt)} an, so viel ihr bringt.`);
+    if (o.typ === "stadt") {
+      zeilen.push(`${["", "Kleiner Ort", "Ort", "Stadt", "Großstadt"][o.groesse]}: etwa ${Math.round(G.produktion(o, S) * (.7 + .1 * S.ruf))} Fahrgäste pro Monat (je nach Ruf).`);
+      const n = G.WACHSTUM[o.groesse];
+      zeilen.push(n ? `Wächst mit Brettern: ${S.wachstum[o.id] || 0} / ${n}.` : "Größer geht es nicht.");
+      zeilen.push("Kohle, die hierher kommt, geht ins Kohlenlager für eure Loks.");
+    } else if (o.typ === "saegewerk") zeilen.push(`Nimmt Holz an und macht daraus Bretter für den nächsten Monat. Bretter bereit: ${S.bretter[o.id] || 0}.`);
+    else if (o.typ === "kraftwerk") zeilen.push("Kauft Kohle, so viel ihr bringt. Je weiter der Weg, desto mehr Geld.");
+    else zeilen.push(`Liefert ${G.produktion(o, S)} ${ladungName(G.ORTE[o.typ].liefert[0])} pro Monat.`);
     zeilen.push(S.bahnhoefe.includes(i) ? "Bahnhof vorhanden." : `Noch kein Bahnhof. Er entsteht, sobald ein Gleis hierher führt (${G.BAHNHOF} T).`);
     const zuege = S.zuege.filter(z => z.linie.includes(i));
     if (zuege.length) zeilen.push("Hier halten: " + zuege.map(z => "Zug " + z.nr).join(", "));
@@ -369,7 +391,7 @@ function bauPanel() {
     ${k.bahnhoefe.map(z => `<div class="zeile klein"><span>Bahnhof ${esc(ortName(z))}</span><span>${G.BAHNHOF} T</span></div>`).join("")}
     <p class="leise klein">Weiteres Feld antippen verlängert die Strecke, ein Feld auf ihr kürzt sie.</p></div>`;
 }
-function lokText(l) { const L = G.LOKS[l]; return `<b>${L.name}</b>${zahl(L.preis)} T · ${L.tempo} Felder/Tag<br>${L.wagen} Wagen (${L.wagen * G.WAGEN_PLATZ} Plätze) · Betrieb ${L.betrieb} T/Monat`; }
+function lokText(l) { const L = G.LOKS[l]; return `<b>${L.name}</b>${zahl(L.preis)} T · ${L.tempo} Felder/Tag<br>${L.wagen} Wagen (${L.wagen * G.WAGEN_PLATZ} Plätze)<br>Betrieb ${L.betrieb} T + ${L.kohle} Kohle/Monat`; }
 function linieText(z) { return z.linie.map(ortName).map(esc).join(" ⇄ "); }
 function zugPanel() {
   const f = ui.zug;
@@ -400,20 +422,51 @@ function zugPanel() {
     <div class="aktion"><button class="knopf" id="neuerzug">Neuen Zug kaufen</button></div></div>`;
 }
 function berichtZeilen(b) {
-  return `${b.zuege.map(e => { const z = S.zuege.find(x => x.id === e.id); return `<div class="zeile"><span>${z ? `<i class="farbe" style="background:${z.farbe}"></i> Zug ${z.nr}: ${e.menge} ${ladungName(z.ladung)}` : "Verkaufter Zug"}${e.hinweis ? ` <span class="warn">· ${esc(e.hinweis)}</span>` : ""}</span><span class="plus">+${zahl(e.einnahmen)}</span></div>`; }).join("")}
+  const k = b.kohle || { kosten: 0 };
+  return `${(b.auftraege || []).filter(a => a.ok).map(a => `<div class="zeile"><span>✓ Auftrag ${esc(auftragText(a))}</span><span class="plus">+${zahl(a.belohnung)}</span></div>`).join("")}
+    ${b.zuege.map(e => { const z = S.zuege.find(x => x.id === e.id); return `<div class="zeile"><span>${z ? `<i class="farbe" style="background:${z.farbe}"></i> Zug ${z.nr}: ${e.menge} ${ladungName(z.ladung)}` : "Verkaufter Zug"}${e.hinweis ? ` <span class="warn">· ${esc(e.hinweis)}</span>` : ""}</span><span class="plus">+${zahl(e.einnahmen)}</span></div>`; }).join("")}
     <div class="zeile"><span>Betrieb der Züge</span><span class="minus">−${zahl(b.betrieb)}</span></div>
     <div class="zeile"><span>Wartung von Gleisen und Bahnhöfen</span><span class="minus">−${zahl(b.wartung)}</span></div>
+    ${k.bedarf ? `<div class="zeile"><span>Kohle für die Loks: ${k.ausLager} aus dem Lager${k.zukauf ? `, ${k.zukauf} zugekauft (je ${k.preis} T)` : ""}</span><span class="minus">−${zahl(k.kosten)}</span></div>` : ""}
+    ${b.zinsen ? `<div class="zeile"><span>Zinsen für den Kredit</span><span class="minus">−${zahl(b.zinsen)}</span></div>` : ""}
     <div class="zeile"><b>Kasse</b><b>${zahl(b.kasse)} T</b></div>`;
 }
 function berichtPanel() {
-  const b = S.bericht, saldo = b.einnahmen - b.betrieb - b.wartung;
+  const b = S.bericht, h = S.historie[S.historie.length - 1] || { einnahmen: 0, kosten: 0 }, saldo = h.einnahmen - h.kosten;
+  const verpasst = (b.auftraege || []).filter(a => !a.ok), erfuellt = (b.auftraege || []).filter(a => a.ok);
+  const ev = S.naechstes;
   return `<div class="panel"><h3>Abrechnung Monat ${b.monat}: <span class="${saldo >= 0 ? "plus" : "minus"}">${saldo >= 0 ? "+" : "−"}${zahl(Math.abs(saldo))} T</span></h3>
-    ${b.zuege.length ? "" : `<p class="leise klein">Noch kein Zug unterwegs, nur Wartungskosten.</p>`}${berichtZeilen(b)}</div>`;
+    ${erfuellt.length ? `<p class="klein plus">Auftrag erfüllt! Ruf steigt.</p>` : ""}
+    ${verpasst.map(a => `<p class="klein warn">✗ Auftrag verpasst: ${esc(auftragText(a))} (${a.stand}/${a.menge}). Ruf sinkt.</p>`).join("")}
+    ${(b.gewachsen || []).map(id => `<p class="klein plus">🏠 ${esc(S.karte.orte[id].name)} ist gewachsen und hat jetzt mehr Fahrgäste.</p>`).join("")}
+    ${b.zuege.length ? "" : `<p class="leise klein">Noch kein Zug unterwegs, nur Wartungskosten.</p>`}${berichtZeilen(b)}
+    <div class="zeile"><span>Kohlenlager</span><span>${b.kohle ? b.kohle.lager : S.lager} Kohle</span></div>
+    ${ev ? `<div class="karteEreignis"><small>Nächster Monat</small><b>${esc(ev.titel)}</b><span>${esc(ev.text)}</span></div>` : ""}
+    ${S.angebote.length && S.phase === "bericht" ? `<p class="leise klein">📜 ${S.angebote.length} neue Auftragsangebote warten.</p>` : ""}</div>`;
+}
+const auftragText = a => `${a.menge} ${ladungName(a.ladung)} ${a.ladung === "fahrgaeste" ? "nach" : a.ladung === "bretter" ? "nach" : "zum"} ${S.karte.orte[a.ort].name}`;
+function auftragPanel() {
+  const voll = S.auftraege.length >= G.MAX_AUFTRAEGE;
+  const karte = (a, aktiv) => `<div class="zugkarte"><div class="titel2">${esc(auftragText(a))}</div>
+    <div class="klein leise">Bis Ende Monat ${a.frist}${aktiv ? ` · noch ${a.frist - S.monat + 1} ${a.frist - S.monat + 1 === 1 ? "Monat" : "Monate"}` : ""} · Belohnung <span class="plus">${zahl(a.belohnung)} T</span> und Ruf +1</div>
+    ${aktiv ? `<div class="balken"><i style="width:${Math.round(a.stand / a.menge * 100)}%"></i></div><div class="klein">${a.stand} / ${a.menge} geliefert</div>`
+      : `<div class="knoepfe"><button data-annehmen="${a.id}" ${voll ? "disabled" : ""}>Annehmen</button><button data-zeigen-ort="${a.ort}">Auf Karte</button></div>`}</div>`;
+  return `<div class="panel"><div class="kopf"><h3>Aufträge</h3><button class="zu" id="modzu" aria-label="Schließen">✕</button></div>
+    <p class="leise klein">Ruf ${rufSterne(S.ruf)}: Mehr Ruf bringt mehr Fahrgäste und mehr Kredit. Verpasste Aufträge kosten einen Stern, bei null Sternen ist das Spiel verloren.</p>
+    ${S.auftraege.length ? `<p class="etikett">Angenommen (${S.auftraege.length}/${G.MAX_AUFTRAEGE})</p><div class="zuglist">${S.auftraege.map(a => karte(a, true)).join("")}</div>` : ""}
+    <p class="etikett">Angebote</p>
+    ${S.angebote.length ? `<div class="zuglist">${S.angebote.map(a => karte(a, false)).join("")}</div><p class="leise klein">Nicht angenommene Angebote verfallen am Monatsende.</p>` : `<p class="leise klein">Im Moment keine neuen Angebote. Nächsten Monat kommen neue.</p>`}</div>`;
 }
 function bilanzPanel() {
   const h = S.historie, b = S.bericht, gr = G.sterneGrenzen(S), w = G.wert(S);
-  return `<div class="panel"><div class="kopf"><h3>Bilanz</h3><button class="zu" id="modzu" aria-label="Schließen">✕</button></div>
-    <div class="zeile"><span>Wert der Genossenschaft</span><b>${zahl(w)} T</b></div>
+  const rahmen = G.kreditRahmen(S), bedarf = S.zuege.reduce((a, z) => a + G.LOKS[z.lok].kohle, 0);
+  return `<div class="panel"><div class="kopf"><h3>Kasse</h3><button class="zu" id="modzu" aria-label="Schließen">✕</button></div>
+    <div class="zeile"><span>Kredit (${Math.round(G.ZINS * 100)} % Zinsen pro Monat)</span><b>${zahl(S.kredit)} T</b></div>
+    <div class="reihe"><button class="knopf zweit klein" id="leihen" ${S.kredit + G.KREDIT_SCHRITT > rahmen ? "disabled" : ""}>+${zahl(G.KREDIT_SCHRITT)} T leihen</button><button class="knopf zweit klein" id="tilgen" ${!S.kredit || S.kasse < Math.min(G.KREDIT_SCHRITT, S.kredit) ? "disabled" : ""}>${zahl(Math.min(G.KREDIT_SCHRITT, S.kredit || G.KREDIT_SCHRITT))} T zurückzahlen</button></div>
+    <p class="leise klein">Die Bank leiht bei eurem Ruf bis zu ${zahl(rahmen)} T.</p>
+    <div class="zeile"><span>Kohlenlager (für eure Loks)</span><b>${S.lager} / ${G.LAGER_MAX}</b></div>
+    <p class="leise klein">Eure Loks brauchen ${bedarf} Kohle im Monat. Fehlt sie im Lager, wird sie für ${G.KOHLE_PREIS} T pro Stück zugekauft. Kohle in einen Ort bringen füllt das Lager.</p>
+    <div class="zeile"><span>Wert der Genossenschaft (Kasse − Kredit + halber Zugwert)</span><b>${zahl(w)} T</b></div>
     <p class="leise klein">Ziel nach ${S.monate} Monaten: ★ ${zahl(gr[0])} · ★★ ${zahl(gr[1])} · ★★★ ${zahl(gr[2])} T</p>
     <div class="balken"><i style="width:${Math.min(100, Math.max(0, w / gr[2] * 100))}%"></i></div>
     ${b ? `<p class="etikett">Letzter Monat</p>${berichtZeilen(b)}` : `<p class="leise klein">Die erste Abrechnung kommt am Ende dieses Monats.</p>`}
@@ -422,10 +475,10 @@ function bilanzPanel() {
 function endePanel() {
   const e = S.ergebnis || {}, host = rolle === "host";
   const sterne = [0, 1, 2].map(i => `<span class="${i < e.sterne ? "" : "aus"}">★</span>`).join("");
-  return `<div class="panel"><h3>${e.pleite ? "Die Genossenschaft ist pleite." : "Geschafft!"}</h3>
+  return `<div class="panel"><h3>${e.grund === "ruf" ? "Der Ruf ist ruiniert." : e.pleite ? "Die Genossenschaft ist pleite." : "Geschafft!"}</h3>
     <div class="sterne">${sterne}</div>
     <div class="zeile"><span>Wert der Genossenschaft</span><b>${zahl(e.wert)} T</b></div>
-    <p class="leise klein">${e.pleite ? "Die Kasse ist ins Minus gerutscht. Nächstes Mal vorsichtiger bauen!" : `Sterne ab ${(e.grenzen || []).map(zahl).join(" / ")} T. ${S.zuege.length} Züge, ${Object.keys(S.gleise).length} Gleisstücke, ${S.bahnhoefe.length} Bahnhöfe.`}</p>
+    <p class="leise klein">${e.grund === "ruf" ? "Zu viele Aufträge verpasst, niemand will mehr mit euch fahren." : e.pleite ? "Die Kasse ist ins Minus gerutscht. Nächstes Mal vorsichtiger bauen oder rechtzeitig einen Kredit aufnehmen!" : `Sterne ab ${(e.grenzen || []).map(zahl).join(" / ")} T. ${S.zuege.length} Züge, ${Object.keys(S.gleise).length} Gleisstücke, ${S.bahnhoefe.length} Bahnhöfe.`}</p>
     ${S.bericht ? `<p class="etikett">Letzte Abrechnung</p>${berichtZeilen(S.bericht)}` : ""}
     ${host ? `<button class="knopf" id="nochmal">Neues Spiel</button>` : `<p class="leise klein mitte">${esc(sp(S.host).name)} kann ein neues Spiel starten.</p>`}</div>`;
 }
@@ -488,7 +541,7 @@ function hudBinden() {
   an("erzwingen", () => tun({ t: "erzwingen" }));
   an("nochmal", () => tun({ t: "neustart" }));
   document.querySelectorAll("[data-modus]").forEach(b => b.onclick = () => {
-    const m = b.dataset.modus; ui.modus = ui.modus === m ? "schauen" : m; ui.info = null; ui.zug = null; ui.bau = []; render();
+    const m = b.dataset.modus; ui.modus = ui.modus === m ? "schauen" : m; ui.info = null; ui.zug = null; ui.bau = []; ui.ereignis = false; render();
   });
   an("modzu", () => { ui.modus = "schauen"; ui.bau = []; ui.zug = null; render(); });
   an("infozu", () => { ui.info = null; render(); });
@@ -496,6 +549,12 @@ function hudBinden() {
   an("bauweg", () => { ui.bau = []; render(); }); an("bauweg2", () => { ui.bau = []; render(); });
   an("bauen", () => { const p = ui.bau; ui.bau = []; tun({ t: "bauen", pfad: p }); render(); });
   an("rueckgaengig", () => tun({ t: "rueckgaengig" }));
+  an("leihen", () => tun({ t: "kredit" }));
+  an("tilgen", () => tun({ t: "tilgen" }));
+  an("ereignisknopf", () => { ui.ereignis = !ui.ereignis; ui.modus = "schauen"; ui.info = null; render(); });
+  an("ereigniszu", () => { ui.ereignis = false; render(); });
+  document.querySelectorAll("[data-annehmen]").forEach(b => b.onclick = () => tun({ t: "annehmen", id: b.dataset.annehmen }));
+  document.querySelectorAll("[data-zeigen-ort]").forEach(b => b.onclick = () => { const o = S.karte.orte[+b.dataset.zeigenOrt]; if (o && welt) welt.hinfliegen(o.zelle); });
   an("neuerzug", () => { ui.zug = { lok: "feld", ladung: "fahrgaeste", linie: [], id: null }; render(); });
   an("formzu", () => { ui.zug = null; render(); });
   an("halteweg", () => { ui.zug.linie.pop(); render(); });
