@@ -1,0 +1,11 @@
+const path = require('path'), os = require('os');
+const LOGIK = path.join(__dirname, '..', 'verlies-logic.js');
+const AUS = path.join(os.tmpdir(), 'verlies-tests'); require('fs').mkdirSync(AUS, { recursive: true });
+const URL_BASIS = process.env.VERLIES_URL || 'http://localhost:8765';
+const { chromium } = require('playwright');
+(async () => { const b = await chromium.launch(); const p = await b.newPage({ viewport: { width: 900, height: 700 } });
+  await p.goto(URL_BASIS + '/verlies/index.html'); await p.waitForTimeout(800);
+  await p.evaluate(() => { const k = ['eingang','tueren','boss-tuer','truhe','feuer','brunnen','troll','haendler','altar','bruecke','ratte','goblin','spinne','skelett','schamane','ork','koenig','sieg','krone','grab'];
+    document.body.innerHTML = '<div style="display:grid;grid-template-columns:repeat(5,170px);gap:6px;background:#1C1A33;padding:8px">' + k.map(x => '<div style="background:#F3E6CC;border-radius:8px">' + window.VB.bild(x) + '</div>').join('') + ['kaempfer','dieb','heilerin','magierin','waldlaeufer','paladin'].map(r => '<div style="background:#F3E6CC;border-radius:8px;height:110px">' + window.VB.held(r) + '</div>').join('') + '</div>';
+    document.querySelectorAll('svg').forEach(s => { s.style.width = '100%'; s.style.height = '100%'; }); });
+  await p.screenshot({ path: path.join(AUS, 'bilder.png'), fullPage: true }); await b.close(); })();

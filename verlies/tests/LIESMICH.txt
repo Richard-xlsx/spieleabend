@@ -1,0 +1,28 @@
+Tests für „Verlies zu dritt“
+============================
+
+Werkzeuge, mit denen Regeln, Balance und Oberfläche geprüft werden. Nicht Teil des Spiels.
+Bilder und Zwischendateien landen im Temp-Ordner unter verlies-tests (z. B. /tmp/verlies-tests).
+
+Ohne Browser (nur Node.js):
+  node simulation.js [Partien]       Alle 20 Dreiergruppen und drei Zweiergruppen, je „klug“ (Fähigkeiten, Einkaufen,
+                                     Punkte verteilen) und „simpel“ (nur Grundangriff). Zeigt Siegquoten, Ø Stufe, Ø Gold.
+                                     Standard 300 Partien je Gruppe; für einen schnellen Blick 50 bis 100.
+  node rundenaufzeichnung.js         400 zufällige Partien: Ausgangslage + Ereignisse in S.letzte müssen genau das
+                                     Rundenergebnis ergeben, jeder Gegner braucht eine angekündigte Absicht. Erwartet: Fehler 0.
+  node endgegner-runde-finden.js     Sucht eine Runde, in der der Knochenkönig Skelette ruft, und speichert sie (ruf.json).
+
+Mit Browser (Playwright und Chromium sind in der Cloud-Umgebung vorinstalliert).
+Vorher im Ordner spieleabend einen Webserver starten:  python3 -m http.server 8765
+Andere Adresse (z. B. die Live-Seite):  VERLIES_URL=https://richard-xlsx.github.io/spieleabend node ...
+  node drei-browser.js [rolle1,rolle2,rolle3] [kürzel]
+                                     Drei getrennte Browser im iPhone-Format spielen eine ganze Partie: Rollenwahl,
+                                     Türen, Händler, Fähigkeiten verbessern, Kämpfe mit Wiedergabe. Dazwischen lädt eine
+                                     Mitspielerin (Raum 3) und der Spielleiter (Raum 5) neu. Am Ende: Fehler [] und
+                                     „Gleicher Stand auf allen: true“. Bilder: kürzel-1-lobby.png usw.
+  node endgegner-runde-abspielen.js  Spielt die gespeicherte Endgegner-Runde auf der Kampfbühne ab (vorher …-finden.js).
+  node vorschau-kampf.js             Prüft verlies/vorschau-kampf.html (beide Runden, Überspringen, alle Einzeleffekte).
+  node zeichnungen.js                Zeichnet alle Bilder aus bilder.js auf eine Seite (bilder.png) zum Anschauen.
+
+Nach Änderungen an den Regeln: simulation.js und rundenaufzeichnung.js.
+Nach Änderungen an der Oberfläche oder Verbindung: drei-browser.js.
