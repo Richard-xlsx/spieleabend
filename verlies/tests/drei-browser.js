@@ -64,7 +64,7 @@ const OUT = path.join(AUS, (process.argv[3] || 'b') + '-');
       }
       if (st.startsWith('lager')) {
         if (!shots.lager) { shots.lager = 1; await p.screenshot({ path: OUT + '2-lager.png', fullPage: true }); }
-        for (let k = 0; k < 3; k++) { const w = await p.$$('[data-kauf]:not([disabled])'); if (!w.length) break; await w[Math.floor(Math.random() * w.length)].click(); await p.waitForTimeout(250); }
+        for (let k = 0; k < 3; k++) { const w = await p.$$('[data-kauf]:not([disabled])'); if (!w.length) break; await w[Math.floor(Math.random() * w.length)].evaluate(e => e.click()); await p.waitForTimeout(250); }
         const f = await p.$('#fertig:not(.zweit)'); if (f) await f.click();
         continue;
       }
