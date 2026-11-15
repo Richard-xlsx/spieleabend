@@ -1,5 +1,5 @@
 const path = require('path'), os = require('os');
-const LOGIK = path.join(__dirname, '..', 'verlies-logic.js');
+const LOGIK = process.env.VERLIES_LOGIK || path.join(__dirname, '..', 'verlies-logic.js');
 const AUS = path.join(os.tmpdir(), 'verlies-tests'); require('fs').mkdirSync(AUS, { recursive: true });
 const URL_BASIS = process.env.VERLIES_URL || 'http://localhost:8765';
 const fs=require('fs'),vm=require('vm');const ctx={window:{},console};vm.createContext(ctx);
@@ -14,6 +14,18 @@ function waehle(S,p,klug){
   // Ankündigungen kontern wie echte Spieler: Spezialzüge (Verstärkung, Beben, Netz) durch Erstarren verhindern,
   // wenn noch niemand anderes dieses Ziel diese Runde erstarren lässt
   const ab=S.kampf.absicht||{}, gew=Object.values(S.kampf.wahl||{});
+  // Vernichtungsschlag: das Ziel schützen (Schildwall, Fels, Wall, Obhut, Arkaner Schild, Beschützen, Spott, Verstecken), sonst voll heilen
+  if(!process.env.OHNE_SCHUTZ) for(const x of g){ const a=ab[x.id]; if(!a||a.a!=='vernichtung') continue;
+    const wahl=Object.entries(S.kampf.wahl||{});
+    const gedeckt=t=>wahl.some(([q,w])=>['schild','fels','wall'].includes(w.a)||(['obhut','arkan','beschuetzen'].includes(w.a)&&w.ziel===t)||(w.a==='spott'&&w.ziel===x.id)||(q===t&&w.a==='verstecken'));
+    for(const t of a.ziele.filter(t=>S.helden[t].hp>0&&!gedeckt(t))){
+      if(t===p&&hat('verstecken')) return {a:'verstecken'};
+      if(hat('fels')) return {a:'fels'}; if(hat('wall')) return {a:'wall'}; if(hat('schild')&&h.hp>h.max*0.5) return {a:'schild'};
+      if(hat('obhut')) return {a:'obhut',ziel:t}; if(hat('arkan')) return {a:'arkan',ziel:t}; if(hat('beschuetzen')&&t!==p&&h.hp>h.max*0.6) return {a:'beschuetzen',ziel:t};
+      if(hat('spott')&&h.hp>=h.max*0.95) return {a:'spott',ziel:x.id};
+      const z=S.helden[t]; if(z.hp<z.max*0.9&&!wahl.some(([,w])=>['heilen','handauflegen','kraeuter'].includes(w.a)&&w.ziel===t)) for(const id of ['heilen','handauflegen','kraeuter']) if(hat(id)) return {a:id,ziel:t};
+      if(t===p&&h.hp<h.max*0.9&&hat('trank')) return {a:'trank'};
+    } }
   const gefahr=g.filter(x=>ab[x.id]&&['ruf','beben','netz'].includes(ab[x.id].a)&&!(x.starr>0)&&!(x.taut>0)&&!(ab[x.id].schwelle&&ab[x.id].schwelle<x.hp*0.6&&!process.env.EIS_BOSS)&&!gew.some(w=>['eis','ranken'].includes(w.a)&&w.ziel===x.id)).sort((x,y)=>(V.GEGNER[y.art].boss?1:0)-(V.GEGNER[x.art].boss?1:0));
   if(gefahr.length){ if(gefahr.length>=2&&!gew.some(w=>['winter','zeitstillstand'].includes(w.a))) for(const id of ['zeitstillstand','winter']) if(hat(id)) return {a:id};
     for(const id of ['eis','ranken']) if(hat(id)) return {a:id,ziel:gefahr[0].id}; }
@@ -29,6 +41,9 @@ function waehle(S,p,klug){
   // kluge Spieler: erst Langfinger, Heiler, Beschwörer; steht der Knochenschild, erst die Skelette
   // großer Zug mit Abbruch-Schwelle: alle drauf
   const abbruch=g.find(x=>ab[x.id]&&ab[x.id].schwelle);
+  // Kokons und Eier: mit dem einfachen Angriff zerschlagen
+  const obj=g.find(x=>V.GEGNER[x.art].huelle)||g.find(x=>V.GEGNER[x.art].ei&&x.brut<=1)||g.find(x=>V.GEGNER[x.art].ei);
+  if(obj&&!process.env.OHNE_OBJ) return {a:V.AKTIONEN[h.rolle][0].id, ziel:obj.id};
   const prio=abbruch||g.find(x=>V.GEGNER[x.art].langfinger)||g.find(x=>V.GEGNER[x.art].heiler||V.GEGNER[x.art].beschwoerer||V.GEGNER[x.art].schildtraeger)||(g.some(x=>V.knochenschild(S,x))?g.find(x=>!V.GEGNER[x.art].boss):null);
   const gross=prio||g.slice().sort((a,b)=>b.hp-a.hp)[0];
   for(const id of ['sternschuss','gottesurteil','todesstoss','meisterdieb','vernichten','kopfschuss','eis','ranken','markieren','gift','kriegsschrei','spott','taschendieb']) if(hat(id)) { const a=hat(id); return {a:id,ziel:a.ziel==='gegner'?gross.id:null}; }
@@ -82,6 +97,9 @@ function spiel(seed, rollen, klug){
       for(const p of V.lebend(S)){ if(S.phase!=='kampf'||S.kampf.runde!==r)break;
         const w=waehle(S,p,klug); const vor=S; S=V.aktion(S,p,Object.assign({t:'wahl',runde:r},w));
         if(S===vor){ S=V.aktion(S,p,Object.assign({t:'wahl',runde:r},V.standardWahl(S,p))); if(S===vor) throw new Error('Wahl abgelehnt '+JSON.stringify(w)); } } }
+    // Vernichtungsschläge zählen: geschützt (kein Schaden), getroffen, K.o.
+    if(klug&&S.letzte&&S.letzte!==STATS.__l){ STATS.__l=S.letzte; for(const e of S.letzte.ev) if(e.a==='vernichtung'){ const v=STATS.vern=STATS.vern||{n:0,ko:0,schaden:0};
+      const tr=(e.d||[]).filter(([id,d])=>d<0&&S.helden[id]); v.n++; if(tr.length) v.schaden++; if(tr.some(([, ,nach])=>nach<=0)) v.ko++; } }
     if(schritte>(+process.env.SCHRITTE||3000)-4&&S.kampf) console.log('HÄNGER', S.kampf.runde, JSON.stringify(S.teilnehmer.map(p=>[S.helden[p].rolle,S.helden[p].hp,S.helden[p].cd,S.helden[p].netz])), JSON.stringify(S.gegner.map(g=>[g.art,g.hp,g.max,g.schutz])), JSON.stringify(S.kampf.absicht), S.log.join(' / '));
     // Kampfwerte: Runden und K.o. je Kampf (nur kluge Partien)
     if(klug&&!DUO){ const ko=S.teilnehmer.reduce((x,q)=>x+S.helden[q].stats.umgefallen,0);
@@ -115,4 +133,5 @@ DUO=true;
 if(GROESSE===3) for(const d of [['kaempfer','heilerin'],['paladin','magierin'],['dieb','waldlaeufer']]){ let w=0; for(let i=1;i<=N;i++) if(spiel(i*31,d,true).sieg)w++; console.log('zu zweit',d.join('+'),Math.round(100*w/N)+'%'); }
 
 console.log('Siegquote nach Hauptast (klug, Dreiergruppen):');for(const [k,[n,w]] of Object.entries(STATS.ast).sort()) console.log('  '+k.padEnd(30), Math.round(100*w/n)+'%', '('+n+')');
+if(STATS.vern) console.log('Vernichtungsschläge:',STATS.vern.n,'mit Schaden',Math.round(100*STATS.vern.schaden/STATS.vern.n)+'%','mit K.o.',Math.round(100*STATS.vern.ko/STATS.vern.n)+'%');
 console.log('Niederlagen (klug) nach Ort:'); for(const [k,n] of Object.entries(STATS.tod).sort((a,b)=>b[1]-a[1]).slice(0,14)) console.log('  '+k.padEnd(40), n);

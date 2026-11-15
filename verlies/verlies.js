@@ -292,7 +292,7 @@
     return {
       gegner: S.gegner.map(g => ({ id: g.id, art: g.art, name: g.name, hp: g.hp, max: g.max, giftR: g.giftR, markiert: g.markiert, starr: g.starr, zustand: V.zustand(S, g) })),
       helden: S.teilnehmer.map(p => { const x = S.helden[p];
-        const m = [x.gefallen ? "gefallen" : x.hp <= 0 ? "bewusstlos" : k.wahl[p] ? "✓ bereit" : !online(p) ? "nicht verbunden" : "", x.giftR > 0 && x.hp > 0 ? (x.giftArt === "Brand" ? "brennt" : "vergiftet") : "", x.netz && x.hp > 0 ? "im Netz" : "", x.lauer ? "lauert" : "", x.segen ? "gesegnet" : ""].filter(Boolean).join(" · ");
+        const m = [x.gefallen ? "gefallen" : x.hp <= 0 ? "bewusstlos" : k.wahl[p] ? "✓ bereit" : !online(p) ? "nicht verbunden" : "", x.giftR > 0 && x.hp > 0 ? (x.giftArt === "Brand" ? "brennt" : "vergiftet") : "", x.netz && x.hp > 0 ? "im Netz" : "", x.kokon ? "im Kokon" : "", x.lauer ? "lauert" : "", x.segen ? "gesegnet" : ""].filter(Boolean).join(" · ");
         return { id: p, rolle: x.rolle, name: sp(p).name, hp: x.hp, max: x.max, marken: m }; }),
       absicht: k.absicht || {}, ebene: S.ebene || 1,
       zielModus: zielModus === "anderer" ? "held" : zielModus,
@@ -408,7 +408,7 @@
   // eine Zeile je Held; im Kampf mit Zustandsmarken und als Ziel antippbar
   function heldZeile(p, imKampf, ziel) {
     const x = S.helden[p], k = S.kampf;
-    const marken = x.gefallen ? `<span class="marke">gefallen, schaut zu</span>` : imKampf ? [x.hp <= 0 ? `<span class="marke">bewusstlos</span>` : "", x.giftR > 0 && x.hp > 0 ? `<span class="marke gift">${x.giftArt === "Brand" ? "brennt" : "vergiftet"}</span>` : "", x.netz && x.hp > 0 ? `<span class="marke">im Netz</span>` : "",
+    const marken = x.gefallen ? `<span class="marke">gefallen, schaut zu</span>` : imKampf ? [x.hp <= 0 ? `<span class="marke">bewusstlos</span>` : "", x.giftR > 0 && x.hp > 0 ? `<span class="marke gift">${x.giftArt === "Brand" ? "brennt" : "vergiftet"}</span>` : "", x.netz && x.hp > 0 ? `<span class="marke">im Netz</span>` : "", x.kokon ? `<span class="marke">im Kokon</span>` : "",
       x.wunden ? `<span class="marke">${x.wunden === 1 ? "Wunde" : x.wunden + " Wunden"} −${x.wundHp}</span>` : "", x.lauer ? `<span class="marke schatten">lauert</span>` : "", x.segen ? `<span class="marke">gesegnet</span>` : "",
       k && k.wahl[p] ? `<span class="marke ok">bereit</span>` : ""].join("") : "";
     const ast = V.hauptast(x);
@@ -456,6 +456,8 @@
     const fl = (S.flueche || []).concat(S.tiefenFluch && !(S.flueche || []).includes(S.tiefenFluch) ? [S.tiefenFluch] : []);
     if (eig.length || schild || fl.length) h += `<details class="chronik gegnerkunde"${k.runde === 1 || schild ? " open" : ""}><summary class="etikett">Gegner-Eigenschaften</summary>${schild ? `<p><b>Knochenschild:</b> Der Knochenkönig nimmt nur halben Schaden, solange ein Skelett steht.</p>` : ""}${eig.map(e => { const [n, t] = V.EIGENSCHAFTEN[e]; return `<p><b>${esc(n.charAt(0).toUpperCase() + n.slice(1))}:</b> ${esc(t)}</p>`; }).join("")}${fl.map(f => `<p><b>☠ Fluch ${esc(V.FLUECHE[f].name)}:</b> ${esc(V.FLUECHE[f].text)}</p>`).join("")}</details>`;
     // Große Züge, die sich mit genug Schaden in dieser Runde abbrechen lassen
+    // Vernichtungsschlag: Wer schützt wen?
+    for (const g of V.gegnerLebend(S)) { const x = (k.absicht || {})[g.id]; if (x && x.a === "vernichtung") { const n = (x.ziele || []).map(p => esc(sp(p).name)); h += `<div class="hinweis">💀 ${esc(g.name)} holt zum Vernichtungsschlag gegen ${n.join(" und ")} aus: fast alle Leben, Rüstung und Erstarren helfen nicht. Schützt ${n.length > 1 ? "sie" : n[0]} mit Schildwall, Spott, Obhut, Beschützen, Arkanem Schild oder Verstecken, oder heilt vorher voll.</div>`; } }
     for (const g of V.gegnerLebend(S)) { const x = (k.absicht || {})[g.id]; if (x && x.schwelle) h += `<div class="hinweis">✋ ${esc(g.name)} holt aus: ${x.a === "ruf" ? "Verstärkung" : esc(x.name || "Flächenangriff")}. Macht ihm diese Runde zusammen ${x.schwelle} Schaden, dann bricht es ab.</div>`; }
     if (S.log && S.log.length) h += `<details class="chronik"><summary class="etikett">Was in Runde ${k.runde - 1} geschah</summary>${S.log.map(t => `<p>${esc(t)}</p>`).join("")}</details>`;
     // Eigene Wahl

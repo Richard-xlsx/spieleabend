@@ -304,3 +304,42 @@ Eure Runde (5 Helden, Lang, Held, Wild + Rachsucht + Verstärkung):
 - Die Schwierigkeit verschiebt sich damit wie gewünscht nach hinten.
 - Endgegner in Ebene 3 sind für kleine Gruppen eher harmloser geworden. Das soll Schritt 5 (Vernichtungsschlag)
   ändern.
+
+**Schritt 5 fertig (15.11.2026).** Abweichungen vom Plan oben:
+
+- **Vernichtungsschlag:**
+  - Kommt erstmals in Runde 4 oder 5, danach alle 4 bis 5 Runden. Er wird eine Runde vorher angekündigt: „💀 Vernichtung → Lena“ in der Sprechblase und ein Hinweis über den Knöpfen.
+  - Schaden: 80–95 % der Höchstleben des Ziels. In Ebene 1 sind es 50–65 %, zu zweit ×0,8. Rüstung zählt nicht.
+  - Ab 5 Helden trifft er zwei Ziele.
+  - Erstarren hilft nicht, Abbrechen auch nicht.
+  - Schildwall und Spott ziehen den Schlag auf den Kämpfer (Schildwall halbiert ihn). Beschützen fängt ihn mit halbem Schaden ab. Obhut, Arkaner Schild, Fels und Wall halten ihn ganz ab. Wer versteckt ist, wird nicht gefunden.
+  - Die Zusatzangriffe gegen große Gruppen kommen trotzdem. Ist der Endgegner erstarrt, entfallen sie.
+- **Seelenernte (Knochenkönig):** Solange ein Held bewusstlos ist, bekommt der König jede Runde +3 % seiner Leben. Das gilt pauschal, nicht je bewusstlosem Helden. Mit 5 % je Held wurde aus jedem K.o. eine Niederlage, vor allem für Gruppen ohne Heilerin und Paladin, die niemanden zurückholen können.
+- **Eier und Kokon (Spinnenkönigin):**
+  - Statt Brut legt sie zwei Eier. Ein Ei hat 6 Leben. Nach 2 Runden schlüpft daraus Spinnenbrut.
+  - Statt eines Netzes spinnt sie einen Helden in einen Kokon. Der Kokon ist ein eigenes Ziel mit 12 Leben. Der Held kann nur „Im Kokon zappeln“, bis die anderen den Kokon zerschlagen.
+  - Zu zweit bleibt es beim Netz, sonst verloren Zweiergruppen dort dreimal so oft.
+  - Eier und Kokons geben keine Erfahrung, zählen nicht für Rachsucht und zerfallen, wenn kein echter Gegner mehr steht.
+- **Atem und Lava (Glutdrache):**
+  - Der Flammenatem war seit Schritt 3 schon angekündigt und abbrechbar. Daran hat sich nichts geändert.
+  - Neu ist die Lava in Phase 3: Am Rundenende verlieren alle Helden 2 Leben, jede Runde 1 mehr. Rüstung zählt nicht, Schutz schon.
+  - Der Lavaschaden wächst nicht mit der Ebene. Mit dem Ebenen-Schaden (×2,3) starben dreimal so viele Gruppen am Drachen.
+- **Endgegner haben weniger Leben, damit die neuen Gefahren die Siegquote nicht einbrechen lassen:**
+  - Ebene 1: ×0,7 statt ×0,8.
+  - Ab Ebene 2: ×0,45 statt ×0,5.
+  - Zu fünft: zusätzlich ×0,9.
+- **Bots:** Sie schützen das Ziel des Vernichtungsschlags (oder heilen es voll) und zerschlagen Kokons und Eier mit dem einfachen Angriff.
+
+Simulation (Abenteurer, 3 Ebenen, kluge Bots, je 40 Partien pro Gruppe):
+
+| Gruppe | Siege vorher → jetzt | Endgegner mit K.o. (Ebene 1 / 2 / 3) | Runden Endgegner (Ebene 1 / 2 / 3) |
+|---|---|---|---|
+| 2 Helden | 89 → 76 % | 13 / 15 / 17 % | 9 / 9 / 7 |
+| 3 Helden | 85 → 79 % | 22 / 18 / 16 % | 12 / 12 / 10 |
+| 4 Helden | 66 → 61 % | 38 / 34 / 33 % | 11 / 12 / 10 |
+| 5 Helden | 85 → 73 % | 47 / 65 / 56 % | 9 / 9 / 8 |
+| 6 Helden | 78 → 78 % | 40 / 68 / 84 % | 8 / 10 / 8 |
+
+- Zu dritt machen 59 % der Vernichtungsschläge Schaden und 9 % schicken jemanden zu Boden. Zu fünft sind es 71 % und 34 %, denn dort trifft er zwei Helden.
+- Eure Runde (5 Helden, Lang, Held, Wild + Rachsucht + Verstärkung): Siege 16 → 18 %. Bosskämpfe mit K.o.: Ebene 1 58 → 64 %, Ebene 2 66 → 75 %, Ebene 3 65 → 79 %. Die Bosskämpfe sind kürzer, in Ebene 2 zum Beispiel 14,5 → 11,4 Runden.
+- Offen: Zu zweit und zu fünft verlieren die Bots jetzt öfter, vor allem in Ebene 1. Kleine Gruppen haben dort kaum Schutzfähigkeiten. Echte Spieler, die sich absprechen, schützen vermutlich besser als die Bots.

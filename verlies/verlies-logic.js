@@ -125,6 +125,7 @@
   ].forEach(([id, name, ziel, cd, text, meister]) => { NEUE[id] = Object.assign({ id, name, ziel, text }, cd ? { cd } : {}, meister ? { meister: true } : {}); });
   const TRANK = { id: "trank", name: "Heiltrank", ziel: null, text: "+14 Leben für dich" };
   const BEFREIEN = { id: "befreien", name: "Aus dem Netz befreien", ziel: null, text: "Du hängst im Netz fest und setzt diese Runde aus." };
+  const ZAPPELN = { id: "zappeln", name: "Im Kokon zappeln", ziel: null, text: "Du bist eingesponnen und kommst allein nicht frei. Die anderen müssen den Kokon zerschlagen." };
 
   // ---------- Talentbaum ----------
   // Je Rolle 3 Äste mit 6 Knoten. Ein Knoten braucht den darunter im selben Ast. Ganz oben die Meisterfähigkeit:
@@ -459,6 +460,7 @@
     return t.length ? " · " + t.join(" · ") : "";
   }
   function aktionenVon(h) {
+    if (h.kokon) return [ZAPPELN];
     if (h.netz > 0) return [BEFREIEN];
     const l = AKTIONEN[h.rolle].slice();
     for (const t of talenteVon(h)) { const id = t.e.neu || t.e.meister; if (id) l.push(NEUE[id]); }
@@ -494,7 +496,7 @@
     skelett: { name: "Skelett", hp: 30, dmg: [5, 7], ep: 15, untot: true },
     bogenschuetze: { name: "Skelett-Bogenschütze", hp: 22, dmg: [4, 6], ep: 14, untot: true, hinten: true },
     ghul: { name: "Ghul", hp: 40, dmg: [6, 8], ep: 22, untot: true, gift: true },
-    koenig: { name: "Der Knochenkönig", hp: 290, dmg: [10, 14], boss: true, ep: 0, untot: true },
+    koenig: { name: "Der Knochenkönig", hp: 290, dmg: [10, 14], boss: true, ep: 0, untot: true, seelenernte: true },
     // Elite: stark, mit Begleiter, trägt einen Schlüssel
     kerkerwaerter: { name: "Kerkerwärter", hp: 72, dmg: [7, 9], ep: 40, elite: true, panzer: 3, begleiter: "langfinger",
       wucht: { n: 5, name: "Kettenschlag", text: "Der Kerkerwärter schwingt seine Kette durch den ganzen Raum!" } },
@@ -509,7 +511,10 @@
     hoehlentroll: { name: "Höhlentroll", hp: 80, dmg: [7, 9], ep: 40, elite: true, regeneration: 6, begleiter: "pilzling",
       wucht: { n: 5, name: "Keulenschwung", text: "Der Höhlentroll schwingt seine Keule durch die ganze Höhle!" } },
     spinnenmutter: { name: "Brutmutter", hp: 56, dmg: [4, 6], gift: true, ep: 38, elite: true, beschwoerer: "brut", begleiter: "spinne" },
-    koenigin: { name: "Die Spinnenkönigin", hp: 320, dmg: [9, 12], boss: true, ep: 80, gift: true, beschwoerer: "brut", ruf: 2 },
+    koenigin: { name: "Die Spinnenkönigin", hp: 320, dmg: [9, 12], boss: true, ep: 80, gift: true, beschwoerer: "ei", ruf: 2, eier: true, kokon: true },
+    // Was die Königin hinterlässt: eigene, schwache Ziele ohne Erfahrung (feste Leben, unabhängig von Ebene und Gruppe)
+    ei: { name: "Spinnenei", hp: 6, dmg: [0, 0], ep: 0, objekt: true, ei: true },
+    huelle: { name: "Kokon", hp: 12, dmg: [0, 0], ep: 0, objekt: true, huelle: true },
     // Glutschlund (Ebene 3)
     kobold: { name: "Feuerkobold", hp: 16, dmg: [2, 4], ep: 11, schnell: true },
     schnecke: { name: "Lavaschnecke", hp: 30, dmg: [3, 5], ep: 13, panzer: 3 },
@@ -522,10 +527,12 @@
     feuerelementar: { name: "Feuerelementar", hp: 60, dmg: [6, 8], ep: 38, elite: true, brand: true, begleiter: "kobold",
       explosiv: { n: 8, brand: true, text: "Das Feuerelementar zerbirst in einer Feuerwolke!" },
       wucht: { n: 4, name: "Feuerwelle", text: "Eine Welle aus Feuer rollt über euch hinweg!", brand: true } },
-    drache: { name: "Der Glutdrache", hp: 270, dmg: [10, 13], boss: true, ep: 0, brand: true }
+    drache: { name: "Der Glutdrache", hp: 270, dmg: [10, 13], boss: true, ep: 0, brand: true, lava: true }
   };
   // Endgegner und Elite sind standhaft: Erstarren verschiebt ihren Spezialzug nur um eine Runde
   for (const a in GEGNER) if (GEGNER[a].boss || GEGNER[a].elite) GEGNER[a].standhaft = true;
+  // Endgegner kündigen alle paar Runden einen Vernichtungsschlag an
+  for (const a in GEGNER) if (GEGNER[a].boss) GEGNER[a].vernichtung = true;
   // kurze Beschreibung der Eigenschaften (für Plaketten und die Erklärung unter der Bühne)
   const EIGENSCHAFTEN = {
     untot: ["untot", "Licht trifft doppelt, Gift wirkt nur halb."],
@@ -548,6 +555,13 @@
     wucht: ["Flächenangriff", "Trifft alle paar Runden alle Helden (wird angekündigt)."],
     standhaft: ["standhaft", "Erstarren verhindert nur den Angriff. Ein angekündigter Spezialzug kommt dann eine Runde später. Große Züge lassen sich mit genug Schaden in derselben Runde abbrechen."],
     durchschlag: ["Durchschlag", "Seine Schläge durchdringen jede Rüstung."],
+    vernichtung: ["Vernichtungsschlag", "Kündigt alle paar Runden einen Schlag gegen einen Helden an (ab 5 Helden gegen zwei), der fast alle seine Leben kostet. Rüstung und Erstarren helfen nicht. Schützt ihn mit Schildwall, Spott, Obhut, Beschützen, Arkanem Schild oder Verstecken, oder heilt ihn vorher voll."],
+    seelenernte: ["Seelenernte", "Heilt sich jede Runde um 3 %, solange ein Held bewusstlos ist. Holt Bewusstlose schnell zurück!"],
+    eier: ["Eier", "Legt Eier, statt Brut zu rufen. Ein Ei hält nur einen Treffer aus, nach 2 Runden schlüpft Spinnenbrut."],
+    kokon: ["Kokon", "Spinnt einen Helden in einen Kokon. Er kann sich nicht selbst befreien: Die anderen müssen den Kokon zerschlagen. Zu zweit ist es nur ein Netz."],
+    lava: ["Lava", "In der letzten Phase steigt die Lava: Jede Runde verlieren alle Helden Leben, jede Runde mehr. Rüstung hilft nicht."],
+    ei: ["Ei", "Schlüpft nach 2 Runden als Spinnenbrut. Ein Treffer reicht."],
+    huelle: ["Kokon", "Hält einen Helden gefangen. Zerschlagt ihn, dann ist er frei."],
     gift: ["Gift", "Kann Helden vergiften."]
   };
   const eigenschaften = art => Object.keys(EIGENSCHAFTEN).filter(e => GEGNER[art] && GEGNER[art][e]);
@@ -610,21 +624,25 @@
   const schwere = S => SCHWERE[S.schwere || 2];
   // Gruppengröße: zu zweit weniger, ab vier Helden mehr Gegner-Leben und -Schaden
   // Ab vier Helden: lieber mehr Gegner (zusatz) und Endgegner mit mehr Zügen (zuege) als dickere Gegner
-  const GRUPPE = { 1: { hp: 0.4, dmg: 0.7 }, 2: { hp: 0.55, dmg: 0.8, boss: 0.85 }, 3: { hp: 1, dmg: 1 },
-    4: { hp: 1.3, dmg: 1.15, zusatz: 1, zuege: 2 }, 5: { hp: 1.5, dmg: 1.4, zusatz: 1, zuege: 2 }, 6: { hp: 1.7, dmg: 1.45, zusatz: 2, zuege: 3 } };
+  const GRUPPE = { 1: { hp: 0.4, dmg: 0.7 }, 2: { hp: 0.55, dmg: 0.8, boss: 0.85, vern: 0.8 }, 3: { hp: 1, dmg: 1 },
+    4: { hp: 1.3, dmg: 1.15, zusatz: 1, zuege: 2 }, 5: { hp: 1.5, dmg: 1.4, zusatz: 1, zuege: 2, boss: 0.9 }, 6: { hp: 1.7, dmg: 1.45, zusatz: 2, zuege: 3 } };
   const gruppe = S => GRUPPE[(S.teilnehmer || []).length] || GRUPPE[3];
   // höchstens so viele Gegner gleichzeitig auf der Bühne
   const maxGegner = S => (S.teilnehmer || []).length >= 4 ? 5 : 4;
   // Wut-Uhr: ab Runde 12 machen Endgegner jede Runde 10 % mehr Schaden
   const WUT_AB = 12, WUT_PRO = 0.1;
   // Endgegner-Leben: in Ebene 1 ×0,8, ab Ebene 2 ×0,5; Schwierigkeit erhöht ihre Leben nur halb so stark wie bei anderen Gegnern
-  const BOSS_E1 = 0.8, BOSS_TIEF = 0.5;
+  const BOSS_E1 = 0.7, BOSS_TIEF = 0.45;
   // Spezialzüge kommen alle 2 bis 4 Runden (erster nach 1 bis 3 Runden)
   const TAKT = [2, 4], TAKT_START = [1, 3];
   // Große Züge von Endgegnern und Elite (Verstärkung, Flächenangriff) brechen ab, wenn sie in der Runde so viel Schaden nehmen (Anteil ihrer Höchstleben)
   const SCHWELLE_BOSS = 0.1, SCHWELLE_ELITE = 0.2;
   // Wunden: wer in einem Kampf bewusstlos war, verliert bis zur nächsten Rast 10 % Höchstleben (höchstens dreimal)
   const WUNDE = 0.1, WUNDEN_MAX = 3;
+  // Vernichtungsschlag: erster in Runde 4 oder 5, danach alle 4 bis 5 Runden; trifft 80 bis 95 % der Höchstleben (Ebene 1: 50 bis 65 %), ab 5 Helden zwei Ziele
+  const VERNICHTUNG_START = [3, 4], VERNICHTUNG_TAKT = [4, 5], VERNICHTUNG = [80, 95], VERNICHTUNG_E1 = [50, 65];
+  // Knochenkönig: +3 % Leben je Runde, solange ein Held bewusstlos ist; Spinnenei: schlüpft nach 2 Runden; Lava: 2 Schaden, jede Runde 1 mehr
+  const SEELENERNTE = 0.03, BRUTZEIT = 2, LAVA = 2;
   const wut = (S, g) => GEGNER[g.art].boss && S.kampf && S.kampf.runde >= WUT_AB ? 1 + WUT_PRO * (S.kampf.runde - WUT_AB + 1) : 1;
   // Flüche: vom Spielleiter in der Lobby gewählt, beliebig kombinierbar, betreffen nur die Gegner.
   // stufe: 1 leicht, 2 mittel, 3 stark (Simulation, Dreiergruppe Abenteurer: ohne Fluch 88 % Siege)
@@ -646,9 +664,9 @@
     // zu zweit schwächer; je tiefer, desto zäher (Helden steigen ja auch auf)
     const g = GEGNER[art], f = gruppe(S).hp * (g.boss ? gruppe(S).boss || 1 : 1) * (g.boss ? 1 + (schwere(S).hp - 1) / 2 : schwere(S).hp) * (g.boss ? 1 : 1 + 0.11 * Math.max(0, S.raumNr - 1)) * (1 + (S.karte ? S.karte.fluch || 0 : 0)) * (fluch(S, "zaeh") ? 1.25 : 1);
     // Endgegner ab Ebene 2: weniger Leben als die Ebene sonst vorsieht, damit der Kampf nicht ewig dauert (Wut-Uhr macht ihn gefährlich)
-    const hp = Math.max(4, Math.round(g.hp * f * staerke(S).hp * (g.boss ? ((S.ebene || 1) >= 2 ? BOSS_TIEF : BOSS_E1) : 1)));
+    const hp = g.objekt ? g.hp : Math.max(4, Math.round(g.hp * f * staerke(S).hp * (g.boss ? ((S.ebene || 1) >= 2 ? BOSS_TIEF : BOSS_E1) : 1)));
     S.gegnerNr = (S.gegnerNr || 0) + 1;
-    return Object.assign({ id: "g" + S.gegnerNr, art, name: g.name, hp, max: hp, gift: 0, giftR: 0, starr: 0, markiert: 0 }, g.elite ? { elite: true } : {});
+    return Object.assign({ id: "g" + S.gegnerNr, art, name: g.name, hp, max: hp, gift: 0, giftR: 0, starr: 0, markiert: 0 }, g.elite ? { elite: true } : {}, g.ei ? { brut: BRUTZEIT } : {});
   }
 
   // ---------- Räume ----------
@@ -993,14 +1011,19 @@
   // Ausgeführt wird später: Schildwall/Unerschütterlich ziehen den Angriff auf sich, Versteckte werden nicht gefunden.
   function planeGegner(S) {
     const k = S.kampf, a = {}, helden = lebend(S), frei = () => gegnerLebend(S).length < maxGegner(S) && (k.gerufen || 0) < MAX_GERUFEN;
-    const held = () => { const l = helden.filter(p => !S.helden[p].netz); return l.length ? eins(S, l) : helden.length ? eins(S, helden) : null; };
+    const held = () => { const l = helden.filter(p => !S.helden[p].netz && !S.helden[p].kokon); return l.length ? eins(S, l) : helden.length ? eins(S, helden) : null; };
     const angriff = g => Object.assign({ a: "angriff", ziel: held() }, istSchnell(S, g) ? { doppelt: true } : {});
     // Spezialzug fällig? (alle 2 bis 4 Runden, je Gegner eigener Takt)
+    const vfaellig = g => { if (g.vtakt == null) g.vtakt = k.runde + wurf(S, ...VERNICHTUNG_START); if (k.runde < g.vtakt) return false; g.vtakt = k.runde + wurf(S, ...VERNICHTUNG_TAKT); return true; };
+    const vziele = () => { const l = helden.slice(), z = []; for (let i = 0; i < (S.teilnehmer.length >= 5 ? 2 : 1) && l.length; i++) z.push(l.splice(l.indexOf(eins(S, l)), 1)[0]); return z; };
     const faellig = g => { if (g.takt == null) g.takt = k.runde + wurf(S, ...TAKT_START); if (k.runde < g.takt) return false; g.takt = k.runde + wurf(S, ...TAKT); return true; };
     // große Züge von Endgegnern und Elite lassen sich mit Schaden abbrechen
     const gross = (g, x) => { const art = GEGNER[g.art]; if ((x.a === "ruf" || x.a === "beben") && (art.boss || art.elite)) x.schwelle = Math.max(1, Math.round(g.max * (art.boss ? SCHWELLE_BOSS : SCHWELLE_ELITE))); return x; };
     for (const g of gegnerLebend(S)) {
       const art = GEGNER[g.art];
+      // Eier brüten, Kokons halten ihren Helden fest
+      if (art.ei) { a[g.id] = { a: "brueten", n: g.brut }; continue; }
+      if (art.huelle) { a[g.id] = { a: "halten", ziel: g.haelt }; continue; }
       // erstarrt gewesen (standhaft): der Spezialzug kommt jetzt
       if (g.verschoben) {
         const x = Object.assign({}, g.verschoben); delete g.verschoben;
@@ -1012,9 +1035,10 @@
       }
       if (art.boss) {
         const diener = gegnerLebend(S).filter(x => x !== g).length;
-        if (faellig(g)) {
+        if (vfaellig(g) && helden.length) a[g.id] = { a: "vernichtung", ziele: vziele() };
+        else if (faellig(g)) {
           if (g.art === "koenig") a[g.id] = k.bossPhase >= 2 && diener === 0 && frei() ? { a: "ruf" } : { a: "beben" };
-          else if (g.art === "koenigin") { a[g.id] = g.letzter !== "ruf" && frei() ? { a: "ruf" } : { a: "netz", ziel: held() }; g.letzter = a[g.id].a; }
+          else if (g.art === "koenigin") { a[g.id] = g.letzter !== "ruf" && frei() ? { a: "ruf" } : Object.assign({ a: "netz", ziel: held() }, S.teilnehmer.length >= 3 ? { kokon: true } : {}); g.letzter = a[g.id].a; }
           else a[g.id] = { a: "beben", name: k.bossPhase >= 2 ? "Schwanzhieb" : "Flammenatem" };
           gross(g, a[g.id]);
         }
@@ -1043,7 +1067,7 @@
 
   // Erstarren: wer gerade aufgetaut ist, erstarrt diese Runde nicht erneut
   function erstarren(S, g, n, log, text) {
-    if (!g || g.hp <= 0) return false;
+    if (!g || g.hp <= 0 || GEGNER[g.art].objekt) return false;
     if (g.taut > 0) { if (log) log.push(`${g.name} taut gerade auf und lässt sich nicht erneut erstarren.`); return false; }
     g.starr = Math.max(g.starr || 0, n);
     if (log && text) log.push(text);
@@ -1060,7 +1084,7 @@
     S.gegner = gruppe.map(a => gegnerErzeugen(S, a));
     S.kampf = { runde: 1, wahl: {}, bossPhase: 1, epTot: 0, nebel: false, absicht: {}, rache: 0, koVor: Object.fromEntries(S.teilnehmer.map(p => [p, S.helden[p].stats.umgefallen])) };
     for (const p of S.teilnehmer) { const h = S.helden[p]; for (const id in h.cd) if (NEUE[id] && NEUE[id].meister) delete h.cd[id]; }
-    for (const p of S.teilnehmer) Object.assign(S.helden[p], { schild: false, versteckt: false, lauer: false, segen: 0, gift: 0, giftR: 0, immun: false, fels: false, beschuetzt: null, netz: 0 });
+    for (const p of S.teilnehmer) Object.assign(S.helden[p], { schild: false, versteckt: false, lauer: false, segen: 0, gift: 0, giftR: 0, immun: false, fels: false, beschuetzt: null, netz: 0, kokon: null });
     S.entscheidung = null;
     S.log = [];
     planeGegner(S);
@@ -1080,6 +1104,7 @@
   const HEILEND = { heilen: 1, handauflegen: 1, kraeuter: 1 };
   function standardWahl(S, pid) {
     const h = S.helden[pid], ziel = gegnerLebend(S).sort((a, b) => a.hp - b.hp)[0];
+    if (h.kokon) return { a: "zappeln", ziel: null };
     if (h.netz > 0) return { a: "befreien", ziel: null };
     const heil = aktionenVon(h).find(a => HEILEND[a.id] && !(h.cd[a.id] > 0));
     if (heil) {
@@ -1115,6 +1140,9 @@
   function zustand(S, g) {
     const art = GEGNER[g.art], z = [];
     if (knochenschild(S, g)) z.push("Knochenschild");
+    if (art.seelenernte && S.teilnehmer.some(q => S.helden[q].hp <= 0 && !S.helden[q].gefallen)) z.push("Seelenernte");
+    if (art.lava && S.kampf && S.kampf.bossPhase >= 3) z.push("Lava");
+    if (art.ei) z.push(g.brut <= 1 ? "schlüpft gleich" : `schlüpft in ${g.brut} Runden`);
     if (art.boss && istFliegend(S, g)) z.push("fliegt");
     if (art.boss && istSchnell(S, g)) z.push("Wut");
     if (wut(S, g) > 1) z.push(`Zorn +${Math.round((wut(S, g) - 1) * 100)} %`);
@@ -1140,7 +1168,7 @@
     const h = S.helden[pid], e = Math.min(d, g.hp);
     g.hp -= e; h.stats.schaden += e;
     // Fluch Dornen: Nahkampf kostet einmal pro Zug selbst Leben, aber nie den letzten
-    if (fluch(S, "dornen") && e > 0 && !dornenSchon && (angriffsart === "nah" || angriffsart === "stich") && h.hp > 1) {
+    if (fluch(S, "dornen") && e > 0 && !dornenSchon && !GEGNER[g.art].objekt && (angriffsart === "nah" || angriffsart === "stich") && h.hp > 1) {
       dornenSchon = true;
       const x = Math.min(h.hp - 1, Math.round(staerke(S).dmg));
       if (x > 0) { h.hp -= x; log.push(`${heldName(S, pid)} sticht sich an den Dornen von ${g.name}: −${x} Leben.`); }
@@ -1234,6 +1262,7 @@
       beginn();
       switch (w.a) {
         case "befreien": h.netz = 0; log.push(`${n} reißt sich aus dem Netz los.`); break;
+        case "zappeln": log.push(`${n} zappelt im Kokon.`); break;
         case "schild": h.schild = true; log.push(`${n} hebt den Schild und ruft die Gegner zu sich.`); break;
         case "fels": h.fels = true; h.immun = true; log.push(`${n} steht wie ein Fels. Alle Gegner wenden sich gegen ihn.`); break;
         case "verstecken": h.versteckt = true; h.lauer = true; log.push(`${n} verschwindet in den Schatten.`); break;
@@ -1434,7 +1463,7 @@
     };
     beuteZurueck();
     // Besiegte verlassen die Bühne, wenn Verstärkung kommt (ihre Erfahrung bleibt)
-    const racheZaehlen = () => { for (const x of S.gegner) if (x.hp <= 0 && !x.geflohen && !x.gezaehlt) { x.gezaehlt = true; k.rache = (k.rache || 0) + 1; } };
+    const racheZaehlen = () => { for (const x of S.gegner) if (x.hp <= 0 && !x.geflohen && !x.gezaehlt && !GEGNER[x.art].objekt) { x.gezaehlt = true; k.rache = (k.rache || 0) + 1; } };
     const aufraeumen = () => {
       racheZaehlen();
       for (const x of S.gegner) if (x.hp <= 0 && !x.gerufen && !x.geflohen) k.epTot = (k.epTot || 0) + (GEGNER[x.art].ep || 0);
@@ -1446,6 +1475,14 @@
       const neu = [];
       for (let i = 0; i < anzahl && gegnerLebend(S).length < maxGegner(S) && (k.gerufen || 0) < MAX_GERUFEN; i++) { const g = Object.assign(gegnerErzeugen(S, art), { gerufen: true }); S.gegner.push(g); neu.push(g); k.gerufen = (k.gerufen || 0) + 1; }
       return neu.map(kurz);
+    };
+    // Wessen Kokon zerschlagen ist, der ist frei
+    const kokonsPruefen = () => {
+      for (const p of S.teilnehmer) {
+        const h = S.helden[p];
+        if (!h.kokon || S.gegner.some(x => x.id === h.kokon && x.hp > 0)) continue;
+        beginn(); h.kokon = null; log.push(`${heldName(S, p)} ist aus dem Kokon frei.`); ende({ von: p, a: "frei" });
+      }
     };
     // Explosive Gegner reißen beim Tod alle mit
     const explosionen = () => {
@@ -1461,6 +1498,7 @@
       }
     };
     explosionen();
+    kokonsPruefen();
     // Schleim teilt sich einmal, sobald er verletzt ist
     for (const g of gegnerLebend(S)) {
       if (!GEGNER[g.art].teilt || g.geteilt || g.hp >= g.max || g.hp < 8 || gegnerLebend(S).length >= maxGegner(S)) continue;
@@ -1483,13 +1521,13 @@
     if (boss && boss.art === "drache" && k.bossPhase < 2 && q <= 0.5)
       phase(2, "Der Glutdrache stürzt mit zerfetzten Flügeln zu Boden! Jetzt treffen ihn auch Schwerter voll, aber sein Schwanz peitscht.");
     if (boss && boss.art === "drache" && k.bossPhase < 3 && q <= 0.25)
-      phase(3, "Der Glutdrache tobt vor Wut: Er greift jetzt zweimal pro Runde an!");
+      phase(3, "Der Glutdrache tobt vor Wut: Er greift jetzt zweimal pro Runde an! Und die Lava steigt: Ab jetzt verbrennt sie euch jede Runde, und jede Runde mehr.");
     // 5. Gegner handeln (nach ihrer angekündigten Absicht)
     const RUFTEXT = {
       koenig: "Der Knochenkönig hebt die Hand: Ein neues Skelett kriecht aus dem Boden.",
       totenbeschwoerer: "Der Totenbeschwörer murmelt dunkle Worte: Ein Skelett kriecht aus dem Boden!",
       spinnenmutter: "Die Brutmutter zirpt: Spinnenbrut krabbelt aus allen Ritzen!",
-      koenigin: "Die Spinnenkönigin legt Eier. Sofort schlüpft Spinnenbrut!"
+      koenigin: "Die Spinnenkönigin legt Eier! Zerschlagt sie, bevor in 2 Runden die Brut schlüpft."
     };
     const SPEZIALNAME = x => x.a === "ruf" ? "Die Verstärkung" : x.a === "netz" ? "Das Netz" : `${x.name ? "„" + x.name + "“" : "Der Flächenangriff"}`;
     const bossWucht = g => g.art === "koenig" ? { n: 5, text: "Der Knochenkönig stampft auf: Der Boden bebt!" }
@@ -1521,9 +1559,46 @@
       }
       return { a: art.gift ? "biss" : "angriff", ziel: p };
     };
+    // Vernichtungsschlag: fast alle Leben, geht durch die Rüstung; Schildwall, Spott, Beschützen, Obhut, Arkaner Schild und Verstecken helfen
+    const VTEXT = {
+      koenig: "Der Knochenkönig hebt sein Schwert zum Vernichtungsschlag!",
+      koenigin: "Die Spinnenkönigin bäumt sich auf und stößt mit dem Giftstachel zu!",
+      drache: "Der Glutdrache reißt das Maul auf und schnappt zu!"
+    };
+    const vernichtung = (g, plan) => {
+      log.push(VTEXT[g.art] || `${g.name} holt zum Vernichtungsschlag aus!`);
+      const getroffen = [];
+      for (const z of plan.ziele || []) {
+        if (!lebend(S).includes(z)) { log.push(`${heldName(S, z)} liegt schon am Boden.`); continue; }
+        const zieher = lebend(S).filter(p => S.helden[p].schild || S.helden[p].fels);
+        const spott = g.spott && lebend(S).includes(g.spott) && !S.helden[g.spott].versteckt ? g.spott : null;
+        let p = spott || (zieher.length ? eins(S, zieher) : z), halb = false;
+        if (p !== z) log.push(`${heldName(S, p)} wirft sich vor ${heldName(S, z)}.`);
+        else { const b = S.helden[z].beschuetzt; if (b && S.helden[b].hp > 0) { p = b; halb = true; log.push(`${heldName(S, b)} fängt den Schlag für ${heldName(S, z)} ab und nimmt nur die Hälfte.`); } }
+        if (S.helden[p].versteckt) { log.push(`${g.name} findet ${heldName(S, p)} nicht.`); continue; }
+        const V = (S.ebene || 1) === 1 ? VERNICHTUNG_E1 : VERNICHTUNG;
+        let n = Math.round(S.helden[p].max * wurf(S, V[0], V[1]) / 100 * (gruppe(S).vern || 1));
+        if (halb) n = Math.ceil(n / 2);
+        treffer(S, p, n, log, g.name, g, true);
+        getroffen.push(p);
+      }
+      return { a: "vernichtung", ziel: getroffen[0] || (plan.ziele || [])[0] || null };
+    };
     const gegnerZug = g => {
       const art = GEGNER[g.art], plan = (k.absicht || {})[g.id] || {};
       const spezial = ["ruf", "beben", "netz"].includes(plan.a);
+      // Eier schlüpfen nach ihrer Brutzeit, Kokons tun nichts
+      if (art.ei) {
+        g.brut -= 1;
+        if (g.brut > 0) { log.push(`Im ${g.name} regt sich etwas.`); return { a: "brueten" }; }
+        g.hp = 0; g.geflohen = true;
+        const b = Object.assign(gegnerErzeugen(S, "brut"), { gerufen: true }); S.gegner.push(b);
+        log.push("Ein Spinnenei platzt: Spinnenbrut krabbelt heraus!");
+        return { a: "ruf", neu: [kurz(b)] };
+      }
+      if (art.huelle) return { a: "halten" };
+      // Erstarren hilft nicht gegen den Vernichtungsschlag
+      if (plan.a === "vernichtung") return vernichtung(g, plan);
       if (g.starr > 0) {
         if (art.standhaft && spezial) {
           g.verschoben = { a: plan.a, name: plan.name, ziel: plan.ziel };
@@ -1552,6 +1627,14 @@
         const p = plan.ziel && ziele.includes(plan.ziel) ? plan.ziel : ziele.length ? eins(S, ziele) : null;
         if (!p) { log.push(`${g.name} findet niemanden für ihr Netz.`); return { a: "keinziel" }; }
         if (S.helden[p].immun) { log.push(`Das Netz von ${g.name} prallt an ${heldName(S, p)} ab.`); return { a: "netz", ziel: p }; }
+        // Spinnenkönigin: Kokon, aus dem sich der Held nicht selbst befreien kann
+        if (plan.kokon && !S.helden[p].kokon && gegnerLebend(S).length < maxGegner(S)) {
+          aufraeumen();
+          const c = Object.assign(gegnerErzeugen(S, "huelle"), { gerufen: true, haelt: p });
+          S.gegner.push(c); S.helden[p].kokon = c.id; S.helden[p].netz = 0;
+          log.push(`${g.name} spinnt ${heldName(S, p)} in einen Kokon! Allein kommt ${heldName(S, p)} nicht frei: Zerschlagt den Kokon.`);
+          return { a: "netz", ziel: p, neu: [kurz(c)] };
+        }
         S.helden[p].netz = 1;
         log.push(`${g.name} spinnt ${heldName(S, p)} ein: nächste Runde nur „Befreien“.`);
         return { a: "netz", ziel: p };
@@ -1586,7 +1669,7 @@
       if (GEGNER[g.art].boss && k.runde === WUT_AB) log.push(`${g.name} gerät in Wut: Ab jetzt wird jeder Schlag härter!`);
       beginn(); const z = gegnerZug(g); ende(Object.assign({ von: g.id }, z));
       // Endgegner gegen große Gruppen: weitere Angriffe auf andere Helden
-      const extra = GEGNER[g.art].boss && z.a !== "starr" ? (gruppe(S).zuege || 1) - 1 : 0;
+      const extra = GEGNER[g.art].boss && z.a !== "starr" && !(g.starr > 0) ? (gruppe(S).zuege || 1) - 1 : 0;
       for (let i = 0; i < extra && g.hp > 0 && lebend(S).length; i++) {
         const schon = ev.filter(e => e.von === g.id).map(e => e.ziel), frei = lebend(S).filter(q => !schon.includes(q));
         beginn(); const z2 = hieb(g, { ziel: frei.length ? eins(S, frei) : null }); ende(Object.assign({ von: g.id }, z2));
@@ -1594,10 +1677,28 @@
     }
     beuteZurueck();
     explosionen();
+    kokonsPruefen();
     // 6. Gift auf Helden, Rundenende
     for (const p of lebend(S)) {
       const h = S.helden[p];
       if (h.giftR > 0) { beginn(); const n = Math.min(h.gift, h.hp); h.hp -= n; h.giftR -= 1; log.push(`${h.giftArt || "Gift"}: ${heldName(S, p)} −${n} Leben${h.hp <= 0 ? " und bricht zusammen!" : "."}`); if (h.hp <= 0) h.stats.umgefallen += 1; ende({ von: p, a: "giftTick" }); }
+    }
+    // Knochenkönig: Seelenernte an Bewusstlosen
+    const sk = gegnerLebend(S).find(g => GEGNER[g.art].seelenernte), weg = S.teilnehmer.filter(q => S.helden[q].hp <= 0 && !S.helden[q].gefallen);
+    if (sk && weg.length && lebend(S).length && sk.hp < sk.max) {
+      beginn();
+      const x = Math.min(sk.max - sk.hp, Math.round(sk.max * SEELENERNTE)); sk.hp += x;
+      log.push(`${sk.name} saugt an der Seele von ${weg.map(q => heldName(S, q)).join(" und ")}: +${x} Leben. Holt ${weg.length > 1 ? "sie" : heldName(S, weg[0])} schnell zurück!`);
+      ende({ von: sk.id, a: "regen" });
+    }
+    // Glutdrache, letzte Phase: Die Lava steigt (Rüstung hilft nicht, Schutz schon)
+    const lv = gegnerLebend(S).find(g => GEGNER[g.art].lava);
+    if (lv && k.bossPhase >= 3 && lebend(S).length) {
+      beginn();
+      const n = Math.round((LAVA + (k.lava || 0)) * schwere(S).dmg); k.lava = (k.lava || 0) + 1;
+      log.push("Die Lava steigt und leckt an euren Füßen!");
+      for (const p of lebend(S)) treffer(S, p, n, log, null, null, true);
+      ende({ von: lv.id, a: "lava" });
     }
     for (const p of S.teilnehmer) {
       const h = S.helden[p];
@@ -1632,16 +1733,24 @@
     k.wahl = {};
     k.runde += 1;
 
+    // Ist kein echter Gegner mehr übrig, zerfallen Eier und Kokons
+    const reste = S.gegner.filter(g => g.hp > 0);
+    if (reste.length && !reste.some(g => !GEGNER[g.art].objekt)) {
+      beginn(); for (const g of reste) { g.hp = 0; g.geflohen = true; }
+      log.push(reste.some(g => GEGNER[g.art].huelle) ? "Ohne die Königin zerfallen die Eier und Kokons." : "Ohne die Königin zerfallen die Eier.");
+      ende({ von: reste[0].id, a: "zerfall" });
+    }
+    for (const p of S.teilnehmer) if (S.helden[p].kokon && !S.gegner.some(x => x.id === S.helden[p].kokon && x.hp > 0)) S.helden[p].kokon = null;
     if (gegnerLebend(S).length && lebend(S).length) planeGegner(S);
     if (!gegnerLebend(S).length) kampfGewonnen(S);
     else if (!lebend(S).length) { S.phase = "ende"; S.ergebnis = "niederlage"; S.seite = { bild: "grab", titel: "Ihr seid gefallen", text: [ebeneVon(S).niederlage] }; S.kampf = null; }
   }
   function setzeGift(h, n, runden, brand) { h.gift = n; h.giftR = runden; h.giftArt = brand ? "Brand" : "Gift"; }
-  function treffer(S, p, n, log, von, g) {
+  function treffer(S, p, n, log, von, g, ohneRuestung) {
     const h = S.helden[p], wer = heldName(S, p);
     if (h.immun) { log.push(von ? `${von} trifft ${wer}, doch der Schlag prallt ab.` : `${wer} bleibt unversehrt.`); return; }
     // Rüstung halbiert einen Treffer höchstens; Durchschlag geht durch jede Rüstung
-    const r = g && GEGNER[g.art].durchschlag ? 0 : h.ruestung + passiv(h, "ruestung") + stufeBonus(h).ruestung + gruppenPassiv(S, "schutzaura", p);
+    const r = ohneRuestung || (g && GEGNER[g.art].durchschlag) ? 0 : h.ruestung + passiv(h, "ruestung") + stufeBonus(h).ruestung + gruppenPassiv(S, "schutzaura", p);
     n = Math.max(1, n - Math.min(r, Math.floor(n / 2)));
     if (h.schild) n = Math.ceil(n / 2);
     if (h.hp < h.max / 2) n = Math.max(1, n - passiv(h, "notpanzer"));
@@ -1688,7 +1797,7 @@
     const ep = (S.kampf.epTot || 0) + S.gegner.filter(g => !g.gerufen && !g.geflohen).reduce((a, g) => a + (GEGNER[g.art].ep || 0), 0);
     S.kampf = null;
     for (const p of S.teilnehmer) {
-      const h = S.helden[p]; h.gift = 0; h.giftR = 0; h.segen = 0; h.lauer = false; h.netz = 0;
+      const h = S.helden[p]; h.gift = 0; h.giftR = 0; h.segen = 0; h.lauer = false; h.netz = 0; h.kokon = null;
       if (h.hp <= 0 && !h.gefallen) {
         h.hp = S.schwere === 1 ? Math.ceil(h.max / 2) : (S.schwere || 2) >= 4 ? 1 : 5;
         t.push(`${heldName(S, p)} kommt mit ${h.hp} Leben wieder zu sich.`);
