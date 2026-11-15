@@ -642,9 +642,10 @@
   };
   const schwere = S => SCHWERE[S.schwere || 2];
   // Gruppengröße: zu zweit weniger, ab vier Helden mehr Gegner-Leben und -Schaden
-  // Ab vier Helden: lieber mehr Gegner (zusatz) und Endgegner mit mehr Zügen (zuege) als dickere Gegner
+  // Ab vier Helden: lieber mehr Gegner (zusatz) und Endgegner mit mehr Zügen (zuege) als dickere Gegner;
+  // boss: Endgegner-Leben zu viert und zu fünft etwas weniger, damit der zweite Zug den Kampf nicht kippt
   const GRUPPE = { 1: { hp: 0.4, dmg: 0.7 }, 2: { hp: 0.55, dmg: 0.8, boss: 0.85, vern: 0.8 }, 3: { hp: 1, dmg: 1 },
-    4: { hp: 1.3, dmg: 1.15, zusatz: 1, zuege: 2 }, 5: { hp: 1.5, dmg: 1.4, zusatz: 1, zuege: 2, boss: 0.9 }, 6: { hp: 1.7, dmg: 1.45, zusatz: 2, zuege: 3 } };
+    4: { hp: 1.3, dmg: 1.15, zusatz: 1, zuege: 2, boss: 0.85 }, 5: { hp: 1.5, dmg: 1.4, zusatz: 1, zuege: 2, boss: 0.9 }, 6: { hp: 1.7, dmg: 1.45, zusatz: 2, zuege: 3 } };
   const gruppe = S => GRUPPE[(S.teilnehmer || []).length] || GRUPPE[3];
   // höchstens so viele Gegner gleichzeitig auf der Bühne
   const maxGegner = S => (S.teilnehmer || []).length >= 4 ? 5 : 4;

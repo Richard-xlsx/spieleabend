@@ -413,3 +413,12 @@ Simulation (Abenteurer, 3 Ebenen, kluge Bots, je 40 Partien pro Gruppe; zu sechs
   - Elite mit K.o.: Ebene 1 59 → 48 %, Ebene 2 72 → 60 %, Ebene 3 62 → 57 %.
   - Die Niederlagen verteilen sich jetzt auf mehr verschiedene Gegner.
 - Offen bleiben die Fragen 3 und 4 aus Abschnitt 5. Die Zusätze sind jetzt zufällig, der Fluch „Verstärkung“ ist unverändert.
+
+**Nachtrag: Endgegner zu viert (15.11.2026).**
+- Zu viert war die Siegquote in jeder Messung am niedrigsten: 66, 64, 61 %.
+- Grund: Ab vier Helden macht der Endgegner zwei Züge, hat aber je Held so viele Leben wie zu dritt. Jeder Held steckt dadurch etwa 75 % mehr Schaden pro Runde ein, und der Kampf ist nicht kürzer.
+- Jetzt haben Endgegner zu viert ×0,85 Leben (zu fünft ×0,9).
+- Simulation (Abenteurer, 3 Ebenen, 60 Partien je Gruppe):
+  - Siege 61 → 72 %.
+  - Bosskämpfe mit K.o.: Ebene 1 38 → 30 %, Ebene 2 32 → 30 %, Ebene 3 32 → 24 %.
+  - Runden: Ebene 1 10,6 → 9,4, Ebene 2 11,6 → 9,7, Ebene 3 10,2 → 8,6.
