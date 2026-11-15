@@ -170,7 +170,9 @@ seinen nächsten Zug an (gelbes Schild über dem Kopf, wie in der Vorschau).
 | **Regeneration** | +5 Leben pro Runde | Feuer stoppt es für 2 Runden |
 | **Explosiv** | beim Tod 6 Schaden an allen Helden | erst Schild, dann töten |
 | **Netz** | ein Held setzt eine Runde aus | Feuer befreit |
-| **Beschwörer** | ruft alle 3 Runden Verstärkung | zuerst ausschalten |
+| **Beschwörer** | ruft alle 2–4 Runden Verstärkung | zuerst ausschalten |
+| **Standhaft** (Endgegner, Elite) | Erstarren verschiebt den Spezialzug nur um eine Runde; große Züge brechen ab, wenn der Gegner in der Runde genug Schaden nimmt (✋ in der Sprechblase) | alle auf ihn |
+| **Durchschlag** (Golem, Ork-Häuptling) | Treffer gehen durch jede Rüstung | Schild, Ausweichen, Heilung |
 | **Heiler / Schildträger** | heilt oder schützt andere Gegner | zuerst ausschalten |
 | **Langfinger** | stiehlt Gold und flieht nach 3 Runden | schnell besiegen, dann gibt's das Gold zurück |
 

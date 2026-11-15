@@ -285,7 +285,7 @@
     // Plaketten, Absichten, Ziele
     for (const g of daten.gegner) {
       const p = pos[g.id], hoehe = (GEG[g.art] ? GEG[g.art].h : 80) * p.s, w = p.w, y = Math.max(28, p.y - hoehe - 42);
-      const V = window.VL, eig = V ? V.eigenschaften(g.art).filter(e => e !== "wucht" && e !== "gift").map(e => V.EIGENSCHAFTEN[e][0]) : [];
+      const V = window.VL, eig = V ? V.eigenschaften(g.art).filter(e => e !== "wucht" && e !== "gift" && e !== "standhaft").map(e => V.EIGENSCHAFTEN[e][0]) : [];
       const marken = [...(g.zustand || []), g.giftR > 0 ? "Gift" : "", g.markiert > 0 ? "markiert" : "", g.starr > 0 ? "erstarrt" : ""].concat(eig).filter(Boolean).join(" · ");
       s += `<g ${g.hp <= 0 ? 'opacity=".25"' : ""}>${plakette(g.id, p.x - w / 2, y, w, kurzName(g.name), g.hp, g.max, marken)}</g>`;
       const a = daten.absicht && daten.absicht[g.id];
@@ -296,6 +296,7 @@
           : a.a === "angriff" && a.doppelt ? `⚔⚔ → ${wer(a.ziel)}`
           : a.a === "stehlen" ? `✋ Gold → ${(daten.helden.find(x => x.id === a.ziel) || { name: "?" }).name}` : a.a === "heilen" ? `✚ → ${kurzName((daten.gegner.find(x => x.id === a.ziel) || { name: "?" }).name)}` : `⚔ → ${(daten.helden.find(x => x.id === a.ziel) || { name: "?" }).name}`;
         if (a.extra) txt += ` · +${a.extra} Angriff${a.extra > 1 ? "e" : ""}`;
+        if (a.schwelle) txt += ` · ✋${a.schwelle}`;
         const bw = Math.min(w + 6, txt.length * 6.6 + 16);
         s += `<g id="vl-ab-${g.id}" class="vl-absicht"><rect x="${p.x - bw / 2}" y="${y - 24}" width="${bw}" height="20" rx="10" fill="#FFD447" stroke="${T}" stroke-width="2"/>
           <text x="${p.x}" y="${y - 10}" text-anchor="middle" font-family="Inter,system-ui" font-weight="700" font-size="10.5" fill="#1C1A33"${txt.length * 6.6 + 16 > bw ? ` textLength="${bw - 14}" lengthAdjust="spacingAndGlyphs"` : ""}>${esc(txt)}</text></g>`;
@@ -610,6 +611,7 @@
     async function gegnerAktion(e) {
       const g = e.von, art = artVon(g), opfer = (e.d || []).filter(([id, d]) => d < 0 && istHeld(id)).map(x => x[0]);
       const ab = $("vl-ab-" + g); if (ab) animiere(ab, [{ transform: "scale(1)" }, { transform: "scale(1.12)" }, { transform: "scale(1)" }], 300);
+      if (e.a === "unterbrochen") { blitz("#FFD447", .14); await animiere($("vl-f-" + g), [{ transform: "translateX(0)" }, { transform: "translateX(-4px)" }, { transform: "translateX(4px)" }, { transform: "translateX(0)" }], 300); await wort(g, "unterbrochen!", "#FFD447"); return; }
       if (e.a === "starr") { blitz("#BFE8FF", .12); await animiere($("vl-f-" + g), [{ transform: "translateX(0)" }, { transform: "translateX(-3px)" }, { transform: "translateX(3px)" }, { transform: "translateX(0)" }], 300); await wort(g, "erstarrt", "#BFE8FF"); return; }
       if (e.a === "keinziel") { await wackeln(g); await wort(g, "?", "#F3F0FF"); return; }
       if (e.a === "flucht") {

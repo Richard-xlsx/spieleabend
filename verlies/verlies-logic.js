@@ -466,6 +466,8 @@
     return l;
   }
 
+  // Wunden heilen: Höchstleben zurück (Rast, Lager, Verbände)
+  function wundenHeilen(h) { if (h.wundHp) h.max += h.wundHp; h.wundHp = 0; h.wunden = 0; }
   // ---------- Händler ----------
   const MAX = { waffe: 6, ruestung: 5, leben: 5, traenke: 3 };
   const trankMax = h => MAX.traenke + stufeBonus(h).traenke + ruhmVon(h, "trank");
@@ -474,6 +476,7 @@
       { id: "waffe", name: "Waffe schärfen", text: `+1 Schaden bei jedem Angriff (jetzt +${h.waffe})`, preis: 15 + 15 * h.waffe, aus: h.waffe >= MAX.waffe },
       { id: "ruestung", name: "Rüstung verstärken", text: `−1 Schaden pro Treffer (jetzt −${h.ruestung})`, preis: 15 + 15 * h.ruestung, aus: h.ruestung >= MAX.ruestung },
       { id: "leben", name: "Stärkungselixier", text: `+6 Höchstleben (jetzt ${h.max})`, preis: 25, aus: h.leben >= MAX.leben },
+      { id: "verband", name: "Verbände", text: h.wunden ? `Heilt deine ${h.wunden === 1 ? "Wunde" : h.wunden + " Wunden"}: +${h.wundHp} Höchstleben` : "Heilt Wunden (du hast keine)", preis: 12, aus: !h.wunden },
       { id: "trank", name: "Heiltrank", text: `+${14 + passiv(h, "trankplus")} Leben im Kampf (du hast ${h.traenke}, höchstens ${trankMax(h)})`, preis: 10, aus: h.traenke >= trankMax(h) }
     ];
     return l;
@@ -513,14 +516,16 @@
     salamander: { name: "Salamander", hp: 22, dmg: [3, 5], ep: 13, brand: true },
     ork: { name: "Ork-Krieger", hp: 40, dmg: [5, 7], ep: 18, ork: true },
     orkschamane: { name: "Ork-Schamane", hp: 24, dmg: [3, 4], ep: 14, ork: true, schildtraeger: true },
-    golem: { name: "Obsidian-Golem", hp: 50, dmg: [9, 12], ep: 22, panzer: 5, traege: true },
-    orkhaeuptling: { name: "Ork-Häuptling", hp: 70, dmg: [7, 9], ep: 40, elite: true, ork: true, anfuehrer: true, begleiter: "ork",
+    golem: { name: "Obsidian-Golem", hp: 50, dmg: [9, 12], ep: 22, panzer: 5, traege: true, durchschlag: true },
+    orkhaeuptling: { name: "Ork-Häuptling", hp: 70, dmg: [7, 9], ep: 40, elite: true, ork: true, anfuehrer: true, durchschlag: true, begleiter: "ork",
       wucht: { n: 5, name: "Rundumschlag", text: "Der Ork-Häuptling wirbelt seine Axt im Kreis!" } },
     feuerelementar: { name: "Feuerelementar", hp: 60, dmg: [6, 8], ep: 38, elite: true, brand: true, begleiter: "kobold",
       explosiv: { n: 8, brand: true, text: "Das Feuerelementar zerbirst in einer Feuerwolke!" },
       wucht: { n: 4, name: "Feuerwelle", text: "Eine Welle aus Feuer rollt über euch hinweg!", brand: true } },
     drache: { name: "Der Glutdrache", hp: 270, dmg: [10, 13], boss: true, ep: 0, brand: true }
   };
+  // Endgegner und Elite sind standhaft: Erstarren verschiebt ihren Spezialzug nur um eine Runde
+  for (const a in GEGNER) if (GEGNER[a].boss || GEGNER[a].elite) GEGNER[a].standhaft = true;
   // kurze Beschreibung der Eigenschaften (für Plaketten und die Erklärung unter der Bühne)
   const EIGENSCHAFTEN = {
     untot: ["untot", "Licht trifft doppelt, Gift wirkt nur halb."],
@@ -534,13 +539,15 @@
     schnell: ["schnell", "Greift zweimal pro Runde an. Erstarren hilft."],
     regeneration: ["Regeneration", "Heilt sich jede Runde, aber von Runde zu Runde weniger. Feuer stoppt das für 2 Runden."],
     explosiv: ["explosiv", "Trifft beim Tod alle Helden. Vorher Schild oder Schutz!"],
-    netz: ["Netz", "Spinnt einen Helden ein: Er setzt eine Runde aus."],
+    netz: ["Netz", "Spinnt ab und zu einen Helden ein (wird angekündigt): Er setzt eine Runde aus."],
     teilt: ["teilt sich", "Wird er verletzt, teilt er sich einmal in zwei. Flächenschaden hilft."],
     schildtraeger: ["Schildträger", "Legt anderen Gegnern einen Schild um, der 8 Schaden schluckt. Zuerst ausschalten!"],
     anfuehrer: ["Anführer", "Alle Orks machen +2 Schaden, solange er steht."],
     traege: ["träge", "Greift nur jede 2. Runde an, dazwischen sammelt er Kraft."],
     brand: ["Feuer", "Kann Helden in Brand setzen."],
-    wucht: ["Flächenangriff", "Trifft jede 3. Runde alle Helden."],
+    wucht: ["Flächenangriff", "Trifft alle paar Runden alle Helden (wird angekündigt)."],
+    standhaft: ["standhaft", "Erstarren verhindert nur den Angriff. Ein angekündigter Spezialzug kommt dann eine Runde später. Große Züge lassen sich mit genug Schaden in derselben Runde abbrechen."],
+    durchschlag: ["Durchschlag", "Seine Schläge durchdringen jede Rüstung."],
     gift: ["Gift", "Kann Helden vergiften."]
   };
   const eigenschaften = art => Object.keys(EIGENSCHAFTEN).filter(e => GEGNER[art] && GEGNER[art][e]);
@@ -575,7 +582,8 @@
       niederlage: "Feuer und Asche. Der Glutdrache legt sich wieder auf sein Gold." }
   ];
   // Stärke je Ebene: Leben und Schaden der Gegner, Erfahrung und Gold
-  const STAERKE = [{ hp: 1, dmg: 1, ep: 1, gold: 1 }, { hp: 2.8, dmg: 1.9, ep: 2, gold: 1.4 }, { hp: 3.4, dmg: 2.2, ep: 2.8, gold: 1.8 }];
+  // Tiefer: härtere Schläge, weniger Leben (früher ×2,8/×1,9 und ×3,4/×2,2), damit Kämpfe kurz und gefährlich bleiben
+  const STAERKE = [{ hp: 1, dmg: 1, ep: 1, gold: 1 }, { hp: 2.4, dmg: 2.0, ep: 2, gold: 1.4 }, { hp: 2.9, dmg: 2.3, ep: 2.8, gold: 1.8 }];
   // Die Tiefe (Partielänge „endlos“): Nach dem Glutschlund beginnt es wieder beim Kerker, jede Ebene stärker
   const TIEFE = { hp: 1.3, dmg: 1.12, ep: 1.12, gold: 1.15 };
   const endlos = S => S.ebenen === 0;
@@ -611,20 +619,27 @@
   const WUT_AB = 12, WUT_PRO = 0.1;
   // Endgegner-Leben: in Ebene 1 ×0,8, ab Ebene 2 ×0,5; Schwierigkeit erhöht ihre Leben nur halb so stark wie bei anderen Gegnern
   const BOSS_E1 = 0.8, BOSS_TIEF = 0.5;
+  // Spezialzüge kommen alle 2 bis 4 Runden (erster nach 1 bis 3 Runden)
+  const TAKT = [2, 4], TAKT_START = [1, 3];
+  // Große Züge von Endgegnern und Elite (Verstärkung, Flächenangriff) brechen ab, wenn sie in der Runde so viel Schaden nehmen (Anteil ihrer Höchstleben)
+  const SCHWELLE_BOSS = 0.1, SCHWELLE_ELITE = 0.2;
+  // Wunden: wer in einem Kampf bewusstlos war, verliert bis zur nächsten Rast 10 % Höchstleben (höchstens dreimal)
+  const WUNDE = 0.1, WUNDEN_MAX = 3;
   const wut = (S, g) => GEGNER[g.art].boss && S.kampf && S.kampf.runde >= WUT_AB ? 1 + WUT_PRO * (S.kampf.runde - WUT_AB + 1) : 1;
   // Flüche: vom Spielleiter in der Lobby gewählt, beliebig kombinierbar, betreffen nur die Gegner.
   // stufe: 1 leicht, 2 mittel, 3 stark (Simulation, Dreiergruppe Abenteurer: ohne Fluch 88 % Siege)
   const FLUECHE = {
     zaeh: { stufe: 2, name: "Zäh", text: "Alle Gegner haben 25 % mehr Leben." },
-    wild: { stufe: 3, name: "Wild", text: "Alle Gegner machen 15 % mehr Schaden." },
+    wild: { stufe: 3, name: "Wild", text: "Alle Gegner machen 15 % mehr Schaden. In Ebene 1 erst halb so viel." },
     regen: { stufe: 1, name: "Regeneration", text: "Jeder Gegner heilt am Ende der Runde 5 % seiner Leben. Feuer stoppt das, in langen Kämpfen lässt es nach." },
     dornen: { stufe: 1, name: "Dornen", text: "Wer einen Gegner mit Schwert, Hammer oder Dolch trifft, verliert selbst 1 Leben, in tieferen Ebenen 2 (nie den letzten)." },
-    rache: { stufe: 3, name: "Rachsucht", text: "Jeder gefallene Gegner macht die übrigen in diesem Kampf wütender: +1 Schaden, tiefer mehr (höchstens dreimal)." },
+    rache: { stufe: 3, name: "Rachsucht", text: "Jeder gefallene Gegner macht die übrigen in diesem Kampf wütender: +1 Schaden, tiefer mehr (höchstens dreimal). In Ebene 1 erst halb so stark." },
     verstaerkung: { stufe: 1, name: "Verstärkung", text: "In jedem Kampf außer gegen Endgegner steht ein Gegner mehr (höchstens 4)." }
   };
   const fluch = (S, id) => (S.flueche || []).includes(id) || S.tiefenFluch === id;
-  const gdmg = (S, n) => Math.round(n * staerke(S).dmg * schwere(S).dmg * gruppe(S).dmg * (fluch(S, "wild") ? 1.15 : 1));
-  const racheBonus = S => fluch(S, "rache") && S.kampf ? gdmg(S, Math.min(3, S.kampf.rache || 0)) : 0;
+  const gdmg = (S, n) => Math.round(n * staerke(S).dmg * schwere(S).dmg * gruppe(S).dmg * (fluch(S, "wild") ? ((S.ebene || 1) === 1 ? 1.075 : 1.15) : 1));
+  const fruehHalb = S => (S.ebene || 1) === 1 ? 0.5 : 1;
+  const racheBonus = S => fluch(S, "rache") && S.kampf ? gdmg(S, Math.min(3, S.kampf.rache || 0) * fruehHalb(S)) : 0;
   const LAENGEN = { 1: "Kurz", 2: "Normal", 3: "Lang", 4: "Die Tiefe" };
   const stufe = nr => (nr <= 3 ? 0 : nr <= 5 ? 1 : 2);
   function gegnerErzeugen(S, art) {
@@ -849,7 +864,7 @@
     } else if (typ === "rast") {
       S.seite = { bild: "feuer", titel: `Raum ${n}: Rast`, text: [eins(S, TEXTE.rast)] };
       entscheiden(S, "rast", "Wie nutzt ihr die Rast?", [
-        { text: "Ausruhen", hinweis: "Alle heilen 40 % ihrer Leben, alle Fähigkeiten sind wieder bereit." },
+        { text: "Ausruhen", hinweis: `Alle heilen ${Math.round(schwere(S).rast * 100)} % ihrer Leben und versorgen ihre Wunden, alle Fähigkeiten sind wieder bereit.` },
         { text: "Üben", hinweis: "Jeder bekommt 1 Talentpunkt, aber niemand heilt." }]);
     } else if (typ === "haendler") {
       lagerOeffnen(S, false);
@@ -980,23 +995,39 @@
     const k = S.kampf, a = {}, helden = lebend(S), frei = () => gegnerLebend(S).length < maxGegner(S) && (k.gerufen || 0) < MAX_GERUFEN;
     const held = () => { const l = helden.filter(p => !S.helden[p].netz); return l.length ? eins(S, l) : helden.length ? eins(S, helden) : null; };
     const angriff = g => Object.assign({ a: "angriff", ziel: held() }, istSchnell(S, g) ? { doppelt: true } : {});
+    // Spezialzug fällig? (alle 2 bis 4 Runden, je Gegner eigener Takt)
+    const faellig = g => { if (g.takt == null) g.takt = k.runde + wurf(S, ...TAKT_START); if (k.runde < g.takt) return false; g.takt = k.runde + wurf(S, ...TAKT); return true; };
+    // große Züge von Endgegnern und Elite lassen sich mit Schaden abbrechen
+    const gross = (g, x) => { const art = GEGNER[g.art]; if ((x.a === "ruf" || x.a === "beben") && (art.boss || art.elite)) x.schwelle = Math.max(1, Math.round(g.max * (art.boss ? SCHWELLE_BOSS : SCHWELLE_ELITE))); return x; };
     for (const g of gegnerLebend(S)) {
-      const art = GEGNER[g.art], r = k.runde;
+      const art = GEGNER[g.art];
+      // erstarrt gewesen (standhaft): der Spezialzug kommt jetzt
+      if (g.verschoben) {
+        const x = Object.assign({}, g.verschoben); delete g.verschoben;
+        if (x.a === "ruf" && !frei()) x.a = "beben";
+        if (x.a === "netz" && !helden.includes(x.ziel)) x.ziel = held();
+        a[g.id] = gross(g, x);
+        if (art.boss && (gruppe(S).zuege || 1) > 1) a[g.id].extra = gruppe(S).zuege - 1;
+        continue;
+      }
       if (art.boss) {
         const diener = gegnerLebend(S).filter(x => x !== g).length;
-        if (g.art === "koenig" && r % 3 === 0) a[g.id] = k.bossPhase >= 2 && diener === 0 && frei() ? { a: "ruf" } : { a: "beben" };
-        else if (g.art === "koenigin" && r % 3 === 0 && frei()) a[g.id] = { a: "ruf" };
-        else if (g.art === "koenigin" && r % 3 === 2) a[g.id] = { a: "netz", ziel: held() };
-        else if (g.art === "drache" && r % 3 === 0) a[g.id] = { a: "beben", name: k.bossPhase >= 2 ? "Schwanzhieb" : "Flammenatem" };
+        if (faellig(g)) {
+          if (g.art === "koenig") a[g.id] = k.bossPhase >= 2 && diener === 0 && frei() ? { a: "ruf" } : { a: "beben" };
+          else if (g.art === "koenigin") { a[g.id] = g.letzter !== "ruf" && frei() ? { a: "ruf" } : { a: "netz", ziel: held() }; g.letzter = a[g.id].a; }
+          else a[g.id] = { a: "beben", name: k.bossPhase >= 2 ? "Schwanzhieb" : "Flammenatem" };
+          gross(g, a[g.id]);
+        }
         else a[g.id] = angriff(g);
         if ((gruppe(S).zuege || 1) > 1) a[g.id].extra = gruppe(S).zuege - 1;
         continue;
       }
-      if (art.beschwoerer && r % 3 === 2 && frei()) { a[g.id] = { a: "ruf" }; continue; }
-      if (art.langfinger) { a[g.id] = r >= 3 ? { a: "flucht" } : { a: "stehlen", ziel: held() }; continue; }
-      if (art.traege && r % 2 === 0) { a[g.id] = { a: "ruhe" }; continue; }
-      if (art.netz && r % 3 === 1) { a[g.id] = { a: "netz", ziel: held() }; continue; }
-      if (art.wucht && r % 3 === 2) { a[g.id] = { a: "beben", name: art.wucht.name }; continue; }
+      if ((art.beschwoerer || art.netz || art.wucht) && (!art.beschwoerer || frei()) && faellig(g)) {
+        a[g.id] = gross(g, art.beschwoerer ? { a: "ruf" } : art.netz ? { a: "netz", ziel: held() } : { a: "beben", name: art.wucht.name });
+        continue;
+      }
+      if (art.langfinger) { a[g.id] = k.runde >= 3 ? { a: "flucht" } : { a: "stehlen", ziel: held() }; continue; }
+      if (art.traege && k.runde % 2 === 0) { a[g.id] = { a: "ruhe" }; continue; }
       if (art.heiler) {
         const v = gegnerLebend(S).filter(x => x !== g && x.hp < x.max * 0.6).sort((x, y) => x.hp / x.max - y.hp / y.max)[0];
         if (v) { a[g.id] = { a: "heilen", ziel: v.id }; continue; }
@@ -1010,6 +1041,15 @@
     k.absicht = a;
   }
 
+  // Erstarren: wer gerade aufgetaut ist, erstarrt diese Runde nicht erneut
+  function erstarren(S, g, n, log, text) {
+    if (!g || g.hp <= 0) return false;
+    if (g.taut > 0) { if (log) log.push(`${g.name} taut gerade auf und lässt sich nicht erneut erstarren.`); return false; }
+    g.starr = Math.max(g.starr || 0, n);
+    if (log && text) log.push(text);
+    return true;
+  }
+
   function kampfStarten(S, gruppe) {
     // Fluch „Verstärkung“ und große Gruppen: zusätzliche einfache Gegner (nicht beim Endgegner)
     const zusatz = (fluch(S, "verstaerkung") ? 1 : 0) + ((GRUPPE[S.teilnehmer.length] || {}).zusatz || 0);
@@ -1018,7 +1058,7 @@
       gruppe = gruppe.concat(einfach.length ? eins(S, einfach) : eins(S, ebeneVon(S).gruppen[0].flat().filter(a => !GEGNER[a].langfinger)));
     }
     S.gegner = gruppe.map(a => gegnerErzeugen(S, a));
-    S.kampf = { runde: 1, wahl: {}, bossPhase: 1, epTot: 0, nebel: false, absicht: {}, rache: 0 };
+    S.kampf = { runde: 1, wahl: {}, bossPhase: 1, epTot: 0, nebel: false, absicht: {}, rache: 0, koVor: Object.fromEntries(S.teilnehmer.map(p => [p, S.helden[p].stats.umgefallen])) };
     for (const p of S.teilnehmer) { const h = S.helden[p]; for (const id in h.cd) if (NEUE[id] && NEUE[id].meister) delete h.cd[id]; }
     for (const p of S.teilnehmer) Object.assign(S.helden[p], { schild: false, versteckt: false, lauer: false, segen: 0, gift: 0, giftR: 0, immun: false, fels: false, beschuetzt: null, netz: 0 });
     S.entscheidung = null;
@@ -1081,6 +1121,7 @@
     if (g.schutz > 0) z.push(`Schild ${g.schutz}`);
     if (g.feuer > 0 && (art.regeneration || fluch(S, "regen"))) z.push("brennt");
     if (racheBonus(S)) z.push(`Rache +${racheBonus(S)}`);
+    if (g.taut > 0) z.push("taut auf");
     return z;
   }
   function wirkung(S, g, d) {
@@ -1171,6 +1212,7 @@
       absicht: kopie(k.absicht || {}), ebene: S.ebene || 1
     };
     const ev = [];
+    const hpVor = Object.fromEntries(S.gegner.map(g => [g.id, g.hp]));
     const schnapp = () => ({ g: Object.fromEntries(S.gegner.map(g => [g.id, g.hp])), h: Object.fromEntries(S.teilnehmer.map(q => [q, S.helden[q].hp])) });
     let vor = null, logAb = 0;
     const beginn = () => { vor = schnapp(); logAb = log.length; };
@@ -1308,7 +1350,7 @@
         case "eis": {
           const z = ziel && ziel.hp > 0 ? ziel : gegnerLebend(S)[0];
           schadenAnGegner(S, p, z, wurf(S, 7, 9) + rs(h, "eis"), log, "durchbohrt mit Eis");
-          if (z && z.hp > 0) { z.starr = 1; log.push(`${z.name} erstarrt.`); }
+          if (z && z.hp > 0) erstarren(S, z, 1, log, `${z.name} erstarrt.`);
           const sp = passiv(h, "eissplitter"), andere = gegnerLebend(S).filter(g => g !== z);
           if (sp && andere.length) { const still = []; for (const g of andere) aufGegner(S, p, g, wirkung(S, g, sp), still); log.push(`Eissplitter treffen ${andere.map(g => g.name + (g.hp <= 0 ? " (fällt!)" : "")).join(", ")}: je ${sp} Schaden.`, ...still); }
           break;
@@ -1327,7 +1369,7 @@
         case "sonnenstrahl": flaeche(S, p, 6 + rs(h, "sonnenstrahl"), log, "lässt die Sonne herabstrahlen"); break;
         case "sonnenzorn": { flaeche(S, p, 15, log, "ruft den Sonnenzorn herab"); alleHeilen(S, p, 5); log.push("Alle Helden +5 Leben."); break; }
         case "treibjagd": { flaeche(S, p, 6, log, "treibt die Gegner zusammen"); for (const g of gegnerLebend(S)) g.markiert = 4; log.push("Alle Gegner sind markiert."); break; }
-        case "winter": { flaeche(S, p, 6, log, "ruft den ewigen Winter"); for (const g of gegnerLebend(S)) g.starr = 1; if (gegnerLebend(S).length) log.push("Alle Gegner erstarren."); break; }
+        case "winter": { flaeche(S, p, 6, log, "ruft den ewigen Winter"); { const n = gegnerLebend(S).filter(g => erstarren(S, g, 1)).length; if (n) log.push(n === gegnerLebend(S).length ? "Alle Gegner erstarren." : "Die Gegner erstarren, außer denen, die gerade auftauen."); } break; }
         case "giftwolke": { const x = 3 + passiv(h, "giftplus"); for (const g of flaeche(S, p, 2 + rs(h, "giftwolke"), log, "wirft eine Giftwolke")) vergiften(g, x, 3 + passiv(h, "giftlang")); break; }
         case "seuche": { const x = 5 + passiv(h, "giftplus"); for (const g of flaeche(S, p, 5, log, "verbreitet eine Seuche")) vergiften(g, x, 3 + passiv(h, "giftlang")); break; }
         case "raserei": pfeile(S, p, 3, 10, log, "rast und schlägt dreimal zu"); break;
@@ -1339,13 +1381,13 @@
         case "sternschuss": schadenAnGegner(S, p, ziel, 40, log, "schießt einen Sternschuss auf"); break;
         case "wildnis": { pfeile(S, p, 6, 9, log, "ruft die Wildnis"); alleHeilen(S, p, 6); log.push("Alle Helden +6 Leben."); break; }
         case "sternenfall": brand(h, flaeche(S, p, 28, log, "lässt Sterne fallen")); break;
-        case "zeitstillstand": { flaeche(S, p, 8, log, "hält die Zeit an"); for (const g of gegnerLebend(S)) g.starr = 2; if (gegnerLebend(S).length) log.push("Alle Gegner erstarren für zwei Runden."); break; }
+        case "zeitstillstand": { flaeche(S, p, 8, log, "hält die Zeit an"); { const n = gegnerLebend(S).filter(g => erstarren(S, g, 2)).length; if (n) log.push(n === gegnerLebend(S).length ? "Alle Gegner erstarren für zwei Runden." : "Die Gegner erstarren für zwei Runden, außer denen, die gerade auftauen."); } break; }
         case "wolfsrudel": pfeile(S, p, 3, 10, log, "lässt die Wölfe los"); break;
         case "kopfschuss": schadenAnGegner(S, p, ziel, wurf(S, 12, 15) + rs(h, "kopfschuss"), log, "zielt genau auf"); break;
         case "ranken": {
           const z = ziel1(S, w.ziel);
           schadenAnGegner(S, p, z, 5 + rs(h, "ranken"), log, "lässt Ranken wachsen um");
-          if (z && z.hp > 0) { z.starr = 1; log.push(`${z.name} ist gefesselt.`); }
+          if (z && z.hp > 0) erstarren(S, z, 1, log, `${z.name} ist gefesselt.`);
           break;
         }
         case "gottesurteil": {
@@ -1449,6 +1491,7 @@
       spinnenmutter: "Die Brutmutter zirpt: Spinnenbrut krabbelt aus allen Ritzen!",
       koenigin: "Die Spinnenkönigin legt Eier. Sofort schlüpft Spinnenbrut!"
     };
+    const SPEZIALNAME = x => x.a === "ruf" ? "Die Verstärkung" : x.a === "netz" ? "Das Netz" : `${x.name ? "„" + x.name + "“" : "Der Flächenangriff"}`;
     const bossWucht = g => g.art === "koenig" ? { n: 5, text: "Der Knochenkönig stampft auf: Der Boden bebt!" }
       : k.bossPhase < 2 ? { n: 7, text: "Der Glutdrache speit Feuer über euch alle!", brand: true } : { n: 7, text: "Der Glutdrache peitscht mit dem Schwanz durch den Raum!" };
     // ein einzelner Schlag gegen einen Helden (schnelle Gegner schlagen zweimal)
@@ -1480,7 +1523,18 @@
     };
     const gegnerZug = g => {
       const art = GEGNER[g.art], plan = (k.absicht || {})[g.id] || {};
-      if (g.starr > 0) { log.push(`${g.name} ist erstarrt und kann nicht angreifen.`); return { a: "starr" }; }
+      const spezial = ["ruf", "beben", "netz"].includes(plan.a);
+      if (g.starr > 0) {
+        if (art.standhaft && spezial) {
+          g.verschoben = { a: plan.a, name: plan.name, ziel: plan.ziel };
+          log.push(`${g.name} ist erstarrt, doch sein Vorhaben bleibt: ${SPEZIALNAME(plan)} kommt eine Runde später.`);
+        } else log.push(`${g.name} ist erstarrt und kann nicht angreifen.`);
+        return { a: "starr" };
+      }
+      if (plan.schwelle && hpVor[g.id] - g.hp >= plan.schwelle) {
+        log.push(`${g.name} wird unterbrochen: ${SPEZIALNAME(plan)} bricht ab!`);
+        return { a: "unterbrochen" };
+      }
       if (plan.a === "ruf" && gegnerLebend(S).length < maxGegner(S)) {
         const neu = rufen(art.ruf || 1, art.beschwoerer || "skelett");
         log.push(RUFTEXT[g.art] || `${g.name} ruft Verstärkung!`);
@@ -1571,7 +1625,7 @@
       log.push(`${g.name} regeneriert: +${x} Leben.`);
       ende({ von: g.id, a: "regen" });
     }
-    for (const g of S.gegner) { if (g.starr > 0) g.starr -= 1; if (g.markiert > 0) g.markiert -= 1; if (g.feuer > 0) g.feuer -= 1; g.spott = null; }
+    for (const g of S.gegner) { if (g.taut > 0) g.taut -= 1; if (g.starr > 0) { g.starr -= 1; if (!g.starr) g.taut = 1; } if (g.markiert > 0) g.markiert -= 1; if (g.feuer > 0) g.feuer -= 1; g.spott = null; }
     k.nebel = false; k.frost = 0; k.bollwerk = (k.bollwerkNoch || 0) > 0; if (k.bollwerkNoch) k.bollwerkNoch -= 1;
     S.log = log;
     S.letzte = { id: `${S.spielNr}:${S.raumNr}:${k.runde}`, runde: k.runde, titel: S.seite ? S.seite.titel : "", start, ev };
@@ -1586,7 +1640,9 @@
   function treffer(S, p, n, log, von, g) {
     const h = S.helden[p], wer = heldName(S, p);
     if (h.immun) { log.push(von ? `${von} trifft ${wer}, doch der Schlag prallt ab.` : `${wer} bleibt unversehrt.`); return; }
-    n = Math.max(1, n - h.ruestung - passiv(h, "ruestung") - stufeBonus(h).ruestung - gruppenPassiv(S, "schutzaura", p));
+    // Rüstung halbiert einen Treffer höchstens; Durchschlag geht durch jede Rüstung
+    const r = g && GEGNER[g.art].durchschlag ? 0 : h.ruestung + passiv(h, "ruestung") + stufeBonus(h).ruestung + gruppenPassiv(S, "schutzaura", p);
+    n = Math.max(1, n - Math.min(r, Math.floor(n / 2)));
     if (h.schild) n = Math.ceil(n / 2);
     if (h.hp < h.max / 2) n = Math.max(1, n - passiv(h, "notpanzer"));
     if (S.kampf && S.kampf.bollwerk) n = Math.ceil(n / 2);
@@ -1628,6 +1684,7 @@
   function kampfGewonnen(S) {
     const boss = S.gegner.some(g => GEGNER[g.art].boss);
     const t = [];
+    const koVor = S.kampf.koVor || {};
     const ep = (S.kampf.epTot || 0) + S.gegner.filter(g => !g.gerufen && !g.geflohen).reduce((a, g) => a + (GEGNER[g.art].ep || 0), 0);
     S.kampf = null;
     for (const p of S.teilnehmer) {
@@ -1635,6 +1692,11 @@
       if (h.hp <= 0 && !h.gefallen) {
         h.hp = S.schwere === 1 ? Math.ceil(h.max / 2) : (S.schwere || 2) >= 4 ? 1 : 5;
         t.push(`${heldName(S, p)} kommt mit ${h.hp} Leben wieder zu sich.`);
+      }
+      if (!h.gefallen && koVor[p] !== undefined && h.stats.umgefallen > koVor[p] && (S.schwere || 2) >= 2 && (h.wunden || 0) < WUNDEN_MAX) {
+        const n = Math.max(1, Math.round((h.max + (h.wundHp || 0)) * WUNDE));
+        h.wunden = (h.wunden || 0) + 1; h.wundHp = (h.wundHp || 0) + n; h.max -= n; h.hp = Math.min(h.hp, h.max);
+        t.push(`${heldName(S, p)} trägt eine Wunde davon: −${n} Höchstleben bis zur nächsten Rast.`);
       }
     }
     const sammeln = S.teilnehmer.reduce((a, p) => a + passiv(S.helden[p], "siegheil"), 0);
@@ -1648,7 +1710,7 @@
       }
       // Lager zwischen zwei Ebenen: volle Heilung, Händler, dann geht es tiefer
       const x = erfahrung(S, ep);
-      for (const p of S.teilnehmer) { const h = S.helden[p]; if (!h.gefallen) h.hp = h.max; h.cd = {}; }
+      for (const p of S.teilnehmer) { const h = S.helden[p]; wundenHeilen(h); if (!h.gefallen) h.hp = h.max; h.cd = {}; }
       S.ebeneFertig = true;
       lagerOeffnen(S, false);
       S.seite = { bild: "feuer", titel: E.siegTitel, text: [E.siegText, g].concat(x, t, ["Ihr schlagt ein Lager auf und schlaft euch aus: Alle sind voll geheilt. Der Händler ist euch gefolgt."]) };
@@ -1676,7 +1738,7 @@
     let t;
     if (e.art === "rast") {
       t = [];
-      if (wahl === 0) { const q = schwere(S).rast; for (const p of S.teilnehmer) { const h = S.helden[p]; heldHeilen(S, p, Math.ceil(h.max * q)); h.cd = {}; } t.push(`Alle erholen sich um ${Math.round(q * 100)} % ihrer Leben. Alle Fähigkeiten sind wieder bereit.`); }
+      if (wahl === 0) { const q = schwere(S).rast, w = S.teilnehmer.some(p => S.helden[p].wunden); for (const p of S.teilnehmer) { const h = S.helden[p]; wundenHeilen(h); heldHeilen(S, p, Math.ceil(h.max * q)); h.cd = {}; } t.push(`Alle erholen sich um ${Math.round(q * 100)} % ihrer Leben. Alle Fähigkeiten sind wieder bereit.` + (w ? " Die Wunden sind versorgt." : "")); }
       else { for (const p of S.teilnehmer) S.helden[p].punkte += 1; t.push("Ihr übt bis spät in die Nacht. Jeder bekommt 1 Talentpunkt."); }
     } else if (e.art === "schrein") t = e.optionen[wahl].segen ? segenAusfuehren(S, e.optionen[wahl].segen) : ["Ihr lasst den Schrein in Frieden."];
     else {
@@ -1703,6 +1765,7 @@
     else if (id === "ruestung") h.ruestung += 1;
     else if (id === "leben") { h.leben += 1; h.max += 6; h.hp += 6; }
     else if (id === "trank") h.traenke += 1;
+    else if (id === "verband") wundenHeilen(h);
     S.lager.kaeufe.push({ pid, name: w.name });
     return true;
   }

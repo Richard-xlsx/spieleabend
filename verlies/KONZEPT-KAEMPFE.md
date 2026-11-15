@@ -254,3 +254,53 @@ Simulation (Normal, 2 Ebenen):
 Eure Runde (5 Helden, Lang, Held, Wild + Rachsucht + Verstärkung):
 - Bosskämpfe: vorher 25 / 60 / 44 Runden, jetzt 10 / 17 / 13 Runden.
 - Normale Kämpfe in Ebene 3: vorher 13, jetzt 8 Runden.
+
+**Schritt 3 und 4 fertig (15.11.2026).** Abweichungen vom Plan oben:
+
+- **Standhaft:** Endgegner und Elite. Erstarren verhindert ihren Angriff (auch die Zusatzangriffe). Ein angekündigter
+  Spezialzug (Verstärkung, Flächenangriff, Netz) kommt eine Runde später.
+- **Auftauen:** gilt für alle Gegner, nicht nur für normale. Sonst hätten zwei Eiswerfer einen Endgegner dauerhaft
+  festhalten und seinen Spezialzug immer weiter verschieben können. Plakette „taut auf“.
+- **Takt:** Jeder Gegner hat seinen eigenen Takt. Der erste Spezialzug kommt nach 1 bis 3 Runden, danach alle 2 bis 4.
+  Die Spinnenkönigin wechselt zwischen Brut und Netz.
+- **Unterbrechen:**
+  - Verstärkung und Flächenangriffe von Endgegnern und Elite lassen sich abbrechen.
+  - Die Schwelle liegt bei 10 % der Höchstleben (Endgegner) bzw. 20 % (Elite). Mit 15 % / 35 % schafften die Bots es
+    fast nie.
+  - Angezeigt wird sie als „✋ 51“ in der Sprechblase und als Hinweis über den Knöpfen.
+  - Die Bots brechen jetzt etwa 40 % der großen Endgegner-Züge ab.
+- **Rüstung:** halbiert einen Treffer höchstens. Durchschlag (geht durch jede Rüstung) haben Obsidian-Golem und
+  Ork-Häuptling. Der Glutdrache bekommt keinen Durchschlag: Mit seinen Zusatzangriffen war er damit zu viert und zu
+  fünft fast unschlagbar.
+- **Kurve:** Der Schaden steigt weniger stark als geplant, sonst fielen die Siegquoten zu viert und zu fünft um 15 bis
+  20 Punkte.
+
+  | Ebene | Leben bisher → neu | Schaden bisher → neu |
+  |---|---|---|
+  | 2 | ×2,8 → ×2,4 | ×1,9 → ×2,0 |
+  | 3 | ×3,4 → ×2,9 | ×2,2 → ×2,3 |
+
+- **Flüche erwachen:** Wild (+7,5 % statt +15 %) und Rachsucht wirken in Ebene 1 halb.
+- **Wunden:**
+  - Wer in einem Kampf bewusstlos war, verliert 10 % Höchstleben, höchstens dreimal. Auf Wanderer gibt es keine Wunden.
+  - Heilung gibt es beim „Ausruhen“ in der Rast, im Lager zwischen den Ebenen und mit „Verbände“ beim Händler
+    (12 Gold).
+  - Die Wunden stehen an der Heldenzeile.
+
+Simulation (Abenteurer, 3 Ebenen, kluge Bots, je 40 Partien pro Gruppe):
+
+| Gruppe | Siege vorher → jetzt | K.o.-Kämpfe Ebene-3-Elite | Endgegner Ebene 2 / 3, Runden |
+|---|---|---|---|
+| 2 Helden | 88 → 89 % | | |
+| 3 Helden | 79 → 85 % | 0 → 0 % | 15 / 14 → 12 / 10 |
+| 4 Helden | 64 → 66 % | | |
+| 5 Helden | 88 → 85 % | 0 → 2 % | 13 / 11 → 11 / 10 |
+| 3 Helden, 2 Ebenen: Wanderer / Abenteurer / Held / Legende | 100 / 88 / 59 / 22 → 99 / 88 / 57 / 19 % | | |
+
+Eure Runde (5 Helden, Lang, Held, Wild + Rachsucht + Verstärkung):
+- Siege: 16 → 14 %.
+- Ebene 1 ist leichter geworden: In 56 % der Bosskämpfe gibt es ein K.o., vorher 72 %.
+- Ebene 3 ist schwerer geworden: In 59 % der Elite-Kämpfe gibt es ein K.o., vorher 21 %.
+- Die Schwierigkeit verschiebt sich damit wie gewünscht nach hinten.
+- Endgegner in Ebene 3 sind für kleine Gruppen eher harmloser geworden. Das soll Schritt 5 (Vernichtungsschlag)
+  ändern.

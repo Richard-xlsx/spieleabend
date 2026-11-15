@@ -14,16 +14,22 @@ function waehle(S,p,klug){
   // Ankündigungen kontern wie echte Spieler: Spezialzüge (Verstärkung, Beben, Netz) durch Erstarren verhindern,
   // wenn noch niemand anderes dieses Ziel diese Runde erstarren lässt
   const ab=S.kampf.absicht||{}, gew=Object.values(S.kampf.wahl||{});
-  const gefahr=g.filter(x=>ab[x.id]&&['ruf','beben','netz'].includes(ab[x.id].a)&&!(x.starr>0)&&!gew.some(w=>['eis','ranken'].includes(w.a)&&w.ziel===x.id)).sort((x,y)=>(V.GEGNER[y.art].boss?1:0)-(V.GEGNER[x.art].boss?1:0));
+  const gefahr=g.filter(x=>ab[x.id]&&['ruf','beben','netz'].includes(ab[x.id].a)&&!(x.starr>0)&&!(x.taut>0)&&!(ab[x.id].schwelle&&ab[x.id].schwelle<x.hp*0.6&&!process.env.EIS_BOSS)&&!gew.some(w=>['eis','ranken'].includes(w.a)&&w.ziel===x.id)).sort((x,y)=>(V.GEGNER[y.art].boss?1:0)-(V.GEGNER[x.art].boss?1:0));
   if(gefahr.length){ if(gefahr.length>=2&&!gew.some(w=>['winter','zeitstillstand'].includes(w.a))) for(const id of ['zeitstillstand','winter']) if(hat(id)) return {a:id};
     for(const id of ['eis','ranken']) if(hat(id)) return {a:id,ziel:gefahr[0].id}; }
   if(schwach.length>=2) for(const id of ['gnade','lebensquell','ewigschild','erloesung','heiligtum','wall','bollwerk','schlachtruf','gnadenlicht','laeutern','segen','licht','wiedergeburt','frost']) if(hat(id)) return {a:id};
   if(schwach.length) { for(const id of ['heilen','handauflegen','kraeuter']) if(hat(id)) return {a:id,ziel:schwach[0]};
     if(hat('schild')&&!schwach.includes(p)) return {a:'schild'}; if(hat('fels')) return {a:'fels'};
     if(hat('arkan')) return {a:'arkan',ziel:schwach[0]}; if(hat('obhut')) return {a:'obhut',ziel:schwach[0]}; if(hat('beschuetzen')&&schwach[0]!==p) return {a:'beschuetzen',ziel:schwach[0]}; if(hat('rauch')) return {a:'rauch'}; }
+  // großer Zug mit Abbruch-Schwelle: Einzelziel-Schaden drauf, bevor Flächenzauber kommen
+  const abb=g.find(x=>ab[x.id]&&ab[x.id].schwelle);
+  if(abb){ for(const id of ['sternschuss','gottesurteil','todesstoss','meisterdieb','vernichten','kopfschuss','eis','ranken','gift']) if(hat(id)) return {a:id,ziel:abb.id};
+    return {a:V.AKTIONEN[h.rolle][0].id, ziel:abb.id}; }
   if(g.length>=2) for(const id of ['sternenfall','feuerweihe','schwarztod','ansturm','zeitstillstand','wildnis','klingensturm','schattentanz','inferno','durchschuss','seuche','winter','sonnenzorn','treibjagd','raserei','wolfsrudel','meteor','giftwolke','hagel','sonnenstrahl','feuerball','wirbel','licht','doppel']) if(hat(id)) return {a:id};
   // kluge Spieler: erst Langfinger, Heiler, Beschwörer; steht der Knochenschild, erst die Skelette
-  const prio=g.find(x=>V.GEGNER[x.art].langfinger)||g.find(x=>V.GEGNER[x.art].heiler||V.GEGNER[x.art].beschwoerer||V.GEGNER[x.art].schildtraeger)||(g.some(x=>V.knochenschild(S,x))?g.find(x=>!V.GEGNER[x.art].boss):null);
+  // großer Zug mit Abbruch-Schwelle: alle drauf
+  const abbruch=g.find(x=>ab[x.id]&&ab[x.id].schwelle);
+  const prio=abbruch||g.find(x=>V.GEGNER[x.art].langfinger)||g.find(x=>V.GEGNER[x.art].heiler||V.GEGNER[x.art].beschwoerer||V.GEGNER[x.art].schildtraeger)||(g.some(x=>V.knochenschild(S,x))?g.find(x=>!V.GEGNER[x.art].boss):null);
   const gross=prio||g.slice().sort((a,b)=>b.hp-a.hp)[0];
   for(const id of ['sternschuss','gottesurteil','todesstoss','meisterdieb','vernichten','kopfschuss','eis','ranken','markieren','gift','kriegsschrei','spott','taschendieb']) if(hat(id)) { const a=hat(id); return {a:id,ziel:a.ziel==='gegner'?gross.id:null}; }
   if(h.rolle==='dieb'&&hat('verstecken')&&h.hp<h.max*0.5) return {a:'verstecken'};
@@ -51,7 +57,7 @@ function punkte(S,klug){
 function einkaufen(S,p,klug){
   for(let n=0;n<10;n++){ const h=S.helden[p]; const ang=V.angebot(h).filter(w=>!w.aus&&w.preis<=h.gold);
     if(!ang.length) break;
-    const pr=klug?['waffe','ruestung','leben','trank']:['trank','waffe'];
+    const pr=klug?['verband','waffe','ruestung','leben','trank']:['trank','waffe'];
     let w=null; for(const k of pr){ w=ang.find(x=>x.id.startsWith(k)); if(w) break; } if(!w) break;
     const vor=S; S=V.aktion(S,p,{t:'kaufen',id:w.id,nr:S.spielNr}); if(S===vor) throw new Error('Kauf abgelehnt');
   }

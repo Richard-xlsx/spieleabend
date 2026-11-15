@@ -409,10 +409,10 @@
   function heldZeile(p, imKampf, ziel) {
     const x = S.helden[p], k = S.kampf;
     const marken = x.gefallen ? `<span class="marke">gefallen, schaut zu</span>` : imKampf ? [x.hp <= 0 ? `<span class="marke">bewusstlos</span>` : "", x.giftR > 0 && x.hp > 0 ? `<span class="marke gift">${x.giftArt === "Brand" ? "brennt" : "vergiftet"}</span>` : "", x.netz && x.hp > 0 ? `<span class="marke">im Netz</span>` : "",
-      x.lauer ? `<span class="marke schatten">lauert</span>` : "", x.segen ? `<span class="marke">gesegnet</span>` : "",
+      x.wunden ? `<span class="marke">${x.wunden === 1 ? "Wunde" : x.wunden + " Wunden"} −${x.wundHp}</span>` : "", x.lauer ? `<span class="marke schatten">lauert</span>` : "", x.segen ? `<span class="marke">gesegnet</span>` : "",
       k && k.wahl[p] ? `<span class="marke ok">bereit</span>` : ""].join("") : "";
     const ast = V.hauptast(x);
-    const unter = `${V.ROLLEN[x.rolle].name}${ast ? " · " + ast.name : ""} · Stufe ${x.stufe}${online(p) ? "" : " · nicht verbunden"}${imKampf ? "" : ` · ${x.gold} Gold · ${x.traenke} ${x.traenke === 1 ? "Trank" : "Tränke"}`}`;
+    const unter = `${V.ROLLEN[x.rolle].name}${ast ? " · " + ast.name : ""} · Stufe ${x.stufe}${online(p) ? "" : " · nicht verbunden"}${imKampf ? "" : ` · ${x.gold} Gold · ${x.traenke} ${x.traenke === 1 ? "Trank" : "Tränke"}${x.wunden ? ` · ${x.wunden === 1 ? "Wunde" : x.wunden + " Wunden"} −${x.wundHp}` : ""}`}`;
     return `<button class="heldzeile ${x.hp <= 0 && !ziel ? "weg" : ""} ${ziel ? "ziel" : ""}" ${ziel ? `data-ziel="${p}"` : "disabled"}>
       ${VB.held(x.rolle)}<span class="mitte-sp"><span class="kopfzeile"><b>${esc(sp(p).name)}</b><small>${unter}</small></span>${balken(x.hp, x.max)}${marken ? `<span class="marken">${marken}</span>` : ""}</span>
       <span class="hp">${x.hp}<small>/${x.max}</small></span></button>`;
@@ -455,6 +455,8 @@
     const eig = [...new Set(V.gegnerLebend(S).flatMap(g => V.eigenschaften(g.art)).concat(zst.includes("fliegt") ? ["fliegend"] : [], zst.includes("Wut") ? ["schnell"] : []))], schild = S.gegner.some(g => V.knochenschild(S, g));
     const fl = (S.flueche || []).concat(S.tiefenFluch && !(S.flueche || []).includes(S.tiefenFluch) ? [S.tiefenFluch] : []);
     if (eig.length || schild || fl.length) h += `<details class="chronik gegnerkunde"${k.runde === 1 || schild ? " open" : ""}><summary class="etikett">Gegner-Eigenschaften</summary>${schild ? `<p><b>Knochenschild:</b> Der Knochenkönig nimmt nur halben Schaden, solange ein Skelett steht.</p>` : ""}${eig.map(e => { const [n, t] = V.EIGENSCHAFTEN[e]; return `<p><b>${esc(n.charAt(0).toUpperCase() + n.slice(1))}:</b> ${esc(t)}</p>`; }).join("")}${fl.map(f => `<p><b>☠ Fluch ${esc(V.FLUECHE[f].name)}:</b> ${esc(V.FLUECHE[f].text)}</p>`).join("")}</details>`;
+    // Große Züge, die sich mit genug Schaden in dieser Runde abbrechen lassen
+    for (const g of V.gegnerLebend(S)) { const x = (k.absicht || {})[g.id]; if (x && x.schwelle) h += `<div class="hinweis">✋ ${esc(g.name)} holt aus: ${x.a === "ruf" ? "Verstärkung" : esc(x.name || "Flächenangriff")}. Macht ihm diese Runde zusammen ${x.schwelle} Schaden, dann bricht es ab.</div>`; }
     if (S.log && S.log.length) h += `<details class="chronik"><summary class="etikett">Was in Runde ${k.runde - 1} geschah</summary>${S.log.map(t => `<p>${esc(t)}</p>`).join("")}</details>`;
     // Eigene Wahl
     if (!mitspieler()) h += `<p class="leise mitte">Du schaust zu.</p>`;
