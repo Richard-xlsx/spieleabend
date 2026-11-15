@@ -32,3 +32,11 @@ Jedes Ereignis kommt pro Ebene höchstens einmal. Bei vielen Ereignissen hilft e
 ## Verfluchte Relikte
 
 „Ein Thron im Staub“, „Ein freundlicher Geldverleiher“, „Ein Spieltisch ohne Spieler“, siehe KONZEPT-RELIKTE.md.
+
+## Simulation (klug spielende Bots, Abenteurer, mit Relikten)
+
+| | vorher | mit den neuen Ereignissen |
+|---|---|---|
+| 3 Helden, 2 Ebenen | 88 % | 88 % |
+| 3 Helden, 3 Ebenen | 81 % | 84 % |
+| 5 Helden, 2 Ebenen | 76 % (kleine Stichprobe) | 81 % |
