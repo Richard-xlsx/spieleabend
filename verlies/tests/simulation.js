@@ -99,9 +99,9 @@ function punkte(S,klug){
   return S;
 }
 function einkaufen(S,p,klug){
-  for(let n=0;n<10;n++){ const h=S.helden[p]; const ang=V.angebot(h).filter(w=>!w.aus&&w.preis<=h.gold);
+  for(let n=0;n<10;n++){ const h=S.helden[p]; const ang=V.angebot(h).concat(process.env.OHNE_RELIKTE?[]:V.reliktAngebot(S,p)).filter(w=>!w.aus&&w.preis<=h.gold);
     if(!ang.length) break;
-    const pr=klug?['verband','waffe','ruestung','leben','trank']:['trank','waffe'];
+    const pr=klug?['verband','waffe','ruestung','r:','leben','trank']:['trank','waffe'];
     let w=null; for(const k of pr){ w=ang.find(x=>x.id.startsWith(k)); if(w) break; } if(!w) break;
     const vor=S; S=V.aktion(S,p,{t:'kaufen',id:w.id,nr:S.spielNr}); if(S===vor) throw new Error('Kauf abgelehnt');
   }
@@ -141,6 +141,7 @@ function spiel(seed, rollen, klug){
   if(S.phase!=='ende' && LAENGE!==4) throw new Error('endet nicht '+rollen+' '+S.phase+' Raum '+S.raumNr+' Runde '+(S.kampf&&S.kampf.runde)+' '+JSON.stringify(S.gegner.map(g=>[g.art,g.hp,g.max])));
   if(klug&&S.ergebnis!=='sieg'){ const k=S.karte.knoten[S.karte.pos]; const wo='E'+S.ebene+' '+(k.typ==='boss'?'Endgegner':k.typ+' '+[...new Set(S.gegner.map(g=>g.art))].sort().join('+')); STATS.tod[wo]=(STATS.tod[wo]||0)+1; }
   if(klug){ STATS.spiele++; for(const id of S.karte.weg){ const t=S.karte.knoten[id].typ; STATS.raeume[t]=(STATS.raeume[t]||0)+1; } }
+  if(klug){ const rl=STATS.rel=STATS.rel||{n:0,s:0,je:{}}; for(const p of S.teilnehmer){ const r=S.helden[p].relikte||[]; rl.n++; rl.s+=r.length; for(const id of r) rl.je[id]=(rl.je[id]||0)+1; } }
   if(klug){ for(const p of S.teilnehmer){ STATS.stufe+=S.helden[p].stufe; STATS.gold=(STATS.gold||0)+S.helden[p].gold; STATS.n++; STATS.raenge+=S.helden[p].talente.length; const rs=STATS.rolle=STATS.rolle||{}; const rr=rs[S.helden[p].rolle]=rs[S.helden[p].rolle]||{n:0,s:0,h:0,ko:0}; rr.n++; rr.s+=S.helden[p].stats.schaden; rr.h+=S.helden[p].stats.geheilt; rr.ko+=S.helden[p].stats.umgefallen; const ast=S.helden[p].rolle+'/'+(S.helden[p].__ast||['-'])[0]; const z=STATS.ast[ast]=STATS.ast[ast]||[0,0]; z[0]++; if(S.ergebnis==='sieg')z[1]++;} }
   return {sieg:S.ergebnis==='sieg', lager, goldVorLager:gold/Math.max(1,lager)};
 }
@@ -165,6 +166,7 @@ DUO=true;
 if(GROESSE===3) for(const d of [['kaempfer','heilerin'],['paladin','magierin'],['dieb','waldlaeufer']]){ let w=0; for(let i=1;i<=N;i++) if(spiel(i*31,d,true).sieg)w++; console.log('zu zweit',d.join('+'),Math.round(100*w/N)+'%'); }
 
 console.log('Siegquote nach Hauptast (klug, Dreiergruppen):');for(const [k,[n,w]] of Object.entries(STATS.ast).sort()) console.log('  '+k.padEnd(30), Math.round(100*w/n)+'%', '('+n+')');
+if(STATS.rel) console.log('Ø Relikte je Held am Ende:',(STATS.rel.s/STATS.rel.n).toFixed(2),'·',Object.entries(STATS.rel.je).sort((a,b)=>b[1]-a[1]).map(([k,n])=>k+' '+Math.round(100*n/STATS.spiele)+'%').join(', '));
 if(STATS.vern) console.log('Vernichtungsschläge:',STATS.vern.n,'mit Schaden',Math.round(100*STATS.vern.schaden/STATS.vern.n)+'%','mit K.o.',Math.round(100*STATS.vern.ko/STATS.vern.n)+'%');
 if(STATS.rolle) console.log('Je Partie und Held (klug): Schaden / Heilung / K.o.:', Object.entries(STATS.rolle).map(([r,x])=>`${r} ${Math.round(x.s/x.n)}/${Math.round(x.h/x.n)}/${(x.ko/x.n).toFixed(1)}`).join(', '));
 console.log('Niederlagen (klug) nach Ort:'); for(const [k,n] of Object.entries(STATS.tod).sort((a,b)=>b[1]-a[1]).slice(0,14)) console.log('  '+k.padEnd(40), n);

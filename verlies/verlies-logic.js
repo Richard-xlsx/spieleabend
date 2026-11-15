@@ -528,7 +528,8 @@
   const RUHM_PASSIV = { schaden: ["kraft", 1], ruestung: ["haut", 1], heilplus: ["heil", 2] };
   const ruhmVon = (h, id) => (h.ruhmBoni && h.ruhmBoni[id]) || 0;
   const passiv = (h, art) => talenteVon(h).reduce((a, t) => a + (t.e.passiv === art ? t.e.n : 0), 0)
-    + (RUHM_PASSIV[art] ? ruhmVon(h, RUHM_PASSIV[art][0]) * RUHM_PASSIV[art][1] : 0);
+    + (RUHM_PASSIV[art] ? ruhmVon(h, RUHM_PASSIV[art][0]) * RUHM_PASSIV[art][1] : 0)
+    + (h.relikte || []).reduce((a, id) => a + ((RELIKTE[id] && RELIKTE[id].p && RELIKTE[id].p[art]) || 0), 0);
   const plusVon = (h, id, art) => talenteVon(h).reduce((a, t) => a + (t.e.plus === id ? t.e[art] || 0 : 0), 0);
   function talentWaehlbar(h, id) {
     const t = TALENT[id];
@@ -567,8 +568,15 @@
   function cdVon(h, a) {
     if (a.meister) return 99;                 // einmal pro Kampf (wird bei Kampfbeginn zurückgesetzt)
     if (!a.cd) return 0;
-    if (RUF[a.id]) return Math.max(1, a.cd - passiv(h, "rufcd"));
-    return Math.max(1, a.cd - plusVon(h, a.id, "cd"));
+    const sand = hatR(h, "sanduhr") && sanduhrZiel(h) === a.id ? 1 : 0;
+    if (RUF[a.id]) return Math.max(1, a.cd - passiv(h, "rufcd") - sand);
+    return Math.max(1, a.cd - plusVon(h, a.id, "cd") - sand);
+  }
+  // Sanduhr: die Fähigkeit mit der längsten Grund-Wartezeit (ab 3 Runden, keine Meisterfähigkeit)
+  function sanduhrZiel(h) {
+    let best = null;
+    for (const x of aktionenVon(h)) if (x.cd >= 3 && !x.meister && (!best || x.cd > best.cd)) best = x;
+    return best ? best.id : null;
   }
   // Chi (Mönch): Fähigkeiten kosten Chi statt Abklingzeit
   const CHI_MAX = 5;
@@ -641,7 +649,76 @@
   function wundenHeilen(h) { if (h.wundHp) h.max += h.wundHp; h.wundHp = 0; h.wunden = 0; }
   // ---------- Händler ----------
   const MAX = { waffe: 6, ruestung: 5, leben: 5, traenke: 3 };
-  const trankMax = h => MAX.traenke + stufeBonus(h).traenke + ruhmVon(h, "trank");
+  const trankMax = h => MAX.traenke + stufeBonus(h).traenke + ruhmVon(h, "trank") + passiv(h, "trankplatz");
+
+  // ---------- Relikte ----------
+  // Gegenstände mit einer eigenen Regel. Höchstens RELIKTE_MAX pro Held, jedes gibt es pro Partie nur einmal.
+  // stufe: g (gewöhnlich: Truhe, Händler), s (selten: Elite, Schatzkammer), l (Trophäe eines Endgegners), v (verflucht: Ereignis)
+  // p: Werte, die wie Talente über passiv() wirken; alles andere fragt hatR() an der passenden Stelle
+  const RELIKTE_MAX = 3, RELIKT_PREIS = 35;
+  const RELIKTE = {
+    trankguertel: { stufe: "g", name: "Trankgürtel", text: "+1 Trankplatz, deine Tränke heilen 4 mehr.", p: { trankplus: 4, trankplatz: 1 } },
+    haendlermarke: { stufe: "g", name: "Händlermarke", text: "Beim Händler zahlst du 25 % weniger." },
+    laterne: { stufe: "g", name: "Kundschafter-Laterne", text: "Die Gruppe sieht auf der Karte eine Reihe weiter, und in unbekannten Räumen wartet kein Hinterhalt mehr." },
+    weihwasser: { stufe: "g", name: "Weihwasser", text: "+3 Schaden gegen Untote.", p: { untot: 3 } },
+    panzerbrecher: { stufe: "g", name: "Panzerbrecher", text: "Deine Treffer gehen durch jeden Panzer." },
+    silberschere: { stufe: "g", name: "Silberschere", text: "Netze und Kokons halten dich nicht." },
+    blutguertel: { stufe: "g", name: "Blutroter Gürtel", text: "Unter halben Leben machst du +3 Schaden.", p: { blutrausch: 3 } },
+    giftphiole: { stufe: "g", name: "Giftphiole", text: "Dein erster Treffer in jedem Kampf vergiftet das Ziel: 3 Runden je 3 Gift." },
+    glutstein: { stufe: "g", name: "Glutstein", text: "Jeder dritte Treffer setzt das Ziel in Brand (2 Runden je 2). Brand stoppt Regeneration." },
+    dornenhemd: { stufe: "g", name: "Dornenhemd", text: "Wer dich trifft, nimmt 1 Schaden.", p: { dornen: 1 } },
+    vampirzahn: { stufe: "s", name: "Vampirzahn", text: "Einmal pro Runde: Wenn du Schaden machst, +2 Leben." },
+    frostsplitter: { stufe: "s", name: "Frostsplitter", text: "+4 Schaden gegen erstarrte Gegner." },
+    sanduhr: { stufe: "s", name: "Sanduhr", text: "Deine Fähigkeit mit der längsten Wartezeit (ab 3 Runden) ist eine Runde früher wieder bereit. Zeitfresser wirken nicht auf dich." },
+    knochenfloete: { stufe: "s", name: "Knochenflöte", text: "Zu Beginn jedes Kampfes steht ein kleiner Knochenkrieger an deiner Seite: 8 Leben, schlägt für 3." },
+    gluecksmuenze: { stufe: "s", name: "Glücksmünze", text: "Einmal pro Ebene verfehlt dich ein Vernichtungsschlag oder ein Todesmal." },
+    trophaeenkette: { stufe: "s", name: "Trophäenkette", text: "+1 Schaden für jeden Elite- und Endgegner, den ihr besiegt, seit jemand sie trägt (höchstens +3)." },
+    wanderstiefel: { stufe: "s", name: "Wanderstiefel", text: "Wählt ihr bei der Rast „Üben“, heilst du trotzdem halb so viel wie beim Ausruhen." },
+    amulett: { stufe: "s", name: "Geteiltes Amulett", text: "Zwei Hälften für zwei Helden: Beide nehmen 2 Schaden weniger pro Treffer, solange beide stehen.", paar: true },
+    schutzstein: { stufe: "s", name: "Schutzstein", text: "Einmal pro Ebene: Der erste Schlag, der einen aus der Gruppe bewusstlos machen würde, lässt ihm 1 Leben." },
+    knochenzepter: { stufe: "l", von: "koenig", name: "Knochenzepter", text: "Einmal pro Ebene: Wirst du bewusstlos, stehst du sofort mit 20 % deiner Leben wieder auf." },
+    seidenmantel: { stufe: "l", von: "koenigin", name: "Seidenmantel", text: "−1 Schaden pro Treffer, und Gift wirkt nicht auf dich.", p: { ruestung: 1 } },
+    drachenherz: { stufe: "l", von: "drache", name: "Drachenherz", text: "+2 Schaden mit allen Angriffen, Brand und Lava schaden dir nicht.", p: { schaden: 2 } },
+    krone: { stufe: "v", name: "Bleierne Krone", text: "+3 Schaden mit allen Angriffen, aber Heilung im Kampf wirkt an dir nur halb.", p: { schaden: 3 } },
+    schuldschein: { stufe: "v", name: "Schuldschein", text: "Nach dem nächsten Endgegner zahlst du 80 Gold zurück. Hast du sie nicht, kostet es dich 10 Höchstleben. Lässt sich nicht abgeben.", fest: true },
+    narrenwuerfel: { stufe: "v", name: "Narrenwürfel", text: "Jeder deiner Treffer macht zufällig zwischen halbem und doppeltem Schaden." }
+  };
+  const hatR = (h, id) => !!(h && h.relikte && h.relikte.includes(id));
+  const reliktPlatz = h => (h.relikte || []).length < RELIKTE_MAX;
+  // Was in dieser Partie schon unterwegs ist: getragen, zur Wahl angeboten, beim Händler ausgelegt oder verbraucht
+  function relikteVergeben(S) {
+    const v = new Set(S.relikteWeg || []);
+    for (const p of S.teilnehmer || []) { const h = S.helden[p]; if (!h) continue; for (const id of h.relikte || []) v.add(id); for (const id of h.fund || []) v.add(id); }
+    if (S.lager && S.lager.relikte) for (const id of S.lager.relikte) v.add(id);
+    return v;
+  }
+  const relikteFrei = (S, stufe) => { const v = relikteVergeben(S); return Object.keys(RELIKTE).filter(id => RELIKTE[id].stufe === stufe && !v.has(id)); };
+  // Einem Helden ein Relikt geben (Platz muss frei sein); gibt Texte zurück
+  function reliktGeben(S, p, id) {
+    const h = S.helden[p];
+    h.relikte = (h.relikte || []).concat(id);
+    if (id === "trophaeenkette") S.kette = 0;
+    if (id === "schuldschein") { h.gold += 60; return [`${heldName(S, p)} steckt 60 Gold ein und unterschreibt den Schuldschein.`]; }
+    return [`${heldName(S, p)} bekommt ${RELIKTE[id].name}: ${RELIKTE[id].text}`];
+  }
+  // Relikt für den Helden mit den wenigsten (Gleichstand: Los); das Amulett braucht zwei Träger
+  function reliktFuerGruppe(S, stufe) {
+    const mitPlatz = S.teilnehmer.filter(p => reliktPlatz(S.helden[p]));
+    let frei = relikteFrei(S, stufe);
+    if (mitPlatz.length < 2) frei = frei.filter(id => !RELIKTE[id].paar);
+    if (!mitPlatz.length || !frei.length) return [];
+    const id = eins(S, frei), wenigste = l => { const n = p => (S.helden[p].relikte || []).length, m = Math.min(...l.map(n)); return eins(S, l.filter(p => n(p) === m)); };
+    const a = wenigste(mitPlatz), t = [`Ihr findet ein Relikt: ${RELIKTE[id].name}.`, ...reliktGeben(S, a, id)];
+    if (RELIKTE[id].paar) { const b = wenigste(mitPlatz.filter(p => p !== a)); S.helden[b].relikte = (S.helden[b].relikte || []).concat(id); t.push(`Die andere Hälfte trägt ${heldName(S, b)}.`); }
+    return t;
+  }
+  // Schatzkammer und Trophäe: Der Held wählt selbst (h.fund); was beim Weiterziehen offen ist, nimmt er, wenn Platz ist
+  function fundeAufloesen(S) {
+    for (const p of S.teilnehmer) { const h = S.helden[p]; if (h.fund && h.fund.length && reliktPlatz(h)) reliktGeben(S, p, h.fund[0]); h.fund = null; }
+  }
+  // Glück einmal pro Ebene (Münze, Zepter, Schutzstein)
+  const einmalProEbene = (S, h, id) => { h.ebeneR = h.ebeneR || {}; if (h.ebeneR[id] === S.ebene) return false; h.ebeneR[id] = S.ebene; return true; };
+  const rabatt = (h, preis) => hatR(h, "haendlermarke") ? Math.round(preis * 0.75) : preis;
   function angebot(h) {
     const l = [
       { id: "waffe", name: "Waffe schärfen", text: `+1 Schaden bei jedem Angriff (jetzt +${h.waffe})`, preis: 15 + 15 * h.waffe, aus: h.waffe >= MAX.waffe },
@@ -650,8 +727,12 @@
       { id: "verband", name: "Verbände", text: h.wunden ? `Heilt deine ${h.wunden === 1 ? "Wunde" : h.wunden + " Wunden"}: +${h.wundHp} Höchstleben` : "Heilt Wunden (du hast keine)", preis: 12, aus: !h.wunden },
       { id: "trank", name: "Heiltrank", text: `+${14 + passiv(h, "trankplus")} Leben im Kampf (du hast ${h.traenke}, höchstens ${trankMax(h)})`, preis: 10, aus: h.traenke >= trankMax(h) }
     ];
+    for (const w of l) w.preis = rabatt(h, w.preis);
     return l;
   }
+  // Relikte beim Händler: für alle dieselben, wer zuerst kauft, hat es
+  const reliktAngebot = (S, p) => (S.lager && S.lager.relikte || []).map(id => ({ id: "r:" + id, relikt: id, name: RELIKTE[id].name, text: RELIKTE[id].text,
+    preis: rabatt(S.helden[p], RELIKT_PREIS), aus: !reliktPlatz(S.helden[p]) }));
 
   // ---------- Gegner ----------
   const GEGNER = {
@@ -888,7 +969,14 @@
     troll: { titel: "Ein schlafender Troll", text: "Er schnarcht vor einem Haufen Münzen. Sein Atem riecht nach Zwiebeln.", optionen: ["Vorbeischleichen und Gold nehmen", "Leise umkehren"] },
     haendler: { titel: "Ein Händler in Kapuze", text: "„Tränke, frisch gebraut! 8 Gold das Stück, heute günstiger.“ Er zeigt keine Hände.", optionen: ["Jeder kauft einen Trank", "Weitergehen"] },
     altar: { titel: "Ein Altar mit Inschrift", text: "„Gib Gold, und das Leben wird stärker.“ Eine Schale wartet.", optionen: ["Jeder opfert 15 Gold", "Nichts geben"] },
-    bruecke: { titel: "Eine wackelige Brücke", text: "Unter euch nur Dunkelheit. Die Seile ächzen.", optionen: ["Vorsichtig hinübertasten", "Hinüberrennen"] }
+    bruecke: { titel: "Eine wackelige Brücke", text: "Unter euch nur Dunkelheit. Die Seile ächzen.", optionen: ["Vorsichtig hinübertasten", "Hinüberrennen"] },
+    // Verfluchte Relikte: Die Gruppe stimmt ab, wer es nimmt, oder lässt es liegen
+    thron: { titel: "Ein Thron im Staub", bild: "krone", relikt: "krone", frage: "Wer setzt die Krone auf?", nein: "Liegen lassen",
+      text: "Auf einem umgestürzten Thron liegt eine Krone aus Blei. Wer sie berührt, spürt Kraft in den Armen, aber auch eine Kälte, die nicht mehr weggeht." },
+    verleiher: { titel: "Ein freundlicher Geldverleiher", bild: "haendler", relikt: "schuldschein", frage: "Wer leiht sich 60 Gold?", nein: "Niemand",
+      text: "Ein Mann im feinen Mantel sitzt an einem Tischchen, als wäre das hier eine Wechselstube. „60 Gold, sofort. Zurück zahlt ihr nach dem nächsten großen Kampf, nur ein kleiner Aufschlag: 80.“" },
+    spieltisch: { titel: "Ein Spieltisch ohne Spieler", bild: "schrein", relikt: "narrenwuerfel", frage: "Wer nimmt den Würfel?", nein: "Liegen lassen",
+      text: "Karten liegen verstreut, die Stühle sind umgekippt. In der Mitte ein einzelner Würfel, der von allein weiterrollt, wenn man ihn ansieht." }
   };
 
   const SEGEN = {
@@ -953,7 +1041,7 @@
     return K;
   }
   // Wie weit die Gruppe auf der Karte sieht: 2 Reihen, mit Waldläufer oder Dieb 3
-  const sicht = S => (S.teilnehmer.some(p => S.helden[p].rolle === "waldlaeufer" || S.helden[p].rolle === "dieb") ? 3 : 2);
+  const sicht = S => (S.teilnehmer.some(p => S.helden[p].rolle === "waldlaeufer" || S.helden[p].rolle === "dieb") ? 3 : 2) + (S.teilnehmer.some(p => hatR(S.helden[p], "laterne")) ? 1 : 0);
   const geheimgangMoeglich = S => !S.karte.geheimgang && S.teilnehmer.some(p => S.helden[p].rolle === "dieb" && S.helden[p].hp > 0);
   function raumOption(S, k, geheim) {
     const o = { knoten: k.id, typ: k.typ, text: (geheim ? "Geheimgang: " : "") + RAUMNAME[k.typ] };
@@ -1001,6 +1089,7 @@
       // Wundbrand: keine Heilung (wer bewusstlos ist, kann trotzdem zurückgeholt werden); Fluchträger: Heilung halb
       if (h.wundbrand > 0 && h.hp > 0) return 0;
       if (S.gegner.some(g => g.hp > 0 && hat(g, "fluchtraeger"))) n = Math.ceil(n / 2);
+      if (hatR(h, "krone")) n = Math.ceil(n / 2);
     }
     h.hp = Math.min(h.max, h.hp + n);
     return h.hp - war;
@@ -1020,7 +1109,8 @@
   function entscheiden(S, art, frage, optionen, extra) {
     S.entscheidung = Object.assign({ art, frage, optionen, stimmen: {} }, extra || {});
   }
-  const EREIGNISSE_FREI = S => Object.keys(EREIGNISSE).filter(e => !S.benutzt.includes(e));
+  const EREIGNISSE_FREI = S => Object.keys(EREIGNISSE).filter(e => !S.benutzt.includes(e)
+    && !(EREIGNISSE[e].relikt && (relikteVergeben(S).has(EREIGNISSE[e].relikt) || !S.teilnehmer.some(p => reliktPlatz(S.helden[p])))));
   // Nächste Ebene: neue Karte, neue Ereignisse, Abstieg
   function neueEbene(S) {
     S.ebene += 1; S.ebeneFertig = false;
@@ -1040,6 +1130,7 @@
   }
   function weiterziehen(S) {
     S.log = [];
+    fundeAufloesen(S);
     if (S.ebeneFertig) { neueEbene(S); return; }
     if (S.raumNr === REIHEN && !(S.lagerBesucht || []).includes(REIHEN)) lagerOeffnen(S, true);
     else karteZeigen(S);
@@ -1049,6 +1140,9 @@
     S.phase = "lager";
     S.entscheidung = null;
     S.lager = { fertig: {}, kaeufe: [] };
+    const frei = relikteFrei(S, "g"), r = [];
+    while (r.length < 2 && frei.length) r.push(frei.splice(Math.floor(zufall(S) * frei.length), 1)[0]);
+    S.lager.relikte = r;
     S.seite = vorDemTor ? { bild: "haendler", titel: "Vor dem großen Tor", text: [TEXTE.lager[2]] }
       : { bild: "haendler", titel: `Raum ${S.raumNr}: Der Händler`, text: [eins(S, TEXTE.lager.slice(0, 2))] };
   }
@@ -1092,9 +1186,14 @@
     } else if (typ === "kammer") {
       K.schluessel -= 1;
       const t = ["Der Schlüssel dreht sich schwer im Schloss. Dahinter stapeln sich Gold, Waffen und Tränke.", goldFuerJeden(S, 26, 34)];
+      // Jeder sucht sich eins von zwei seltenen Relikten aus; sind keine mehr übrig, wie früher Waffe oder Rüstung
+      const frei = relikteFrei(S, "s").filter(id => !RELIKTE[id].paar);
       for (const p of S.teilnehmer) {
         const h = S.helden[p];
-        if (h.waffe < MAX.waffe && (h.ruestung >= MAX.ruestung || chance(S, 0.55))) { h.waffe += 1; t.push(`${heldName(S, p)} nimmt eine bessere Waffe: +1 Schaden.`); }
+        const zwei = [];
+        while (zwei.length < 2 && frei.length && (!zwei.length || frei.length > S.teilnehmer.length - S.teilnehmer.indexOf(p) - 1)) zwei.push(frei.splice(Math.floor(zufall(S) * frei.length), 1)[0]);
+        if (zwei.length) { h.fund = zwei; t.push(`${heldName(S, p)} darf sich ein Relikt aussuchen: ${zwei.map(id => RELIKTE[id].name).join(" oder ")}.`); }
+        else if (h.waffe < MAX.waffe && (h.ruestung >= MAX.ruestung || chance(S, 0.55))) { h.waffe += 1; t.push(`${heldName(S, p)} nimmt eine bessere Waffe: +1 Schaden.`); }
         else if (h.ruestung < MAX.ruestung) { h.ruestung += 1; t.push(`${heldName(S, p)} nimmt ein Rüstungsteil: −1 Schaden pro Treffer.`); }
         else { h.max += 6; h.hp += 6; t.push(`${heldName(S, p)} findet ein Amulett: +6 Höchstleben.`); }
         if (h.traenke < trankMax(h)) h.traenke += 1;
@@ -1104,9 +1203,10 @@
       entscheiden(S, "weiter", "", [{ text: "Weiterziehen" }]);
     } else {
       // Unbekannt: Hinterhalt, Fundstück oder eines der Ereignisse
-      const frei = EREIGNISSE_FREI(S), r = zufall(S);
-      if (r < 0.22 || !frei.length) kampfRaum(S, gruppeFuer(S, stufe(n)), `Raum ${n}: Ein Hinterhalt!`, "Kaum seid ihr drin, fällt hinter euch ein Gitter herab. Aus den Schatten kommen sie.");
-      else if (r < 0.32) {
+      // Mit der Kundschafter-Laterne wird aus dem Hinterhalt ein Fundstück
+      const frei = EREIGNISSE_FREI(S), r = zufall(S), lat = S.teilnehmer.some(p => hatR(S.helden[p], "laterne"));
+      if (!lat && (r < 0.22 || !frei.length)) kampfRaum(S, gruppeFuer(S, stufe(n)), `Raum ${n}: Ein Hinterhalt!`, "Kaum seid ihr drin, fällt hinter euch ein Gitter herab. Aus den Schatten kommen sie.");
+      else if (r < 0.32 || !frei.length) {
         const t = ["Zwischen alten Knochen liegt ein Lederbeutel.", goldFuerJeden(S, 6, 10)];
         if (!K.schluessel && Object.values(K.knoten).some(x => x.typ === "kammer" && x.r > n)) { K.schluessel += 1; t.push("Darin: ein schwerer, alter Schlüssel."); }
         t.push(...erfahrung(S, 8));
@@ -1116,8 +1216,11 @@
         const id = eins(S, frei);
         S.benutzt.push(id);
         const e = EREIGNISSE[id];
-        S.seite = { bild: id, titel: `Raum ${n}: ${e.titel}`, text: [e.text] };
-        entscheiden(S, "ereignis", "Was tut ihr?", e.optionen.map(t => ({ text: t })), { id });
+        S.seite = { bild: e.bild || id, titel: `Raum ${n}: ${e.titel}`, text: [e.text] };
+        if (e.relikt) {
+          const wer = S.teilnehmer.filter(p => reliktPlatz(S.helden[p]));
+          entscheiden(S, "ereignis", e.frage, wer.map(p => ({ text: heldName(S, p), hinweis: RELIKTE[e.relikt].text })).concat([{ text: e.nein }]), { id, wer });
+        } else entscheiden(S, "ereignis", "Was tut ihr?", e.optionen.map(t => ({ text: t })), { id });
       }
     }
     if (S.phase !== "lager") S.phase = S.kampf ? "kampf" : "erkunden";
@@ -1139,7 +1242,11 @@
     return t;
   }
 
-  function ereignisAusfuehren(S, id, wahl) {
+  function ereignisAusfuehren(S, id, wahl, e) {
+    if (EREIGNISSE[id].relikt) {
+      const p = e && e.wer && e.wer[wahl];
+      return p && reliktPlatz(S.helden[p]) ? reliktGeben(S, p, EREIGNISSE[id].relikt) : ["Ihr lasst es, wo es ist."];
+    }
     const t = [], alle = S.teilnehmer, dieb = alle.find(p => S.helden[p].rolle === "dieb" || S.helden[p].rolle === "waldlaeufer");
     if (id === "brunnen") {
       if (wahl === 0) for (const p of alle) {
@@ -1184,7 +1291,8 @@
       h.hp -= n; t.push(`Eine Giftnadel! ${heldName(S, p)}: −${n} Leben.`);
     }
     t.push(dieb ? goldFuerJeden(S, 18, 26) : goldFuerJeden(S, 14, 22));
-    t.push(...beute(S, 0.6, 0.35));
+    const r = chance(S, 1 / 3) ? reliktFuerGruppe(S, "g") : [];
+    t.push(...r, ...beute(S, 0.6, r.length ? 0.15 : 0.35));
     return t;
   }
   function beute(S, pTrank, pTeil) {
@@ -1300,7 +1408,10 @@
     S.kampf = { runde: 1, wahl: {}, bossPhase: 1, epTot: 0, nebel: false, absicht: {}, rache: 0, diener: [], dnr: 0, koVor: Object.fromEntries(S.teilnehmer.map(p => [p, S.helden[p].stats.umgefallen])) };
     for (const p of S.teilnehmer) { const h = S.helden[p]; for (const id in h.cd) if (NEUE[id] && NEUE[id].meister) delete h.cd[id]; }
     for (const p of S.teilnehmer) Object.assign(S.helden[p], { schild: false, versteckt: false, lauer: false, segen: 0, gift: 0, giftR: 0, immun: false, fels: false, beschuetzt: null, netz: 0, kokon: null, stille: 0, wundbrand: 0, todesmal: null,
-      chi: 1 + passiv(S.helden[p], "chistart"), windbonus: 0, wind: false, wirbelwind: false, leer: 0, letztesZiel: null, seelen: 0, ahnen: false, geistschild: 0, sturm: 0 });
+      chi: 1 + passiv(S.helden[p], "chistart"), phiole: false, vampir: 0, windbonus: 0, wind: false, wirbelwind: false, leer: 0, letztesZiel: null, seelen: 0, ahnen: false, geistschild: 0, sturm: 0 });
+    // Knochenflöte: ein kleiner Knochenkrieger steht von Anfang an bereit (zählt nicht zu den Plätzen des Nekromanten)
+    for (const p of S.teilnehmer) if (hatR(S.helden[p], "knochenfloete") && S.helden[p].hp > 0)
+      S.kampf.diener.push({ id: "d" + (S.kampf.dnr += 1), herr: p, art: "skelett", name: "Knochenkrieger", max: 8, hp: 8, schlag: 3, heil: 0, panzer: 0, floete: true });
     S.entscheidung = null;
     S.log = [];
     planeGegner(S);
@@ -1335,7 +1446,8 @@
   // Bonus eines Helden auf jeden Angriff: Waffe, Segen, Talente, Stufe
   const gruppenPassiv = (S, art, ausser) => S.teilnehmer.reduce((a, q) => a + (q !== ausser && !S.helden[q].gefallen ? passiv(S.helden[q], art) : 0), 0);
   const angriffsBonus = (S, h) => h.waffe + (h.segen || 0) + passiv(h, "schaden") + stufeBonus(h).schaden + gruppenPassiv(S, "aura")
-    + (h.hp < h.max / 2 ? passiv(h, "blutrausch") : 0) + (S.kampf && S.kampf.runde === 1 ? passiv(h, "erste") : 0) + (h.seelen || 0) * passiv(h, "seelenkraft");
+    + (h.hp < h.max / 2 ? passiv(h, "blutrausch") : 0) + (S.kampf && S.kampf.runde === 1 ? passiv(h, "erste") : 0) + (h.seelen || 0) * passiv(h, "seelenkraft")
+    + (hatR(h, "trophaeenkette") ? S.kette || 0 : 0);
   // Bonus gegen ein bestimmtes Ziel: Markierung (Jagdinstinkt gilt für alle), Untotenjäger
   const markPlus = S => Math.max(0, ...S.teilnehmer.map(p => passiv(S.helden[p], "markplus")));
   const zielBonus = (S, h, g) => (g.markiert > 0 ? 3 + markPlus(S) : 0) + (GEGNER[g.art].untot ? passiv(h, "untot") : 0);
@@ -1348,7 +1460,7 @@
     schattenblitz: "magie", leichenexplosion: "magie", knochensplitter: "fern",
     feuerweihe: "licht", schwarztod: "gift", schattentanz: "stich", sternschuss: "fern", wildnis: "fern", sternenfall: "magie", zeitstillstand: "magie"
   };
-  let angriffsart = "nah", feuerangriff = false, dornenSchon = false;
+  let angriffsart = "nah", feuerangriff = false, dornenSchon = false, aktHeld = null;   // aktHeld: wessen Angriff gerade wirkt (für Relikte)
   const FEUER = { funken: 1, feuerball: 1, meteor: 1, inferno: 1, sternenfall: 1 };
   // Endgegner wechseln in Phasen: Königin fliegt ab Phase 2, der Drache nur in Phase 1 und wird in Phase 3 schnell
   const istFliegend = (S, g) => !!GEGNER[g.art].fliegend || !!(S.kampf && ((g.art === "koenigin" && S.kampf.bossPhase >= 2) || (g.art === "drache" && S.kampf.bossPhase < 2)));
@@ -1382,9 +1494,12 @@
     if (feuerangriff) g.feuer = 2;
     // Wechselhaut: diese Runde immun gegen Nahkampf oder gegen Zauber
     if (g.haut && (g.haut === "nah" ? ["nah", "stich"] : ["magie", "licht"]).includes(angriffsart)) return 0;
+    const ah = aktHeld && S.helden[aktHeld];
+    if (hatR(ah, "frostsplitter") && g.starr > 0) d += 4;
     if (knochenschild(S, g)) d = Math.ceil(d / 2);
-    if (art.panzer && !["gift", "magie", "licht", "stich"].includes(angriffsart)) d -= art.panzer;
+    if (art.panzer && !hatR(ah, "panzerbrecher") && !["gift", "magie", "licht", "stich"].includes(angriffsart)) d -= art.panzer;
     d = Math.max(1, d);
+    if (hatR(ah, "narrenwuerfel")) d = Math.max(1, Math.round(d * (0.5 + 1.5 * zufall(S))));
     if (g.schutz > 0) { const x = Math.min(g.schutz, d); g.schutz -= x; d -= x; }
     return d;
   }
@@ -1397,6 +1512,12 @@
       dornenSchon = true;
       const x = Math.min(h.hp - 1, Math.round(staerke(S).dmg));
       if (x > 0) { h.hp -= x; log.push(`${heldName(S, pid)} sticht sich an den Dornen von ${g.name}: −${x} Leben.`); }
+    }
+    // Relikte, die bei einem eigenen Treffer wirken (nicht bei Treffern der Diener)
+    if (e > 0 && aktHeld === pid && S.kampf && h.hp > 0 && !GEGNER[g.art].objekt) {
+      if (hatR(h, "vampirzahn") && h.vampir !== S.kampf.runde) { h.vampir = S.kampf.runde; const x = heldHeilen(S, pid, 2); if (x) log.push(`Der Vampirzahn von ${heldName(S, pid)} saugt Kraft: +${x} Leben.`); }
+      if (g.hp > 0 && hatR(h, "giftphiole") && !h.phiole) { h.phiole = true; vergiften(g, 3, 3); log.push(`Die Giftphiole von ${heldName(S, pid)} vergiftet ${g.name}.`); }
+      if (g.hp > 0 && hatR(h, "glutstein") && (h.glut = (h.glut || 0) + 1) % 3 === 0) { vergiften(g, 2, 2, true); log.push(`Der Glutstein von ${heldName(S, pid)} setzt ${g.name} in Brand.`); }
     }
     if (g.hp <= 0 && e > 0 && h.hp > 0 && passiv(h, "todheil")) { const x = heldHeilen(S, pid, passiv(h, "todheil")); if (x) log.push(`${heldName(S, pid)} schöpft Kraft: +${x} Leben.`); }
     return e;
@@ -1512,7 +1633,7 @@
     const rufeDiener = (p, art, zusaetzlich) => {
       const h = S.helden[p], w = dienerWerte(h, art);
       const weg = d => { k.diener = k.diener.filter(x => x !== d); dWeg.push(d.id); };
-      if (!zusaetzlich) { const m = dienerVon(S, p); while (m.length >= dienerPlaetze(h)) weg(m.shift()); }
+      if (!zusaetzlich) { const m = dienerVon(S, p).filter(d => !d.floete); while (m.length >= dienerPlaetze(h)) weg(m.shift()); }
       while (k.diener.filter(d => d.hp > 0).length >= DIENER_HOECHST) weg(dienerVon(S, p)[0] || k.diener.find(d => d.hp > 0));
       const d = Object.assign({ id: "d" + (k.dnr = (k.dnr || 0) + 1), herr: p, art, name: DIENER[art].name, max: w.hp }, w);
       k.diener.push(d); dNeu.push(d);
@@ -1527,7 +1648,7 @@
     for (const p of reihe) {
       const h = S.helden[p], w = k.wahl[p], n = heldName(S, p);
       cd(h, w);
-      angriffsart = ANGRIFFSART[w.a] || "nah"; feuerangriff = !!FEUER[w.a]; dornenSchon = false;
+      angriffsart = ANGRIFFSART[w.a] || "nah"; feuerangriff = !!FEUER[w.a]; dornenSchon = false; aktHeld = p;
       beginn();
       switch (w.a) {
         case "befreien": h.netz = 0; log.push(`${n} reißt sich aus dem Netz los.`); break;
@@ -1643,7 +1764,7 @@
     for (const p of reihe) {
       if (!gegnerLebend(S).length) break;
       const h = S.helden[p], w = k.wahl[p];
-      angriffsart = ANGRIFFSART[w.a] || "nah"; feuerangriff = !!FEUER[w.a]; dornenSchon = false;
+      angriffsart = ANGRIFFSART[w.a] || "nah"; feuerangriff = !!FEUER[w.a]; dornenSchon = false; aktHeld = p;
       if (h.rolle === "moench" && angriffsart === "nah" && passiv(h, "druckpunkte")) angriffsart = "stich";   // geht durch Panzer
       beginn();
       // Leibwächter fangen Nahkampf und Zauber gegen andere Gegner ab (Pfeile kommen vorbei)
@@ -1798,7 +1919,7 @@
         }
         if (!gegnerLebend(S).length) break;
         const z = S.gegner.find(g => g.id === h.letztesZiel && g.hp > 0) || eins(S, gegnerLebend(S));
-        angriffsart = "nah"; feuerangriff = false; dornenSchon = true;
+        angriffsart = "nah"; feuerangriff = false; dornenSchon = true; aktHeld = null;
         beginn();
         const still = [], x = wirkung(S, z, (d.titan > 0 ? d.titanSchlag : d.schlag) + zielBonus(S, h, z));
         aufGegner(S, d.herr, z, x, still);
@@ -1814,7 +1935,7 @@
       log.push(`Das Gift frisst an ${g.name}: ${e} Schaden${g.hp <= 0 ? ". " + g.name + " fällt!" : "."}`);
       ende({ von: g.id, a: "giftTick" });
     }
-    angriffsart = "nah"; feuerangriff = false;
+    angriffsart = "nah"; feuerangriff = false; aktHeld = null;
     // Ein besiegter Langfinger lässt das gestohlene Gold fallen
     const beuteZurueck = () => {
       for (const g of S.gegner) if (g.hp <= 0 && !g.geflohen && g.beute) {
@@ -1944,10 +2065,11 @@
         if (art.wundbrand && !(z.wundbrand > 0)) { const wr = (S.ebene || 1) === 1 ? 1 : WUNDBRAND; z.wundbrand = wr + 1; log.push(`Wundbrand: ${heldName(S, p)} kann ${wr === 1 ? "nächste Runde" : wr + " Runden lang"} nicht geheilt werden.`); }
         if (art.stille && !(z.stille > 0)) { z.stille = 2; log.push(`${heldName(S, p)} ist verstummt: nächste Runde nur angreifen.`); }
         if (art.zeitfresser && z.rolle === "moench" && z.chi > 0) { z.chi -= 1; log.push(`${g.name} frisst Zeit: ${heldName(S, p)} verliert 1 Chi.`); }
+        else if (art.zeitfresser && hatR(z, "sanduhr")) log.push(`${g.name} will Zeit fressen, doch die Sanduhr von ${heldName(S, p)} hält sie fest.`);
         else if (art.zeitfresser) { const l = Object.keys(z.cd).filter(c => z.cd[c] > 0 && !(NEUE[c] && NEUE[c].meister)); for (const c of l) z.cd[c] += 1; if (l.length) log.push(`${g.name} frisst Zeit: Die Fähigkeiten von ${heldName(S, p)} brauchen eine Runde länger.`); }
       }
-      if (art.gift && z.hp > 0 && !z.immun && chance(S, 0.4)) { setzeGift(z, gdmg(S, 2), 2); log.push(`${heldName(S, p)} ist vergiftet.`); }
-      if (art.brand && z.hp > 0 && !z.immun && chance(S, 0.4)) { setzeGift(z, gdmg(S, 3), 2, true); log.push(`${heldName(S, p)} steht in Flammen.`); }
+      if (art.gift && z.hp > 0 && !z.immun && chance(S, 0.4) && setzeGift(z, gdmg(S, 2), 2)) { log.push(`${heldName(S, p)} ist vergiftet.`); }
+      if (art.brand && z.hp > 0 && !z.immun && chance(S, 0.4) && setzeGift(z, gdmg(S, 3), 2, true)) { log.push(`${heldName(S, p)} steht in Flammen.`); }
       if (art.langfinger && !z.immun && z.gold > 0) {
         const n = Math.min(z.gold, wurf(S, 5, 8));
         z.gold -= n; g.beute = g.beute || {}; g.beute[p] = (g.beute[p] || 0) + n;
@@ -1988,6 +2110,7 @@
         const V = (S.ebene || 1) === 1 ? VERNICHTUNG_E1 : VERNICHTUNG;
         let n = Math.round(S.helden[p].max * wurf(S, V[0], V[1]) / 100 * (gruppe(S).vern || 1));
         if (halb) n = Math.ceil(n / 2);
+        if (hatR(S.helden[p], "gluecksmuenze") && einmalProEbene(S, S.helden[p], "gluecksmuenze")) { log.push(`Die Glücksmünze von ${heldName(S, p)} blitzt auf: Der Schlag geht daneben!`); getroffen.push(p); continue; }
         treffer(S, p, n, log, g.name, g, true);
         getroffen.push(p);
       }
@@ -2045,6 +2168,7 @@
         const p = plan.ziel && ziele.includes(plan.ziel) ? plan.ziel : ziele.length ? eins(S, ziele) : null;
         if (!p) { log.push(`${g.name} findet niemanden für ihr Netz.`); return { a: "keinziel" }; }
         if (S.helden[p].immun) { log.push(`Das Netz von ${g.name} prallt an ${heldName(S, p)} ab.`); return { a: "netz", ziel: p }; }
+        if (hatR(S.helden[p], "silberschere")) { log.push(`${g.name} spinnt ${heldName(S, p)} ein, doch die Silberschere schneidet sofort alle Fäden durch.`); return { a: "netz", ziel: p }; }
         // Spinnenkönigin: Kokon, aus dem sich der Held nicht selbst befreien kann
         if (plan.kokon && !S.helden[p].kokon && gegnerLebend(S).length < maxGegner(S)) {
           aufraeumen();
@@ -2116,7 +2240,7 @@
       beginn();
       const n = Math.round((LAVA + (k.lava || 0)) * schwere(S).dmg); k.lava = (k.lava || 0) + 1;
       log.push("Die Lava steigt und leckt an euren Füßen!");
-      for (const p of lebend(S)) treffer(S, p, n, log, null, null, true);
+      for (const p of lebend(S)) { if (hatR(S.helden[p], "drachenherz")) log.push(`Das Drachenherz schützt ${heldName(S, p)} vor der Lava.`); else treffer(S, p, n, log, null, null, true); }
       ende({ von: lv.id, a: "lava" });
     }
     for (const p of S.teilnehmer) {
@@ -2211,7 +2335,10 @@
     if (!gegnerLebend(S).length) kampfGewonnen(S);
     else if (!lebend(S).length) { S.phase = "ende"; S.ergebnis = "niederlage"; S.seite = { bild: "grab", titel: "Ihr seid gefallen", text: [ebeneVon(S).niederlage] }; S.kampf = null; }
   }
-  function setzeGift(h, n, runden, brand) { h.gift = n; h.giftR = runden; h.giftArt = brand ? "Brand" : "Gift"; }
+  function setzeGift(h, n, runden, brand) {
+    if (hatR(h, brand ? "drachenherz" : "seidenmantel")) return false;
+    h.gift = n; h.giftR = runden; h.giftArt = brand ? "Brand" : "Gift"; return true;
+  }
   function treffer(S, p, n, log, von, g, ohneRuestung) {
     const h = S.helden[p], wer = heldName(S, p);
     if (h.immun) { log.push(von ? `${von} trifft ${wer}, doch der Schlag prallt ab.` : `${wer} bleibt unversehrt.`); return; }
@@ -2223,9 +2350,15 @@
     if (S.kampf && S.kampf.bollwerk) n = Math.ceil(n / 2);
     if (S.kampf && S.kampf.nirwana > 0) n = Math.min(n, 4);
     if (h.geistschild > 0) { n = Math.max(1, n - h.geistschild); h.geistschild = 0; }
+    if (hatR(h, "amulett") && S.teilnehmer.some(q => q !== p && hatR(S.helden[q], "amulett") && S.helden[q].hp > 0)) n = Math.max(1, n - 2);
     const echt = Math.min(n, h.hp);
     h.hp -= echt;
     log.push((von ? `${von} trifft ${wer}: ` : `${wer}: `) + `−${n} Leben${h.hp <= 0 ? ". " + wer + " bricht zusammen!" : "."}`);
+    if (h.hp <= 0 && S.kampf) {
+      const st = S.teilnehmer.find(q => hatR(S.helden[q], "schutzstein"));
+      if (st && einmalProEbene(S, S.helden[st], "schutzstein")) { h.hp = 1; log.push(`Doch der Schutzstein von ${heldName(S, st)} leuchtet auf: ${wer} bleibt mit 1 Leben stehen.`); }
+      else if (hatR(h, "knochenzepter") && einmalProEbene(S, h, "knochenzepter")) { h.hp = Math.ceil(h.max * 0.2); log.push(`Doch das Knochenzepter reißt ${wer} wieder hoch: ${h.hp} Leben.`); }
+    }
     // Ahnenruf: ein Irrlicht holt den Helden zurück und vergeht (einmal pro Kampf)
     const il = h.hp <= 0 && S.kampf ? (S.kampf.diener || []).find(d => d.hp > 0 && d.art === "irrlicht" && passiv(S.helden[d.herr], "ahnenruf") && !S.helden[d.herr].ahnen) : null;
     if (il) { const hz = S.helden[il.herr]; hz.ahnen = true; il.hp = 0; h.hp = Math.min(h.max, passiv(hz, "ahnenruf")); log.push(`Das Irrlicht von ${heldName(S, il.herr)} holt ${wer} zurück und vergeht: ${h.hp} Leben.`); }
@@ -2287,6 +2420,7 @@
         t.push(`${heldName(S, p)} trägt eine Wunde davon: −${n} Höchstleben bis zur nächsten Rast.`);
       }
     }
+    if ((boss || S.gegner.some(g => g.elite)) && S.teilnehmer.some(p => hatR(S.helden[p], "trophaeenkette"))) S.kette = Math.min(3, (S.kette || 0) + 1);
     const sammeln = S.teilnehmer.reduce((a, p) => a + passiv(S.helden[p], "siegheil"), 0);
     if (sammeln) { for (const p of S.teilnehmer) heldHeilen(S, p, sammeln); t.push(`Ihr sammelt euch: alle +${sammeln} Leben.`); }
     if (boss) {
@@ -2299,16 +2433,33 @@
       // Lager zwischen zwei Ebenen: volle Heilung, Händler, dann geht es tiefer
       const x = erfahrung(S, ep);
       for (const p of S.teilnehmer) { const h = S.helden[p]; wundenHeilen(h); if (!h.gefallen) h.hp = h.max; h.cd = {}; }
+      // Schuldschein: Jetzt wird zurückgezahlt
+      for (const p of S.teilnehmer) {
+        const h = S.helden[p]; if (!hatR(h, "schuldschein")) continue;
+        h.relikte = h.relikte.filter(id => id !== "schuldschein"); S.relikteWeg = (S.relikteWeg || []).concat("schuldschein");
+        if (h.gold >= 80) { h.gold -= 80; t.push(`${heldName(S, p)} zahlt den Schuldschein zurück: −80 Gold.`); }
+        else { h.max = Math.max(10, h.max - 10); h.hp = Math.min(h.hp, h.max); t.push(`${heldName(S, p)} kann den Schuldschein nicht bezahlen. Der Geldverleiher nimmt sich 10 Höchstleben.`); }
+      }
       S.ebeneFertig = true;
+      const seite = { bild: "feuer", titel: E.siegTitel, text: [E.siegText, g].concat(x, t, ["Ihr schlagt ein Lager auf und schlaft euch aus: Alle sind voll geheilt. Der Händler ist euch gefolgt."]) };
+      // Trophäe des Endgegners: Die Gruppe stimmt ab, wer sie trägt
+      const tr = Object.keys(RELIKTE).find(id => RELIKTE[id].von === E.boss && !relikteVergeben(S).has(id));
+      if (tr) {
+        S.phase = "erkunden";
+        S.seite = Object.assign(seite, { text: seite.text.concat([`Zwischen den Trümmern liegt eine Trophäe: ${RELIKTE[tr].name}. ${RELIKTE[tr].text}`]) });
+        entscheiden(S, "trophaee", `Wer bekommt ${RELIKTE[tr].name}?`, S.teilnehmer.map(p => ({ text: heldName(S, p), hinweis: reliktPlatz(S.helden[p]) ? "" : "Trägt schon 3 Relikte und legt dafür eins ab." })), { id: tr, wer: S.teilnehmer.slice() });
+        return;
+      }
       lagerOeffnen(S, false);
-      S.seite = { bild: "feuer", titel: E.siegTitel, text: [E.siegText, g].concat(x, t, ["Ihr schlagt ein Lager auf und schlaft euch aus: Alle sind voll geheilt. Der Händler ist euch gefolgt."]) };
+      S.seite = seite;
       return;
     }
     const s = stufe(S.raumNr), elite = S.gegner.some(g => g.elite);
     const extra = [];
     if (elite) { S.karte.schluessel += 1; extra.push("Ihr nehmt den schweren Schlüssel an euch. Irgendwo gibt es eine verschlossene Tür."); }
+    const relikt = elite && chance(S, 0.6) ? reliktFuerGruppe(S, "s") : [];
     S.seite = { bild: "sieg", titel: `Raum ${S.raumNr}: geschafft`, text: ["Alle Gegner sind besiegt. " + (elite ? goldFuerJeden(S, 22 + 6 * s, 30 + 8 * s) : goldFuerJeden(S, 9 + 9 * s, 13 + 11 * s))]
-      .concat(extra, erfahrung(S, ep), t, elite ? beute(S, 0.8, 0.8) : beute(S, 0.4, 0.15)) };
+      .concat(extra, relikt, erfahrung(S, ep), t, elite ? beute(S, 0.8, relikt.length ? 0.4 : 0.8) : beute(S, 0.4, 0.15)) };
     S.phase = "erkunden";
     entscheiden(S, "weiter", "", [{ text: "Weiterziehen" }]);
   }
@@ -2323,14 +2474,26 @@
     S.entscheidung = null;
     if (e.art === "karte") { raumBetreten(S, e.optionen[wahl].knoten, e.optionen[wahl].geheim); return; }
     if (e.art === "weiter") { weiterziehen(S); return; }
+    if (e.art === "trophaee") {
+      const p = e.wer[wahl], h = S.helden[p], seite = S.seite;
+      let x;
+      if (reliktPlatz(h)) x = reliktGeben(S, p, e.id);
+      else { h.fund = [e.id]; x = [`${heldName(S, p)} bekommt ${RELIKTE[e.id].name} und wählt, welches Relikt dafür liegen bleibt.`]; }
+      lagerOeffnen(S, false);
+      S.seite = Object.assign({}, seite, { text: seite.text.concat([`Ihr entscheidet: ${heldName(S, p)}.`], x) });
+      return;
+    }
     let t;
     if (e.art === "rast") {
       t = [];
       if (wahl === 0) { const q = schwere(S).rast, w = S.teilnehmer.some(p => S.helden[p].wunden); for (const p of S.teilnehmer) { const h = S.helden[p]; wundenHeilen(h); heldHeilen(S, p, Math.ceil(h.max * q)); h.cd = {}; } t.push(`Alle erholen sich um ${Math.round(q * 100)} % ihrer Leben. Alle Fähigkeiten sind wieder bereit.` + (w ? " Die Wunden sind versorgt." : "")); }
-      else { for (const p of S.teilnehmer) S.helden[p].punkte += 1; t.push("Ihr übt bis spät in die Nacht. Jeder bekommt 1 Talentpunkt."); }
+      else {
+        for (const p of S.teilnehmer) S.helden[p].punkte += 1; t.push("Ihr übt bis spät in die Nacht. Jeder bekommt 1 Talentpunkt.");
+        for (const p of S.teilnehmer) { const h = S.helden[p]; if (hatR(h, "wanderstiefel")) { const x = heldHeilen(S, p, Math.ceil(h.max * schwere(S).rast / 2)); if (x) t.push(`${heldName(S, p)} legt die Wanderstiefel hoch: +${x} Leben.`); } }
+      }
     } else if (e.art === "schrein") t = e.optionen[wahl].segen ? segenAusfuehren(S, e.optionen[wahl].segen) : ["Ihr lasst den Schrein in Frieden."];
     else {
-      t = e.art === "truhe" ? truheOeffnen(S, wahl) : ereignisAusfuehren(S, e.id, wahl);
+      t = e.art === "truhe" ? truheOeffnen(S, wahl) : ereignisAusfuehren(S, e.id, wahl, e);
       t.push(...erfahrung(S, 8));            // auch Truhen und Ereignisse bringen etwas Erfahrung
     }
     S.seite = Object.assign({}, S.seite, { text: S.seite.text.concat([`Ihr entscheidet: ${e.optionen[wahl].text}.`], t) });
@@ -2346,7 +2509,7 @@
   }
   function kaufen(S, pid, id) {
     const h = S.helden[pid];
-    const w = angebot(h).find(x => x.id === id);
+    const w = angebot(h).concat(reliktAngebot(S, pid)).find(x => x.id === id);
     if (!w || w.aus || h.gold < w.preis) return false;
     h.gold -= w.preis;
     if (id === "waffe") h.waffe += 1;
@@ -2354,6 +2517,7 @@
     else if (id === "leben") { h.leben += 1; h.max += 6; h.hp += 6; }
     else if (id === "trank") h.traenke += 1;
     else if (id === "verband") wundenHeilen(h);
+    else if (w.relikt) { S.lager.relikte = S.lager.relikte.filter(x => x !== w.relikt); reliktGeben(S, pid, w.relikt); }
     S.lager.kaeufe.push({ pid, name: w.name });
     return true;
   }
@@ -2389,7 +2553,7 @@
           const r = ROLLEN[S.rollen[p]];
           S.helden[p] = { rolle: S.rollen[p], hp: r.hp, max: r.hp, traenke: 1, waffe: 0, ruestung: 0, leben: 0, gold: 10, cd: {},
             schild: false, versteckt: false, lauer: false, segen: 0, gift: 0, giftR: 0, immun: false, fels: false, beschuetzt: null,
-            ep: 0, stufe: 1, punkte: 0, talente: [], ruhm: 0, ruhmBoni: {},
+            ep: 0, stufe: 1, punkte: 0, talente: [], ruhm: 0, ruhmBoni: {}, relikte: [], fund: null, angebot: null,
             stats: { schaden: 0, geheilt: 0, umgefallen: 0 } };
         }
         Object.assign(S, { raumNr: 0, gegner: [], kampf: null, lager: null, lagerBesucht: [], log: [], benutzt: [], ergebnis: null, gegnerNr: 0, letzte: null, spielNr: (S.spielNr || 0) + 1,
@@ -2465,6 +2629,37 @@
         if (t.e.passiv === "leben") { h.max += t.e.n; h.hp += t.e.n; }
         break;
       }
+      case "relikt": {                     // Relikte wählen, weitergeben, annehmen, ablegen (nicht im Kampf)
+        const h = S.helden[pid];
+        if (!h || !S.teilnehmer.includes(pid) || !(S.phase === "erkunden" || S.phase === "lager") || S.kampf || m.nr !== S.spielNr) return S0;
+        const R = h.relikte = h.relikte || [];
+        if (m.art === "waehlen") {                 // aus einem Fund (Schatzkammer, Trophäe); ab: dafür ablegen
+          if (!(h.fund || []).includes(m.id)) return S0;
+          if (!reliktPlatz(h)) { if (!R.includes(m.ab) || RELIKTE[m.ab].fest) return S0; h.relikte = R.filter(x => x !== m.ab); }
+          h.fund = null; reliktGeben(S, pid, m.id);
+        } else if (m.art === "verzichten") { if (!h.fund) return S0; h.fund = null; }
+        else if (m.art === "ablegen") {
+          if (!R.includes(m.id) || RELIKTE[m.id].fest) return S0;
+          h.relikte = R.filter(x => x !== m.id);
+        } else if (m.art === "geben") {            // Angebot an einen anderen Helden, der muss annehmen
+          const z = S.helden[m.an];
+          if (!z || m.an === pid || !R.includes(m.id) || RELIKTE[m.id].fest || z.angebot || (z.relikte || []).includes(m.id)) return S0;
+          z.angebot = { von: pid, id: m.id };
+        } else if (m.art === "zuruecknehmen") {
+          const z = S.helden[m.an]; if (!z || !z.angebot || z.angebot.von !== pid) return S0; z.angebot = null;
+        } else if (m.art === "annehmen") {         // ab: eigenes Relikt, das im Tausch zum Geber geht
+          const a = h.angebot, g = a && S.helden[a.von];
+          if (!a) return S0;
+          h.angebot = null;
+          if (!g || !(g.relikte || []).includes(a.id) || R.includes(a.id) || (m.ab && (g.relikte || []).includes(m.ab) && m.ab !== a.id)) break;
+          if (!reliktPlatz(h) && (!R.includes(m.ab) || RELIKTE[m.ab].fest)) return S0;
+          g.relikte = g.relikte.filter(x => x !== a.id);
+          if (m.ab && R.includes(m.ab) && !RELIKTE[m.ab].fest) { h.relikte = R.filter(x => x !== m.ab); g.relikte.push(m.ab); }
+          h.relikte = h.relikte.concat(a.id);
+        } else if (m.art === "ablehnen") { if (!h.angebot) return S0; h.angebot = null; }
+        else return S0;
+        break;
+      }
       case "ruhm": {                       // Ruhmespunkt für einen Ruhmesbonus ausgeben
         const h = S.helden[pid], R = RUHM[m.id];
         if (!h || !R || S.phase === "kampf" || S.phase === "lobby" || S.phase === "ende" || m.nr !== S.spielNr || (h.ruhm || 0) < 1 || ruhmVon(h, m.id) >= R.max) return S0;
@@ -2496,7 +2691,7 @@
     return S;
   }
 
-  window.VL = { zustand, ZUSAETZE, hat, SCHWERE, GRUPPE, FLUECHE, hatKnoten, AUFSTIEG_AESTE, AUFSTIEG_STUFE, RUHM, ruhmVon, epFuer, endlos, umverteilenPreis, staerke, BEFREIEN, EBENEN, LAENGEN, ebeneVon, EIGENSCHAFTEN, eigenschaften, knochenschild, RAEUME, REIHEN, RAUMNAME, SEGEN, UMVERTEILEN, sicht, MAX_HELDEN, LAGER_NACH, ROLLEN, ROLLEN_REIHE, AKTIONEN, NEUE, TRANK, GEGNER, EP_STUFEN, MAX_STUFE, STUFENBONUS,
+  window.VL = { RELIKTE, RELIKTE_MAX, reliktAngebot, hatR, relikteFrei, sanduhrZiel, zustand, ZUSAETZE, hat, SCHWERE, GRUPPE, FLUECHE, hatKnoten, AUFSTIEG_AESTE, AUFSTIEG_STUFE, RUHM, ruhmVon, epFuer, endlos, umverteilenPreis, staerke, BEFREIEN, EBENEN, LAENGEN, ebeneVon, EIGENSCHAFTEN, eigenschaften, knochenschild, RAEUME, REIHEN, RAUMNAME, SEGEN, UMVERTEILEN, sicht, MAX_HELDEN, LAGER_NACH, ROLLEN, ROLLEN_REIHE, AKTIONEN, NEUE, TRANK, GEGNER, EP_STUFEN, MAX_STUFE, STUFENBONUS,
     AESTE, TALENT, talenteVon, talentWaehlbar, hauptast, passiv, stufeBonus, trankMax, aktionZusatz,
     neu, aktion, aktionenVon, angebot, chiKosten, chiMax, ausweichen, standardWahl, DIENER, RUF, dienerVon, dienerWerte, dienerPlaetze, seelenMax, seelenRufFrei, sperre, bereit, wahlGueltig, lebend, gegnerLebend, goldSumme, cdVon };
 })();

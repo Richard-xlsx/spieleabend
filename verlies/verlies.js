@@ -415,7 +415,7 @@
     const x = S.helden[p], k = S.kampf;
     const marken = x.gefallen ? `<span class="marke">gefallen, schaut zu</span>` : imKampf ? [x.hp <= 0 ? `<span class="marke">bewusstlos</span>` : "", x.giftR > 0 && x.hp > 0 ? `<span class="marke gift">${x.giftArt === "Brand" ? "brennt" : "vergiftet"}</span>` : "", x.netz && x.hp > 0 ? `<span class="marke">im Netz</span>` : "", x.kokon ? `<span class="marke">im Kokon</span>` : "", x.stille > 0 && x.hp > 0 ? `<span class="marke">verstummt</span>` : "", x.wundbrand > 0 && x.hp > 0 ? `<span class="marke gift">Wundbrand</span>` : "", x.todesmal && x.hp > 0 ? `<span class="marke gift">Todesmal</span>` : "", x.rolle === "moench" && x.hp > 0 ? `<span class="marke">${chiText(x)}</span>` : "", x.rolle === "nekromant" ? `<span class="marke">${seelenText(x)}</span>` : "", x.rolle === "nekromant" && dienerText(p) ? `<span class="marke ok">${esc(dienerText(p))}</span>` : "",
       x.wunden ? `<span class="marke">${x.wunden === 1 ? "Wunde" : x.wunden + " Wunden"} −${x.wundHp}</span>` : "", x.lauer ? `<span class="marke schatten">lauert</span>` : "", x.segen ? `<span class="marke">gesegnet</span>` : "",
-      k && k.wahl[p] ? `<span class="marke ok">bereit</span>` : ""].join("") : "";
+      k && k.wahl[p] ? `<span class="marke ok">bereit</span>` : ""].join("") : (x.relikte || []).map(id => `<span class="marke relikt">${esc(V.RELIKTE[id].name)}</span>`).join("");
     const ast = V.hauptast(x);
     const unter = `${V.ROLLEN[x.rolle].name}${ast ? " · " + ast.name : ""} · Stufe ${x.stufe}${online(p) ? "" : " · nicht verbunden"}${imKampf ? "" : ` · ${x.gold} Gold · ${x.traenke} ${x.traenke === 1 ? "Trank" : "Tränke"}${x.wunden ? ` · ${x.wunden === 1 ? "Wunde" : x.wunden + " Wunden"} −${x.wundHp}` : ""}`}`;
     return `<button class="heldzeile ${x.hp <= 0 && !ziel ? "weg" : ""} ${ziel ? "ziel" : ""}" ${ziel ? `data-ziel="${p}"` : "disabled"}>
@@ -426,6 +426,37 @@
   function heldenLeiste(imKampf, zielArt) {
     const istZiel = p => zielArt === "held" || (zielArt === "anderer" && p !== PID && S.helden[p].hp > 0);
     return `<div class="heldenliste">${S.teilnehmer.map(p => heldZeile(p, imKampf, istZiel(p))).join("")}</div>`;
+  }
+
+  // Relikte des eigenen Helden: Fund wählen, Angebote annehmen, weitergeben, ablegen (nur außerhalb des Kampfes)
+  function reliktKarte() {
+    if (!mitspieler()) return "";
+    const h = ich(), R = h.relikte || [], voll = R.length >= V.RELIKTE_MAX, RL = V.RELIKTE;
+    const tauschbar = R.filter(r => !RL[r].fest);
+    const andere = S.teilnehmer.filter(p => p !== PID);
+    const meineAngebote = andere.filter(p => S.helden[p].angebot && S.helden[p].angebot.von === PID);
+    if (!R.length && !(h.fund && h.fund.length) && !h.angebot && !meineAngebote.length) return "";
+    let x = `<div class="karte"><div class="kopf"><h2>Deine Relikte</h2><span class="gold">${R.length}/${V.RELIKTE_MAX}</span></div>`;
+    if (h.fund && h.fund.length) {
+      x += `<div class="hinweis">${h.fund.length > 1 ? "Such dir eins aus" : "Das gehört jetzt dir"}${voll ? `. Deine ${V.RELIKTE_MAX} Plätze sind voll: Wähle, welches dafür liegen bleibt.` : "."}</div><div class="waren">`
+        + h.fund.map(id => voll
+          ? `<div class="ware relikt-ware"><b>${esc(RL[id].name)}</b><small>${esc(RL[id].text)}</small><span class="relikt-knoepfe">${tauschbar.map(r => `<button class="mini" data-rwahl="${id}" data-rab="${r}">statt ${esc(RL[r].name)}</button>`).join("")}</span></div>`
+          : `<button class="ware" data-rwahl="${id}"><b>${esc(RL[id].name)}</b><span class="preis">nehmen</span><small>${esc(RL[id].text)}</small></button>`).join("")
+        + `</div><button class="link" data-rverzicht="1">Keins nehmen</button>`;
+    }
+    if (h.angebot) {
+      const a = h.angebot;
+      x += `<div class="hinweis">${esc(sp(a.von).name)} bietet dir ${esc(RL[a.id].name)} an: ${esc(RL[a.id].text)}</div><div class="relikt-knoepfe">`
+        + (voll ? tauschbar.map(r => `<button class="mini" data-rannehmen="1" data-rab="${r}">Tauschen gegen ${esc(RL[r].name)}</button>`).join("") : `<button class="mini" data-rannehmen="1">Annehmen</button>`)
+        + `<button class="mini zweit" data-rablehnen="1">Ablehnen</button></div>`;
+    }
+    x += `<div class="waren">${R.map(id => {
+      const an = meineAngebote.find(p => S.helden[p].angebot.id === id);
+      return `<div class="ware relikt-ware"><b>${esc(RL[id].name)}</b><small>${esc(RL[id].text)}${id === "trophaeenkette" && S.kette ? ` Jetzt: +${S.kette}.` : ""}</small>
+        <span class="relikt-knoepfe">${RL[id].fest ? "" : an ? `<span class="leise klein">angeboten an ${esc(sp(an).name)}</span><button class="mini zweit" data-rzurueck="${an}">zurücknehmen</button>`
+          : andere.filter(p => !S.helden[p].angebot && !(S.helden[p].relikte || []).includes(id)).map(p => `<button class="mini" data-rgeben="${id}" data-ran="${p}">an ${esc(sp(p).name)}</button>`).join("") + `<button class="mini zweit" data-rablegen="${id}">ablegen</button>`}</span></div>`;
+    }).join("")}</div>${R.length ? `<p class="leise klein">Weitergeben geht zwischen den Kämpfen. Der andere muss annehmen und kann dir dafür eins von seinen geben.</p>` : ""}</div>`;
+    return x;
   }
 
   function bildschirmErkunden() {
@@ -442,7 +473,7 @@
       <p class="leise klein mitte">${offen.length ? "Warte auf: " + offen.map(p => esc(sp(p).name)).join(", ") : ""}${e.optionen.length > 1 ? " · Bei Gleichstand entscheidet das Los." : ""}</p>
       ${rolle === "host" && offen.length && Object.keys(e.stimmen).length ? `<button class="link" id="beenden">Nicht warten, jetzt entscheiden</button>` : ""}`;
     }
-    h += faehigkeitenKnopf() + karteAufklappen() + `<h3>Gruppe</h3>${heldenLeiste(false, false)}`;
+    h += reliktKarte() + faehigkeitenKnopf() + karteAufklappen() + `<h3>Gruppe</h3>${heldenLeiste(false, false)}`;
     return h;
   }
 
@@ -539,6 +570,7 @@
       ${aufstiegHtml(h)}
       <h3>Deine Fähigkeiten</h3>
       <div class="faehigkeitsliste">${V.aktionenVon(h).filter(a => a.id !== "trank").map(a => `<p><b>${a.meister ? "★ " : ""}${esc(a.name)}</b> <span class="leise">${esc(a.text)}${esc(V.aktionZusatz(h, a))}</span></p>`).join("")}</div>
+      ${(h.relikte || []).length ? `<h3>Deine Relikte</h3><div class="faehigkeitsliste">${h.relikte.map(id => `<p><b>${esc(V.RELIKTE[id].name)}</b> <span class="leise">${esc(V.RELIKTE[id].text)}</span></p>`).join("")}</div>` : ""}
       ${V.umverteilenPreis(S) !== null ? umverteilenHtml(h) : ""}
       <div class="unten"><button class="knopf" id="zurueck-f">Zurück</button></div>`;
   }
@@ -581,7 +613,9 @@
       h += `<div class="karte"><div class="kopf"><h2>Dein Einkauf</h2><span class="gold">${mh.gold} Gold</span></div>
         <div class="ausruestung"><span class="marke">Waffe +${mh.waffe}</span><span class="marke">Rüstung −${mh.ruestung}</span><span class="marke">${mh.hp}/${mh.max} Leben</span><span class="marke">${mh.traenke} ${mh.traenke === 1 ? "Trank" : "Tränke"}</span>${gelernt.map(n => `<span class="marke schatten">${esc(n)}</span>`).join("")}</div>
         <div class="waren">${V.angebot(mh).map(w => `<button class="ware ${w.faehigkeit ? "faehigkeit" : ""} ${w.aus ? "aus" : ""}" data-kauf="${w.id}" ${w.aus || w.preis > mh.gold || fertig ? "disabled" : ""}>
-          <b>${esc(w.name)}</b><span class="preis">${w.aus ? "✓" : w.preis + " G"}</span><small>${esc(w.text)}</small></button>`).join("")}</div></div>`;
+          <b>${esc(w.name)}</b><span class="preis">${w.aus ? "✓" : w.preis + " G"}</span><small>${esc(w.text)}</small></button>`).join("")}</div>
+        ${V.reliktAngebot(S, PID).length ? `<h3>Relikte</h3><div class="waren">${V.reliktAngebot(S, PID).map(w => `<button class="ware relikt-kauf" data-kauf="${w.id}" ${w.aus || w.preis > mh.gold || fertig ? "disabled" : ""}>
+          <b>${esc(w.name)}</b><span class="preis">${w.preis} G</span><small>${esc(w.text)}${w.aus ? " (Deine Plätze sind voll.)" : ""}</small></button>`).join("")}</div>` : ""}</div>` + reliktKarte();
       h += `<div class="unten"><button class="knopf ${fertig ? "zweit" : ""}" id="fertig">${fertig ? "Doch noch einkaufen" : S.ebeneFertig ? "Fertig, weiter hinab" : "Fertig, weiterziehen"}</button>
         <p class="leise klein mitte">${offen.length ? "Noch beim Händler: " + offen.map(p => esc(sp(p).name)).join(", ") : ""}</p>
         ${rolle === "host" && offen.length && offen.length < S.teilnehmer.length ? `<button class="link" id="beenden">Nicht warten, weiterziehen</button>` : ""}</div>`;
@@ -632,6 +666,14 @@
     });
     if ($("beenden")) $("beenden").onclick = () => tun({ t: "beenden" });
     document.querySelectorAll("[data-kauf]").forEach(b => b.onclick = () => tun({ t: "kaufen", id: b.dataset.kauf, nr: S.spielNr }));
+    const rel = (art, x) => tun(Object.assign({ t: "relikt", art, nr: S.spielNr }, x));
+    document.querySelectorAll("[data-rwahl]").forEach(b => b.onclick = () => rel("waehlen", { id: b.dataset.rwahl, ab: b.dataset.rab }));
+    document.querySelectorAll("[data-rverzicht]").forEach(b => b.onclick = () => { if (confirm("Wirklich kein Relikt nehmen?")) rel("verzichten"); });
+    document.querySelectorAll("[data-rannehmen]").forEach(b => b.onclick = () => rel("annehmen", { ab: b.dataset.rab }));
+    document.querySelectorAll("[data-rablehnen]").forEach(b => b.onclick = () => rel("ablehnen"));
+    document.querySelectorAll("[data-rgeben]").forEach(b => b.onclick = () => rel("geben", { id: b.dataset.rgeben, an: b.dataset.ran }));
+    document.querySelectorAll("[data-rzurueck]").forEach(b => b.onclick = () => rel("zuruecknehmen", { an: b.dataset.rzurueck }));
+    document.querySelectorAll("[data-rablegen]").forEach(b => b.onclick = () => { if (confirm(V.RELIKTE[b.dataset.rablegen].name + " ablegen? Es ist dann weg.")) rel("ablegen", { id: b.dataset.rablegen }); });
     if ($("faehigkeiten")) $("faehigkeiten").onclick = () => { zeigeFaehigkeiten = true; talentAst = null; talentFokus = null; letzteSig = ""; window.scrollTo(0, 0); render(); };
     if ($("zurueck-f")) $("zurueck-f").onclick = () => { zeigeFaehigkeiten = false; letzteSig = ""; window.scrollTo(0, 0); render(); };
     const lernen = id => { tun({ t: "talent", id, nr: S.spielNr }); talentFokus = id; letzteSig = ""; render(); };

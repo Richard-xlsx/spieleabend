@@ -1,6 +1,6 @@
 # Relikte: Beute mit eigener Regel
 
-Stand 15.11.2026, Entwurf zum Abnicken. Alle Zahlen sind erste Werte, die Simulation prüft sie vor dem Einbau.
+Stand 15.11.2026: eingebaut. Die Zahlen sind nach der Simulation angepasst (siehe Abschnitt 8).
 
 Heute ist Beute nur eine Zahl: +1 Waffe, +1 Rüstung, +6 Leben, Tränke und Gold. Relikte sind Gegenstände mit
 einer eigenen kleinen Regel. Sie sollen jede Partie anders machen und Truhen wieder spannend.
@@ -18,8 +18,8 @@ einer eigenen kleinen Regel. Sie sollen jede Partie anders machen und Truhen wie
 | Wo | Was |
 |---|---|
 | Truhe | Etwa jede dritte Truhe enthält ein gewöhnliches Relikt. Es bekommt der Held mit den wenigsten Relikten (Gleichstand: das Los). |
-| Händler | Bietet 2 gewöhnliche Relikte an, je 30 bis 45 Gold. |
-| Elite-Gegner | Zusätzlich zum Schlüssel ein seltenes Relikt, für den Helden mit den wenigsten. |
+| Händler | Bietet 2 gewöhnliche Relikte an, je 35 Gold. Wer zuerst kauft, hat es. |
+| Elite-Gegner | Zusätzlich zum Schlüssel meistens (60 %) ein seltenes Relikt, für den Helden mit den wenigsten. Dafür seltener Waffe oder Rüstung. |
 | Schatzkammer | Jeder Held wählt 1 von 2 seltenen Relikten (statt der heutigen +1 Waffe oder Rüstung). |
 | Endgegner | Seine Trophäe (legendär). Die Gruppe stimmt ab, wer sie bekommt, wie bei der Karte. |
 | Ereignisse | Die verfluchten Relikte, immer freiwillig und mit einer Gegenleistung. |
@@ -30,14 +30,14 @@ einer eigenen kleinen Regel. Sie sollen jede Partie anders machen und Truhen wie
 |---|---|---|
 | Trankgürtel | +1 Trankplatz, und deine Tränke heilen 4 mehr. | alle |
 | Händlermarke | Beim Händler zahlst du 25 % weniger. | alle, die gern kaufen |
-| Kundschafter-Laterne | Die Gruppe sieht eine Reihe weiter auf der Karte, und an Kampfräumen steht, welche Gegner warten. | Abstimmungen auf der Karte |
-| Weihwasser | Deine Angriffe zählen als Licht: doppelter Schaden gegen Untote. | Kerker, Tiefe |
-| Panzerbrecher | Deine Treffer ignorieren Panzer. | Golem, Lavaschnecke, Kerkerwärter |
-| Silberschere | Netze halten dich nicht, und einen Kokon zerschlägst du mit einem Treffer. | Spinnengrotte |
-| Blutroter Gürtel | Unter halben Leben machst du +4 Schaden. | Kämpfer, Mönch |
-| Giftphiole | Dein erster Angriff in jedem Kampf vergiftet das Ziel (3 Runden je 3). | alle, besonders gegen Elite |
-| Glutstein | Jeder dritte Treffer setzt das Ziel in Brand. Brand stoppt Regeneration. | Höhlentroll, Fluch „Regeneration“ |
-| Dornenhemd | Wer dich trifft, nimmt 2 Schaden. | Kämpfer mit Schildwall, Paladin |
+| Kundschafter-Laterne | Die Gruppe sieht eine Reihe weiter auf der Karte, und in unbekannten Räumen wartet kein Hinterhalt mehr. | Abstimmungen auf der Karte |
+| Weihwasser | +3 Schaden gegen Untote. | Kerker, Tiefe |
+| Panzerbrecher | Deine Treffer gehen durch jeden Panzer. | Golem, Lavaschnecke, Kerkerwärter |
+| Silberschere | Netze und Kokons halten dich nicht. | Spinnengrotte |
+| Blutroter Gürtel | Unter halben Leben machst du +3 Schaden. | Kämpfer, Mönch |
+| Giftphiole | Dein erster Treffer in jedem Kampf vergiftet das Ziel (3 Runden je 3). | alle, besonders gegen Elite |
+| Glutstein | Jeder dritte Treffer setzt das Ziel in Brand (2 Runden je 2). Brand stoppt Regeneration. | Höhlentroll, Fluch „Regeneration“ |
+| Dornenhemd | Wer dich trifft, nimmt 1 Schaden. | Kämpfer mit Schildwall, Paladin |
 
 ## 3. Selten (Elite, Schatzkammer)
 
@@ -45,27 +45,27 @@ einer eigenen kleinen Regel. Sie sollen jede Partie anders machen und Truhen wie
 |---|---|---|
 | Vampirzahn | Einmal pro Runde: Wenn du Schaden machst, +2 Leben. | alle Angreifer |
 | Frostsplitter | Gegen erstarrte Gegner machst du +4 Schaden. | Zusammenspiel mit der Magierin |
-| Sanduhr | Fähigkeiten mit 3 Runden Wartezeit brauchen nur 2. Zeitfresser wirken nicht auf dich. | Heilerin, Dieb, Waldläufer, Nekromant |
+| Sanduhr | Deine Fähigkeit mit der längsten Wartezeit (ab 3 Runden) ist eine Runde früher bereit. Zeitfresser wirken nicht auf dich. | Heilerin, Dieb, Waldläufer, Nekromant |
 | Knochenflöte | Zu Beginn jedes Kampfes erscheint ein kleiner Knochenkrieger (8 Leben, schlägt für 3) an deiner Seite. | alle, auch ohne Nekromant |
 | Glücksmünze | Einmal pro Ebene verfehlt dich ein Vernichtungsschlag oder ein Todesmal. | wer vorne steht |
-| Trophäenkette | Für jeden Elite- und Endgegner, den ihr besiegt, +1 Schaden (höchstens +5). | lange Partien |
+| Trophäenkette | Für jeden Elite- und Endgegner, den ihr besiegt, seit jemand sie trägt, +1 Schaden (höchstens +3). | lange Partien |
 | Wanderstiefel | Wählt die Gruppe bei der Rast „Üben“, heilst du trotzdem halb so viel wie beim Ausruhen. | alle |
-| Geteiltes Amulett | Zwei Hälften für zwei Helden (der Finder wählt den zweiten): Beide nehmen 2 Schaden weniger pro Treffer, solange beide stehen. | Paare am Tisch |
-| Schutzstein | Einmal pro Kampf: Der erste Schlag, der einen Helden der Gruppe bewusstlos machen würde, lässt ihm 1 Leben. | die ganze Gruppe |
+| Geteiltes Amulett | Zwei Hälften für zwei Helden (die zweite bekommt, wer von den anderen die wenigsten Relikte hat): Beide nehmen 2 Schaden weniger pro Treffer, solange beide stehen. | Paare am Tisch |
+| Schutzstein | Einmal pro Ebene: Der erste Schlag, der einen Helden der Gruppe bewusstlos machen würde, lässt ihm 1 Leben. | die ganze Gruppe |
 
 ## 4. Legendär: Trophäen der Endgegner
 
 | Relikt | Von | Wirkung |
 |---|---|---|
-| Knochenzepter | Knochenkönig | Wirst du bewusstlos, stehst du einmal pro Ebene sofort mit 30 % Leben wieder auf. |
-| Seidenmantel | Spinnenkönigin | 2 Schaden weniger pro Treffer, und Gift wirkt auf dich nicht. |
-| Drachenherz | Glutdrache (nur in „Die Tiefe“) | +3 Schaden mit allen Angriffen, Feuer und Lava schaden dir nicht. |
+| Knochenzepter | Knochenkönig | Wirst du bewusstlos, stehst du einmal pro Ebene sofort mit 20 % Leben wieder auf. |
+| Seidenmantel | Spinnenkönigin | 1 Schaden weniger pro Treffer, und Gift wirkt auf dich nicht. |
+| Drachenherz | Glutdrache (nur in „Die Tiefe“) | +2 Schaden mit allen Angriffen, Brand und Lava schaden dir nicht. |
 
 ## 5. Verflucht (nur aus Ereignissen, freiwillig)
 
 | Relikt | Wirkung | Woher |
 |---|---|---|
-| Bleierne Krone | +3 Schaden mit allen Angriffen, aber jede Heilung an dir wirkt nur halb. | Ereignis „Ein Thron im Staub“: aufsetzen oder liegen lassen |
+| Bleierne Krone | +3 Schaden mit allen Angriffen, aber Heilung im Kampf wirkt an dir nur halb. | Ereignis „Ein Thron im Staub“: aufsetzen oder liegen lassen |
 | Schuldschein | Sofort 60 Gold. Nach dem nächsten Endgegner zahlst du 80 zurück. Hast du das Gold nicht, verlierst du 10 Höchstleben. | Ereignis „Ein freundlicher Geldverleiher“ |
 | Narrenwürfel | Jeder deiner Angriffe macht zufällig zwischen halbem und doppeltem Schaden. | Ereignis „Ein Spieltisch ohne Spieler“ |
 

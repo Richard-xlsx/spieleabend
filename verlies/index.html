@@ -195,6 +195,11 @@ button:focus-visible,input:focus-visible,a:focus-visible{outline:3px solid var(-
 .karte.aufstieg h3 small{font-weight:400;font-size:.8rem}
 .ware{appearance:none;display:grid;grid-template-columns:1fr auto;gap:2px 12px;align-items:center;text-align:left;background:var(--flaeche2);border:2px solid var(--linie);border-radius:14px;padding:12px 14px;color:var(--text);font:inherit;cursor:pointer}
 .ware b{font-size:.98rem}
+.relikt-knoepfe{display:flex;flex-wrap:wrap;gap:6px;grid-column:1/-1;margin-top:6px;align-items:center}
+.mini{appearance:none;border:2px solid var(--karte-gelb);background:var(--karte-gelb);color:var(--bg);font:inherit;font-size:.8rem;font-weight:700;border-radius:99px;padding:5px 11px;cursor:pointer}
+.mini.zweit{background:transparent;color:var(--text);border-color:var(--linie)}
+.marke.relikt{background:#7A5A1E;color:#FFF3D0}
+.hinweis+.relikt-knoepfe{margin:8px 0}
 .ware small{color:var(--leise);font-size:.82rem;grid-column:1}
 .ware .preis{grid-row:span 2;grid-column:2;font-family:var(--display);font-weight:600;color:var(--karte-gelb);white-space:nowrap}
 .ware.faehigkeit{border-color:#5B4A9E}
@@ -239,11 +244,11 @@ button:focus-visible,input:focus-visible,a:focus-visible{outline:3px solid var(-
 <main id="app" aria-live="polite"><p class="leise">Lädt …</p></main>
 <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
-<script src="../netz.js?v=2026-11-15b"></script>
-<script src="bilder.js?v=2026-11-15b"></script>
-<script src="buehne.js?v=2026-11-15b"></script>
-<script src="karte.js?v=2026-11-15b"></script>
-<script src="verlies-logic.js?v=2026-11-15b"></script>
-<script src="verlies.js?v=2026-11-15b"></script>
+<script src="../netz.js?v=2026-11-15c"></script>
+<script src="bilder.js?v=2026-11-15c"></script>
+<script src="buehne.js?v=2026-11-15c"></script>
+<script src="karte.js?v=2026-11-15c"></script>
+<script src="verlies-logic.js?v=2026-11-15c"></script>
+<script src="verlies.js?v=2026-11-15c"></script>
 </body>
 </html>

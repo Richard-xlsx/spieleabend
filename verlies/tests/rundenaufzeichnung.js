@@ -17,6 +17,8 @@ for (let seed = 1; seed <= 400; seed++) {
   const ab = 1 + seed % 3 + (tiefe ? 3 + (seed >> 3) % 4 : 0);   // die Tiefe: Ebene 4 bis 9
   if (ab > 1) { S.ebene = ab - 1; S.ebeneFertig = true; for (const p of S.teilnehmer) { const h = S.helden[p]; h.max += 30 * (ab - 1); h.hp = h.max; h.waffe = 2 * (ab - 1); h.ruestung = 2 * (ab - 1); } }
   // Damit alle Talente vorkommen: jeder Held bekommt 12 Punkte und verteilt sie zufällig (auch Meisterfähigkeiten)
+  // Relikte: jeder Held bekommt bis zu 3 zufällige (jedes nur einmal), damit auch ihre Effekte geprüft werden
+  { const l = Object.keys(V.RELIKTE).sort(() => Math.random() - .5); for (const p of S.teilnehmer) S.helden[p].relikte = l.splice(0, seed % 4); }
   for (const p of S.teilnehmer) { S.helden[p].punkte = 12; for (let k = 0; k < 12; k++) {
     const h = S.helden[p], frei = Object.keys(V.TALENT).filter(id => V.talentWaehlbar(h, id)); if (!frei.length) break;
     S = V.aktion(S, p, { t: 'talent', id: frei[Math.floor(Math.random() * frei.length)], nr: S.spielNr }); } }
