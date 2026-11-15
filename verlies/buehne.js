@@ -7,45 +7,49 @@
   const T = "#2A2118";
   const L = (w = 3, c = T) => `fill="none" stroke="${c}" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round"`;
   const F = (c, w = 3) => `fill="${c}" stroke="${T}" stroke-width="${w}" stroke-linejoin="round"`;
+  const G = (d, w = 2.5, o = .5) => `<path d="${d}" fill="none" stroke="#FFF8E8" stroke-width="${w}" stroke-linecap="round" opacity="${o}"/>`;   // Glanzlicht
   const esc = s => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
   // ---------- Figuren (Ursprung = Mitte der Füße) ----------
-  const schatten = (rx) => `<ellipse cx="0" cy="0" rx="${rx}" ry="${Math.round(rx / 4.5)}" fill="#000" opacity=".35"/>`;
+  const schatten = (rx) => `<ellipse cx="0" cy="1" rx="${rx * 1.25}" ry="${Math.round(rx / 3.6)}" fill="url(#vl-schatten)"/><ellipse cx="0" cy="0" rx="${rx * .7}" ry="${Math.round(rx / 6)}" fill="#000" opacity=".3"/>`;
   const HELD = {
-    kaempfer: `${schatten(34)}<path d="M-14 0v-30h10v30zM4 0v-30h10v30z" ${F("#4A3426")}/>
+    kaempfer: `${schatten(34)}<path d="M-14 0v-30h10v30zM4 0v-30h10v30z" ${F("#4A3426")}/><path d="M-15 0v-10h12v10zM3 0v-10h12v10z" ${F("#2E2018", 2.5)}/>
       <path d="M-26 -84q-10 30-8 62h68q2-32-8-62z" ${F("#B83A2A")}/><path d="M-6 -78q-6 26-4 54M8 -78q4 26 2 54" ${L(2, "#7E2318")}/>
-      <path d="M-24 -86q24-12 48 0" ${F("#8C8F9A")}/><circle cx="0" cy="-100" r="16" ${F("#9EA2AE")}/><path d="M0 -118v-14M-6 -128q6-10 12 0" ${F("#B83A2A")}/><path d="M-14 -96h28" ${L(2)}/>
-      <path d="M-50 -76q-2 30 14 44 16-14 14-44z" ${F("#7A5434")}/><path d="M-36 -74v40M-48 -60h26" ${L(2.5, "#4A3426")}/>
+      <path d="M-32 -21${" q4 6 8 0".repeat(8)}" ${L(2.5, "#9EA2AE")}/><path d="M-31 -48q31 7 62 0" ${L(6, "#4A3426")}/><rect x="-5" y="-51" width="10" height="9" rx="2" ${F("#C99A2E", 2)}/>
+      <path d="M-24 -86q24-12 48 0" ${F("#8C8F9A")}/><circle cx="0" cy="-100" r="16" ${F("#9EA2AE")}/><path d="M0 -118v-14M-6 -128q6-10 12 0" ${F("#B83A2A")}/><path d="M-14 -96h28" ${L(2)}/><path d="M0 -116v18" ${L(2, "#6E7280")}/>${G("M-11 -105q3-8 9-9")}
+      <path d="M-50 -76q-2 30 14 44 16-14 14-44z" ${F("#7A5434")}/><path d="M-36 -74v40M-48 -60h26" ${L(2.5, "#4A3426")}/><circle cx="-36" cy="-60" r="4.5" ${F("#C99A2E", 2)}/>${G("M-46 -70q0 12 4 20", 2, .35)}
       <g class="waffe"><path d="M30 -70l14 -62" ${L(5, "#D9DCE4")}/><path d="M30 -70l14 -62" ${L(1.5)}/><path d="M22 -76l18 6" ${L(4)}/><path d="M28 -68l-4 12" ${L(5, "#6B4A2E")}/></g>`,
-    paladin: `${schatten(34)}<path d="M-14 0v-30h10v30zM4 0v-30h10v30z" ${F("#7D808C")}/>
-      <path d="M-26 -84q-8 30-6 62h64q2-32-6-62z" ${F("#C9CCD6")}/><path d="M-14 -80v58h28v-58z" ${F("#F3EEE0")}/><path d="M0 -74v40M-9 -60h18" ${L(4, "#C99A2E")}/>
-      <ellipse cx="-24" cy="-82" rx="13" ry="8" ${F("#A6A9B2")}/><ellipse cx="24" cy="-82" rx="13" ry="8" ${F("#A6A9B2")}/>
-      <circle cx="0" cy="-98" r="15" ${F("#B8BCC6")}/><path d="M0 -113q8-12 14-6" ${L(4, "#E8E2D0")}/>
+    paladin: `${schatten(34)}<path d="M-14 0v-30h10v30zM4 0v-30h10v30z" ${F("#7D808C")}/><path d="M-15 0v-10h12v10zM3 0v-10h12v10z" ${F("#5A5D68", 2.5)}/>
+      <path d="M-26 -84q-8 30-6 62h64q2-32-6-62z" ${F("#C9CCD6")}/><path d="M-14 -80v58h28v-58z" ${F("#F3EEE0")}/><path d="M0 -74v40M-9 -60h18" ${L(4, "#C99A2E")}/><path d="M-14 -25h28" ${L(3, "#C99A2E")}/><path d="M-29 -42q29 6 58 0" ${L(5, "#6B4A2E")}/><rect x="-5" y="-45" width="10" height="8" rx="2" ${F("#C99A2E", 2)}/>
+      <ellipse cx="-24" cy="-82" rx="13" ry="8" ${F("#A6A9B2")}/><ellipse cx="24" cy="-82" rx="13" ry="8" ${F("#A6A9B2")}/>${G("M-32 -86q6-4 13-3")}${G("M17 -87q6-3 13 0")}
+      <circle cx="0" cy="-98" r="15" ${F("#B8BCC6")}/><path d="M-12 -94h24" ${L(2)}/>${G("M-9 -104q3-6 9-7")}<path d="M0 -113q8-12 14-6" ${L(4, "#E8E2D0")}/>
       <g class="waffe"><path d="M26 -72l20 -52" ${L(5, "#6B4A2E")}/><rect x="30" y="-140" width="30" height="18" rx="4" ${F("#9EA2AE")} transform="rotate(22 45 -131)"/></g>`,
     dieb: `${schatten(30)}<path d="M-12 0v-26h9v26zM3 0v-26h9v26z" ${F("#2E2638")}/>
-      <path d="M-24 -78q-14 36-10 60h68q4-24-10-60z" ${F("#4A3F8A")}/><path d="M-4 -74q-4 28-2 54" ${L(2, "#2E2660")}/>
-      <path d="M-22 -80q-2-34 22-40 24 6 22 40-22 8-44 0z" ${F("#3A3170")}/><path d="M-10 -108q10-8 20 0" ${L(2, "#2E2660")}/>
+      <path d="M-24 -78q-14 36-10 60h68q4-24-10-60z" ${F("#4A3F8A")}/><path d="M-4 -74q-4 28-2 54M-18 -66q-6 22-6 44M14 -66q5 22 6 44" ${L(2, "#2E2660")}/><path d="M-31 -42q31 7 62 0" ${L(4.5, "#2A2232")}/><path d="M10 -42h13v10q-6.5 5-13 0z" ${F("#6B4A2E", 2)}/><path d="M-22 -43h10v8q-5 4-10 0z" ${F("#5A3A22", 2)}/>
+      <path d="M-22 -80q-2-34 22-40 24 6 22 40-22 8-44 0z" ${F("#3A3170")}/><path d="M-10 -108q10-8 20 0" ${L(2, "#2E2660")}/>${G("M-14 -100q2-12 12-15", 2.5, .3)}
       <g class="waffe"><path d="M-30 -56l-14 24" ${L(4, "#D9DCE4")}/><path d="M-26 -62l-6 9" ${L(5, "#6B4A2E")}/><path d="M30 -56l14 24" ${L(4, "#D9DCE4")}/><path d="M26 -62l6 9" ${L(5, "#6B4A2E")}/></g>`,
-    waldlaeufer: `${schatten(32)}<path d="M-13 0v-28h10v28zM3 0v-28h10v28z" ${F("#5A4232")}/>
-      <path d="M-24 -80q-12 32-10 62h68q2-30-10-62z" ${F("#5C6B3A")}/><path d="M-30 -24q30 8 60 0" ${L(2, "#3E4A26")}/>
+    waldlaeufer: `${schatten(32)}<path d="M-13 0v-28h10v28zM3 0v-28h10v28z" ${F("#5A4232")}/><path d="M-14 0v-11h12v11zM2 0v-11h12v11z" ${F("#3A2A1E", 2.5)}/>
+      <path d="M-24 -80q-12 32-10 62h68q2-30-10-62z" ${F("#5C6B3A")}/><path d="M-30 -24q30 8 60 0" ${L(2, "#3E4A26")}/><path d="M-6 -76q-4 26-2 50M12 -74q4 24 4 48" ${L(1.6, "#3E4A26")}/><path d="M-31 -42q31 7 62 0" ${L(4.5, "#4A3426")}/><path d="M16 -80L-24 -42" ${L(4, "#6B4A2E")}/><path d="M-26 -44h10v9q-5 4-10 0z" ${F("#7A5434", 2)}/>
       <path d="M2 -114l18 -4 8 58-18 4z" ${F("#8A6A44")}/><path d="M8 -116l-2-14M14 -118v-14M20 -119l2-13" ${L(2.5, "#D9CDB6")}/><path d="M5 -128l-4-6M13 -130l-2-7M21 -130l1-7" ${L(3, "#B83A2A")}/>
-      <path d="M-20 -82q20-10 40 0" ${F("#4A5A2C")}/><circle cx="0" cy="-96" r="14" ${F("#6B4A2E")}/><path d="M-12 -100q12-12 24 0" ${L(3, "#4A3426")}/>
+      <path d="M-20 -82q20-10 40 0" ${F("#4A5A2C")}/><circle cx="0" cy="-96" r="14" ${F("#6B4A2E")}/><path d="M-2 -84q-2 8 0 12" ${L(4, "#4A3426")}/><path d="M-12 -100q12-12 24 0" ${L(3, "#4A3426")}/>
       <g class="waffe"><path d="M-40 -134q-26 62 0 124" ${L(4.5, "#6B4A2E")}/><path d="M-40 -134v124" ${L(1.2, "#D9CDB6")}/></g>`,
-    magierin: `${schatten(30)}<path d="M-22 -78q-14 40-14 78h72q0-38-14-78z" ${F("#3E5BB8")}/><path d="M-30 -20q30 10 60 0" ${L(2.5, "#F5CF4A")}/>
-      <path d="M-20 -80q20-10 40 0" ${F("#2F4690")}/><circle cx="0" cy="-92" r="13" ${F("#3A2A22")}/>
-      <ellipse cx="0" cy="-100" rx="26" ry="6" ${F("#2F4690")}/><path d="M-16 -102l22 -48 10 20-14 28z" ${F("#3E5BB8")}/><path d="M2 -138l3 6 6 1-4 4 1 6-6-3-5 3 1-6-4-4 6-1z" fill="#F5CF4A"/>
-      <g class="waffe"><path d="M30 -6v-118" ${L(5, "#6B4A2E")}/><circle cx="30" cy="-128" r="8" fill="#FFE27A" stroke="${T}" stroke-width="2.5"/></g>`,
-    heilerin: `${schatten(30)}<path d="M-24 -76q-12 40-12 76h72q0-36-12-76z" ${F("#3E8C62")}/><path d="M0 -70v68" ${L(2, "#2C6648")}/>
-      <path d="M-22 -80q-4-36 22-42 26 6 22 42-22 8-44 0z" ${F("#4FB98A")}/><path d="M-8 -110q8-8 16 0" ${L(2, "#2C6648")}/>
-      <g class="waffe"><path d="M-34 -4v-112" ${L(5, "#6B4A2E")}/><path d="M-34 -116q-16-4-16-18 14-2 16 12 2-14 16-12 0 14-16 18z" ${F("#7BE3A0")}/></g>`,
+    magierin: `${schatten(30)}<path d="M-22 -78q-14 40-14 78h72q0-38-14-78z" ${F("#3E5BB8")}/><path d="M-30 -20q30 10 60 0" ${L(2.5, "#F5CF4A")}/><path d="M-14 -70q-6 30-8 64M12 -70q6 30 8 64" ${L(1.6, "#2F4690")}/><path d="M-27 -54q27 6 54 0" ${L(4, "#F5CF4A")}/>
+      ${[[-16, -36], [14, -42], [-4, -16], [20, -14], [-22, -12]].map(([x, y]) => `<path d="M${x} ${y - 3}v6M${x - 3} ${y}h6" ${L(1.4, "#F5CF4A")}/>`).join("")}
+      <path d="M-20 -80q20-10 40 0" ${F("#2F4690")}/><circle cx="0" cy="-92" r="13" ${F("#3A2A22")}/><path d="M0 -82q5 10-1 24" ${L(5.5, "#3A2A22")}/><circle cx="-1" cy="-56" r="3" ${F("#F5CF4A", 1.5)}/>
+      <ellipse cx="0" cy="-100" rx="26" ry="6" ${F("#2F4690")}/><path d="M-16 -102l22 -48 10 20-14 28z" ${F("#3E5BB8")}/>${G("M-10 -104l14-32", 2, .35)}<path d="M2 -138l3 6 6 1-4 4 1 6-6-3-5 3 1-6-4-4 6-1z" fill="#F5CF4A"/>
+      <g class="waffe"><path d="M30 -6v-118" ${L(5, "#6B4A2E")}/><path d="M27 -104l6 4M27 -96l6 4" ${L(1.5, "#F5CF4A")}/><circle cx="30" cy="-128" r="20" fill="url(#vl-schein)"/><circle cx="30" cy="-128" r="8" fill="#FFE27A" stroke="${T}" stroke-width="2.5"/></g>`,
+    heilerin: `${schatten(30)}<path d="M-24 -76q-12 40-12 76h72q0-36-12-76z" ${F("#3E8C62")}/><path d="M0 -70v68M-16 -66q-6 30-8 62M16 -66q6 30 8 62" ${L(2, "#2C6648")}/><path d="M-34 -6q34 9 68 0" ${L(2.5, "#F3EEE0")}/><path d="M-29 -46q29 6 58 0" ${L(4.5, "#F3EEE0")}/><path d="M8 -46q4 10 0 20M12 -45q6 9 4 18" ${L(3, "#F3EEE0")}/>
+      <path d="M-22 -80q-4-36 22-42 26 6 22 42-22 8-44 0z" ${F("#4FB98A")}/><path d="M-8 -110q8-8 16 0" ${L(2, "#2C6648")}/>${G("M-14 -100q2-12 12-15", 2.5, .3)}
+      <g class="waffe"><path d="M-34 -4v-112" ${L(5, "#6B4A2E")}/><circle cx="-34" cy="-124" r="20" fill="url(#vl-heil)" opacity=".55"/><path d="M-37 -100q6 4 0 8q-6 4 0 8" ${L(1.5, "#7BE3A0")}/><path d="M-34 -116q-16-4-16-18 14-2 16 12 2-14 16-12 0 14-16 18z" ${F("#7BE3A0")}/></g>`,
     moench: `${schatten(30)}<path d="M-12 0v-24h9v24zM3 0v-24h9v24z" ${F("#6B4A2E")}/>
-      <path d="M-24 -80q-12 34-12 62h72q0-28-12-62z" ${F("#E08A2E")}/><path d="M-30 -38q30 6 60 0" ${L(5, "#8C3A1E")}/><path d="M-20 -80l36 42" ${L(6, "#B8461E")}/>
+      <path d="M-24 -80q-12 34-12 62h72q0-28-12-62z" ${F("#E08A2E")}/><path d="M-30 -38q30 6 60 0" ${L(5, "#8C3A1E")}/><path d="M-10 -36q-4 12-2 22M10 -36q6 10 4 20" ${L(4, "#8C3A1E")}/><path d="M-16 -70q-4 16-4 28M18 -66q2 12 2 24" ${L(1.6, "#B8611E")}/><path d="M-20 -80l36 42" ${L(6, "#B8461E")}/>
       <path d="M-14 -82q14 8 28 0" fill="none" stroke="#5A3A22" stroke-width="4" stroke-dasharray="1 5" stroke-linecap="round"/>
-      <circle cx="0" cy="-96" r="14" ${F("#D9A77A")}/><path d="M-9 -102q9-6 18 0" ${L(1.5, "#B58560")}/>
+      <circle cx="0" cy="-96" r="14" ${F("#D9A77A")}/><path d="M-9 -102q9-6 18 0" ${L(1.5, "#B58560")}/>${G("M-8 -104q3-5 9-6", 2.5, .45)}<path d="M-12 0v-6h9v6zM3 0v-6h9v6z" ${F("#8C6A44", 2)}/>
       <g class="waffe"><path d="M-24 -74q-16 6-16 26M24 -74q16 6 16 26" ${L(8, "#E08A2E")}/><circle cx="-40" cy="-44" r="8" ${F("#F3E6CC")}/><circle cx="40" cy="-44" r="8" ${F("#F3E6CC")}/><path d="M-44 -46h8M36 -46h8" ${L(1.5)}/></g>`,
-    nekromant: `${schatten(30)}<path d="M-24 -78q-14 40-14 78h76q0-38-14-78z" ${F("#2E2A3A")}/><path d="M-36 -6q36 9 72 0" ${L(2.5, "#7BE3A0")}/><path d="M0 -72v66" ${L(2, "#1C1A26")}/>
-      <path d="M-22 -80q-4-38 22-44 26 6 22 44-22 8-44 0z" ${F("#3D3650")}/><path d="M-8 -112q8-8 16 0" ${L(2, "#1C1A26")}/>
-      <g class="waffe"><path d="M32 -4v-116" ${L(5, "#4A3426")}/><circle cx="32" cy="-128" r="17" fill="#7BE3A0" opacity=".28"/><circle cx="32" cy="-128" r="9" ${F("#EDE4D0", 2.5)}/><circle cx="29" cy="-129" r="2" fill="${T}"/><circle cx="35" cy="-129" r="2" fill="${T}"/></g>`
+    nekromant: `${schatten(30)}<path d="M-24 -78q-14 40-14 78h76q0-38-14-78z" ${F("#2E2A3A")}/><path d="M-36 -6q36 9 72 0" ${L(2.5, "#7BE3A0")}/><path d="M0 -72v66M-18 -64q-6 28-8 56M18 -64q6 28 8 56" ${L(2, "#1C1A26")}/><path d="M-36 -2l6-6 6 5 6-6 6 5 6-6 6 5 6-6 6 5 6-6 6 5 6-6" ${L(2, "#1C1A26")}/>
+      <path d="M-30 -46q30 6 60 0" ${L(4.5, "#1C1A26")}/><circle cx="0" cy="-44" r="4" ${F("#EDE4D0", 1.5)}/><path d="M-7 -66l7-9 7 9-7 9z M0 -75v18" ${L(1.6, "#7BE3A0")} opacity=".7"/>
+      <path d="M-22 -80q-4-38 22-44 26 6 22 44-22 8-44 0z" ${F("#3D3650")}/><path d="M-8 -112q8-8 16 0" ${L(2, "#1C1A26")}/>${G("M-14 -102q2-12 12-15", 2.5, .22)}
+      <g class="waffe"><path d="M32 -4v-116" ${L(5, "#4A3426")}/><circle cx="32" cy="-128" r="20" fill="url(#vl-heil)" opacity=".55"/><circle cx="32" cy="-128" r="9" ${F("#EDE4D0", 2.5)}/><circle cx="29" cy="-129" r="2" fill="${T}"/><circle cx="35" cy="-129" r="2" fill="${T}"/></g>`
   };
   // Diener des Nekromanten (von hinten, wie die Helden; stehen ein Stück vor ihm)
   const KNOCHEN = "#EDE4D0", knochen = (d, w) => `<path d="${d}" ${L(w + 3)}/><path d="${d}" ${L(w, KNOCHEN)}/>`;
@@ -208,6 +212,24 @@
     skelett: 3, schleim: 2.8, schnecke: 2.8, bogenschuetze: 2.5, fledermaus: 2.5, weberin: 2.4, salamander: 2.3, schamane: 2, langfinger: 2, goblin: 2, spinne: 2, pilzling: 1.8, kobold: 1.6, huelle: 1.2, ratte: 1, brut: 0.6, schwarm: 0.5, ei: 0.4 };
   const kurzName = n => { const k = n.replace("Goblin-", "").replace("Skelett-", "").replace("Höhlen", "").replace(/^(Der|Die) /, ""); return k.charAt(0).toUpperCase() + k.slice(1); };
 
+  // ---------- Volumen ----------
+  // Jede umrandete Fläche bekommt einen eigenen runden Farbverlauf: Licht von oben links, Schatten unten rechts.
+  // So wirken Körper, Helme und Schilde gewölbt, ohne dass jede Figur neu gezeichnet werden muss.
+  const VOLUMEN = new Set();
+  const mische = (a, b, t) => "#" + [1, 3, 5].map(i => Math.round(parseInt(a.substr(i, 2), 16) * (1 - t) + parseInt(b.substr(i, 2), 16) * t).toString(16).padStart(2, "0")).join("");
+  const volumen = svg => svg.replace(/fill="#([0-9A-Fa-f]{6})"( stroke="#2A2118")/g, (m, c, rest) => { c = c.toUpperCase(); VOLUMEN.add(c); return `fill="url(#vl-v-${c})"${rest}`; });
+  for (const k in HELD) HELD[k] = volumen(HELD[k]);
+  for (const k in DIENERFIG) DIENERFIG[k].svg = volumen(DIENERFIG[k].svg);
+  // runde Köpfe, Eier und Kugeln der Gegner bekommen zusätzlich ein Glanzlicht oben links
+  const glanzKugel = svg => svg.replace(/<circle cx="(-?[\d.]+)" cy="(-?[\d.]+)" r="([\d.]+)" fill="url\(#vl-v-[0-9A-F]+\)"[^>]*\/>/g, (m, x, y, r) => {
+    x = +x; y = +y; r = +r; if (r < 9) return m;
+    return m + G(`M${(x - r * .62).toFixed(1)} ${(y - r * .05).toFixed(1)}q${(r * .05).toFixed(1)} ${(-r * .5).toFixed(1)} ${(r * .5).toFixed(1)} ${(-r * .62).toFixed(1)}`, Math.max(1.5, r * .13).toFixed(1), .4);
+  });
+  for (const k in GEG) GEG[k].svg = glanzKugel(volumen(GEG[k].svg));
+  GEG.kerkerwaerter.svg += G("M-16 -110q2-24 14-28", 3, .45);
+  const volumenDefs = () => `<radialGradient id="vl-heil" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#E9FFD9"/><stop offset=".5" stop-color="#7BE3A0" stop-opacity=".7"/><stop offset="1" stop-color="#4FB98A" stop-opacity="0"/></radialGradient><radialGradient id="vl-schein" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#FFF3B0" stop-opacity=".8"/><stop offset=".5" stop-color="#FFE27A" stop-opacity=".3"/><stop offset="1" stop-color="#FFE27A" stop-opacity="0"/></radialGradient><radialGradient id="vl-schatten" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#000" stop-opacity=".6"/><stop offset=".55" stop-color="#000" stop-opacity=".35"/><stop offset="1" stop-color="#000" stop-opacity="0"/></radialGradient>`
+    + [...VOLUMEN].map(c => `<radialGradient id="vl-v-${c}" cx=".36" cy=".3" r=".9" fx=".3" fy=".2"><stop offset="0" stop-color="${mische("#" + c, "#FFF2D6", .38)}"/><stop offset=".45" stop-color="#${c}"/><stop offset="1" stop-color="${mische("#" + c, "#08060E", .5)}"/></radialGradient>`).join("");
+
   // ---------- Hintergrund ----------
   // Jede Ebene hat ihre eigene Bühne: Kerker (Fackeln), Spinnengrotte (Pilze, Netze), Glutschlund (Lava)
   const THEMA = {
@@ -218,12 +240,11 @@
   function hintergrund(ebene) {
     ebene = ((ebene - 1) % 3) + 1;            // die Tiefe wiederholt die drei Gegenden
     const t = THEMA[ebene] || THEMA[1];
-    let s = `<defs>
+    let s = `<defs>${volumenDefs()}
       <linearGradient id="vl-wand" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${t.wand[0]}"/><stop offset="1" stop-color="${t.wand[1]}"/></linearGradient>
       <linearGradient id="vl-boden" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${t.boden[0]}"/><stop offset="1" stop-color="${t.boden[1]}"/></linearGradient>
       <radialGradient id="vl-licht" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="${t.licht}" stop-opacity=".35"/><stop offset="1" stop-color="${t.licht}" stop-opacity="0"/></radialGradient>
       <radialGradient id="vl-glut" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#FFF3B0"/><stop offset=".45" stop-color="#FF9A3C"/><stop offset="1" stop-color="#E2421F" stop-opacity="0"/></radialGradient>
-      <radialGradient id="vl-heil" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#E9FFD9"/><stop offset=".5" stop-color="#7BE3A0" stop-opacity=".7"/><stop offset="1" stop-color="#4FB98A" stop-opacity="0"/></radialGradient>
       <radialGradient id="vl-vignette" cx=".5" cy=".45" r=".75"><stop offset=".55" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".55"/></radialGradient>
     </defs><rect width="400" height="250" fill="url(#vl-wand)"/>`;
     if (ebene === 2) {
@@ -847,7 +868,7 @@
   // Titelbild: vier Helden von hinten vor dem Tor ins Verlies, drinnen glühen Augen
   function titelbild() {
     const stein = "#3A3458", fuge = "#26223F", T = "#1C1A33";
-    let s = `<defs>
+    let s = `<defs>${volumenDefs()}
       <linearGradient id="tb-himmel" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2B2650"/><stop offset="1" stop-color="#1C1A33"/></linearGradient>
       <radialGradient id="tb-tor" cx=".5" cy=".75" r=".7"><stop offset="0" stop-color="#3B1A12"/><stop offset=".55" stop-color="#140F1E"/><stop offset="1" stop-color="#07060C"/></radialGradient>
       <radialGradient id="tb-schein" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#FFB347" stop-opacity=".55"/><stop offset="1" stop-color="#FFB347" stop-opacity="0"/></radialGradient>
