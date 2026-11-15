@@ -294,3 +294,50 @@ Die drei Äste rufen drei verschiedene Diener: Skelette für Schaden, den Golem 
 - Der Mönch liegt bei Kämpfer und Dieb. Alle drei Äste sind spielbar: zu dritt Faust 66 %, Lotus 70 %, Wind 59 %.
 - Die Heilerin bleibt die stärkste Rolle. Ohne Heilerin hilft der Mönch kaum mehr als andere Rollen, denn nur der Lotus-Ast heilt nennenswert.
 - Prüfung aller aufgezeichneten Runden: 0 Fehler. Browser-Test mit drei Handys (Mönch, Magierin, Heilerin): kein Fehler, gleicher Stand auf allen.
+
+## 8. Nekromant umgesetzt (15.11.2026)
+
+**So läuft es im Spiel:**
+- **Diener** stehen ein Stück vor dem Nekromanten auf der Bühne, mit kleinem Lebensschild. Sie handeln nach allen Helden:
+  - Knochenkrieger und Golem schlagen das Ziel, das der Nekromant zuletzt mit dem Schattenblitz getroffen hat, sonst ein zufälliges.
+  - Das Irrlicht heilt den Helden mit den wenigsten Leben (anteilig).
+- **Abfangen:** Ein Schlag auf den Nekromanten trifft in 7 von 10 Fällen seinen Diener, und zwar den mit den meisten Höchstleben. Das gilt auch beim Meuchler.
+  - Flächenangriffe, Vernichtungsschlag und Todesmal kommen vorbei.
+  - Ein Golem mit Steinruf oder als Titan wirft sich auch vor einen Vernichtungsschlag.
+- **Seelen** sind Grundausstattung, nicht erst ein Talent: Jeder besiegte Gegner gibt eine (höchstens 3). Sie stehen am Namensschild als „Seelen ●○○“.
+  - Seelenruf (Totenruf 2): Skelett rufen geht trotz Abklingzeit, kostet dann eine Seele.
+  - Leichenexplosion kostet eine Seele.
+  - Seelenkraft (Knochenfürst): +1 Schaden je Seele.
+- **Plätze:** Normal ein Diener, mit Knochenwache und Elementarbund je einer mehr. Ruft der Nekromant einen neuen, verschwindet der älteste. Armee der Toten kommt zusätzlich. Auf der Bühne stehen höchstens 4 Diener.
+- **Rufen:** Skelett, Golem und Irrlicht rufen teilen sich die Abklingzeit.
+- **Gesperrte Fähigkeiten:**
+  - Steinruf und Stampfen gehen nur, wenn der Golem steht.
+  - Leichenexplosion geht nur mit einer Seele.
+  - Der Knopf ist dann grau und sagt warum.
+- **Knochensplitter** lässt den ältesten Diener zerplatzen (3 Schaden an allen plus die Hälfte seiner Leben). Ohne Diener sind es nur die 3 Schaden.
+- **Titan:** Steht kein Golem, kommt er dabei.
+- **Diener sind keine Helden:**
+  - Keine Heilung, kein Gift.
+  - Schutz der Gruppe wirkt nicht auf sie (Bollwerk, Wall, Rüstung).
+
+**Abweichungen vom Plan (nach Simulation):**
+- **Feste Werte:** Diener wachsen nicht mit der Stufe des Nekromanten, nur mit Talenten. Als Leben und Schlag mit seinen Höchstleben wuchsen, gewannen Gruppen mit Nekromant zu dritt 93 %.
+- **Abfangen nicht immer**, sondern in 7 von 10 Fällen.
+- **Irrlicht** heilt 3 statt 4.
+- **Knochenkrieger** schlagen für 5 statt 4, sonst war der Totenruf-Ast zu schwach.
+- **Der Knochen-Diener heißt Knochenkrieger,** damit er im Protokoll nicht mit dem Skelett der Gegner verwechselt wird.
+
+**Simulation** (Abenteurer, 3 Ebenen, kluge Bots, 30 Partien je Gruppe, Werte „mit“):
+
+| Gruppe | Nekromant | Kämpfer | Waldläufer | Paladin | Heilerin |
+|---|---|---|---|---|---|
+| 2 Helden | 87 % | 61 % | 81 % | 74 % | 93 % |
+| 3 Helden | 79 % | 63 % | 78 % | 76 % | 92 % |
+| 4 Helden | 69 % | 64 % | 69 % | 70 % | 80 % |
+| 5 Helden | 67 % | 66 % | 68 % | 69 % | 77 % |
+
+- Ab drei Helden liegt der Nekromant bei Waldläufer und Paladin.
+- Zu zweit ist er etwas stark, denn dort trifft ein größerer Teil der Schläge ihn und damit seine Diener.
+- Alle drei Äste sind gleich stark: zu dritt Totenruf 78 %, Steinbund 78 %, Geisterbund 80 %.
+- Prüfung aller aufgezeichneten Runden: 0 Fehler.
+- Browser-Test mit drei Handys (Nekromant, Kämpfer, Heilerin): keine Fehler, gleicher Stand auf allen.

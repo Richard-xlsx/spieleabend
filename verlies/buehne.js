@@ -42,10 +42,28 @@
       <path d="M-24 -80q-12 34-12 62h72q0-28-12-62z" ${F("#E08A2E")}/><path d="M-30 -38q30 6 60 0" ${L(5, "#8C3A1E")}/><path d="M-20 -80l36 42" ${L(6, "#B8461E")}/>
       <path d="M-14 -82q14 8 28 0" fill="none" stroke="#5A3A22" stroke-width="4" stroke-dasharray="1 5" stroke-linecap="round"/>
       <circle cx="0" cy="-96" r="14" ${F("#D9A77A")}/><path d="M-9 -102q9-6 18 0" ${L(1.5, "#B58560")}/>
-      <g class="waffe"><path d="M-24 -74q-16 6-16 26M24 -74q16 6 16 26" ${L(8, "#E08A2E")}/><circle cx="-40" cy="-44" r="8" ${F("#F3E6CC")}/><circle cx="40" cy="-44" r="8" ${F("#F3E6CC")}/><path d="M-44 -46h8M36 -46h8" ${L(1.5)}/></g>`
+      <g class="waffe"><path d="M-24 -74q-16 6-16 26M24 -74q16 6 16 26" ${L(8, "#E08A2E")}/><circle cx="-40" cy="-44" r="8" ${F("#F3E6CC")}/><circle cx="40" cy="-44" r="8" ${F("#F3E6CC")}/><path d="M-44 -46h8M36 -46h8" ${L(1.5)}/></g>`,
+    nekromant: `${schatten(30)}<path d="M-24 -78q-14 40-14 78h76q0-38-14-78z" ${F("#2E2A3A")}/><path d="M-36 -6q36 9 72 0" ${L(2.5, "#7BE3A0")}/><path d="M0 -72v66" ${L(2, "#1C1A26")}/>
+      <path d="M-22 -80q-4-38 22-44 26 6 22 44-22 8-44 0z" ${F("#3D3650")}/><path d="M-8 -112q8-8 16 0" ${L(2, "#1C1A26")}/>
+      <g class="waffe"><path d="M32 -4v-116" ${L(5, "#4A3426")}/><circle cx="32" cy="-128" r="17" fill="#7BE3A0" opacity=".28"/><circle cx="32" cy="-128" r="9" ${F("#EDE4D0", 2.5)}/><circle cx="29" cy="-129" r="2" fill="${T}"/><circle cx="35" cy="-129" r="2" fill="${T}"/></g>`
+  };
+  // Diener des Nekromanten (von hinten, wie die Helden; stehen ein Stück vor ihm)
+  const KNOCHEN = "#EDE4D0", knochen = (d, w) => `<path d="${d}" ${L(w + 3)}/><path d="${d}" ${L(w, KNOCHEN)}/>`;
+  const DIENERFIG = {
+    skelett: { h: 112, svg: `${schatten(22)}<circle cx="0" cy="-70" r="34" fill="#7BE3A0" opacity=".12"/>${knochen("M-9 0v-34M9 0v-34", 4)}<path d="M-15 -34q15 7 30 0l-4-9h-22z" ${F(KNOCHEN, 2.5)}/>
+      ${knochen("M0 -44v-40", 4)}${knochen("M-15 -54q15-6 30 0M-17 -64q17-6 34 0M-15 -74q15-6 30 0", 3)}${knochen("M-18 -80l-10 30M18 -80l10 26", 3.5)}
+      <circle cx="0" cy="-96" r="13" ${F("#F3EEE0", 2.5)}/><path d="M-6 -104q6-4 12 0" ${L(1.5, "#B8AE98")}/>
+      <g class="waffe"><path d="M28 -54l10 -46" ${L(4.5, "#D9DCE4")}/><path d="M28 -54l10 -46" ${L(1.2)}/><path d="M22 -60l14 6" ${L(4)}/></g>` },
+    golem: { h: 116, svg: `${schatten(34)}<path d="M-20 0l-2-30h16l2 30zM6 0l-2-30h16l-2 30z" ${F("#6E6458")}/>
+      <path d="M-30 -30q-10-42 6-64 24-12 48 0 16 22 6 64z" ${F("#8A7E6E")}/><path d="M-14 -84l8 14-6 12M16 -74l-6 16M-20 -44l10 4" ${L(2, "#5A5044")}/><path d="M-4 -64l5 7 7-9" ${L(3, "#7BE3A0")}/>
+      <circle cx="0" cy="-104" r="13" ${F("#7D7264")}/>
+      <g class="waffe"><ellipse cx="-38" cy="-60" rx="11" ry="25" ${F("#7D7264")}/><ellipse cx="38" cy="-60" rx="11" ry="25" ${F("#7D7264")}/></g>` },
+    irrlicht: { h: 88, svg: `<ellipse cx="0" cy="0" rx="14" ry="3.5" fill="#7BE3A0" opacity=".3"/><circle cx="0" cy="-62" r="30" fill="url(#vl-heil)"/>
+      <path d="M0 -86c-14 12-14 30 0 36 14-6 14-24 0-36z" fill="#DFFFF0" stroke="#4FB98A" stroke-width="2.5"/><path d="M-3 -50q-7 12 3 22 9-9 1-22" fill="#BFF5D0" stroke="#4FB98A" stroke-width="1.5" opacity=".85"/>
+      <circle cx="-4" cy="-68" r="2.2" fill="#2C6648"/><circle cx="4" cy="-68" r="2.2" fill="#2C6648"/>` }
   };
   // Waffenspitze (für Strahlen und Geschosse), relativ zum Fuß
-  const SPITZE = { kaempfer: [44, -130], paladin: [50, -132], dieb: [40, -40], waldlaeufer: [-40, -72], magierin: [30, -128], heilerin: [-34, -126], moench: [40, -44] };
+  const SPITZE = { kaempfer: [44, -130], paladin: [50, -132], dieb: [40, -40], waldlaeufer: [-40, -72], magierin: [30, -128], heilerin: [-34, -126], moench: [40, -44], nekromant: [32, -128] };
 
   const GEG = {
     ratte: { h: 52, svg: `${schatten(46)}<path d="M-40 -4q4-40 40-40 32 0 40 22l18 6-18 8q-24 8-80 4z" ${F("#8C7A6B")}/><circle cx="34" cy="-22" r="3" fill="#E23B2E"/>
@@ -251,7 +269,7 @@
   }
 
   // ---------- Aufstellung ----------
-  function aufstellung(gegner, helden) {
+  function aufstellung(gegner, helden, diener) {
     const pos = {};
     const n = helden.length, hx = n === 1 ? [200] : n === 2 ? [125, 275] : n === 3 ? [78, 200, 322] : n === 4 ? [52, 149, 251, 348]
       : n === 5 ? [42, 121, 200, 279, 358] : [35, 101, 167, 233, 299, 365];
@@ -262,9 +280,16 @@
     const skala = c <= 2 ? 1 : c === 3 ? .8 : c === 4 ? .66 : .56;
     const sortiert = gegner.slice().sort((a, b) => (GROESSE[b.art] || 0) - (GROESSE[a.art] || 0) || (a.id < b.id ? -1 : 1));
     sortiert.forEach((g, i) => { const x = plaetze[i] !== undefined ? plaetze[i] : 50 + i * 60; pos[g.id] = { x, y: c >= 3 && i > 0 ? 234 : 226, s: skala, held: false, w: c >= 5 ? 76 : c >= 4 ? 92 : i === 0 && c === 3 ? 150 : Math.min(116, 400 / Math.max(c, 1) - 10) }; });
+    // Diener: nebeneinander ein Stück vor ihrem Herrn (kleiner, weil weiter weg)
+    const je = {};
+    for (const d of diener || []) (je[d.herr] = je[d.herr] || []).push(d);
+    for (const herr in je) {
+      const h = pos[herr]; if (!h) continue;
+      je[herr].forEach((d, i, l) => { const s = h.s * .5; pos[d.id] = { x: Math.min(388, Math.max(12, h.x + (i - (l.length - 1) / 2) * 36 * h.s)), y: h.y - 122 * h.s, s, held: false, diener: true, hoehe: ((DIENERFIG[d.art] || {}).h || 100) * s, w: Math.max(30, 40 * h.s) }; });
+    }
     return pos;
   }
-  const mitte = (pos, id, art) => { const p = pos[id]; if (!p) return { x: 200, y: 250 }; return p.held ? { x: p.x, y: p.y - 62 } : { x: p.x, y: p.y - (GEG[art] ? GEG[art].h : 80) * p.s * .55 }; };
+  const mitte = (pos, id, art) => { const p = pos[id]; if (!p) return { x: 200, y: 250 }; if (p.diener) return { x: p.x, y: p.y - p.hoehe * .55 }; return p.held ? { x: p.x, y: p.y - 62 } : { x: p.x, y: p.y - (GEG[art] ? GEG[art].h : 80) * p.s * .55 }; };
 
   // ---------- Zeichnen ----------
   const farbeBalken = q => q <= .3 ? "#FF6B57" : q <= .6 ? "#FFD447" : "#5BD69A";
@@ -280,12 +305,24 @@
       ${marken ? `<text x="${x + 7}" y="${y + 40}" font-family="Inter,system-ui" font-weight="600" font-size="9.5" fill="#FFD447"${marken.length * 5.4 > w - 14 ? ` textLength="${w - 14}" lengthAdjust="spacingAndGlyphs"` : ""}>${esc(marken)}</text>` : ""}</g>`;
   }
   // daten: { gegner:[{id,art,name,hp,max,giftR,markiert,starr}], helden:[{id,rolle,name,hp,max,marken}], absicht, zielModus, zielHelden:[ids] }
+  // kleines Lebensschild über einem Diener
+  function dienerSchild(d, p) {
+    const q = Math.max(0, d.hp / d.max), w = p.w, x = p.x - w / 2, y = p.y - p.hoehe - 18;
+    return `<g id="vl-pl-${d.id}" class="vl-plakette"><rect x="${x}" y="${y}" width="${w}" height="13" rx="4" fill="#1C1A33" opacity=".85" stroke="#2C6648"/>
+      <text id="vl-z-${d.id}" x="${p.x}" y="${y + 7.5}" text-anchor="middle" font-family="Inter,system-ui" font-weight="700" font-size="7.5" fill="#BFF5D0">${Math.max(0, d.hp)}</text>
+      <rect x="${x + 3}" y="${y + 9}" width="${w - 6}" height="2.5" rx="1.2" fill="#0E0C18"/><rect id="vl-b-${d.id}" x="${x + 3}" y="${y + 9}" width="${w - 6}" height="2.5" rx="1.2" fill="${farbeBalken(q)}" style="transform-box:fill-box;transform-origin:0 50%;transform:scaleX(${q})"/></g>`;
+  }
   function svgBauen(daten) {
-    const pos = aufstellung(daten.gegner, daten.helden.map(h => h.id));
+    const diener = daten.diener || [];
+    const pos = aufstellung(daten.gegner, daten.helden.map(h => h.id), diener);
     let s = hintergrund(daten.ebene || 1);
     for (const g of daten.gegner) {
       const p = pos[g.id], tot = g.hp <= 0;
       s += `<g class="vl-einheit" id="vl-e-${g.id}" style="transform:translate(${p.x}px,${p.y}px)"><g style="transform:scale(${p.s})"><g class="vl-fig" id="vl-f-${g.id}" ${tot ? 'style="opacity:0"' : ""}><g class="vl-atmen ${g.id.length % 2 ? "b" : ""}">${GEG[g.art] ? GEG[g.art].svg : ""}</g></g></g></g>`;
+    }
+    for (const d of diener) {
+      const p = pos[d.id]; if (!p) continue;
+      s += `<g class="vl-einheit" id="vl-e-${d.id}" style="transform:translate(${p.x}px,${p.y}px)"><g class="vl-fig" id="vl-f-${d.id}" ${d.hp <= 0 ? 'style="opacity:0"' : ""}><g class="vl-atmen ${d.id.length % 2 ? "b" : "c"}"><g style="transform:scale(${p.s * (d.titan ? 1.3 : 1)})">${(DIENERFIG[d.art] || {}).svg || ""}</g></g></g></g>`;
     }
     for (const h of daten.helden) {
       const p = pos[h.id], weg = h.hp <= 0;
@@ -313,6 +350,7 @@
       }
     }
     for (const h of daten.helden) { const p = pos[h.id]; s += plakette(h.id, p.x - p.w / 2, p.y + 10, p.w, h.name, h.hp, h.max, h.marken); }
+    for (const d of diener) if (d.hp > 0 && pos[d.id]) s += dienerSchild(d, pos[d.id]);
     if (daten.zielModus === "gegner") for (const g of daten.gegner) if (g.hp > 0) {
       const p = pos[g.id], hoehe = (GEG[g.art] ? GEG[g.art].h : 80) * p.s;
       s += `<ellipse class="vl-ring" cx="${p.x}" cy="${p.y}" rx="${44 * p.s + 10}" ry="${12 * p.s + 4}" fill="none" stroke="#FFD447" stroke-width="3"/>
@@ -383,8 +421,10 @@
     let gegner = R.start.gegner.map(g => Object.assign({}, g));
     const heldIds = Object.keys(R.start.helden);
     const helden = heldIds.map(p => ({ id: p, rolle: info.rolle(p), name: info.name(p), hp: R.start.helden[p].hp, max: R.start.helden[p].max, marken: "" }));
-    const zust = {}; for (const g of gegner) zust[g.id] = g; for (const h of helden) zust[h.id] = h;
-    let bau = svgBauen({ gegner, helden, absicht: R.start.absicht, ebene: R.start.ebene });
+    let diener = (R.start.diener || []).map(d => Object.assign({}, d));
+    const zust = {}; for (const g of gegner) zust[g.id] = g; for (const h of helden) zust[h.id] = h; for (const d of diener) zust[d.id] = d;
+    const gehandelt = new Set();   // Gegner, die diese Runde schon dran waren (ihre Ankündigung verschwindet beim Neuzeichnen)
+    let bau = svgBauen({ gegner, helden, diener, absicht: R.start.absicht, ebene: R.start.ebene });
     el.innerHTML = bau.svg;
     let pos = bau.pos;
     let svg = el.querySelector("svg");
@@ -393,6 +433,25 @@
     const artVon = id => (zust[id] && zust[id].art) || null;
     const M = id => mitte(pos, id, artVon(id));
     const istHeld = id => heldIds.includes(id);
+    const istDiener = id => !!(zust[id] && zust[id].herr);
+    // Bühne neu zeichnen (neue Gegner oder Diener), Ankündigungen noch nicht handelnder Gegner bleiben
+    function neuBauen() {
+      const ab = {}; for (const id in R.start.absicht || {}) if (!gehandelt.has(id)) ab[id] = R.start.absicht[id];
+      bau = svgBauen({ gegner, helden, diener: diener.filter(d => d.hp > 0), absicht: ab, ebene: R.start.ebene }); el.innerHTML = bau.svg; pos = bau.pos;
+      svg = el.querySelector("svg");
+    }
+    // neue Diener steigen aus dem Boden, ersetzte zerfallen
+    async function dienerWechsel(e) {
+      for (const id of e.weg || []) { const f = $("vl-f-" + id); if (f) { const m = M(id); partikel(m.x, m.y, "#EDE4D0", 10, 30, 30, 600); animiere(f, [{ opacity: 1 }, { opacity: 0, transform: "translateY(10px)" }], 450); } }
+      if (e.weg && e.weg.length) await warte(450);
+      diener = diener.filter(d => !(e.weg || []).includes(d.id));
+      if (!e.diener || !e.diener.length) { if (e.weg && e.weg.length) neuBauen(); return; }
+      for (const n of e.diener) { if (diener.some(x => x.id === n.id)) continue; const z = Object.assign({}, n); diener.push(z); zust[z.id] = z; }
+      neuBauen();
+      sfx("ruf");
+      for (const n of e.diener) { const f = $("vl-f-" + n.id), m = M(n.id); if (m) partikel(m.x, m.y + 20, "#7BE3A0", 12, 40, 40, 700); if (f) animiere(f, [{ transform: "translateY(30px)", opacity: 0 }, { transform: "translateY(0)", opacity: 1 }], 650, { easing: "ease-out" }); }
+      await warte(700);
+    }
 
     async function zahl(id, text, farbe) {
       // Wörter nicht über den Rand hinaus (grobe Breite der fetten Schrift)
@@ -466,10 +525,11 @@
     // Lebenspunkte und Folgen eines Ereignisses anzeigen
     async function folgen(e, farbeSchaden) {
       const warten = [];
+      for (const id in e.max || {}) if (zust[id]) zust[id].max = e.max[id];
       for (const [id, d, nach] of e.d || []) {
         const z = zust[id]; if (!z) continue;
         const war = z.hp; z.hp = nach;
-        if (d < 0) { warten.push(wackeln(id)); zahl(id, "−" + -d, istHeld(id) ? "#FF6B57" : (farbeSchaden || "#FFFFFF")); if (istHeld(id)) { try { navigator.vibrate && navigator.vibrate(50); } catch (x) {} } }
+        if (d < 0) { warten.push(wackeln(id)); zahl(id, "−" + -d, istHeld(id) || istDiener(id) ? "#FF6B57" : (farbeSchaden || "#FFFFFF")); if (istHeld(id)) { try { navigator.vibrate && navigator.vibrate(50); } catch (x) {} } }
         else zahl(id, "+" + d, "#7BE3A0");
         warten.push(balken(id));
         if (nach <= 0 && war > 0) {
@@ -480,12 +540,12 @@
       }
       await Promise.all(warten);
     }
-    const getroffene = (e, nurGegner) => (e.d || []).filter(([id, d]) => d < 0 && (nurGegner ? !istHeld(id) : true)).map(x => x[0]);
+    const getroffene = (e, nurGegner) => (e.d || []).filter(([id, d]) => d < 0 && (nurGegner ? !istHeld(id) && !istDiener(id) : true)).map(x => x[0]);
 
     // ---------- Heldenaktionen ----------
     const HFX = {
       nah: ["schlag", "vernichten", "dolch", "gift", "taschendieb", "hammer", "faust", "hundert", "drachenfaust", "herausforderung"],
-      geschoss: ["funken", "pfeil", "eis", "markieren"],
+      geschoss: ["funken", "pfeil", "eis", "markieren", "schattenblitz"],
       salve: ["doppel", "hagel"], strahl: ["stab"],
       heil: ["heilen", "handauflegen", "kraeuter", "trank"],
       gruppe: ["segen", "laeutern", "wiedergeburt"],
@@ -511,8 +571,44 @@
       ansturm: "wirbel", klingensturm: "wirbel", feuerweihe: "licht", ewigschild: "fels", schattentanz: "hagel", schwarztod: "rauch", sternschuss: "pfeil",
       wildnis: "hagel", sternenfall: "meteor", gnade: "wiedergeburt", lebensquell: "wiedergeburt",
       bebenfaust: "wirbel", fauststurm: "wirbel", windschritt: "arkan", leergeist: "arkan", wirbelwind: "fels", nirwana: "fels",
-      innereruhe: "heilen", chigabe: "heilen", lotusbluete: "wiedergeburt" };
+      innereruhe: "heilen", chigabe: "heilen", lotusbluete: "wiedergeburt",
+      geisterhand: "heilen", geisterzug: "wiedergeburt", elementarsturm: "arkan", totentanz: "hagel" };
+    // Nekromant: Diener rufen, Golem wachsen lassen, Splitter und Seelen bersten lassen
+    async function nekroAktion(e) {
+      const p = e.von, a = e.a, golem = diener.find(d => d.herr === p && d.art === "golem" && d.hp > 0);
+      if (a === "skelettruf" || a === "golemruf" || a === "irrlichtruf" || a === "armee" || a === "titan") {
+        await heben(p); const q = M(p); partikel(q.x, q.y - 40, "#7BE3A0", 10, 40, 50, 600); senken(p);
+        await dienerWechsel(e);
+        if (a === "titan") { const g = diener.find(d => d.herr === p && d.art === "golem"); if (g) { g.titan = true; sfx("stampfen"); bebenBild(6); await animiere($("vl-f-" + g.id), [{ transform: "scale(1)" }, { transform: "scale(1.5)" }, { transform: "scale(1.25)" }], 600); } }
+        await folgen(e); return true;
+      }
+      if (a === "steinruf" && golem) { sfx("schutz"); await blase(golem.id, "#BFA98A"); await folgen(e); return true; }
+      if (a === "stampfen" || a === "knochensplitter" || a === "leichenexplosion") {
+        const lebende = gegner.filter(g => g.hp > 0 || getroffene(e, true).includes(g.id)).map(g => g.id);
+        if (a === "stampfen" && golem) { await animiere($("vl-f-" + golem.id), [{ transform: "translateY(0)" }, { transform: "translateY(-18px)" }, { transform: "translateY(0)" }], 380, { easing: "ease-in" }); sfx("stampfen"); bebenBild(8); }
+        else if (a === "knochensplitter") { const d = (e.d || []).find(([id]) => istDiener(id)); const m = d ? M(d[0]) : M(p); sfx("knall"); partikel(m.x, m.y, "#EDE4D0", 24, 90, 60, 700); }
+        else { await heben(p); sfx("gift"); blitz("#7BE3A0", .25); senken(p); }
+        for (const id of lebende) { const m = M(id); partikel(m.x, m.y, a === "leichenexplosion" ? "#7BE3A0" : a === "stampfen" ? "#8C8070" : "#EDE4D0", 10, 60, 40, 600); }
+        await warte(300); sfx("treffer"); await folgen(e); return true;
+      }
+      return false;
+    }
+    // Diener handeln: zuschlagen oder heilen; Golem heilt sich, Titan schrumpft
+    async function dienerAktion(e) {
+      const d = e.von;
+      if (e.a === "diener" && e.ziel && pos[e.ziel]) {
+        await vorstossen(d, e.ziel, .5); sfx("hieb"); await bogenSchnitt(e.ziel, "#BFF5D0"); sfx("treffer"); await folgen(e); await zurueck(d); return;
+      }
+      if (e.a === "irrlicht" && e.ziel && pos[e.ziel]) {
+        sfx("heil"); await flug(M(d), M(e.ziel), `<circle r="12" fill="url(#vl-heil)"/><circle r="4" fill="#DFFFF0"/>`, 450, 30, false, "#7BE3A0");
+        const m = M(e.ziel); glut(m.x, m.y, "vl-heil", 45, 600); await folgen(e); return;
+      }
+      if (e.a === "titanEnde") { if (zust[d]) zust[d].titan = false; await animiere($("vl-f-" + d), [{ transform: "scale(1.25)" }, { transform: "scale(1)" }], 500); await folgen(e); return; }
+      if (e.a === "steinhaut") { const m = M(d); partikel(m.x, m.y, "#BFA98A", 8, 30, 30, 500); }
+      await folgen(e);
+    }
     async function heldAktion(e0) {
+      if (await nekroAktion(e0)) return;
       if (e0.a === "frost" || e0.a === "winter" || e0.a === "zeitstillstand") { await frostwelle(e0); return; }
       if (e0.a === "befreien" || e0.a === "frei") { await wackeln(e0.von); await wort(e0.von, "frei!", "#F3F0FF"); return; }
       if (e0.a === "zappeln") { await wackeln(e0.von); await wort(e0.von, "im Kokon", "#F3F0FF"); return; }
@@ -532,14 +628,15 @@
           pfeil: `<path d="M-24 0h40" ${L(3, "#D9CDB6")}/><path d="M16 0l-8-5v10z" fill="#A6A9B2" stroke="${T}" stroke-width="1.5"/><path d="M-24 0l-6-5M-24 0l-6 5" ${L(2.5, "#B83A2A")}/>`,
           markieren: `<path d="M-24 0h40" ${L(3, "#D9CDB6")}/><path d="M16 0l-8-5v10z" fill="#FFD447" stroke="${T}" stroke-width="1.5"/>`,
           funken: `<circle r="16" fill="url(#vl-glut)"/><circle r="5" fill="#FFF3B0" stroke="${T}" stroke-width="1.5"/>`,
-          eis: `<path d="M-24 0 L0 -7 L28 0 L0 7z" fill="#BFE8FF" stroke="${T}" stroke-width="2.5"/><path d="M-18 0h40" stroke="#fff" stroke-width="2"/>`
+          eis: `<path d="M-24 0 L0 -7 L28 0 L0 7z" fill="#BFE8FF" stroke="${T}" stroke-width="2.5"/><path d="M-18 0h40" stroke="#fff" stroke-width="2"/>`,
+          schattenblitz: `<circle r="15" fill="#7BE3A0" opacity=".35"/><circle r="8" fill="#2E2A3A" stroke="#7BE3A0" stroke-width="2.5"/>`
         };
-        sfx(a === "eis" ? "eis" : a === "funken" ? "feuer" : "schuss");
-        await flug(spitze(), M(ziel), formen[a], a === "funken" ? 420 : 340, a === "funken" ? 30 : 8, true, a === "eis" ? "#DFF4FF" : a === "funken" ? "#FF9A3C" : null);
+        sfx(a === "eis" ? "eis" : a === "funken" ? "feuer" : a === "schattenblitz" ? "gift" : "schuss");
+        await flug(spitze(), M(ziel), formen[a], a === "funken" || a === "schattenblitz" ? 420 : 340, a === "funken" ? 30 : a === "schattenblitz" ? 20 : 8, true, a === "eis" ? "#DFF4FF" : a === "funken" ? "#FF9A3C" : a === "schattenblitz" ? "#7BE3A0" : null);
         senken(p); sfx("treffer");
         if (a === "eis") { const m = M(ziel); partikel(m.x, m.y + 20, "#DFF4FF", 14, 70, 20, 700); blitz("#BFE8FF", .2); }
         if (a === "markieren") { const m = M(ziel); const r = elt("circle", { cx: m.x, cy: m.y, r: 26, fill: "none", stroke: "#FFD447", "stroke-width": 3, class: "vl-mitte" }); fx().appendChild(r); animiere(r, [{ transform: "scale(1.6)", opacity: 0 }, { transform: "scale(1)", opacity: 1, offset: .5 }, { transform: "scale(.9)", opacity: 0 }], 800).then(() => r.remove()); }
-        await folgen(e, a === "eis" ? "#BFE8FF" : a === "funken" ? "#FFB547" : "#FFFFFF");
+        await folgen(e, a === "eis" ? "#BFE8FF" : a === "funken" ? "#FFB547" : a === "schattenblitz" ? "#B6F0C8" : "#FFFFFF");
       } else if (typ === "salve") {
         await heben(p);
         const n = a === "hagel" ? 4 : 2, liste = ziele.length ? ziele : gegner.filter(g => g.hp > 0).map(g => g.id);
@@ -627,14 +724,13 @@
       for (const [id, , nach] of e.d || []) if (zust[id]) zust[id].hp = nach;   // z. B. ein Schleim, der sich teilt, oder ein Ei, das platzt
       gegner = gegner.filter(x => x.hp > 0);    // Besiegte machen Platz
       for (const n of e.neu || []) { if (gegner.some(x => x.id === n.id)) continue; const z = Object.assign({ giftR: 0, markiert: 0 }, n); gegner.push(z); zust[z.id] = z; }
-      bau = svgBauen({ gegner, helden, absicht: {}, ebene: R.start.ebene }); el.innerHTML = bau.svg; pos = bau.pos;
-      svg = el.querySelector("svg");
+      neuBauen();
       for (const n of e.neu || []) { const f = $("vl-f-" + n.id); if (f) animiere(f, [{ transform: "translateY(40px)", opacity: 0 }, { transform: "translateY(0)", opacity: 1 }], 700, { easing: "ease-out" }); }
       await warte(800);
     }
     // ---------- Gegneraktionen ----------
     async function gegnerAktion(e) {
-      const g = e.von, art = artVon(g), opfer = (e.d || []).filter(([id, d]) => d < 0 && istHeld(id)).map(x => x[0]);
+      const g = e.von, art = artVon(g), opfer = (e.d || []).filter(([id, d]) => d < 0 && (istHeld(id) || istDiener(id))).map(x => x[0]);
       const ab = $("vl-ab-" + g); if (ab) animiere(ab, [{ transform: "scale(1)" }, { transform: "scale(1.12)" }, { transform: "scale(1)" }], 300);
       if (e.a === "unterbrochen") { blitz("#FFD447", .14); await animiere($("vl-f-" + g), [{ transform: "translateX(0)" }, { transform: "translateX(-4px)" }, { transform: "translateX(4px)" }, { transform: "translateX(0)" }], 300); await wort(g, "unterbrochen!", "#FFD447"); return; }
       if (e.a === "starr") { blitz("#BFE8FF", .12); await animiere($("vl-f-" + g), [{ transform: "translateX(0)" }, { transform: "translateX(-3px)" }, { transform: "translateX(3px)" }, { transform: "translateX(0)" }], 300); await wort(g, "erstarrt", "#BFE8FF"); return; }
@@ -740,7 +836,9 @@
       try {
         if (e.a === "giftTick") { const m = M(e.von); sfx("gift"); partikel(m.x, m.y + 20, "#8BD14A", 10, 40, 60, 600); await folgen(e, "#B6F07A"); }
         else if (istHeld(e.von)) await heldAktion(e);
-        else await gegnerAktion(e);
+        else if (istDiener(e.von)) await dienerAktion(e);
+        else { await gegnerAktion(e); gehandelt.add(e.von); }
+        if ((e.weg && e.weg.length) && !["skelettruf", "golemruf", "irrlichtruf", "armee", "titan"].includes(e.a)) await dienerWechsel(e);
       } catch (x) { if (window.console) console.error(x); }
       await warte(260);
     }

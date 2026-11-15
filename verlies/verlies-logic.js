@@ -1,7 +1,7 @@
 // Verlies der Helden: Spielregeln ohne Netzwerk und ohne Oberfläche.
 // Der ganze Spielstand steckt in S (wird nach jeder Änderung an alle geschickt). Zufall kommt aus S.rng,
 // damit ein übernehmender Spielleiter genau dort weitermacht, wo der alte aufgehört hat.
-// Ablauf: Lobby (Rolle wählen, 6 Rollen, 2 bis 6 Helden) → Karte mit 7 Reihen; vor jedem Raum stimmt die Gruppe
+// Ablauf: Lobby (Rolle wählen, 8 Rollen, 2 bis 6 Helden) → Karte mit 7 Reihen; vor jedem Raum stimmt die Gruppe
 // auf der Karte ab, wohin es geht → Endgegner in Reihe 8. Händler stehen als Räume auf der Karte, vor dem Thronsaal
 // schlägt der Händler immer noch einmal sein Lager auf. Jeder kauft mit seinem eigenen Gold.
 (function () {
@@ -31,9 +31,10 @@
     magierin: { name: "Magierin", hp: 23, kurz: "Feuer gegen alle, Eis lähmt Gegner" },
     waldlaeufer: { name: "Waldläufer", hp: 28, kurz: "Pfeile, markiert Ziele für alle" },
     paladin: { name: "Paladin", hp: 32, kurz: "Beschützt andere, heilt ein wenig" },
-    moench: { name: "Mönch", hp: 30, kurz: "Fäuste und Chi, weicht aus, löst böse Zustände", ausweichen: 15 }
+    moench: { name: "Mönch", hp: 30, kurz: "Fäuste und Chi, weicht aus, löst böse Zustände", ausweichen: 15 },
+    nekromant: { name: "Nekromant", hp: 24, kurz: "Ruft Diener, die für ihn kämpfen und Schläge abfangen" }
   };
-  const ROLLEN_REIHE = ["kaempfer", "paladin", "dieb", "waldlaeufer", "magierin", "heilerin", "moench"];
+  const ROLLEN_REIHE = ["kaempfer", "paladin", "dieb", "waldlaeufer", "magierin", "heilerin", "moench", "nekromant"];
   // ziel: "gegner" = einen Gegner antippen, "held" = einen Helden antippen, "anderer" = einen anderen Helden,
   // null = ohne Ziel. cd = Abklingzeit in Runden. Heilende Fähigkeiten wecken Bewusstlose.
   const AKTIONEN = {
@@ -72,6 +73,12 @@
       { id: "faust", name: "Faustschläge", ziel: "gegner", text: "Zwei Schläge, je 3–4 Schaden, +1 Chi" },
       { id: "windschritt", name: "Windschritt", ziel: null, chi: 2, text: "Diese Runde weichst du allen Schlägen aus, nächste Faustschläge je +4" },
       { id: "innereruhe", name: "Innere Ruhe", ziel: null, chi: 2, text: "+10 Leben für dich, Gift und Wundbrand sind weg" }
+    ],
+    // Nekromant: Diener stehen vor ihm, fangen Schläge ab und greifen am Ende des Heldenzugs an
+    nekromant: [
+      { id: "schattenblitz", name: "Schattenblitz", ziel: "gegner", text: "4–6 Schaden, deine Diener greifen danach dasselbe Ziel an" },
+      { id: "skelettruf", name: "Skelett rufen", ziel: null, cd: 3, text: "Ein Knochenkrieger erscheint: 12 Leben, schlägt jede Runde für 5, fängt meist die Schläge auf dich ab" },
+      { id: "knochensplitter", name: "Knochensplitter", ziel: null, cd: 2, text: "Dein ältester Diener zerplatzt: 3 Schaden an allen Gegnern, dazu die Hälfte seiner Leben" }
     ]
   };
   // Fähigkeiten, die erst ein Talent freischaltet. meister: Meisterfähigkeit, einmal pro Kampf.
@@ -139,7 +146,19 @@
     ["leergeist", "Leerer Geist", null, 0, "Zwei Runden lang weichst du allen Schlägen aus, und alle Gegner schlagen nach dir", 1],
     ["lotusbluete", "Tausend Lotusblüten", null, 0, "Alle +12 Leben, Gift, Stille, Wundbrand und Todesmal sind weg, weckt Bewusstlose", 1],
     ["fauststurm", "Sturm der Fäuste", null, 0, "Zehn Schläge, je 5 Schaden an zufälligen Gegnern", 1],
-    ["nirwana", "Nirwana", null, 0, "Zwei Runden lang nimmt kein Held mehr als 4 Schaden pro Treffer", 1]
+    ["nirwana", "Nirwana", null, 0, "Zwei Runden lang nimmt kein Held mehr als 4 Schaden pro Treffer", 1],
+    // Nekromant
+    ["golemruf", "Golem rufen", null, 3, "Ein Steingolem erscheint: 22 Leben, Panzer 1, schlägt für 3"],
+    ["irrlichtruf", "Irrlicht rufen", null, 3, "Ein Irrlicht erscheint: 8 Leben, heilt jede Runde den schwächsten Helden um 3"],
+    ["leichenexplosion", "Leichenexplosion", null, 2, "Kostet eine Seele: 8 Schaden an allen Gegnern"],
+    ["steinruf", "Steinruf", null, 3, "Diese Runde greifen alle Gegner deinen Golem an"],
+    ["stampfen", "Stampfen", null, 3, "Dein Golem stampft: 6 Schaden an allen Gegnern"],
+    ["geisterhand", "Geisterhand", "held", 2, "+7 Leben, weckt Bewusstlose"],
+    ["armee", "Armee der Toten", null, 0, "Drei Skelette erscheinen", 1],
+    ["titan", "Titan", null, 0, "Drei Runden lang ist dein Golem riesig: doppelte Leben, schlägt für 12 und zieht alle Angriffe auf sich (steht keiner, kommt er)", 1],
+    ["geisterzug", "Geisterzug", null, 0, "Drei Runden lang alle Helden +6 Leben je Runde, Gegner schlagen zu 25 % daneben", 1],
+    ["totentanz", "Totentanz", null, 0, "Jeder in diesem Kampf besiegte Gegner (höchstens 5) schlägt noch einmal zu: je 10 Schaden an zufälligen Gegnern", 1],
+    ["elementarsturm", "Elementarsturm", null, 0, "Alle deine Diener handeln diese Runde dreimal", 1]
   ].forEach(([id, name, ziel, cd, text, meister, chi]) => { NEUE[id] = Object.assign({ id, name, ziel, text }, cd ? { cd } : {}, meister ? { meister: true } : {}, chi ? { chi } : {}); });
   const TRANK = { id: "trank", name: "Heiltrank", ziel: null, text: "+14 Leben für dich" };
   const BEFREIEN = { id: "befreien", name: "Aus dem Netz befreien", ziel: null, text: "Du hängst im Netz fest und setzt diese Runde aus." };
@@ -309,6 +328,29 @@
         ["Lotushaltung", "Immer: Innere Ruhe heilt alle anderen halb so viel.", { passiv: "lotusruhe", n: 1 }],
         ["Erleuchtung", "Immer: Du beginnst jeden Kampf mit 3 Chi.", { passiv: "chistart", n: 2 }],
         ["Tausend Lotusblüten", "Meisterfähigkeit: Alle +12 Leben, Gift, Stille, Wundbrand und Todesmal weg.", { meister: "lotusbluete" }]]]
+    ],
+    nekromant: [
+      ["totenruf", "Totenruf", "Skelette und Seelen", [
+        ["Knochenmark", "Immer: Skelette +4 Leben.", { passiv: "skeletthp", n: 4 }],
+        ["Seelenruf", "Immer: Ist Skelett rufen nicht bereit, geht es trotzdem und kostet eine Seele.", { passiv: "seelenruf", n: 1 }],
+        ["Knochenwache", "Immer: Zwei Diener zugleich.", { passiv: "plaetze", n: 1 }],
+        ["Leichenexplosion", "Neue Fähigkeit: Kostet eine Seele, 8 Schaden an allen Gegnern.", { neu: "leichenexplosion" }],
+        ["Untote Treue", "Immer: Skelette nehmen 2 Schaden weniger pro Treffer. Fällt eines, bekommst du eine Seele.", { passiv: "treue", n: 2 }],
+        ["Armee der Toten", "Meisterfähigkeit: Drei Skelette erscheinen.", { meister: "armee" }]]],
+      ["steinbund", "Steinbund", "Der Golem schützt die Gruppe", [
+        ["Golem rufen", "Neue Fähigkeit: Steingolem, 22 Leben, Panzer 1, schlägt für 3.", { neu: "golemruf" }],
+        ["Steinmasse", "Immer: Golem +6 Leben.", { passiv: "golemhp", n: 6 }],
+        ["Steinruf", "Neue Fähigkeit: Diese Runde greifen alle Gegner deinen Golem an.", { neu: "steinruf" }],
+        ["Steinhaut", "Immer: Dein Golem heilt sich am Ende jeder Runde um 3.", { passiv: "steinhaut", n: 3 }],
+        ["Stampfen", "Neue Fähigkeit: Dein Golem macht 6 Schaden an allen Gegnern.", { neu: "stampfen" }],
+        ["Titan", "Meisterfähigkeit: Drei Runden lang ist der Golem riesig, schlägt für 12 und zieht alle Angriffe auf sich.", { meister: "titan" }]]],
+      ["geisterbund", "Geisterbund", "Das Irrlicht heilt", [
+        ["Irrlicht rufen", "Neue Fähigkeit: 8 Leben, heilt jede Runde den schwächsten Helden um 3.", { neu: "irrlichtruf" }],
+        ["Helles Licht", "Immer: Dein Irrlicht heilt +2.", { passiv: "irrheil", n: 2 }],
+        ["Geisterhand", "Neue Fähigkeit: Ein Held +7 Leben, weckt Bewusstlose.", { neu: "geisterhand" }],
+        ["Geistschild", "Immer: Wen dein Irrlicht heilt, der nimmt beim nächsten Treffer 3 weniger.", { passiv: "geistschild", n: 3 }],
+        ["Ahnenruf", "Immer: Fällt ein Held bewusstlos, holt ihn dein Irrlicht einmal pro Kampf mit 8 Leben zurück und vergeht.", { passiv: "ahnenruf", n: 8 }],
+        ["Geisterzug", "Meisterfähigkeit: Drei Runden lang alle +6 Leben je Runde, Gegner schlagen zu 25 % daneben.", { meister: "geisterzug" }]]]
     ]
   };
   // Aufstieg ab Stufe 20: je Rolle zwei Spezialisierungen mit 4 Knoten, bezahlt mit Ruhmespunkten.
@@ -397,6 +439,18 @@
         ["Langes Leben", "Immer: +10 Höchstleben.", { passiv: "leben", n: 10 }],
         ["Geteiltes Chi", "Immer: Chi übertragen wirkt zusätzlich auf den schwächsten anderen Helden.", { passiv: "chizwei", n: 1 }],
         ["Nirwana", "Zweite Meisterfähigkeit: Zwei Runden lang nimmt kein Held mehr als 4 Schaden pro Treffer.", { meister: "nirwana" }]]]
+    ],
+    nekromant: [
+      ["knochenfuerst", "Knochenfürst", "Herr über Skelette und Seelen", [
+        ["Knochenklingen", "Immer: Skelette schlagen +3.", { passiv: "skelettschlag", n: 3 }],
+        ["Seelenhort", "Immer: Höchstens 5 Seelen.", { passiv: "seelenmax", n: 2 }],
+        ["Seelenkraft", "Immer: Jede Seele gibt dir +1 Schaden mit allen Angriffen.", { passiv: "seelenkraft", n: 1 }],
+        ["Totentanz", "Zweite Meisterfähigkeit: Jeder besiegte Gegner (höchstens 5) schlägt noch einmal zu, je 10 Schaden.", { meister: "totentanz" }]]],
+      ["elementarist", "Elementarist", "Golem und Irrlicht zugleich", [
+        ["Elementarbund", "Immer: Ein Diener mehr zugleich, zum Beispiel Golem und Irrlicht.", { passiv: "plaetze", n: 1 }],
+        ["Steinherz", "Immer: +10 Höchstleben.", { passiv: "leben", n: 10 }],
+        ["Schneller Ruf", "Immer: Diener rufen ist 1 Runde früher wieder bereit.", { passiv: "rufcd", n: 1 }],
+        ["Elementarsturm", "Zweite Meisterfähigkeit: Alle deine Diener handeln diese Runde dreimal.", { meister: "elementarsturm" }]]]
     ]
   };
   const AUFSTIEG_STUFE = 20;
@@ -444,6 +498,12 @@
     wind4: ["Schemen", "Immer: 10 % mehr Ausweichen.", { passiv: "ausweichen", n: 10 }],
     lotus2: ["Gleichgewicht", "Innere Ruhe kostet 1 Chi weniger.", { plus: "innereruhe", chi: 1 }],
     lotus4: ["Offene Hand", "Chi übertragen kostet 1 Chi weniger.", { plus: "chigabe", chi: 1 }],
+    totenruf2: ["Scharfe Knochen", "Immer: Skelette schlagen +2.", { passiv: "skelettschlag", n: 2 }],
+    totenruf4: ["Splitterhagel", "Knochensplitter ist 1 Runde früher wieder bereit.", { plus: "knochensplitter", cd: 1 }],
+    steinbund2: ["Basalt", "Immer: Golem Panzer +1.", { passiv: "golempanzer", n: 1 }],
+    steinbund4: ["Steinfaust", "Immer: Golem schlägt +3.", { passiv: "golemschlag", n: 3 }],
+    geisterbund2: ["Blendlicht", "Immer: Solange dein Irrlicht leuchtet, schlagen Gegner zu 15 % daneben.", { passiv: "blendlicht", n: 15 }],
+    geisterbund4: ["Flinke Geister", "Geisterhand ist 1 Runde früher wieder bereit.", { plus: "geisterhand", cd: 1 }],
     kampfpriesterin4: ["Lichtschlag", "Immer: Einzelangriffe treffen mit 20 % Chance doppelt.", { passiv: "krit", n: 20 }]
   };
   // Ruhmesboni: ab Stufe 20 bringt jede Stufe einen Ruhmespunkt; jeder Bonus lässt sich mehrmals kaufen
@@ -507,6 +567,7 @@
   function cdVon(h, a) {
     if (a.meister) return 99;                 // einmal pro Kampf (wird bei Kampfbeginn zurückgesetzt)
     if (!a.cd) return 0;
+    if (RUF[a.id]) return Math.max(1, a.cd - passiv(h, "rufcd"));
     return Math.max(1, a.cd - plusVon(h, a.id, "cd"));
   }
   // Chi (Mönch): Fähigkeiten kosten Chi statt Abklingzeit
@@ -515,11 +576,52 @@
   const chiMax = h => CHI_MAX + passiv(h, "chimax");
   const chiDazu = (h, n) => { h.chi = Math.min(chiMax(h), (h.chi || 0) + n); };
   const ausweichen = h => (ROLLEN[h.rolle].ausweichen || 0) + passiv(h, "ausweichen");
+  // Diener (Nekromant): stehen vor ihm auf der Bühne. Leben wachsen mit seinen Höchstleben, Schlag und Heilung halb so schnell.
+  const DIENER = {
+    skelett: { name: "Knochenkrieger", hp: 12, schlag: 5 },
+    golem: { name: "Steingolem", hp: 22, schlag: 3, panzer: 1 },
+    irrlicht: { name: "Irrlicht", hp: 8, heil: 3 }
+  };
+  const RUF = { skelettruf: "skelett", golemruf: "golem", irrlichtruf: "irrlicht" };   // teilen sich die Abklingzeit
+  // Diener fangen 7 von 10 Schlägen auf ihren Herrn ab; höchstens 4 Diener auf der Bühne
+  const SEELEN_MAX = 3, DIENER_HOECHST = 4, ABFANGEN = 0.7;
+  const seelenMax = h => SEELEN_MAX + passiv(h, "seelenmax");
+  const seeleDazu = (h, n) => { h.seelen = Math.min(seelenMax(h), (h.seelen || 0) + n); };
+  const dienerPlaetze = h => 1 + passiv(h, "plaetze");
+  // Werte wachsen nicht mit der Stufe (in der Simulation waren mitwachsende Diener viel zu stark), nur mit Talenten
+  function dienerWerte(h, art) {
+    const D = DIENER[art];
+    return {
+      hp: D.hp + (art === "skelett" ? passiv(h, "skeletthp") : art === "golem" ? passiv(h, "golemhp") : 0),
+      schlag: D.schlag ? D.schlag + (art === "skelett" ? passiv(h, "skelettschlag") : passiv(h, "golemschlag")) : 0,
+      heil: D.heil ? D.heil + passiv(h, "irrheil") : 0,
+      panzer: (D.panzer || 0) + (art === "golem" ? passiv(h, "golempanzer") : 0)
+    };
+  }
+  const dienerVon = (S, p) => ((S.kampf && S.kampf.diener) || []).filter(d => d.herr === p && d.hp > 0);
+  // Skelett rufen trotz Abklingzeit (Seelenruf, kostet eine Seele)
+  const seelenRufFrei = (h, a) => a.id === "skelettruf" && (h.cd[a.id] || 0) > 0 && passiv(h, "seelenruf") > 0 && (h.seelen || 0) > 0;
+  // Warum eine Fähigkeit gerade nicht geht (außer Abklingzeit, Chi, Wundbrand); null = geht
+  function sperre(S, pid, a) {
+    const h = S.helden[pid];
+    if (a.id === "leichenexplosion" && !((h.seelen || 0) > 0)) return "Braucht eine Seele (jeder besiegte Gegner gibt eine)";
+    if ((a.id === "steinruf" || a.id === "stampfen") && !dienerVon(S, pid).some(d => d.art === "golem")) return "Braucht deinen Golem";
+    return null;
+  }
+  // Kann der Held diese Fähigkeit jetzt wählen?
+  function bereit(S, pid, a) {
+    const h = S.helden[pid];
+    if ((a.cd || a.meister) && (h.cd[a.id] || 0) > 0 && !seelenRufFrei(h, a)) return false;
+    if (a.chi && (h.chi || 0) < chiKosten(h, a)) return false;
+    if (a.id === "trank" && h.wundbrand > 0) return false;
+    return !sperre(S, pid, a);
+  }
   // Was Talente an einer Fähigkeit ändern, als kurzer Text
   function aktionZusatz(h, a) {
     if (a.id === "trank") { const n = passiv(h, "trankplus"); return n ? ` · +${n} durch Talente` : ""; }
     const t = [], s = plusVon(h, a.id, "schaden"), l = plusVon(h, a.id, "heil");
     if (s) t.push(`+${s} Schaden`); if (l) t.push(`+${l} Leben`);
+    if (RUF[a.id] && h.rolle === "nekromant") { const w = dienerWerte(h, RUF[a.id]), D = DIENER[RUF[a.id]]; if (w.hp !== D.hp || w.schlag !== (D.schlag || 0) || w.heil !== (D.heil || 0) || w.panzer !== (D.panzer || 0)) t.push(`mit Talenten ${w.hp} Leben, ${w.schlag ? "schlägt für " + w.schlag : "heilt " + w.heil}${w.panzer ? ", Panzer " + w.panzer : ""}`); }
     if (a.meister) t.push("einmal pro Kampf");
     else if (a.chi) t.push(`kostet ${chiKosten(h, a)} Chi`);
     else if (a.cd) t.push(`alle ${cdVon(h, a) + 1} Runden`);
@@ -1195,10 +1297,10 @@
       // ein Zusatz macht ihn auf andere Art stark, dafür hat er weniger Leben
       g.max = g.hp = Math.max(4, Math.round(g.hp * ZUSATZ_HP ** g.zusatz.length));
     }
-    S.kampf = { runde: 1, wahl: {}, bossPhase: 1, epTot: 0, nebel: false, absicht: {}, rache: 0, koVor: Object.fromEntries(S.teilnehmer.map(p => [p, S.helden[p].stats.umgefallen])) };
+    S.kampf = { runde: 1, wahl: {}, bossPhase: 1, epTot: 0, nebel: false, absicht: {}, rache: 0, diener: [], dnr: 0, koVor: Object.fromEntries(S.teilnehmer.map(p => [p, S.helden[p].stats.umgefallen])) };
     for (const p of S.teilnehmer) { const h = S.helden[p]; for (const id in h.cd) if (NEUE[id] && NEUE[id].meister) delete h.cd[id]; }
     for (const p of S.teilnehmer) Object.assign(S.helden[p], { schild: false, versteckt: false, lauer: false, segen: 0, gift: 0, giftR: 0, immun: false, fels: false, beschuetzt: null, netz: 0, kokon: null, stille: 0, wundbrand: 0, todesmal: null,
-      chi: 1 + passiv(S.helden[p], "chistart"), windbonus: 0, wind: false, wirbelwind: false, leer: 0, letztesZiel: null });
+      chi: 1 + passiv(S.helden[p], "chistart"), windbonus: 0, wind: false, wirbelwind: false, leer: 0, letztesZiel: null, seelen: 0, ahnen: false, geistschild: 0, sturm: 0 });
     S.entscheidung = null;
     S.log = [];
     planeGegner(S);
@@ -1209,22 +1311,20 @@
     if (!h || h.hp <= 0) return false;
     const a = aktionenVon(h).find(x => x.id === m.a);
     if (!a) return false;
-    if ((a.cd || a.meister) && (h.cd[a.id] || 0) > 0) return false;   // Meisterfähigkeiten: einmal pro Kampf
-    if (a.id === "trank" && h.wundbrand > 0) return false;
-    if (a.chi && (h.chi || 0) < chiKosten(h, a)) return false;   // Wundbrand: Trank würde nicht wirken
+    if (!bereit(S, pid, a)) return false;   // Abklingzeit (Meister: einmal pro Kampf), Chi, Wundbrand beim Trank, Seelen, Golem
     if (a.ziel === "gegner" && !S.gegner.some(g => g.id === m.ziel && g.hp > 0)) return false;
     if (a.ziel === "held" && !S.helden[m.ziel]) return false;
     if (a.ziel === "anderer" && (!S.helden[m.ziel] || m.ziel === pid || S.helden[m.ziel].hp <= 0)) return false;
     return true;
   }
-  const HEILEND = { heilen: 1, handauflegen: 1, kraeuter: 1, chigabe: 1 };
+  const HEILEND = { heilen: 1, handauflegen: 1, kraeuter: 1, chigabe: 1, geisterhand: 1 };
   // Angriffe auf ein einzelnes Ziel (die ein Leibwächter abfangen kann)
-  const EINZELZIEL = Object.fromEntries("schlag vernichten stab funken pfeil hammer dolch gift taschendieb eis markieren sternschuss kopfschuss ranken gottesurteil todesstoss meisterdieb faust hundert herausforderung drachenfaust".split(" ").map(x => [x, 1]));
+  const EINZELZIEL = Object.fromEntries("schlag vernichten stab funken pfeil hammer dolch gift taschendieb eis markieren sternschuss kopfschuss ranken gottesurteil todesstoss meisterdieb faust hundert herausforderung drachenfaust schattenblitz".split(" ").map(x => [x, 1]));
   function standardWahl(S, pid) {
     const h = S.helden[pid], ziel = gegnerLebend(S).sort((a, b) => a.hp - b.hp)[0];
     if (h.kokon) return { a: "zappeln", ziel: null };
     if (h.netz > 0) return { a: "befreien", ziel: null };
-    const heil = aktionenVon(h).find(a => HEILEND[a.id] && !(h.cd[a.id] > 0) && !(a.chi && (h.chi || 0) < chiKosten(h, a)));
+    const heil = aktionenVon(h).find(a => HEILEND[a.id] && bereit(S, pid, a));
     if (heil) {
       const schwach = S.teilnehmer.filter(p => S.helden[p].hp < S.helden[p].max * 0.5).sort((a2, b) => S.helden[a2].hp - S.helden[b].hp)[0];
       if (schwach) return { a: heil.id, ziel: schwach };
@@ -1235,7 +1335,7 @@
   // Bonus eines Helden auf jeden Angriff: Waffe, Segen, Talente, Stufe
   const gruppenPassiv = (S, art, ausser) => S.teilnehmer.reduce((a, q) => a + (q !== ausser && !S.helden[q].gefallen ? passiv(S.helden[q], art) : 0), 0);
   const angriffsBonus = (S, h) => h.waffe + (h.segen || 0) + passiv(h, "schaden") + stufeBonus(h).schaden + gruppenPassiv(S, "aura")
-    + (h.hp < h.max / 2 ? passiv(h, "blutrausch") : 0) + (S.kampf && S.kampf.runde === 1 ? passiv(h, "erste") : 0);
+    + (h.hp < h.max / 2 ? passiv(h, "blutrausch") : 0) + (S.kampf && S.kampf.runde === 1 ? passiv(h, "erste") : 0) + (h.seelen || 0) * passiv(h, "seelenkraft");
   // Bonus gegen ein bestimmtes Ziel: Markierung (Jagdinstinkt gilt für alle), Untotenjäger
   const markPlus = S => Math.max(0, ...S.teilnehmer.map(p => passiv(S.helden[p], "markplus")));
   const zielBonus = (S, h, g) => (g.markiert > 0 ? 3 + markPlus(S) : 0) + (GEGNER[g.art].untot ? passiv(h, "untot") : 0);
@@ -1245,6 +1345,7 @@
     funken: "magie", feuerball: "magie", eis: "magie", meteor: "magie", inferno: "magie", winter: "magie", ranken: "magie",
     pfeil: "fern", doppel: "fern", hagel: "fern", markieren: "fern", kopfschuss: "fern", durchschuss: "fern", treibjagd: "fern",
     giftwolke: "gift", seuche: "gift", dolch: "stich", todesstoss: "stich",
+    schattenblitz: "magie", leichenexplosion: "magie", knochensplitter: "fern",
     feuerweihe: "licht", schwarztod: "gift", schattentanz: "stich", sternschuss: "fern", wildnis: "fern", sternenfall: "magie", zeitstillstand: "magie"
   };
   let angriffsart = "nah", feuerangriff = false, dornenSchon = false;
@@ -1379,21 +1480,45 @@
     const start = {
       gegner: S.gegner.map(g => ({ id: g.id, art: g.art, name: g.name, hp: g.hp, max: g.max, giftR: g.giftR, markiert: g.markiert, zustand: zustand(S, g), zusatz: g.zusatz })),
       helden: Object.fromEntries(S.teilnehmer.map(p => { const h = S.helden[p]; return [p, { hp: h.hp, max: h.max, giftR: h.giftR }]; })),
-      absicht: kopie(k.absicht || {}), ebene: S.ebene || 1
+      absicht: kopie(k.absicht || {}), ebene: S.ebene || 1,
+      diener: (k.diener || []).filter(d => d.hp > 0).map(d => ({ id: d.id, art: d.art, herr: d.herr, name: d.name, hp: d.hp, max: d.max, titan: d.titan > 0 }))
     };
     const ev = [];
     const hpVor = Object.fromEntries(S.gegner.map(g => [g.id, g.hp]));
-    const schnapp = () => ({ g: Object.fromEntries(S.gegner.map(g => [g.id, g.hp])), h: Object.fromEntries(S.teilnehmer.map(q => [q, S.helden[q].hp])) });
+    if (!k.diener) k.diener = [];
+    const schnapp = () => ({ g: Object.fromEntries(S.gegner.map(g => [g.id, g.hp]).concat(k.diener.map(d => [d.id, d.hp]))), h: Object.fromEntries(S.teilnehmer.map(q => [q, S.helden[q].hp])) });
     let vor = null, logAb = 0;
+    // neue und verschwundene Diener, neue Höchstleben (Titan) für das nächste Ereignis
+    const dNeu = [], dWeg = [], dMax = {};
     const beginn = () => { vor = schnapp(); logAb = log.length; };
     const ende = e => {
       const jetzt = schnapp(), d = [];
       for (const id in jetzt.g) if (vor.g[id] !== undefined && jetzt.g[id] !== vor.g[id]) d.push([id, jetzt.g[id] - vor.g[id], jetzt.g[id]]);
       for (const id in jetzt.h) if (jetzt.h[id] !== vor.h[id]) d.push([id, jetzt.h[id] - vor.h[id], jetzt.h[id]]);
       const text = log.slice(logAb);
-      if (text.length || d.length) ev.push(Object.assign({ d, text }, e));
+      if (dNeu.length) e.diener = dNeu.splice(0).map(x => ({ id: x.id, art: x.art, herr: x.herr, name: x.name, hp: x.hp, max: x.max }));
+      if (dWeg.length) e.weg = dWeg.splice(0);
+      if (Object.keys(dMax).length) { e.max = Object.assign({}, dMax); for (const x in dMax) delete dMax[x]; }
+      if (text.length || d.length || e.diener || e.weg) ev.push(Object.assign({ d, text }, e));
     };
-    const cd = (h, w) => { const a = aktionDef(h.rolle, w.a); if (a && (a.cd || a.meister)) h.cd[a.id] = cdVon(h, a); if (a && a.chi) h.chi = Math.max(0, (h.chi || 0) - chiKosten(h, a)); };
+    const cd = (h, w) => {
+      const a = aktionDef(h.rolle, w.a); if (!a) return;
+      if (seelenRufFrei(h, a) || a.id === "leichenexplosion") h.seelen = Math.max(0, (h.seelen || 0) - 1);
+      if (a.cd || a.meister) h.cd[a.id] = cdVon(h, a);
+      if (RUF[a.id]) for (const r in RUF) if (r !== a.id && aktionenVon(h).some(x => x.id === r)) h.cd[r] = cdVon(h, a);   // Rufen teilt sich die Abklingzeit
+      if (a.chi) h.chi = Math.max(0, (h.chi || 0) - chiKosten(h, a));
+    };
+    // Diener rufen: Sind alle Plätze voll, verschwindet der älteste
+    const rufeDiener = (p, art, zusaetzlich) => {
+      const h = S.helden[p], w = dienerWerte(h, art);
+      const weg = d => { k.diener = k.diener.filter(x => x !== d); dWeg.push(d.id); };
+      if (!zusaetzlich) { const m = dienerVon(S, p); while (m.length >= dienerPlaetze(h)) weg(m.shift()); }
+      while (k.diener.filter(d => d.hp > 0).length >= DIENER_HOECHST) weg(dienerVon(S, p)[0] || k.diener.find(d => d.hp > 0));
+      const d = Object.assign({ id: "d" + (k.dnr = (k.dnr || 0) + 1), herr: p, art, name: DIENER[art].name, max: w.hp }, w);
+      k.diener.push(d); dNeu.push(d);
+      return d;
+    };
+    const rufText = { skelett: "ruft einen Knochenkrieger aus dem Boden", golem: "ruft einen Steingolem aus dem Fels", irrlicht: "ruft ein Irrlicht herbei" };
     // Gift, Stille und Wundbrand lösen (Mönch)
     const loesen = z => { z.gift = 0; z.giftR = 0; z.stille = 0; z.wundbrand = 0; };
     const rs = (h, id) => plusVon(h, id, "schaden"), rh = (h, id) => plusVon(h, id, "heil");
@@ -1497,6 +1622,18 @@
           for (const g of S.gegner) if (g.mal) { g.mal = null; g.mtakt = k.runde + 3; }
           log.push(`${n} lässt tausend Lotusblüten regnen: alle +12 Leben, alle bösen Zeichen sind fort.`); break;
         }
+        case "skelettruf": case "golemruf": case "irrlichtruf": { const d = rufeDiener(p, RUF[w.a]); log.push(`${n} ${rufText[d.art]}: ${d.hp} Leben.`); break; }
+        case "armee": { for (let i = 0; i < 3; i++) rufeDiener(p, "skelett", true); log.push(`${n} ruft die Armee der Toten: Drei Knochenkrieger steigen aus dem Boden!`); break; }
+        case "titan": {
+          let d = dienerVon(S, p).find(x => x.art === "golem");
+          if (!d) d = rufeDiener(p, "golem");
+          d.titan = 3; d.max = dienerWerte(h, "golem").hp * 2; d.hp = d.max; dMax[d.id] = d.max; d.titanSchlag = 12;
+          log.push(`${n} lässt den Steingolem zum Titanen wachsen: ${d.hp} Leben, und alle Gegner wenden sich gegen ihn.`); break;
+        }
+        case "steinruf": { const d = dienerVon(S, p).find(x => x.art === "golem"); if (d) { d.zieht = true; log.push(`${n} lässt den Steingolem dröhnen: Alle Gegner wenden sich gegen ihn.`); } break; }
+        case "geisterhand": heilenAuf(S, p, w.ziel, 7, log, "legt eine Geisterhand auf"); break;
+        case "geisterzug": k.geisterzug = { von: p, runden: 3 }; log.push(`${n} ruft den Geisterzug: Drei Runden lang ziehen Ahnengeister um die Gruppe.`); break;
+        case "elementarsturm": h.sturm = 3; log.push(`${n} entfesselt den Elementarsturm: Alle Diener handeln diese Runde dreimal.`); break;
         case "nirwana": k.nirwana = 2; log.push(`${n} versinkt im Nirwana. Zwei Runden lang trifft kein Schlag mit voller Wucht.`); break;
       }
       ende({ von: p, a: w.a, ziel: w.ziel || null, phase: 1 });
@@ -1632,8 +1769,42 @@
         case "drachenfaust": { const c = h.chi || 0; h.chi = 0; schadenAnGegner(S, p, ziel1(S, wz), 12 + 8 * c, log, `entfesselt die Drachenfaust (${c} Chi) gegen`); break; }
         case "fauststurm": pfeile(S, p, 10, 5, log, "wird zum Sturm der Fäuste"); break;
         case "hagel": pfeile(S, p, 4, 5 + rs(h, "hagel"), log, "lässt Pfeile regnen"); break;
+        case "schattenblitz": { const z = ziel1(S, wz); schadenAnGegner(S, p, z, wurf(S, 4, 6) + rs(h, "schattenblitz"), log, "schleudert einen Schattenblitz auf"); h.letztesZiel = z ? z.id : null; break; }
+        case "knochensplitter": {
+          const d = dienerVon(S, p)[0], x = d ? Math.floor(d.hp / 2) : 0;
+          if (d) { d.hp = 0; log.push(`${d.name} zerplatzt in tausend Splitter!`); }
+          flaeche(S, p, 3 + x + rs(h, "knochensplitter"), log, d ? "lässt die Splitter fliegen" : "lässt Knochensplitter aus dem Boden schießen");
+          break;
+        }
+        case "leichenexplosion": flaeche(S, p, 8 + rs(h, "leichenexplosion"), log, "lässt eine Seele bersten"); break;
+        case "stampfen": flaeche(S, p, 6, log, "lässt den Golem stampfen"); break;
+        case "totentanz": { const t = Math.min(5, k.rache || 0); if (t) pfeile(S, p, t, 10, log, `ruft ${t} Gefallene zum Totentanz`); else log.push(`${heldName(S, p)} ruft zum Totentanz, doch noch ist niemand gefallen.`); break; }
       }
       ende({ von: p, a: w.a, ziel: wz || null, phase: 2 });
+    }
+    // 2b. Diener: Krieger und Golem schlagen das letzte Ziel ihres Herrn (sonst ein zufälliges), Irrlichter heilen den Schwächsten
+    for (const d of k.diener.slice()) {
+      const h = S.helden[d.herr];
+      for (let i = 0; i < (h.sturm || 1) && d.hp > 0; i++) {
+        if (d.art === "irrlicht") {
+          const z = lebend(S).filter(q => S.helden[q].hp < S.helden[q].max).sort((x, y) => S.helden[x].hp / S.helden[x].max - S.helden[y].hp / S.helden[y].max)[0];
+          if (!z) break;
+          beginn();
+          const e = heldHeilen(S, z, d.heil); h.stats.geheilt += e;
+          log.push(e ? `${d.name} von ${heldName(S, d.herr)} schwebt zu ${heldName(S, z)}: +${e} Leben.` : `${d.name} von ${heldName(S, d.herr)} kann ${heldName(S, z)} nicht heilen (Wundbrand).`);
+          if (e && passiv(h, "geistschild")) S.helden[z].geistschild = passiv(h, "geistschild");
+          ende({ von: d.id, a: "irrlicht", ziel: z, phase: 2 });
+          continue;
+        }
+        if (!gegnerLebend(S).length) break;
+        const z = S.gegner.find(g => g.id === h.letztesZiel && g.hp > 0) || eins(S, gegnerLebend(S));
+        angriffsart = "nah"; feuerangriff = false; dornenSchon = true;
+        beginn();
+        const still = [], x = wirkung(S, z, (d.titan > 0 ? d.titanSchlag : d.schlag) + zielBonus(S, h, z));
+        aufGegner(S, d.herr, z, x, still);
+        log.push(`${d.name} von ${heldName(S, d.herr)} schlägt ${z.name}: ${x} Schaden${z.hp <= 0 ? ". " + z.name + " fällt!" : "."}`, ...still);
+        ende({ von: d.id, a: "diener", ziel: z.id, phase: 2 });
+      }
     }
     // 3. Gift auf Gegnern
     for (const g of gegnerLebend(S)) if (g.giftR > 0) {
@@ -1656,7 +1827,8 @@
     };
     beuteZurueck();
     // Besiegte verlassen die Bühne, wenn Verstärkung kommt (ihre Erfahrung bleibt)
-    const racheZaehlen = () => { for (const x of S.gegner) if (x.hp <= 0 && !x.geflohen && !x.gezaehlt && !GEGNER[x.art].objekt) { x.gezaehlt = true; k.rache = (k.rache || 0) + 1; } };
+    const racheZaehlen = () => { for (const x of S.gegner) if (x.hp <= 0 && !x.geflohen && !x.gezaehlt && !GEGNER[x.art].objekt) { x.gezaehlt = true; k.rache = (k.rache || 0) + 1;
+      for (const q of S.teilnehmer) if (S.helden[q].rolle === "nekromant") seeleDazu(S.helden[q], 1); } };   // jeder besiegte Gegner gibt dem Nekromanten eine Seele
     const aufraeumen = () => {
       racheZaehlen();
       for (const x of S.gegner) if (x.hp <= 0 && !x.gerufen && !x.geflohen && !x.epDa) { x.epDa = true; k.epTot = (k.epTot || 0) + (GEGNER[x.art].ep || 0) + ZUSATZ_EP * (x.zusatz || []).length; }
@@ -1731,20 +1903,30 @@
     const hieb = (g, plan) => {
       const art = GEGNER[g.art];
       if (k.nebel && chance(S, 0.5)) { log.push(`${g.name} schlägt im Rauch ins Leere.`); return { a: "daneben", ziel: plan.ziel || null }; }
+      // Geisterzug und Blendlicht (Irrlicht): Gegner schlagen daneben
+      const blend = Math.max(k.geisterzug && k.geisterzug.runden > 0 ? 25 : 0, ...k.diener.filter(d => d.hp > 0 && d.art === "irrlicht").map(d => passiv(S.helden[d.herr], "blendlicht")));
+      if (blend && chance(S, blend / 100)) { log.push(`${g.name} ist geblendet und schlägt daneben.`); return { a: "daneben", ziel: plan.ziel || null }; }
       // Meuchler lassen sich von Spott und Schildwall nicht ablenken; Jäger und Meuchler suchen sich sonst den Schwächsten
       const meuchler = hat(g, "meuchler"), sucht = meuchler || hat(g, "jaeger");
       const zieher = meuchler ? [] : lebend(S).filter(p => S.helden[p].schild || S.helden[p].fels || S.helden[p].wirbelwind || S.helden[p].leer > 0);
       const ziele = lebend(S).filter(p => !S.helden[p].versteckt);
       const spott = !meuchler && g.spott && ziele.includes(g.spott) ? g.spott : null;
       const sonst = () => !ziele.length ? null : sucht ? ziele.slice().sort((x, y) => S.helden[x].hp - S.helden[y].hp)[0] : eins(S, ziele);
+      const rudel = art.rudel ? art.rudel * gegnerLebend(S).filter(x => x !== g && x.art === g.art).length : 0;
+      const orks = art.ork && S.gegner.some(x => x !== g && x.hp > 0 && GEGNER[x.art].anfuehrer) ? 2 : 0;
+      const roh = () => Math.round(gdmg(S, wurf(S, art.dmg[0], art.dmg[1])) * wut(S, g) * (plan.halb ? 0.5 : 1)) + rudel + orks + (g.zorn || 0) + racheBonus(S) - (k.frost || 0);
+      // Steinruf und Titan: Der Golem zieht alle Schläge auf sich (nicht die des Meuchlers)
+      const golem = meuchler ? null : k.diener.find(d => d.hp > 0 && d.art === "golem" && (d.zieht || d.titan > 0));
+      if (golem) { dienerTreffer(S, golem, roh(), log, g.name); return { a: "angriff", ziel: golem.id }; }
       let p = spott || (zieher.length ? eins(S, zieher) : (plan.ziel && ziele.includes(plan.ziel) ? plan.ziel : sonst()));
       if (!p) { log.push(`${g.name} sucht vergeblich nach einem Ziel.`); return { a: "keinziel", ziel: plan.ziel || null }; }
+      // Schläge auf den Nekromanten fängt meist sein Diener ab (der mit den meisten Höchstleben), auch beim Meuchler
+      const dv = chance(S, ABFANGEN) ? dienerVon(S, p).sort((x, y) => y.max - x.max)[0] : null;
+      if (dv) { dienerTreffer(S, dv, roh(), log, g.name); return { a: "angriff", ziel: dv.id }; }
       if ((spott || zieher.length) && plan.ziel && p !== plan.ziel && S.helden[plan.ziel] && S.helden[plan.ziel].hp > 0) log.push(`${heldName(S, p)} zieht den Angriff auf sich.`);
       let minus = k.frost || 0;
       const b = S.helden[p].beschuetzt;
       if (!spott && !zieher.length && b && S.helden[b].hp > 0) { log.push(`${heldName(S, b)} fängt den Angriff auf ${heldName(S, p)} ab.`); p = b; minus += 2 + passiv(S.helden[b], "schutzplus"); }
-      const rudel = art.rudel ? art.rudel * gegnerLebend(S).filter(x => x !== g && x.art === g.art).length : 0;
-      const orks = art.ork && S.gegner.some(x => x !== g && x.hp > 0 && GEGNER[x.art].anfuehrer) ? 2 : 0;
       const z = S.helden[p], hpVorher = z.hp;
       // Ausweichen (Mönch): Windschritt und Leerer Geist sicher, Wirbelwind jeder zweite, sonst die Ausweich-Chance
       const aw = z.immun ? 0 : z.wind || z.leer > 0 ? 100 : z.wirbelwind ? Math.max(50, ausweichen(z)) : ausweichen(z);
@@ -1755,7 +1937,7 @@
         if (passiv(z, "ausweichchi")) chiDazu(z, passiv(z, "ausweichchi"));
         return { a: "ausweichen", ziel: p };
       }
-      treffer(S, p, Math.round(gdmg(S, wurf(S, art.dmg[0], art.dmg[1])) * wut(S, g) * (plan.halb ? 0.5 : 1)) + rudel + orks + (g.zorn || 0) + racheBonus(S) - minus, log, g.name, g);
+      treffer(S, p, roh() + (k.frost || 0) - minus, log, g.name, g);
       const schaden = hpVorher - z.hp;
       if (hat(g, "vampir") && schaden > 0 && g.hp > 0 && g.hp < g.max) { const x = Math.min(g.max - g.hp, Math.ceil(schaden / 2)); g.hp += x; log.push(`${g.name} trinkt Lebenskraft: +${x} Leben.`); }
       if (schaden > 0 && z.hp > 0) {
@@ -1789,6 +1971,14 @@
       const getroffen = [];
       for (const z of plan.ziele || []) {
         if (!lebend(S).includes(z)) { log.push(`${heldName(S, z)} liegt schon am Boden.`); continue; }
+        const golem = k.diener.find(d => d.hp > 0 && d.art === "golem" && (d.zieht || d.titan > 0));
+        if (golem) {
+          log.push(`${golem.name} wirft sich vor ${heldName(S, z)}.`);
+          const V = (S.ebene || 1) === 1 ? VERNICHTUNG_E1 : VERNICHTUNG;
+          dienerTreffer(S, golem, Math.round(golem.max * wurf(S, V[0], V[1]) / 100 * (gruppe(S).vern || 1)), log, g.name);
+          if (!getroffen.length) getroffen.push(golem.id);
+          continue;
+        }
         const zieher = lebend(S).filter(p => S.helden[p].schild || S.helden[p].fels);
         const spott = g.spott && lebend(S).includes(g.spott) && !S.helden[g.spott].versteckt ? g.spott : null;
         let p = spott || (zieher.length ? eins(S, zieher) : z), halb = false;
@@ -1931,13 +2121,13 @@
     }
     for (const p of S.teilnehmer) {
       const h = S.helden[p];
-      Object.assign(h, { schild: false, versteckt: false, immun: false, fels: false, beschuetzt: null, wind: false, wirbelwind: false });
+      Object.assign(h, { schild: false, versteckt: false, immun: false, fels: false, beschuetzt: null, wind: false, wirbelwind: false, sturm: 0 });
       if (h.leer > 0) h.leer -= 1;
       if (h.stille > 0) h.stille -= 1;
       if (h.wundbrand > 0) h.wundbrand -= 1;
       if (h.todesmal && !S.gegner.some(x => x.id === h.todesmal && x.hp > 0)) { h.todesmal = null; log.push(`Das Todesmal auf ${heldName(S, p)} verblasst.`); }
       const benutzt = k.wahl[p] && k.wahl[p].a;
-      for (const c in h.cd) if (h.cd[c] > 0 && c !== benutzt) h.cd[c] -= 1;
+      for (const c in h.cd) if (h.cd[c] > 0 && c !== benutzt && !(RUF[c] && RUF[benutzt])) h.cd[c] -= 1;
     }
     if (k.heiligtum && k.heiligtum.runden > 0 && lebend(S).length) {
       beginn();
@@ -1948,6 +2138,31 @@
       log.push(k.heiligtum.n ? `Der Lebensquell sprudelt: alle +${x} Leben.` : `Das Heiligtum leuchtet: alle +${x} Leben.`);
       ende({ von, a: "heiligtumTick" });
     }
+    // Geisterzug (Nekromant)
+    if (k.geisterzug && k.geisterzug.runden > 0 && lebend(S).length) {
+      beginn();
+      const von = k.geisterzug.von;
+      for (const q of lebend(S)) S.helden[von].stats.geheilt += heldHeilen(S, q, 6);
+      k.geisterzug.runden -= 1;
+      log.push("Der Geisterzug zieht um euch: alle +6 Leben.");
+      ende({ von, a: "heiligtumTick" });
+    }
+    // Diener: Steinhaut heilt den Golem, der Titan schrumpft wieder
+    for (const d of k.diener) {
+      if (d.hp <= 0) continue;
+      const h = S.helden[d.herr];
+      if (d.titan > 0 && --d.titan === 0) {
+        beginn(); d.max = dienerWerte(h, "golem").hp; d.hp = Math.min(d.hp, d.max); dMax[d.id] = d.max;
+        log.push(`Der Titan schrumpft wieder zum Steingolem.`); ende({ von: d.id, a: "titanEnde" });
+      }
+      const sh = passiv(h, "steinhaut");
+      if (d.art === "golem" && sh && d.hp < d.max && gegnerLebend(S).length) {
+        beginn(); const x = Math.min(d.max - d.hp, sh); d.hp += x;
+        log.push(`${d.name} von ${heldName(S, d.herr)} fügt sich zusammen: +${x} Leben.`); ende({ von: d.id, a: "steinhaut" });
+      }
+      d.zieht = false;
+    }
+    k.diener = k.diener.filter(d => d.hp > 0);
     // Gleichmut (Mönch): am Rundenende ein paar Leben
     for (const p of lebend(S)) {
       const h = S.helden[p], x = passiv(h, "gleichmut");
@@ -2007,15 +2222,27 @@
     if (h.hp < h.max / 2) n = Math.max(1, n - passiv(h, "notpanzer"));
     if (S.kampf && S.kampf.bollwerk) n = Math.ceil(n / 2);
     if (S.kampf && S.kampf.nirwana > 0) n = Math.min(n, 4);
+    if (h.geistschild > 0) { n = Math.max(1, n - h.geistschild); h.geistschild = 0; }
     const echt = Math.min(n, h.hp);
     h.hp -= echt;
     log.push((von ? `${von} trifft ${wer}: ` : `${wer}: `) + `−${n} Leben${h.hp <= 0 ? ". " + wer + " bricht zusammen!" : "."}`);
+    // Ahnenruf: ein Irrlicht holt den Helden zurück und vergeht (einmal pro Kampf)
+    const il = h.hp <= 0 && S.kampf ? (S.kampf.diener || []).find(d => d.hp > 0 && d.art === "irrlicht" && passiv(S.helden[d.herr], "ahnenruf") && !S.helden[d.herr].ahnen) : null;
+    if (il) { const hz = S.helden[il.herr]; hz.ahnen = true; il.hp = 0; h.hp = Math.min(h.max, passiv(hz, "ahnenruf")); log.push(`Das Irrlicht von ${heldName(S, il.herr)} holt ${wer} zurück und vergeht: ${h.hp} Leben.`); }
     if (h.hp <= 0) h.stats.umgefallen += 1;
     const d = passiv(h, "dornen") + (h.schild ? passiv(h, "schilddornen") : 0);
     if (g && d && g.hp > 0) {
       const e = Math.min(d, g.hp); g.hp -= e; h.stats.schaden += e;
       log.push(`${g.name} verletzt sich an den Stacheln von ${wer}: ${e} Schaden${g.hp <= 0 ? ". " + g.name + " fällt!" : "."}`);
     }
+  }
+  // Treffer auf einen Diener: Panzer des Golems, Untote Treue der Knochenkrieger; Rüstung des Helden zählt nicht
+  function dienerTreffer(S, d, n, log, von) {
+    const h = S.helden[d.herr];
+    n = Math.max(1, n - (d.panzer || 0) - (d.art === "skelett" ? passiv(h, "treue") : 0));
+    d.hp = Math.max(0, d.hp - n);
+    log.push(`${von ? von + " trifft " : ""}${d.name} von ${heldName(S, d.herr)}: −${n} Leben${d.hp <= 0 ? ". " + d.name + " zerfällt!" : "."}`);
+    if (d.hp <= 0 && d.art === "skelett" && passiv(h, "treue")) { seeleDazu(h, 1); log.push(`${heldName(S, d.herr)} fängt seine Seele auf.`); }
   }
   // EP für alle Helden; gibt Texte zu Stufenaufstiegen zurück
   function erfahrung(S, ep) {
@@ -2271,5 +2498,5 @@
 
   window.VL = { zustand, ZUSAETZE, hat, SCHWERE, GRUPPE, FLUECHE, hatKnoten, AUFSTIEG_AESTE, AUFSTIEG_STUFE, RUHM, ruhmVon, epFuer, endlos, umverteilenPreis, staerke, BEFREIEN, EBENEN, LAENGEN, ebeneVon, EIGENSCHAFTEN, eigenschaften, knochenschild, RAEUME, REIHEN, RAUMNAME, SEGEN, UMVERTEILEN, sicht, MAX_HELDEN, LAGER_NACH, ROLLEN, ROLLEN_REIHE, AKTIONEN, NEUE, TRANK, GEGNER, EP_STUFEN, MAX_STUFE, STUFENBONUS,
     AESTE, TALENT, talenteVon, talentWaehlbar, hauptast, passiv, stufeBonus, trankMax, aktionZusatz,
-    neu, aktion, aktionenVon, angebot, chiKosten, chiMax, ausweichen, standardWahl, lebend, gegnerLebend, goldSumme, cdVon };
+    neu, aktion, aktionenVon, angebot, chiKosten, chiMax, ausweichen, standardWahl, DIENER, RUF, dienerVon, dienerWerte, dienerPlaetze, seelenMax, seelenRufFrei, sperre, bereit, wahlGueltig, lebend, gegnerLebend, goldSumme, cdVon };
 })();

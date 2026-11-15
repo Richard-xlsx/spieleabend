@@ -7,7 +7,7 @@ const fs = require('fs'), vm = require('vm'); const ctx = { window: {}, console 
 vm.runInContext(fs.readFileSync(LOGIK, 'utf8'), ctx); const V = ctx.window.VL;
 let runden = 0, fehler = 0, arten = {}, ohneZiel = 0;
 for (let seed = 1; seed <= 400; seed++) {
-  const R = ['kaempfer', 'dieb', 'heilerin', 'magierin', 'waldlaeufer', 'paladin', 'moench'].sort(() => Math.random() - .5).slice(0, 2 + seed % 5);   // 2 bis 6 Helden
+  const R = ['kaempfer', 'dieb', 'heilerin', 'magierin', 'waldlaeufer', 'paladin', 'moench', 'nekromant'].sort(() => Math.random() - .5).slice(0, 2 + seed % 5);   // 2 bis 6 Helden
   let S = V.neu('X', 'p0', 'A', seed * 977); const P = R.map((_, i) => 'p' + i);
   for (let i = 1; i < R.length; i++) S = V.aktion(S, P[i], { t: 'join', name: 'S' + i });
   P.forEach((p, i) => S = V.aktion(S, p, { t: 'rolle', rolle: R[i] }));
@@ -34,7 +34,7 @@ for (let seed = 1; seed <= 400; seed++) {
       const r = S.kampf.runde, vorher = JSON.parse(JSON.stringify(S));
       for (const p of V.lebend(S)) {
         if (S.phase !== 'kampf' || S.kampf.runde !== r) break;
-        const h = S.helden[p], akt = V.aktionenVon(h).filter(a => !((h.cd[a.id] || 0) > 0));
+        const h = S.helden[p], akt = V.aktionenVon(h).filter(a => V.bereit(S, p, a));
         const a = akt[Math.floor(Math.random() * akt.length)];
         const g = V.gegnerLebend(S); const ziel = a.ziel === 'gegner' ? g[0].id : a.ziel === 'held' ? p : a.ziel === 'anderer' ? S.teilnehmer.find(q => q !== p && S.helden[q].hp > 0) : null;
         const vor = S; S = V.aktion(S, p, { t: 'wahl', runde: r, a: a.id, ziel });
@@ -43,11 +43,12 @@ for (let seed = 1; seed <= 400; seed++) {
       runden++;
       const L = S.letzte;
       if (!L || L.runde !== r) { fehler++; console.log('keine Wiedergabe', seed, r); continue; }
-      const hp = {}; for (const g of L.start.gegner) hp[g.id] = g.hp; for (const p in L.start.helden) hp[p] = L.start.helden[p].hp;
-      for (const e of L.ev) { arten[e.a] = (arten[e.a] || 0) + 1; if (e.neu) for (const g of e.neu) hp[g.id] = g.hp;
+      const hp = {}; for (const g of L.start.gegner) hp[g.id] = g.hp; for (const p in L.start.helden) hp[p] = L.start.helden[p].hp; for (const d of L.start.diener || []) hp[d.id] = d.hp;
+      for (const e of L.ev) { arten[e.a] = (arten[e.a] || 0) + 1; if (e.neu) for (const g of e.neu) hp[g.id] = g.hp; if (e.diener) for (const d of e.diener) hp[d.id] = d.hp;
         for (const [id, d, nach] of e.d) { if (hp[id] + d !== nach) { fehler++; console.log('Delta passt nicht', seed, r, e.a, id, hp[id], d, nach); } hp[id] = nach; } }
       // Vergleich mit dem Stand nach der Runde (Helden vor dem Aufstehen nach dem Kampf)
       for (const g of (S.phase === 'kampf' ? S.gegner : [])) if (hp[g.id] !== g.hp) { fehler++; console.log('Gegner weicht ab', seed, r, g.id, hp[g.id], g.hp); }
+      if (S.phase === 'kampf') for (const d of S.kampf.diener) if (hp[d.id] !== d.hp) { fehler++; console.log('Diener weicht ab', seed, r, d.id, hp[d.id], d.hp); }
       if (S.phase === 'kampf') for (const p of S.teilnehmer) if (hp[p] !== S.helden[p].hp) { fehler++; console.log('Held weicht ab', seed, r, p, hp[p], S.helden[p].hp); }
       if (S.phase !== 'kampf' && S.ergebnis !== 'niederlage') for (const id in hp) if (L.start.gegner.find(g => g.id === id) && hp[id] > 0) { fehler++; console.log('Kampf gewonnen, aber Gegner lebt in Wiedergabe', seed, id, hp[id]); }
     }

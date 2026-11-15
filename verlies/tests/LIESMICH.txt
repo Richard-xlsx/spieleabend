@@ -12,8 +12,8 @@ Ohne Browser (nur Node.js):
                                      zeigt, bis zu welcher Ebene die Gruppen kommen; BIS=14 bricht danach ab), z. B. EBENEN=3 node simulation.js 20.
                                      Schwierigkeit über SCHWERE=1 (Wanderer) bis 4 (Legende), Standard 2; Gruppengröße über GRUPPE=2, 3
                                      (Standard) bis 6, dann alle Gruppen dieser Größe. Flüche über FLUECHE=zaeh,wild,regen,dornen,rache,verstaerkung. Ein Kampf, der nicht endet, bricht mit „endet nicht“ ab.
-                                     ROLLEN=kaempfer,moench,… beschränkt die Rollen, aus denen die Gruppen gebildet werden (Standard: alle sieben).
-                                     Die Zeile „Je Rolle“ zeigt die mittlere Siegquote der Gruppen mit und ohne diese Rolle.
+                                     ROLLEN=kaempfer,moench,… beschränkt die Rollen, aus denen die Gruppen gebildet werden (Standard: alle acht).
+                                     Die Zeile „Je Rolle“ zeigt die mittlere Siegquote der Gruppen mit und ohne diese Rolle, „Je Partie und Held“ Schaden, Heilung und K.o. je Rolle.
                                      Die klugen Bots kontern Ankündigungen: Eis/Ranken auf normale Gegner, die Verstärkung rufen, beben oder Netze werfen;
                                      bei Endgegnern und Elite (standhaft) greifen sie stattdessen den ausholenden Gegner an, um die Abbruch-Schwelle zu knacken.
                                      Verwundete kaufen beim Händler zuerst Verbände. Gegen den Vernichtungsschlag schützen sie das Ziel

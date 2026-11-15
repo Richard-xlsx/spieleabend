@@ -6,21 +6,21 @@ const fs=require('fs'),vm=require('vm');const ctx={window:{},console};vm.createC
 vm.runInContext(fs.readFileSync(LOGIK,'utf8'),ctx);const V=ctx.window.VL;
 function waehle(S,p,klug){
   const h=S.helden[p]; if(!klug) return V.standardWahl(S,p);
-  const akt=V.aktionenVon(h).filter(a=>!((a.cd||a.meister)&&(h.cd[a.id]||0)>0)&&!(a.chi&&(h.chi||0)<V.chiKosten(h,a)));
+  const akt=V.aktionenVon(h).filter(a=>V.bereit(S,p,a));
   const g=V.gegnerLebend(S), tot=S.teilnehmer.find(q=>S.helden[q].hp<=0), schwach=S.teilnehmer.filter(q=>S.helden[q].hp>0&&S.helden[q].hp<S.helden[q].max*0.45);
   const hat=id=>akt.find(a=>a.id===id&&!(id==='trank'&&h.wundbrand>0));
   if(h.hp<h.max*0.35&&hat('trank')) return {a:'trank'};
-  if(tot){ for(const id of ['gnade','lebensquell','auferstehung','erloesung','wiedergeburt','gnadenlicht']) if(hat(id)) return {a:id}; for(const id of ['heilen','handauflegen','kraeuter','chigabe']) if(hat(id)&&!(id==='chigabe'&&tot===p)) return {a:id,ziel:tot}; }
+  if(tot){ for(const id of ['gnade','lebensquell','auferstehung','erloesung','wiedergeburt','gnadenlicht']) if(hat(id)) return {a:id}; for(const id of ['heilen','handauflegen','kraeuter','chigabe','geisterhand']) if(hat(id)&&!(id==='chigabe'&&tot===p)) return {a:id,ziel:tot}; }
   // Ankündigungen kontern wie echte Spieler: Spezialzüge (Verstärkung, Beben, Netz) durch Erstarren verhindern,
   // wenn noch niemand anderes dieses Ziel diese Runde erstarren lässt
   const ab=S.kampf.absicht||{}, gew=Object.values(S.kampf.wahl||{});
   // Vernichtungsschlag: das Ziel schützen (Schildwall, Fels, Wall, Obhut, Arkaner Schild, Beschützen, Spott, Verstecken), sonst voll heilen
   if(!process.env.OHNE_SCHUTZ) for(const x of g){ const a=ab[x.id]; if(!a||(a.a!=='vernichtung'&&a.a!=='todesmal')) continue;
     const wahl=Object.entries(S.kampf.wahl||{});
-    const gedeckt=t=>wahl.some(([q,w])=>['schild','fels','wall'].includes(w.a)||(['obhut','arkan','beschuetzen'].includes(w.a)&&w.ziel===t)||(w.a==='spott'&&w.ziel===x.id)||(q===t&&w.a==='verstecken'));
+    const gedeckt=t=>wahl.some(([q,w])=>['schild','fels','wall','steinruf','titan'].includes(w.a)||(['obhut','arkan','beschuetzen'].includes(w.a)&&w.ziel===t)||(w.a==='spott'&&w.ziel===x.id)||(q===t&&w.a==='verstecken'));
     for(const t of a.ziele.filter(t=>S.helden[t].hp>0&&!gedeckt(t))){
       if(t===p&&hat('verstecken')) return {a:'verstecken'};
-      if(hat('fels')) return {a:'fels'}; if(hat('wall')) return {a:'wall'}; if(hat('schild')&&h.hp>h.max*0.5) return {a:'schild'};
+      if(hat('fels')) return {a:'fels'}; if(hat('wall')) return {a:'wall'}; if(hat('steinruf')) return {a:'steinruf'}; if(hat('titan')&&V.GEGNER[x.art].boss) return {a:'titan'}; if(hat('schild')&&h.hp>h.max*0.5) return {a:'schild'};
       if(hat('obhut')) return {a:'obhut',ziel:t}; if(hat('arkan')) return {a:'arkan',ziel:t}; if(hat('beschuetzen')&&t!==p&&h.hp>h.max*0.6) return {a:'beschuetzen',ziel:t};
       if(hat('spott')&&h.hp>=h.max*0.95) return {a:'spott',ziel:x.id};
       const z=S.helden[t]; if(z.hp<z.max*0.9&&!wahl.some(([,w])=>['heilen','handauflegen','kraeuter'].includes(w.a)&&w.ziel===t)) for(const id of ['heilen','handauflegen','kraeuter']) if(hat(id)) return {a:id,ziel:t};
@@ -40,6 +40,22 @@ function waehle(S,p,klug){
     if(hat('leergeist')&&(schwach.some(q=>q!==p)||g.some(x=>V.GEGNER[x.art].boss))) return {a:'leergeist'};
     if(hat('wirbelwind')&&schwach.some(q=>q!==p)&&h.hp>h.max*0.6) return {a:'wirbelwind'};
     if(hat('windschritt')&&aufMich>=1&&h.hp<h.max*0.6) return {a:'windschritt'};
+  }
+  // Nekromant: Diener rufen, Golem schützen lassen, Seelen verbrauchen
+  if(h.rolle==='nekromant'){
+    const meine=V.dienerVon(S,p), boss=g.some(x=>V.GEGNER[x.art].boss), art=id=>V.RUF[id];
+    if(hat('geisterzug')&&(schwach.length>=2||(boss&&schwach.length))) return {a:'geisterzug'};
+    if(hat('titan')&&(boss||schwach.length)) return {a:'titan'};
+    if(hat('armee')&&(boss||g.length>=3)) return {a:'armee'};
+    if(hat('elementarsturm')&&meine.length>=2) return {a:'elementarsturm'};
+    if(hat('totentanz')&&(S.kampf.rache||0)>=4) return {a:'totentanz'};
+    if(hat('geisterhand')&&schwach.length) return {a:'geisterhand',ziel:schwach[0]};
+    if(hat('steinruf')&&schwach.some(q=>q!==p)&&meine.some(d=>d.art==='golem'&&d.hp>d.max*0.4)) return {a:'steinruf'};
+    if(meine.length<V.dienerPlaetze(h)) { for(const id of ['golemruf','irrlichtruf','skelettruf']) if(hat(id)&&!meine.some(d=>d.art===art(id))) return {a:id}; if(hat('skelettruf')) return {a:'skelettruf'}; }
+    const schwachD=meine.find(d=>d.hp<d.max*0.35&&d.art!=='irrlicht');
+    if(schwachD&&hat(schwachD.art==='golem'?'golemruf':'skelettruf')) return {a:schwachD.art==='golem'?'golemruf':'skelettruf'};
+    if(g.length>=2){ if(hat('leichenexplosion')) return {a:'leichenexplosion'}; if(hat('stampfen')) return {a:'stampfen'};
+      if(hat('knochensplitter')&&meine[0]&&meine[0].art==='skelett'&&(hat('skelettruf')||meine[0].hp<meine[0].max*0.5)) return {a:'knochensplitter'}; }
   }
   if(schwach.length>=2) for(const id of ['gnade','lebensquell','ewigschild','erloesung','heiligtum','wall','bollwerk','schlachtruf','gnadenlicht','laeutern','segen','licht','wiedergeburt','frost']) if(hat(id)) return {a:id};
   if(schwach.length) { for(const id of ['heilen','handauflegen','kraeuter']) if(hat(id)) return {a:id,ziel:schwach[0]};
@@ -125,10 +141,10 @@ function spiel(seed, rollen, klug){
   if(S.phase!=='ende' && LAENGE!==4) throw new Error('endet nicht '+rollen+' '+S.phase+' Raum '+S.raumNr+' Runde '+(S.kampf&&S.kampf.runde)+' '+JSON.stringify(S.gegner.map(g=>[g.art,g.hp,g.max])));
   if(klug&&S.ergebnis!=='sieg'){ const k=S.karte.knoten[S.karte.pos]; const wo='E'+S.ebene+' '+(k.typ==='boss'?'Endgegner':k.typ+' '+[...new Set(S.gegner.map(g=>g.art))].sort().join('+')); STATS.tod[wo]=(STATS.tod[wo]||0)+1; }
   if(klug){ STATS.spiele++; for(const id of S.karte.weg){ const t=S.karte.knoten[id].typ; STATS.raeume[t]=(STATS.raeume[t]||0)+1; } }
-  if(klug){ for(const p of S.teilnehmer){ STATS.stufe+=S.helden[p].stufe; STATS.gold=(STATS.gold||0)+S.helden[p].gold; STATS.n++; STATS.raenge+=S.helden[p].talente.length; const ast=S.helden[p].rolle+'/'+(S.helden[p].__ast||['-'])[0]; const z=STATS.ast[ast]=STATS.ast[ast]||[0,0]; z[0]++; if(S.ergebnis==='sieg')z[1]++;} }
+  if(klug){ for(const p of S.teilnehmer){ STATS.stufe+=S.helden[p].stufe; STATS.gold=(STATS.gold||0)+S.helden[p].gold; STATS.n++; STATS.raenge+=S.helden[p].talente.length; const rs=STATS.rolle=STATS.rolle||{}; const rr=rs[S.helden[p].rolle]=rs[S.helden[p].rolle]||{n:0,s:0,h:0,ko:0}; rr.n++; rr.s+=S.helden[p].stats.schaden; rr.h+=S.helden[p].stats.geheilt; rr.ko+=S.helden[p].stats.umgefallen; const ast=S.helden[p].rolle+'/'+(S.helden[p].__ast||['-'])[0]; const z=STATS.ast[ast]=STATS.ast[ast]||[0,0]; z[0]++; if(S.ergebnis==='sieg')z[1]++;} }
   return {sieg:S.ergebnis==='sieg', lager, goldVorLager:gold/Math.max(1,lager)};
 }
-const R=process.env.ROLLEN?process.env.ROLLEN.split(','):['kaempfer','dieb','heilerin','magierin','waldlaeufer','paladin','moench'];
+const R=process.env.ROLLEN?process.env.ROLLEN.split(','):['kaempfer','dieb','heilerin','magierin','waldlaeufer','paladin','moench','nekromant'];
 const trios=[]; (function k(ab,l){ if(l.length===GROESSE){trios.push(l);return;} for(let i=ab;i<R.length;i++)k(i+1,l.concat(R[i])); })(0,[]);   // alle Gruppen der gewählten Größe
 const N=+process.argv[2]||300; const zeilen=[];
 for(const t of trios){ let sk=0,ss=0,lg=0,gl=0; for(let i=1;i<=N;i++){ const r=spiel(i*7919+t.join().length,t,true); if(r.sieg)sk++; lg+=r.lager; gl+=r.goldVorLager; if(spiel(i*104729,t,false).sieg)ss++; }
@@ -150,4 +166,5 @@ if(GROESSE===3) for(const d of [['kaempfer','heilerin'],['paladin','magierin'],[
 
 console.log('Siegquote nach Hauptast (klug, Dreiergruppen):');for(const [k,[n,w]] of Object.entries(STATS.ast).sort()) console.log('  '+k.padEnd(30), Math.round(100*w/n)+'%', '('+n+')');
 if(STATS.vern) console.log('Vernichtungsschläge:',STATS.vern.n,'mit Schaden',Math.round(100*STATS.vern.schaden/STATS.vern.n)+'%','mit K.o.',Math.round(100*STATS.vern.ko/STATS.vern.n)+'%');
+if(STATS.rolle) console.log('Je Partie und Held (klug): Schaden / Heilung / K.o.:', Object.entries(STATS.rolle).map(([r,x])=>`${r} ${Math.round(x.s/x.n)}/${Math.round(x.h/x.n)}/${(x.ko/x.n).toFixed(1)}`).join(', '));
 console.log('Niederlagen (klug) nach Ort:'); for(const [k,n] of Object.entries(STATS.tod).sort((a,b)=>b[1]-a[1]).slice(0,14)) console.log('  '+k.padEnd(40), n);
