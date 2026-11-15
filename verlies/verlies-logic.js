@@ -970,6 +970,31 @@
     haendler: { titel: "Ein Händler in Kapuze", text: "„Tränke, frisch gebraut! 8 Gold das Stück, heute günstiger.“ Er zeigt keine Hände.", optionen: ["Jeder kauft einen Trank", "Weitergehen"] },
     altar: { titel: "Ein Altar mit Inschrift", text: "„Gib Gold, und das Leben wird stärker.“ Eine Schale wartet.", optionen: ["Jeder opfert 15 Gold", "Nichts geben"] },
     bruecke: { titel: "Eine wackelige Brücke", text: "Unter euch nur Dunkelheit. Die Seile ächzen.", optionen: ["Vorsichtig hinübertasten", "Hinüberrennen"] },
+    gefangener: { titel: "Ein Gefangener im Käfig", bild: "kaefig", optionen: ["Befreien", "Weitergehen"],
+      text: "In einem rostigen Käfig hockt ein Mann in Lumpen. „Holt mich raus! Ich weiß, wo die Wachen ihr Gold verstecken.“ Er lächelt ein bisschen zu breit." },
+    pilze: { titel: "Leuchtende Pilze", bild: "pilze", optionen: ["Davon essen", "Liegen lassen"],
+      text: "Ein ganzer Hang voller Pilze, die blau und grün schimmern. Sie riechen nach Nuss und ein wenig nach Kupfer. Wer sich mit Kräutern auskennt, weiß, welche man essen kann." },
+    waffenlager: { titel: "Ein vergessenes Waffenlager", bild: "waffen", optionen: ["Jeder sucht eine Waffe", "Jeder sucht ein Rüstungsteil", "Nichts anfassen"],
+      text: "Rostige Klingen und verbeulte Schilde hängen an den Wänden. Manches ist noch brauchbar, das meiste zerfällt, wenn man es anfasst. Wer sich mit Waffen auskennt, findet eher etwas." },
+    statue: { titel: "Eine Statue mit Edelsteinaugen", bild: "statue", optionen: ["Die Augen herausbrechen", "Weitergehen"],
+      text: "Ein steinerner Wächter, doppelt so groß wie ihr. In seinen Augenhöhlen funkeln zwei Rubine. Seine Hand liegt am Schwertgriff, als würde er warten." },
+    verwundete: { titel: "Eine verwundete Abenteurerin", bild: "feuer", optionen: ["Ihr einen Trank geben", "Sie ausrauben", "Weitergehen"],
+      text: "An einer erloschenen Feuerstelle lehnt eine Abenteurerin, das Bein notdürftig verbunden. „Ich schaffe es nicht mehr hinaus. Habt ihr einen Heiltrank? Ich kann euch etwas beibringen.“" },
+    bibliothek: { titel: "Eine verschüttete Bibliothek", bild: "buecher", optionen: ["Eine Weile lesen", "Bücher für den Händler einpacken"],
+      text: "Regale bis zur Decke, halb unter Geröll begraben. Kriegskunde, Zauberformeln, alte Karten. Manche Bände sind mit Gold beschlagen." },
+    blutschale: { titel: "Eine Schale aus dunklem Stein", bild: "altar", optionen: ["Jeder gibt 6 Leben", "Nichts geben"],
+      text: "Rinnen im Boden führen zu einer Schale mit getrocknetem Blut. Eine Inschrift: „Gib Blut, und deine Wunden schließen sich. Was dich erschöpft hat, kehrt zurück.“" },
+    geist: { titel: "Ein ruheloser Geist", bild: "grab", optionen: ["Ihn begraben", "Weitergehen"],
+      text: "Über einem eingestürzten Grab schwebt ein blasser Ritter. „Meine Knochen liegen verstreut. Begrabt mich, wie es sich gehört, und ich segne euren Weg.“" },
+    armdruecken: { titel: "Ein Ork mit Wettlust", bild: "ork", optionen: ["Annehmen", "Ablehnen"],
+      text: "Hinter einem Fass sitzt ein Ork, den Ellbogen schon aufgestützt. „Armdrücken! Einer von euch gegen mich. Jeder setzt 10 Gold. Gewinnt ihr, zahle ich doppelt.“" },
+    // Einer für alle: Die Gruppe stimmt ab, welcher Held es macht (Konzept-Abend F)
+    hebel: { titel: "Ein Fallgitter mit Hebel", bild: "tueren", held: true, ab: 2, frage: "Wer hält den Hebel?",
+      hinweis: "Verliert 10 Leben, bekommt dafür 1 Talentpunkt. Die anderen bekommen das Gold.",
+      text: "Hinter einem Fallgitter glänzt ein Haufen Münzen. Der Hebel springt zurück, sobald man ihn loslässt, und seine Stacheln bohren sich in die Hand. Einer muss halten, die anderen holen das Gold." },
+    runenschwert: { titel: "Ein Runenschwert im Stein", bild: "altar", held: true, frage: "Wer zieht das Schwert?", nein: "Niemand",
+      hinweis: "Bekommt +2 Schaden. Die anderen bekommen je 15 Gold aus der Opferschale.",
+      text: "In einem Steinblock steckt ein Schwert, die Runen auf der Klinge glühen. Es lässt sich nur von einer Hand ziehen. Daneben eine Opferschale mit Münzen von denen, die es nicht geschafft haben." },
     // Verfluchte Relikte: Die Gruppe stimmt ab, wer es nimmt, oder lässt es liegen
     thron: { titel: "Ein Thron im Staub", bild: "krone", relikt: "krone", frage: "Wer setzt die Krone auf?", nein: "Liegen lassen",
       text: "Auf einem umgestürzten Thron liegt eine Krone aus Blei. Wer sie berührt, spürt Kraft in den Armen, aber auch eine Kälte, die nicht mehr weggeht." },
@@ -1109,7 +1134,7 @@
   function entscheiden(S, art, frage, optionen, extra) {
     S.entscheidung = Object.assign({ art, frage, optionen, stimmen: {} }, extra || {});
   }
-  const EREIGNISSE_FREI = S => Object.keys(EREIGNISSE).filter(e => !S.benutzt.includes(e)
+  const EREIGNISSE_FREI = S => Object.keys(EREIGNISSE).filter(e => !S.benutzt.includes(e) && S.teilnehmer.length >= (EREIGNISSE[e].ab || 1)
     && !(EREIGNISSE[e].relikt && (relikteVergeben(S).has(EREIGNISSE[e].relikt) || !S.teilnehmer.some(p => reliktPlatz(S.helden[p])))));
   // Nächste Ebene: neue Karte, neue Ereignisse, Abstieg
   function neueEbene(S) {
@@ -1220,6 +1245,9 @@
         if (e.relikt) {
           const wer = S.teilnehmer.filter(p => reliktPlatz(S.helden[p]));
           entscheiden(S, "ereignis", e.frage, wer.map(p => ({ text: heldName(S, p), hinweis: RELIKTE[e.relikt].text })).concat([{ text: e.nein }]), { id, wer });
+        } else if (e.held) {
+          const wer = lebend(S);
+          entscheiden(S, "ereignis", e.frage, wer.map(p => ({ text: heldName(S, p), hinweis: e.hinweis })).concat(e.nein ? [{ text: e.nein }] : []), { id, wer });
         } else entscheiden(S, "ereignis", "Was tut ihr?", e.optionen.map(t => ({ text: t })), { id });
       }
     }
@@ -1248,6 +1276,29 @@
       return p && reliktPlatz(S.helden[p]) ? reliktGeben(S, p, EREIGNISSE[id].relikt) : ["Ihr lasst es, wo es ist."];
     }
     const t = [], alle = S.teilnehmer, dieb = alle.find(p => S.helden[p].rolle === "dieb" || S.helden[p].rolle === "waldlaeufer");
+    const rolle = (...r) => alle.find(p => r.includes(S.helden[p].rolle) && S.helden[p].hp > 0);
+    const verlieren = (p, n) => { const h = S.helden[p]; n = Math.max(0, Math.min(n, h.hp - 1)); h.hp -= n; return n; };
+    // Ein Kampf direkt im Ereignisraum, gestartet nach der Abstimmung
+    const hinterhalt = () => { S.folgeKampf = gruppeFuer(S, stufe(S.raumNr)); };
+    if (EREIGNISSE[id].held) {
+      const p = e && e.wer && e.wer[wahl];
+      if (!p) { t.push("Ihr lasst es bleiben."); return t; }
+      const h = S.helden[p], andere = alle.filter(x => x !== p);
+      if (id === "hebel") {
+        const n = verlieren(p, 10); h.punkte += 1;
+        t.push(`${heldName(S, p)} stemmt sich gegen den Hebel: −${n} Leben, dafür +1 Talentpunkt.`);
+        const g = Math.round(wurf(S, 16, 22) * staerke(S).gold * schwere(S).gold * alle.length / Math.max(1, andere.length));
+        for (const x of andere) S.helden[x].gold += g;
+        t.push(andere.length ? `Die anderen schleppen das Gold heraus: +${g} Gold für ${andere.map(x => heldName(S, x)).join(", ")}.` : "Allein bekommst du das Gitter nicht offen.");
+      } else if (id === "runenschwert") {
+        const plus = Math.min(2, MAX.waffe - h.waffe); h.waffe += plus;
+        if (plus) t.push(`${heldName(S, p)} zieht das Schwert aus dem Stein: +${plus} Schaden.`);
+        if (plus < 2) { h.max += 8; h.hp += 8; t.push(`Die Runen gehen auf ${heldName(S, p)} über: +8 Höchstleben.`); }
+        for (const x of andere) S.helden[x].gold += 15;
+        if (andere.length) t.push(`Die anderen teilen sich die Opferschale: je +15 Gold.`);
+      }
+      return t;
+    }
     if (id === "brunnen") {
       if (wahl === 0) for (const p of alle) {
         const h = S.helden[p];
@@ -1271,6 +1322,76 @@
         if (h.gold >= 15) { h.gold -= 15; h.max += 5; h.hp += 5; t.push(`${heldName(S, p)}: Höchstwert +5 Leben.`); }
         else t.push(`${heldName(S, p)} hat keine 15 Gold.`);
       } else t.push("Ihr geht am Altar vorbei.");
+    } else if (id === "gefangener") {
+      if (wahl !== 0) t.push("Ihr lasst ihn sitzen. Er ruft euch noch lange Flüche hinterher.");
+      else if (chance(S, rolle("paladin", "heilerin") ? 0.75 : 0.55)) t.push("Er hält Wort und führt euch zu einer losen Steinplatte. " + goldFuerJeden(S, 14, 20));
+      else { t.push("Kaum ist die Käfigtür offen, pfeift er durch die Finger. Es war eine Falle, und seine Freunde kommen schon."); hinterhalt(); }
+    } else if (id === "pilze") {
+      const kenner = rolle("heilerin", "waldlaeufer");
+      if (wahl !== 0) t.push("Ihr lasst die Pilze leuchten.");
+      else {
+        if (kenner) t.push(`${heldName(S, kenner)} sucht die richtigen aus.`);
+        for (const p of alle) {
+          const h = S.helden[p];
+          if (kenner || chance(S, 0.5)) { h.max += 4; h.hp += 4; t.push(`${heldName(S, p)} fühlt sich zäher: +4 Höchstleben.`); }
+          else t.push(`${heldName(S, p)} erwischt einen falschen: −${verlieren(p, 6)} Leben.`);
+        }
+      }
+    } else if (id === "waffenlager") {
+      const p0 = rolle("kaempfer", "paladin") ? 0.6 : 0.4;
+      if (wahl === 2) t.push("Ihr lasst den Rost, wo er ist.");
+      else for (const p of alle) {
+        const h = S.helden[p], art = wahl === 0 ? "waffe" : "ruestung";
+        if (h[art] >= MAX[art]) t.push(`${heldName(S, p)} findet nichts Besseres als das eigene.`);
+        else if (chance(S, p0)) { h[art] += 1; t.push(`${heldName(S, p)} findet ${art === "waffe" ? "eine brauchbare Klinge: +1 Schaden" : "ein brauchbares Stück: −1 Schaden pro Treffer"}.`); }
+        else t.push(`${heldName(S, p)} findet nur Rost.`);
+      }
+    } else if (id === "statue") {
+      const finger = rolle("dieb");
+      if (wahl !== 0) t.push("Ihr geht an dem Wächter vorbei. Sein Blick folgt euch, oder es kommt euch nur so vor.");
+      else if (finger) t.push(`${heldName(S, finger)} löst die Rubine, ohne dass der Stein es merkt. ` + goldFuerJeden(S, 20, 28));
+      else if (chance(S, 0.5)) t.push("Die Rubine lösen sich mit einem Knacken. Der Wächter rührt sich nicht. " + goldFuerJeden(S, 20, 28));
+      else { t.push("Der erste Rubin knackt, und der Wächter zerspringt. Aus dem Staub erheben sich andere, die hier lange gewartet haben."); hinterhalt(); }
+    } else if (id === "verwundete") {
+      if (wahl === 0) {
+        const geber = alle.filter(p => S.helden[p].traenke > 0).sort((a, b) => S.helden[b].traenke - S.helden[a].traenke)[0];
+        if (!geber) t.push("Niemand von euch hat noch einen Trank. Sie nickt müde: „Dann viel Glück da unten.“");
+        else {
+          S.helden[geber].traenke -= 1;
+          t.push(`${heldName(S, geber)} gibt ihr einen Trank. Zum Dank zeigt sie jedem einen Kniff aus ihren besten Kämpfen: +1 Talentpunkt für jeden.`);
+          for (const p of alle) S.helden[p].punkte += 1;
+        }
+      } else if (wahl === 1) {
+        t.push("Ihr nehmt ihr die Börse ab. " + goldFuerJeden(S, 16, 22));
+        S.karte.fluch = (S.karte.fluch || 0) + 0.06;
+        t.push("Ihr Fluch folgt euch: Alle Gegner dieser Ebene haben 6 % mehr Leben.");
+      } else t.push("Ihr geht weiter. Hinter euch wird es still.");
+    } else if (id === "bibliothek") {
+      if (wahl === 0) { const gelehrt = rolle("magierin", "nekromant"); if (gelehrt) t.push(`${heldName(S, gelehrt)} findet die guten Stellen und liest vor.`); return t.concat(erfahrung(S, gelehrt ? 26 : 18)); }
+      t.push("Ihr packt die beschlagenen Bände ein. Der Händler zahlt gut für so etwas. " + goldFuerJeden(S, 10, 15));
+    } else if (id === "blutschale") {
+      if (wahl !== 0) t.push("Ihr lasst die Schale trocken.");
+      else {
+        for (const p of alle) { const h = S.helden[p], w = h.wunden; const n = verlieren(p, 6); wundenHeilen(h); h.cd = {}; t.push(`${heldName(S, p)}: −${n} Leben${w ? ", die Wunden schließen sich" : ""}.`); }
+        t.push("Alle Fähigkeiten sind wieder bereit.");
+      }
+    } else if (id === "geist") {
+      if (wahl !== 0) t.push("Der Geist sieht euch nach und verblasst.");
+      else {
+        const fromm = rolle("paladin", "heilerin");
+        for (const p of alle) { const h = S.helden[p]; heldHeilen(S, p, Math.ceil(h.max / 4)); if (fromm) { h.max += 3; h.hp += 3; } }
+        t.push(`Ihr sammelt seine Knochen und legt sie zur Ruhe. Ein warmes Licht: Alle heilen ein Viertel ihrer Leben${fromm ? `, und weil ${heldName(S, fromm)} die alten Worte kennt, bekommt jeder +3 Höchstleben` : ""}.`);
+      }
+    } else if (id === "armdruecken") {
+      const stark = rolle("kaempfer", "moench", "paladin");
+      if (wahl !== 0) t.push("Der Ork grunzt enttäuscht und trinkt allein weiter.");
+      else if (chance(S, stark ? 0.75 : 0.45)) {
+        for (const p of alle) S.helden[p].gold += 20;
+        t.push(`${stark ? heldName(S, stark) : "Mit letzter Kraft"} drückt den Arm des Orks auf das Fass. Er zahlt brummend: +20 Gold für jeden.`);
+      } else {
+        for (const p of alle) S.helden[p].gold = Math.max(0, S.helden[p].gold - 10);
+        t.push("Der Ork gewinnt und lacht dröhnend: −10 Gold für jeden.");
+      }
     } else if (id === "bruecke") {
       for (const p of alle) {
         const h = S.helden[p];
@@ -2494,6 +2615,13 @@
     } else if (e.art === "schrein") t = e.optionen[wahl].segen ? segenAusfuehren(S, e.optionen[wahl].segen) : ["Ihr lasst den Schrein in Frieden."];
     else {
       t = e.art === "truhe" ? truheOeffnen(S, wahl) : ereignisAusfuehren(S, e.id, wahl, e);
+      if (S.folgeKampf) {
+        // Das Ereignis endet im Kampf: Die Erfahrung gibt es für die Gegner
+        const g = S.folgeKampf; delete S.folgeKampf;
+        S.seite = Object.assign({}, S.seite, { text: S.seite.text.concat([`Ihr entscheidet: ${e.optionen[wahl].text}.`], t) });
+        kampfStarten(S, g); S.phase = "kampf";
+        return;
+      }
       t.push(...erfahrung(S, 8));            // auch Truhen und Ereignisse bringen etwas Erfahrung
     }
     S.seite = Object.assign({}, S.seite, { text: S.seite.text.concat([`Ihr entscheidet: ${e.optionen[wahl].text}.`], t) });
