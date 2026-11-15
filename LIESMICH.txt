@@ -210,6 +210,10 @@ Gleisgenossen (1 bis 6 Spieler, kooperativ)
   Gleis bauen: Start (Ort, Betrieb oder Gleis) und Ziel antippen, der günstigste Weg wird vorgeschlagen.
   Kosten pro Feld: Wiese 20, Wald 40, Hügel 60, Fluss (Brücke) 150, Berg (Tunnel) 250 T; Bahnhof 100 T, entsteht automatisch.
   Der eigene letzte Bau im selben Monat lässt sich zurücknehmen.
+  Abreißen (vom 15.11.2026): Gleis bauen → „Abreißen“, Anfang und Ende auf vorhandenem Gleis antippen (rote Vorschau).
+  Zurück gibt es 40 % der Baukosten (zweigleisige Stücke dazu 40 % des Ausbaus), Bahnhöfe ohne Gleis verschwinden mit
+  (40 T). Strecken, über die ein Zug fährt, lassen sich nicht abreißen. Der eigene letzte Abriss im selben Monat lässt sich
+  zurücknehmen (der Erlös geht wieder ab).
   „Neue Trasse“ beim Bauen: der Weg meidet vorhandene Gleise und Gleisfelder (für Kreise und zweite Strecken).
   Zweigleisig ausbauen (beim Bauen umschalten): entlang vorhandener Gleise, 60 % der Neubaukosten, doppelte Wartung.
   Teilen sich Züge eingleisige Stücke, brauchen sie länger: Fahrzeit × (1 + 0,25 × Anteil geteilter Stücke × andere Züge bis 3),

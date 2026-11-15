@@ -203,6 +203,29 @@
     }
     return { kosten, kanten };
   }
+  // Abriss entlang vorhandener Gleise: 40 % der Baukosten zurück (zweigleisige Stücke auch 40 % vom Ausbau).
+  // Bahnhöfe, an denen danach kein Gleis mehr liegt, verschwinden mit (40 % zurück).
+  const ABRISS = .4;
+  function abrissWert(S, pfad) {
+    if (!Array.isArray(pfad) || pfad.length < 2) return { fehler: "Der Weg ist zu kurz." };
+    const kanten = [], doppel = []; let erloes = 0;
+    for (let k = 1; k < pfad.length; k++) {
+      const key = kante(pfad[k - 1], pfad[k]);
+      if (!S.gleise[key]) return { fehler: "Abreißen geht nur entlang vorhandener Gleise." };
+      if (kanten.includes(key)) continue;
+      const bau = (feldKosten(S, pfad[k - 1]) + feldKosten(S, pfad[k])) / 2;
+      kanten.push(key); erloes += Math.round(bau * ABRISS);
+      if (S.doppel[key]) { doppel.push(key); erloes += Math.round(bau * .6 * ABRISS); }
+    }
+    const rest = new Set(); for (const k in S.gleise) if (!kanten.includes(k)) k.split("-").forEach(x => rest.add(+x));
+    const bahnhoefe = S.bahnhoefe.filter(b => !rest.has(b));
+    erloes += bahnhoefe.length * Math.round(BAHNHOF * ABRISS);
+    // fährt ein Zug darüber?
+    const T = Object.assign({}, S, { gleise: Object.assign({}, S.gleise), bahnhoefe: S.bahnhoefe.filter(b => !bahnhoefe.includes(b)) });
+    kanten.forEach(x => delete T.gleise[x]);
+    const zug = S.zuege.find(z => !linieOk(T, z.linie, z.rund).ok);
+    return { erloes, kanten, doppel, bahnhoefe, zug: zug ? "Zug " + zug.nr : null };
+  }
   // Günstigster neuer Weg von a nach b (vorhandene Gleise fast kostenlos, fremde Orte gemieden)
   // neu = eigene Trasse: vorhandene Gleisstücke werden nicht mitbenutzt (für Kreise und zweite Strecken)
   function bauWeg(S, a, b, neu) {
@@ -342,10 +365,26 @@
         S.baulog.push({ pid, monat: S.monat, kanten: [], doppel: k.kanten, bahnhoefe: [], kosten: k.kosten });
         break;
       }
+      case "abreissen": {
+        if (S.phase !== "planen") return nein("Abgerissen wird in der Planungsphase.");
+        const k = abrissWert(S, m.pfad); if (k.fehler) return nein(k.fehler);
+        if (k.zug) return nein(k.zug + " fährt über diese Strecke. Erst seine Linie ändern oder ihn verkaufen.");
+        k.kanten.forEach(x => { delete S.gleise[x]; delete S.doppel[x]; });
+        S.bahnhoefe = S.bahnhoefe.filter(b => !k.bahnhoefe.includes(b));
+        S.kasse += k.erloes;
+        S.baulog.push({ pid, monat: S.monat, abriss: true, kanten: k.kanten, doppel: k.doppel, bahnhoefe: k.bahnhoefe, kosten: -k.erloes });
+        break;
+      }
       case "rueckgaengig": {
         if (S.phase !== "planen") return nein("Gerade nicht möglich.");
         const l = S.baulog[S.baulog.length - 1];
         if (!l || l.monat !== S.monat || l.pid !== pid) return nein("Nur der eigene letzte Bau in diesem Monat lässt sich zurücknehmen.");
+        if (l.abriss) {                    // Abriss zurücknehmen: Gleise wieder hin, Erlös wieder raus
+          if (-l.kosten > S.kasse) return nein("Dafür reicht die Kasse nicht mehr.");
+          l.kanten.forEach(x => { S.gleise[x] = 1; }); l.doppel.forEach(x => { S.doppel[x] = 1; });
+          S.bahnhoefe.push(...l.bahnhoefe); S.kasse += l.kosten; S.baulog.pop();
+          break;
+        }
         l.kanten.forEach(x => { delete S.gleise[x]; delete S.doppel[x]; });
         (l.doppel || []).forEach(x => { delete S.doppel[x]; });
         S.bahnhoefe = S.bahnhoefe.filter(b => !l.bahnhoefe.includes(b));
@@ -603,7 +642,7 @@
   window.GG = {
     GELAENDE, BAHNHOF, START_KASSE, WARTUNG_GLEIS, WARTUNG_BAHNHOF, LOKS, LADUNG, ORTE, FAHRGAESTE, MONATE, MAX_HALTE, WAGEN_PLATZ,
     KOHLE_PREIS, LAGER_MAX, ZINS, KREDIT_SCHRITT, RUF_MAX, MAX_AUFTRAEGE, WACHSTUM, kreditRahmen,
-    ausbauKosten, behinderung,
+    ausbauKosten, abrissWert, behinderung,
     neu, nachruesten, aktion, weiterWennBereit, karteErzeugen, nachbarn, hexAbstand, kante, netz, streckenWeg, linienWeg, pfadKosten, bauWeg,
     linieOk, linieInfo, ortBei, produktion, darfStarten, imNetz, zugWert, wert, sterneGrenzen, monatRechnen
   };
