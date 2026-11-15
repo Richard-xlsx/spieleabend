@@ -12,6 +12,9 @@ Ohne Browser (nur Node.js):
                                      zeigt, bis zu welcher Ebene die Gruppen kommen; BIS=14 bricht danach ab), z. B. EBENEN=3 node simulation.js 20.
                                      Schwierigkeit über SCHWERE=1 (Wanderer) bis 4 (Legende), Standard 2; Gruppengröße über GRUPPE=2, 3
                                      (Standard) bis 6, dann alle Gruppen dieser Größe. Flüche über FLUECHE=zaeh,wild,regen,dornen,rache,verstaerkung. Ein Kampf, der nicht endet, bricht mit „endet nicht“ ab.
+                                     Die klugen Bots kontern Ankündigungen (Eis/Ranken auf Gegner, die Verstärkung rufen, beben oder Netze werfen).
+                                     „Kampfwerte“ zeigt je Ebene und Raumart (normal, Elite, Endgegner) Ø Runden, Ø K.o. und den Anteil
+                                     der Kämpfe mit mindestens einem K.o. Ziel: normal 3–6, Elite 6–9, Endgegner 10–15 Runden.
   node rundenaufzeichnung.js         400 zufällige Partien mit 2 bis 6 Helden, allen Schwierigkeiten und zufälligen Flüchen (je ein Drittel beginnt in Ebene 1, 2 und 3): Ausgangslage + Ereignisse in S.letzte müssen genau das
                                      Rundenergebnis ergeben, jeder Gegner braucht eine angekündigte Absicht. Jeder Held bekommt 12 zufällige Talente,
                                      damit alle Fähigkeiten vorkommen. Erwartet: Fehler 0.

@@ -220,3 +220,37 @@ bis sie stimmen.
 3. Elite-Zusätze zufällig, oder lieber feste Gegner mit festen Eigenschaften, damit man sie wiedererkennt?
 4. Soll der Fluch „Verstärkung“ bleiben, wenn ab 4 Helden ohnehin mehr Gegner kommen? Oder soll er stattdessen den
    Gegnern einen Elite-Zusatz geben?
+
+## 6. Stand der Umsetzung
+
+**Schritt 1 und 2 fertig (15.11.2026).** Abweichungen vom Plan oben:
+
+- **Bots:** Die klugen Bots erstarren Gegner, die Verstärkung, Beben oder Netz ankündigen, mit Eis oder Ranken. Bei
+  zwei solchen Gegnern nutzen sie Ewigen Winter oder Zeitstillstand. Die Kampfwerte zeigt `tests/simulation.js` jetzt
+  am Ende selbst an, ein eigenes `kampfwerte.js` war nicht nötig.
+- **Gruppengröße:**
+  - Leben der Gegner ×1,3 / ×1,5 / ×1,7 bei 4 / 5 / 6 Helden.
+  - Schaden der Gegner ×1,15 / ×1,4 / ×1,45.
+  - Zusätzliche Gegner: +1 / +1 / +2. Ab 4 Helden stehen höchstens 5 Gegner auf der Bühne.
+  - Endgegner machen 2 / 2 / 3 Züge. Die Zusatzangriffe treffen andere Helden, die Ankündigung zeigt „+1 Angriff“.
+    Ist der Endgegner erstarrt, fallen auch die Zusatzangriffe aus (Standhaft folgt in Schritt 3).
+- **Wut-Uhr:** Ab Runde 12 statt 10, +10 % Schaden je Runde. Als „Zorn +X %“ am Endgegner sichtbar.
+- **Endgegner-Leben:** Die Wut-Uhr allein machte die langen Bosskämpfe auch zu dritt tödlich, bei Abenteurer nur noch
+  38 % Siege. Deshalb haben Endgegner jetzt für alle Gruppengrößen weniger Leben:
+  - Ebene 1: ×0,8.
+  - Ab Ebene 2: ×0,5.
+  - Held und Legende erhöhen die Endgegner-Leben nur halb so stark wie die der anderen Gegner (×1,125 bzw. ×1,25).
+
+Simulation (Normal, 2 Ebenen):
+
+| | Bosskampf Ebene 1 vorher → jetzt | Bosskampf Ebene 2 vorher → jetzt | Siege vorher → jetzt |
+|---|---|---|---|
+| 3 Helden, Abenteurer | 14 → 12 Runden | 29 → 15 Runden | 85 → 89 % |
+| 4 Helden, Abenteurer | 16 → 12 | 33 → 15 | 93 → 81 % |
+| 5 Helden, Abenteurer | 21 → 9 | 42 → 13 | 89 → 94 % |
+| 6 Helden, Abenteurer | 24 → 8 | 45 → 10 | 83 → 93 % |
+| 3 Helden: Wanderer / Held / Legende | | | 100 / 59 / 24 → 100 / 58 / 21 % |
+
+Eure Runde (5 Helden, Lang, Held, Wild + Rachsucht + Verstärkung):
+- Bosskämpfe: vorher 25 / 60 / 44 Runden, jetzt 10 / 17 / 13 Runden.
+- Normale Kämpfe in Ebene 3: vorher 13, jetzt 8 Runden.

@@ -249,10 +249,10 @@
     const hy = n === 3 ? [430, 440, 430] : n === 4 ? [432, 440, 440, 432] : n === 5 ? [432, 440, 444, 440, 432] : n === 6 ? [432, 440, 444, 444, 440, 432] : [436, 436, 436];
     helden.forEach((p, i) => { pos[p] = { x: hx[i], y: hy[i], s: n >= 6 ? .6 : n === 5 ? .68 : n >= 4 ? .78 : 1, w: n >= 6 ? 63 : n === 5 ? 75 : n >= 4 ? 94 : 108, held: true }; });
     const c = gegner.length;
-    const plaetze = c === 1 ? [200] : c === 2 ? [112, 288] : c === 3 ? [200, 72, 328] : [148, 252, 52, 348];
-    const skala = c <= 2 ? 1 : c === 3 ? .8 : .66;
+    const plaetze = c === 1 ? [200] : c === 2 ? [112, 288] : c === 3 ? [200, 72, 328] : c === 4 ? [148, 252, 52, 348] : [200, 122, 278, 44, 356];
+    const skala = c <= 2 ? 1 : c === 3 ? .8 : c === 4 ? .66 : .56;
     const sortiert = gegner.slice().sort((a, b) => (GROESSE[b.art] || 0) - (GROESSE[a.art] || 0) || (a.id < b.id ? -1 : 1));
-    sortiert.forEach((g, i) => { const x = plaetze[i] !== undefined ? plaetze[i] : 50 + i * 60; pos[g.id] = { x, y: c >= 3 && i > 0 ? 234 : 226, s: skala, held: false, w: c >= 4 ? 92 : i === 0 && c === 3 ? 150 : Math.min(116, 400 / Math.max(c, 1) - 10) }; });
+    sortiert.forEach((g, i) => { const x = plaetze[i] !== undefined ? plaetze[i] : 50 + i * 60; pos[g.id] = { x, y: c >= 3 && i > 0 ? 234 : 226, s: skala, held: false, w: c >= 5 ? 76 : c >= 4 ? 92 : i === 0 && c === 3 ? 150 : Math.min(116, 400 / Math.max(c, 1) - 10) }; });
     return pos;
   }
   const mitte = (pos, id, art) => { const p = pos[id]; if (!p) return { x: 200, y: 250 }; return p.held ? { x: p.x, y: p.y - 62 } : { x: p.x, y: p.y - (GEG[art] ? GEG[art].h : 80) * p.s * .55 }; };
@@ -291,10 +291,11 @@
       const a = daten.absicht && daten.absicht[g.id];
       if (a && g.hp > 0) {
         const wer = id => (daten.helden.find(x => x.id === id) || { name: "?" }).name;
-        const txt = a.a === "beben" ? `⟁ ${a.name || "Beben"} → alle` : a.a === "ruf" ? "☠ ruft Verstärkung" : a.a === "flucht" ? "↯ will fliehen!"
+        let txt = a.a === "beben" ? `⟁ ${a.name || "Beben"} → alle` : a.a === "ruf" ? "☠ ruft Verstärkung" : a.a === "flucht" ? "↯ will fliehen!"
           : a.a === "netz" ? `🕸 Netz → ${wer(a.ziel)}` : a.a === "ruhe" ? "… sammelt Kraft" : a.a === "schuetzen" ? `🛡 → ${kurzName((daten.gegner.find(x => x.id === a.ziel) || { name: "?" }).name)}`
           : a.a === "angriff" && a.doppelt ? `⚔⚔ → ${wer(a.ziel)}`
           : a.a === "stehlen" ? `✋ Gold → ${(daten.helden.find(x => x.id === a.ziel) || { name: "?" }).name}` : a.a === "heilen" ? `✚ → ${kurzName((daten.gegner.find(x => x.id === a.ziel) || { name: "?" }).name)}` : `⚔ → ${(daten.helden.find(x => x.id === a.ziel) || { name: "?" }).name}`;
+        if (a.extra) txt += ` · +${a.extra} Angriff${a.extra > 1 ? "e" : ""}`;
         const bw = Math.min(w + 6, txt.length * 6.6 + 16);
         s += `<g id="vl-ab-${g.id}" class="vl-absicht"><rect x="${p.x - bw / 2}" y="${y - 24}" width="${bw}" height="20" rx="10" fill="#FFD447" stroke="${T}" stroke-width="2"/>
           <text x="${p.x}" y="${y - 10}" text-anchor="middle" font-family="Inter,system-ui" font-weight="700" font-size="10.5" fill="#1C1A33"${txt.length * 6.6 + 16 > bw ? ` textLength="${bw - 14}" lengthAdjust="spacingAndGlyphs"` : ""}>${esc(txt)}</text></g>`;

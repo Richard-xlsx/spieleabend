@@ -11,6 +11,12 @@ function waehle(S,p,klug){
   const hat=id=>akt.find(a=>a.id===id);
   if(h.hp<h.max*0.35&&hat('trank')) return {a:'trank'};
   if(tot){ for(const id of ['gnade','lebensquell','auferstehung','erloesung','wiedergeburt','gnadenlicht']) if(hat(id)) return {a:id}; for(const id of ['heilen','handauflegen','kraeuter']) if(hat(id)) return {a:id,ziel:tot}; }
+  // Ankündigungen kontern wie echte Spieler: Spezialzüge (Verstärkung, Beben, Netz) durch Erstarren verhindern,
+  // wenn noch niemand anderes dieses Ziel diese Runde erstarren lässt
+  const ab=S.kampf.absicht||{}, gew=Object.values(S.kampf.wahl||{});
+  const gefahr=g.filter(x=>ab[x.id]&&['ruf','beben','netz'].includes(ab[x.id].a)&&!(x.starr>0)&&!gew.some(w=>['eis','ranken'].includes(w.a)&&w.ziel===x.id)).sort((x,y)=>(V.GEGNER[y.art].boss?1:0)-(V.GEGNER[x.art].boss?1:0));
+  if(gefahr.length){ if(gefahr.length>=2&&!gew.some(w=>['winter','zeitstillstand'].includes(w.a))) for(const id of ['zeitstillstand','winter']) if(hat(id)) return {a:id};
+    for(const id of ['eis','ranken']) if(hat(id)) return {a:id,ziel:gefahr[0].id}; }
   if(schwach.length>=2) for(const id of ['gnade','lebensquell','ewigschild','erloesung','heiligtum','wall','bollwerk','schlachtruf','gnadenlicht','laeutern','segen','licht','wiedergeburt','frost']) if(hat(id)) return {a:id};
   if(schwach.length) { for(const id of ['heilen','handauflegen','kraeuter']) if(hat(id)) return {a:id,ziel:schwach[0]};
     if(hat('schild')&&!schwach.includes(p)) return {a:'schild'}; if(hat('fels')) return {a:'fels'};
@@ -25,7 +31,7 @@ function waehle(S,p,klug){
 }
 const FLUECHE=(process.env.FLUECHE||'').split(',').filter(Boolean);
 const LAENGE=+(process.env.EBENEN||2), SCHWERE=+(process.env.SCHWERE||2), GROESSE=+(process.env.GRUPPE||3);
-const STATS={tod:{},ast:{},stufe:0,n:0,raenge:0,raeume:{},elite:0,kammer:0,spiele:0};
+const KAEMPFE=[]; let DUO=false; const STATS={tod:{},ast:{},stufe:0,n:0,raenge:0,raeume:{},elite:0,kammer:0,spiele:0};
 // Talentpunkte: jeder Held folgt einem zufällig gewählten Ast (fest für die Partie), danach dem nächsten
 function punkte(S,klug){
   if(!klug) return S;
@@ -56,7 +62,7 @@ function spiel(seed, rollen, klug){
   for(let i=1;i<pids.length;i++) S=V.aktion(S,pids[i],{t:'join',name:'S'+i});
   pids.forEach((p,i)=>S=V.aktion(S,p,{t:'rolle',rolle:rollen[i]}));
   S=V.aktion(S,'p0',{t:'laenge',n:LAENGE}); S=V.aktion(S,'p0',{t:'schwere',n:SCHWERE}); for(const f of FLUECHE) S=V.aktion(S,'p0',{t:'fluch',id:f}); S=V.aktion(S,'p0',{t:'start',mindestens:1}); if(S.phase!=='erkunden') throw new Error('Start');
-  let schritte=0, lager=0, gold=0;
+  let schritte=0, lager=0, gold=0, F=null;
   while(S.phase!=='ende' && schritte++<(+process.env.SCHRITTE||(LAENGE===4?60000:3000)) && !(LAENGE===4 && S.ebene>(+process.env.BIS||14))){
     if(S.phase==='erkunden'){ S=punkte(S,klug); const e=S.entscheidung; const q=S.teilnehmer.reduce((a,x)=>a+S.helden[x].hp/S.helden[x].max,0)/S.teilnehmer.length;
       const frei=e.optionen.map((o,i)=>i).filter(i=>!e.optionen[i].gesperrt);
@@ -71,6 +77,10 @@ function spiel(seed, rollen, klug){
         const w=waehle(S,p,klug); const vor=S; S=V.aktion(S,p,Object.assign({t:'wahl',runde:r},w));
         if(S===vor){ S=V.aktion(S,p,Object.assign({t:'wahl',runde:r},V.standardWahl(S,p))); if(S===vor) throw new Error('Wahl abgelehnt '+JSON.stringify(w)); } } }
     if(schritte>(+process.env.SCHRITTE||3000)-4&&S.kampf) console.log('HÄNGER', S.kampf.runde, JSON.stringify(S.teilnehmer.map(p=>[S.helden[p].rolle,S.helden[p].hp,S.helden[p].cd,S.helden[p].netz])), JSON.stringify(S.gegner.map(g=>[g.art,g.hp,g.max,g.schutz])), JSON.stringify(S.kampf.absicht), S.log.join(' / '));
+    // Kampfwerte: Runden und K.o. je Kampf (nur kluge Partien)
+    if(klug&&!DUO){ const ko=S.teilnehmer.reduce((x,q)=>x+S.helden[q].stats.umgefallen,0);
+      if(S.kampf){ if(!F) F={e:S.ebene,typ:(S.karte.knoten[S.karte.pos]||{}).typ,ko0:ko}; F.r=S.kampf.runde; F.ko=ko-F.ko0; }
+      else if(F){ F.ko=ko-F.ko0; KAEMPFE.push(F); F=null; } }
     for(const p of S.teilnehmer){const h=S.helden[p]; if(!(h.hp>=0&&h.hp<=h.max)||isNaN(h.hp)||h.gold<0||isNaN(h.gold)) throw new Error('Held kaputt '+JSON.stringify(h));}
     for(const g of S.gegner) if(isNaN(g.hp)||g.hp>g.max||g.hp<0) throw new Error('Gegner kaputt '+JSON.stringify(g));
   }
@@ -92,6 +102,10 @@ console.log('Ebenen',LAENGE,'Stufe',V.SCHWERE[SCHWERE].name,'Gruppe',GROESSE,'Fl
 if(STATS.tiefe){ const t=STATS.tiefe.slice().sort((a,b)=>a-b); const v={}; for(const e of t) v[e]=(v[e]||0)+1; console.log('Tiefe erreicht (Ebene: Partien):', JSON.stringify(v), 'Median', t[Math.floor(t.length/2)], 'höchste Stufe', STATS.stufeMax); }
 const k=zeilen.map(z=>z[1]); console.log('klug: min',Math.min(...k),'max',Math.max(...k),'Schnitt',Math.round(k.reduce((a,b)=>a+b)/k.length));
 const s2=zeilen.map(z=>z[2]); console.log('simpel Schnitt',Math.round(s2.reduce((a,b)=>a+b)/s2.length));
+{ const gr={}; for(const f of KAEMPFE){ const k='Ebene '+f.e+' '+(f.typ==='boss'?'Endgegner':f.typ==='elite'?'Elite':'normal'); (gr[k]=gr[k]||[]).push(f); }
+  console.log('Kampfwerte (klug):'); for(const k of Object.keys(gr).sort()){ const a=gr[k], n=a.length;
+    console.log('  '+k.padEnd(20),'Runden Ø',(a.reduce((x,f)=>x+f.r,0)/n).toFixed(1).padStart(5),' K.o. Ø',(a.reduce((x,f)=>x+f.ko,0)/n).toFixed(2).padStart(5),' Kämpfe mit K.o.',(Math.round(100*a.filter(f=>f.ko>0).length/n)+'%').padStart(4),' ('+n+')'); } }
+DUO=true;
 if(GROESSE===3) for(const d of [['kaempfer','heilerin'],['paladin','magierin'],['dieb','waldlaeufer']]){ let w=0; for(let i=1;i<=N;i++) if(spiel(i*31,d,true).sieg)w++; console.log('zu zweit',d.join('+'),Math.round(100*w/N)+'%'); }
 
 console.log('Siegquote nach Hauptast (klug, Dreiergruppen):');for(const [k,[n,w]] of Object.entries(STATS.ast).sort()) console.log('  '+k.padEnd(30), Math.round(100*w/n)+'%', '('+n+')');

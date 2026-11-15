@@ -601,9 +601,17 @@
   };
   const schwere = S => SCHWERE[S.schwere || 2];
   // Gruppengröße: zu zweit weniger, ab vier Helden mehr Gegner-Leben und -Schaden
-  const GRUPPE = { 1: { hp: 0.4, dmg: 0.7 }, 2: { hp: 0.55, dmg: 0.8, boss: 0.85 }, 3: { hp: 1, dmg: 1 }, 4: { hp: 1.65, dmg: 1.15 },
-    5: { hp: 2.7, dmg: 1.45 }, 6: { hp: 3.8, dmg: 1.75 } };
+  // Ab vier Helden: lieber mehr Gegner (zusatz) und Endgegner mit mehr Zügen (zuege) als dickere Gegner
+  const GRUPPE = { 1: { hp: 0.4, dmg: 0.7 }, 2: { hp: 0.55, dmg: 0.8, boss: 0.85 }, 3: { hp: 1, dmg: 1 },
+    4: { hp: 1.3, dmg: 1.15, zusatz: 1, zuege: 2 }, 5: { hp: 1.5, dmg: 1.4, zusatz: 1, zuege: 2 }, 6: { hp: 1.7, dmg: 1.45, zusatz: 2, zuege: 3 } };
   const gruppe = S => GRUPPE[(S.teilnehmer || []).length] || GRUPPE[3];
+  // höchstens so viele Gegner gleichzeitig auf der Bühne
+  const maxGegner = S => (S.teilnehmer || []).length >= 4 ? 5 : 4;
+  // Wut-Uhr: ab Runde 12 machen Endgegner jede Runde 10 % mehr Schaden
+  const WUT_AB = 12, WUT_PRO = 0.1;
+  // Endgegner-Leben: in Ebene 1 ×0,8, ab Ebene 2 ×0,5; Schwierigkeit erhöht ihre Leben nur halb so stark wie bei anderen Gegnern
+  const BOSS_E1 = 0.8, BOSS_TIEF = 0.5;
+  const wut = (S, g) => GEGNER[g.art].boss && S.kampf && S.kampf.runde >= WUT_AB ? 1 + WUT_PRO * (S.kampf.runde - WUT_AB + 1) : 1;
   // Flüche: vom Spielleiter in der Lobby gewählt, beliebig kombinierbar, betreffen nur die Gegner.
   // stufe: 1 leicht, 2 mittel, 3 stark (Simulation, Dreiergruppe Abenteurer: ohne Fluch 88 % Siege)
   const FLUECHE = {
@@ -621,8 +629,9 @@
   const stufe = nr => (nr <= 3 ? 0 : nr <= 5 ? 1 : 2);
   function gegnerErzeugen(S, art) {
     // zu zweit schwächer; je tiefer, desto zäher (Helden steigen ja auch auf)
-    const g = GEGNER[art], f = gruppe(S).hp * (g.boss ? gruppe(S).boss || 1 : 1) * schwere(S).hp * (g.boss ? 1 : 1 + 0.11 * Math.max(0, S.raumNr - 1)) * (1 + (S.karte ? S.karte.fluch || 0 : 0)) * (fluch(S, "zaeh") ? 1.25 : 1);
-    const hp = Math.max(4, Math.round(g.hp * f * staerke(S).hp));
+    const g = GEGNER[art], f = gruppe(S).hp * (g.boss ? gruppe(S).boss || 1 : 1) * (g.boss ? 1 + (schwere(S).hp - 1) / 2 : schwere(S).hp) * (g.boss ? 1 : 1 + 0.11 * Math.max(0, S.raumNr - 1)) * (1 + (S.karte ? S.karte.fluch || 0 : 0)) * (fluch(S, "zaeh") ? 1.25 : 1);
+    // Endgegner ab Ebene 2: weniger Leben als die Ebene sonst vorsieht, damit der Kampf nicht ewig dauert (Wut-Uhr macht ihn gefährlich)
+    const hp = Math.max(4, Math.round(g.hp * f * staerke(S).hp * (g.boss ? ((S.ebene || 1) >= 2 ? BOSS_TIEF : BOSS_E1) : 1)));
     S.gegnerNr = (S.gegnerNr || 0) + 1;
     return Object.assign({ id: "g" + S.gegnerNr, art, name: g.name, hp, max: hp, gift: 0, giftR: 0, starr: 0, markiert: 0 }, g.elite ? { elite: true } : {});
   }
@@ -968,7 +977,7 @@
   // Jeder Gegner legt zu Beginn der Runde fest, was er vorhat (wird allen angezeigt).
   // Ausgeführt wird später: Schildwall/Unerschütterlich ziehen den Angriff auf sich, Versteckte werden nicht gefunden.
   function planeGegner(S) {
-    const k = S.kampf, a = {}, helden = lebend(S), frei = () => gegnerLebend(S).length < 4 && (k.gerufen || 0) < MAX_GERUFEN;
+    const k = S.kampf, a = {}, helden = lebend(S), frei = () => gegnerLebend(S).length < maxGegner(S) && (k.gerufen || 0) < MAX_GERUFEN;
     const held = () => { const l = helden.filter(p => !S.helden[p].netz); return l.length ? eins(S, l) : helden.length ? eins(S, helden) : null; };
     const angriff = g => Object.assign({ a: "angriff", ziel: held() }, istSchnell(S, g) ? { doppelt: true } : {});
     for (const g of gegnerLebend(S)) {
@@ -980,6 +989,7 @@
         else if (g.art === "koenigin" && r % 3 === 2) a[g.id] = { a: "netz", ziel: held() };
         else if (g.art === "drache" && r % 3 === 0) a[g.id] = { a: "beben", name: k.bossPhase >= 2 ? "Schwanzhieb" : "Flammenatem" };
         else a[g.id] = angriff(g);
+        if ((gruppe(S).zuege || 1) > 1) a[g.id].extra = gruppe(S).zuege - 1;
         continue;
       }
       if (art.beschwoerer && r % 3 === 2 && frei()) { a[g.id] = { a: "ruf" }; continue; }
@@ -1001,7 +1011,9 @@
   }
 
   function kampfStarten(S, gruppe) {
-    if (fluch(S, "verstaerkung") && gruppe.length < 4 && !gruppe.some(a => GEGNER[a].boss)) {
+    // Fluch „Verstärkung“ und große Gruppen: zusätzliche einfache Gegner (nicht beim Endgegner)
+    const zusatz = (fluch(S, "verstaerkung") ? 1 : 0) + ((GRUPPE[S.teilnehmer.length] || {}).zusatz || 0);
+    for (let i = 0; i < zusatz && gruppe.length < maxGegner(S) && !gruppe.some(a => GEGNER[a].boss); i++) {
       const einfach = gruppe.filter(a => !GEGNER[a].elite && !GEGNER[a].langfinger);
       gruppe = gruppe.concat(einfach.length ? eins(S, einfach) : eins(S, ebeneVon(S).gruppen[0].flat().filter(a => !GEGNER[a].langfinger)));
     }
@@ -1065,6 +1077,7 @@
     if (knochenschild(S, g)) z.push("Knochenschild");
     if (art.boss && istFliegend(S, g)) z.push("fliegt");
     if (art.boss && istSchnell(S, g)) z.push("Wut");
+    if (wut(S, g) > 1) z.push(`Zorn +${Math.round((wut(S, g) - 1) * 100)} %`);
     if (g.schutz > 0) z.push(`Schild ${g.schutz}`);
     if (g.feuer > 0 && (art.regeneration || fluch(S, "regen"))) z.push("brennt");
     if (racheBonus(S)) z.push(`Rache +${racheBonus(S)}`);
@@ -1389,7 +1402,7 @@
     const rufen = (anzahl, art) => {
       aufraeumen();
       const neu = [];
-      for (let i = 0; i < anzahl && gegnerLebend(S).length < 4 && (k.gerufen || 0) < MAX_GERUFEN; i++) { const g = Object.assign(gegnerErzeugen(S, art), { gerufen: true }); S.gegner.push(g); neu.push(g); k.gerufen = (k.gerufen || 0) + 1; }
+      for (let i = 0; i < anzahl && gegnerLebend(S).length < maxGegner(S) && (k.gerufen || 0) < MAX_GERUFEN; i++) { const g = Object.assign(gegnerErzeugen(S, art), { gerufen: true }); S.gegner.push(g); neu.push(g); k.gerufen = (k.gerufen || 0) + 1; }
       return neu.map(kurz);
     };
     // Explosive Gegner reißen beim Tod alle mit
@@ -1408,7 +1421,7 @@
     explosionen();
     // Schleim teilt sich einmal, sobald er verletzt ist
     for (const g of gegnerLebend(S)) {
-      if (!GEGNER[g.art].teilt || g.geteilt || g.hp >= g.max || g.hp < 8 || gegnerLebend(S).length >= 4) continue;
+      if (!GEGNER[g.art].teilt || g.geteilt || g.hp >= g.max || g.hp < 8 || gegnerLebend(S).length >= maxGegner(S)) continue;
       beginn();
       g.geteilt = true;
       const halb = Math.floor(g.hp / 2); g.hp -= halb;
@@ -1453,7 +1466,7 @@
       if (!spott && !zieher.length && b && S.helden[b].hp > 0) { log.push(`${heldName(S, b)} fängt den Angriff auf ${heldName(S, p)} ab.`); p = b; minus += 2 + passiv(S.helden[b], "schutzplus"); }
       const rudel = art.rudel ? art.rudel * gegnerLebend(S).filter(x => x !== g && x.art === g.art).length : 0;
       const orks = art.ork && S.gegner.some(x => x !== g && x.hp > 0 && GEGNER[x.art].anfuehrer) ? 2 : 0;
-      treffer(S, p, gdmg(S, wurf(S, art.dmg[0], art.dmg[1])) + rudel + orks + racheBonus(S) - minus, log, g.name, g);
+      treffer(S, p, Math.round(gdmg(S, wurf(S, art.dmg[0], art.dmg[1])) * wut(S, g)) + rudel + orks + racheBonus(S) - minus, log, g.name, g);
       const z = S.helden[p];
       if (art.gift && z.hp > 0 && !z.immun && chance(S, 0.4)) { setzeGift(z, gdmg(S, 2), 2); log.push(`${heldName(S, p)} ist vergiftet.`); }
       if (art.brand && z.hp > 0 && !z.immun && chance(S, 0.4)) { setzeGift(z, gdmg(S, 3), 2, true); log.push(`${heldName(S, p)} steht in Flammen.`); }
@@ -1468,7 +1481,7 @@
     const gegnerZug = g => {
       const art = GEGNER[g.art], plan = (k.absicht || {})[g.id] || {};
       if (g.starr > 0) { log.push(`${g.name} ist erstarrt und kann nicht angreifen.`); return { a: "starr" }; }
-      if (plan.a === "ruf" && gegnerLebend(S).length < 4) {
+      if (plan.a === "ruf" && gegnerLebend(S).length < maxGegner(S)) {
         const neu = rufen(art.ruf || 1, art.beschwoerer || "skelett");
         log.push(RUFTEXT[g.art] || `${g.name} ruft Verstärkung!`);
         return { a: "ruf", neu };
@@ -1501,7 +1514,7 @@
       if (W) {
         log.push(W.text);
         for (const p of lebend(S)) {
-          treffer(S, p, gdmg(S, W.n) - (k.frost || 0), log, null);
+          treffer(S, p, Math.round(gdmg(S, W.n) * wut(S, g)) - (k.frost || 0), log, null);
           const h = S.helden[p];
           if ((W.gift || W.brand) && h.hp > 0 && !h.immun) setzeGift(h, gdmg(S, W.brand ? 3 : 2), 2, W.brand);
         }
@@ -1514,7 +1527,17 @@
       return erg;
     };
     racheZaehlen();
-    for (const g of gegnerLebend(S)) { if (g.hp <= 0) continue; beginn(); const z = gegnerZug(g); ende(Object.assign({ von: g.id }, z)); }
+    for (const g of gegnerLebend(S)) {
+      if (g.hp <= 0) continue;
+      if (GEGNER[g.art].boss && k.runde === WUT_AB) log.push(`${g.name} gerät in Wut: Ab jetzt wird jeder Schlag härter!`);
+      beginn(); const z = gegnerZug(g); ende(Object.assign({ von: g.id }, z));
+      // Endgegner gegen große Gruppen: weitere Angriffe auf andere Helden
+      const extra = GEGNER[g.art].boss && z.a !== "starr" ? (gruppe(S).zuege || 1) - 1 : 0;
+      for (let i = 0; i < extra && g.hp > 0 && lebend(S).length; i++) {
+        const schon = ev.filter(e => e.von === g.id).map(e => e.ziel), frei = lebend(S).filter(q => !schon.includes(q));
+        beginn(); const z2 = hieb(g, { ziel: frei.length ? eins(S, frei) : null }); ende(Object.assign({ von: g.id }, z2));
+      }
+    }
     beuteZurueck();
     explosionen();
     // 6. Gift auf Helden, Rundenende
