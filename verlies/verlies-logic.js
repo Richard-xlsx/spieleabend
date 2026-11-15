@@ -30,9 +30,10 @@
     heilerin: { name: "Heilerin", hp: 26, kurz: "Heilt und holt Bewusstlose zurück" },
     magierin: { name: "Magierin", hp: 23, kurz: "Feuer gegen alle, Eis lähmt Gegner" },
     waldlaeufer: { name: "Waldläufer", hp: 28, kurz: "Pfeile, markiert Ziele für alle" },
-    paladin: { name: "Paladin", hp: 32, kurz: "Beschützt andere, heilt ein wenig" }
+    paladin: { name: "Paladin", hp: 32, kurz: "Beschützt andere, heilt ein wenig" },
+    moench: { name: "Mönch", hp: 30, kurz: "Fäuste und Chi, weicht aus, löst böse Zustände", ausweichen: 15 }
   };
-  const ROLLEN_REIHE = ["kaempfer", "paladin", "dieb", "waldlaeufer", "magierin", "heilerin"];
+  const ROLLEN_REIHE = ["kaempfer", "paladin", "dieb", "waldlaeufer", "magierin", "heilerin", "moench"];
   // ziel: "gegner" = einen Gegner antippen, "held" = einen Helden antippen, "anderer" = einen anderen Helden,
   // null = ohne Ziel. cd = Abklingzeit in Runden. Heilende Fähigkeiten wecken Bewusstlose.
   const AKTIONEN = {
@@ -65,6 +66,12 @@
       { id: "hammer", name: "Hammerschlag", ziel: "gegner", text: "5–7 Schaden" },
       { id: "handauflegen", name: "Handauflegen", ziel: "held", cd: 2, text: "+8 Leben, weckt Bewusstlose" },
       { id: "beschuetzen", name: "Beschützen", ziel: "anderer", cd: 2, text: "Angriffe auf diesen Helden treffen dich, 2 Schaden weniger" }
+    ],
+    // Mönch: Fähigkeiten kosten Chi statt Abklingzeit; Faustschläge laden Chi auf
+    moench: [
+      { id: "faust", name: "Faustschläge", ziel: "gegner", text: "Zwei Schläge, je 3–4 Schaden, +1 Chi" },
+      { id: "windschritt", name: "Windschritt", ziel: null, chi: 2, text: "Diese Runde weichst du allen Schlägen aus, nächste Faustschläge je +4" },
+      { id: "innereruhe", name: "Innere Ruhe", ziel: null, chi: 2, text: "+10 Leben für dich, Gift und Wundbrand sind weg" }
     ]
   };
   // Fähigkeiten, die erst ein Talent freischaltet. meister: Meisterfähigkeit, einmal pro Kampf.
@@ -121,8 +128,19 @@
     ["sternenfall", "Sternenfall", null, 0, "28 Schaden an allen Gegnern", 1],
     ["zeitstillstand", "Zeitstillstand", null, 0, "8 Schaden an allen, alle Gegner erstarren diese und nächste Runde", 1],
     ["gnade", "Göttliche Gnade", null, 0, "Alle voll geheilt, Bewusstlose stehen auf, kein Gift, nächster Angriff aller +4", 1],
-    ["lebensquell", "Lebensquell", null, 0, "Alle +12 Leben (weckt Bewusstlose), in den nächsten drei Runden je +10", 1]
-  ].forEach(([id, name, ziel, cd, text, meister]) => { NEUE[id] = Object.assign({ id, name, ziel, text }, cd ? { cd } : {}, meister ? { meister: true } : {}); });
+    ["lebensquell", "Lebensquell", null, 0, "Alle +12 Leben (weckt Bewusstlose), in den nächsten drei Runden je +10", 1],
+    // Mönch (chi: Kosten statt Abklingzeit)
+    ["hundert", "Hundert Hände", "gegner", 0, "Fünf Schläge, je 4 Schaden", 0, 3],
+    ["bebenfaust", "Bebenfaust", null, 0, "7 Schaden an allen Gegnern", 0, 3],
+    ["herausforderung", "Herausforderung", "gegner", 0, "3 Schaden, dieser Gegner muss diese Runde dich angreifen", 0, 1],
+    ["wirbelwind", "Wirbelwind", null, 0, "Alle Schläge der Gegner gehen auf dich, du weichst jedem zweiten aus", 0, 2],
+    ["chigabe", "Chi übertragen", "held", 0, "+8 Leben, Gift, Stille und Wundbrand sind weg, weckt Bewusstlose", 0, 2],
+    ["drachenfaust", "Drachenfaust", "gegner", 0, "Verbraucht alles Chi: 12 Schaden und 8 je Chi", 1],
+    ["leergeist", "Leerer Geist", null, 0, "Zwei Runden lang weichst du allen Schlägen aus, und alle Gegner schlagen nach dir", 1],
+    ["lotusbluete", "Tausend Lotusblüten", null, 0, "Alle +12 Leben, Gift, Stille, Wundbrand und Todesmal sind weg, weckt Bewusstlose", 1],
+    ["fauststurm", "Sturm der Fäuste", null, 0, "Zehn Schläge, je 5 Schaden an zufälligen Gegnern", 1],
+    ["nirwana", "Nirwana", null, 0, "Zwei Runden lang nimmt kein Held mehr als 4 Schaden pro Treffer", 1]
+  ].forEach(([id, name, ziel, cd, text, meister, chi]) => { NEUE[id] = Object.assign({ id, name, ziel, text }, cd ? { cd } : {}, meister ? { meister: true } : {}, chi ? { chi } : {}); });
   const TRANK = { id: "trank", name: "Heiltrank", ziel: null, text: "+14 Leben für dich" };
   const BEFREIEN = { id: "befreien", name: "Aus dem Netz befreien", ziel: null, text: "Du hängst im Netz fest und setzt diese Runde aus." };
   const ZAPPELN = { id: "zappeln", name: "Im Kokon zappeln", ziel: null, text: "Du bist eingesponnen und kommst allein nicht frei. Die anderen müssen den Kokon zerschlagen." };
@@ -268,6 +286,29 @@
         ["Glaubenskraft", "Immer: +1 Schaden mit allen Angriffen.", { passiv: "schaden", n: 1 }],
         ["Sonnenstrahl", "Neue Fähigkeit: 6 Schaden an allen Gegnern.", { neu: "sonnenstrahl" }],
         ["Sonnenzorn", "Meisterfähigkeit: 15 Schaden an allen Gegnern, alle Helden +5.", { meister: "sonnenzorn" }]]]
+    ],
+    moench: [
+      ["faust", "Faust", "Viele schnelle Schläge", [
+        ["Harte Knöchel", "Faustschläge +1 Schaden je Schlag.", { plus: "faust", schaden: 1 }],
+        ["Fließende Hiebe", "Immer: Schlägst du dasselbe Ziel wie in der Runde davor, gibt es 2 Chi statt 1.", { passiv: "fliessend", n: 1 }],
+        ["Hundert Hände", "Neue Fähigkeit (3 Chi): Fünf Schläge, je 4 Schaden.", { neu: "hundert" }],
+        ["Druckpunkte", "Immer: Deine Schläge gehen durch Panzer.", { passiv: "druckpunkte", n: 1 }],
+        ["Bebenfaust", "Neue Fähigkeit (3 Chi): 7 Schaden an allen Gegnern.", { neu: "bebenfaust" }],
+        ["Drachenfaust", "Meisterfähigkeit: Verbraucht alles Chi, 12 Schaden und 8 je Chi.", { meister: "drachenfaust" }]]],
+      ["wind", "Wind", "Weicht aus und kontert", [
+        ["Leichtfüßig", "Immer: 15 % mehr Ausweichen.", { passiv: "ausweichen", n: 15 }],
+        ["Konter", "Immer: Weichst du aus, bekommt der Angreifer 5 Schaden und du 1 Chi.", { passiv: "konter", n: 5 }],
+        ["Herausforderung", "Neue Fähigkeit (1 Chi): 3 Schaden, dieser Gegner muss dich angreifen.", { neu: "herausforderung" }],
+        ["Zäher Leib", "Immer: +10 Höchstleben.", { passiv: "leben", n: 10 }],
+        ["Wirbelwind", "Neue Fähigkeit (2 Chi): Alle Schläge gehen auf dich, du weichst jedem zweiten aus.", { neu: "wirbelwind" }],
+        ["Leerer Geist", "Meisterfähigkeit: Zwei Runden lang weichst du allen Schlägen aus, und alle schlagen nach dir.", { meister: "leergeist" }]]],
+      ["lotus", "Lotus", "Heilt sich und löst böse Zustände", [
+        ["Tiefe Ruhe", "Innere Ruhe +4 Leben.", { plus: "innereruhe", heil: 4 }],
+        ["Gleichmut", "Immer: Am Ende jeder Kampfrunde +2 Leben für dich.", { passiv: "gleichmut", n: 2 }],
+        ["Chi übertragen", "Neue Fähigkeit (2 Chi): Ein Held +8 Leben, Gift, Stille und Wundbrand weg, weckt Bewusstlose.", { neu: "chigabe" }],
+        ["Lotushaltung", "Immer: Innere Ruhe heilt alle anderen halb so viel.", { passiv: "lotusruhe", n: 1 }],
+        ["Erleuchtung", "Immer: Du beginnst jeden Kampf mit 3 Chi.", { passiv: "chistart", n: 2 }],
+        ["Tausend Lotusblüten", "Meisterfähigkeit: Alle +12 Leben, Gift, Stille, Wundbrand und Todesmal weg.", { meister: "lotusbluete" }]]]
     ]
   };
   // Aufstieg ab Stufe 20: je Rolle zwei Spezialisierungen mit 4 Knoten, bezahlt mit Ruhmespunkten.
@@ -344,6 +385,18 @@
         ["Ruhepol", "Immer: Nach jedem Kampf alle +6 Leben.", { passiv: "siegheil", n: 6 }],
         ["Wurzelkraft", "Immer: +8 Höchstleben.", { passiv: "leben", n: 8 }],
         ["Lebensquell", "Zweite Meisterfähigkeit: Alle +12 Leben, drei Runden lang je +10.", { meister: "lebensquell" }]]]
+    ],
+    moench: [
+      ["grossmeister", "Großmeister", "Die Faust als Sturm", [
+        ["Tiefer Atem", "Immer: Höchstens 7 Chi.", { passiv: "chimax", n: 2 }],
+        ["Eiserne Fäuste", "Faustschläge +2 Schaden je Schlag.", { plus: "faust", schaden: 2 }],
+        ["Schattenschritt", "Immer: Jedes Ausweichen gibt dir 1 Chi.", { passiv: "ausweichchi", n: 1 }],
+        ["Sturm der Fäuste", "Zweite Meisterfähigkeit: Zehn Schläge, je 5 Schaden an zufälligen Gegnern.", { meister: "fauststurm" }]]],
+      ["erleuchteter", "Erleuchteter", "Ruhe für die ganze Gruppe", [
+        ["Stiller Atem", "Innere Ruhe kostet 1 Chi weniger.", { plus: "innereruhe", chi: 1 }],
+        ["Langes Leben", "Immer: +10 Höchstleben.", { passiv: "leben", n: 10 }],
+        ["Geteiltes Chi", "Immer: Chi übertragen wirkt zusätzlich auf den schwächsten anderen Helden.", { passiv: "chizwei", n: 1 }],
+        ["Nirwana", "Zweite Meisterfähigkeit: Zwei Runden lang nimmt kein Held mehr als 4 Schaden pro Treffer.", { meister: "nirwana" }]]]
     ]
   };
   const AUFSTIEG_STUFE = 20;
@@ -385,6 +438,12 @@
     waechterin2: ["Schutzkreis", "Immer: Alle anderen Helden nehmen 1 Schaden weniger pro Treffer.", { passiv: "schutzaura", n: 1 }],
     waechterin4: ["Wachsam", "Obhut ist 1 Runde früher wieder bereit.", { plus: "obhut", cd: 1 }],
     kampfpriesterin2: ["Heiliger Stab", "Immer: Lichtstab heilt den schwächsten Helden um 3.", { passiv: "stabheil", n: 3 }],
+    faust2: ["Wirbelnde Fäuste", "Immer: Einzelangriffe treffen mit 15 % Chance doppelt.", { passiv: "krit", n: 15 }],
+    faust4: ["Schnelle Hände", "Hundert Hände kostet 1 Chi weniger.", { plus: "hundert", chi: 1 }],
+    wind2: ["Windläufer", "Windschritt kostet 1 Chi weniger.", { plus: "windschritt", chi: 1 }],
+    wind4: ["Schemen", "Immer: 10 % mehr Ausweichen.", { passiv: "ausweichen", n: 10 }],
+    lotus2: ["Gleichgewicht", "Innere Ruhe kostet 1 Chi weniger.", { plus: "innereruhe", chi: 1 }],
+    lotus4: ["Offene Hand", "Chi übertragen kostet 1 Chi weniger.", { plus: "chigabe", chi: 1 }],
     kampfpriesterin4: ["Lichtschlag", "Immer: Einzelangriffe treffen mit 20 % Chance doppelt.", { passiv: "krit", n: 20 }]
   };
   // Ruhmesboni: ab Stufe 20 bringt jede Stufe einen Ruhmespunkt; jeder Bonus lässt sich mehrmals kaufen
@@ -450,12 +509,19 @@
     if (!a.cd) return 0;
     return Math.max(1, a.cd - plusVon(h, a.id, "cd"));
   }
+  // Chi (Mönch): Fähigkeiten kosten Chi statt Abklingzeit
+  const CHI_MAX = 5;
+  const chiKosten = (h, a) => (a && a.chi ? Math.max(1, a.chi - plusVon(h, a.id, "chi")) : 0);
+  const chiMax = h => CHI_MAX + passiv(h, "chimax");
+  const chiDazu = (h, n) => { h.chi = Math.min(chiMax(h), (h.chi || 0) + n); };
+  const ausweichen = h => (ROLLEN[h.rolle].ausweichen || 0) + passiv(h, "ausweichen");
   // Was Talente an einer Fähigkeit ändern, als kurzer Text
   function aktionZusatz(h, a) {
     if (a.id === "trank") { const n = passiv(h, "trankplus"); return n ? ` · +${n} durch Talente` : ""; }
     const t = [], s = plusVon(h, a.id, "schaden"), l = plusVon(h, a.id, "heil");
     if (s) t.push(`+${s} Schaden`); if (l) t.push(`+${l} Leben`);
     if (a.meister) t.push("einmal pro Kampf");
+    else if (a.chi) t.push(`kostet ${chiKosten(h, a)} Chi`);
     else if (a.cd) t.push(`alle ${cdVon(h, a) + 1} Runden`);
     return t.length ? " · " + t.join(" · ") : "";
   }
@@ -1131,7 +1197,8 @@
     }
     S.kampf = { runde: 1, wahl: {}, bossPhase: 1, epTot: 0, nebel: false, absicht: {}, rache: 0, koVor: Object.fromEntries(S.teilnehmer.map(p => [p, S.helden[p].stats.umgefallen])) };
     for (const p of S.teilnehmer) { const h = S.helden[p]; for (const id in h.cd) if (NEUE[id] && NEUE[id].meister) delete h.cd[id]; }
-    for (const p of S.teilnehmer) Object.assign(S.helden[p], { schild: false, versteckt: false, lauer: false, segen: 0, gift: 0, giftR: 0, immun: false, fels: false, beschuetzt: null, netz: 0, kokon: null, stille: 0, wundbrand: 0, todesmal: null });
+    for (const p of S.teilnehmer) Object.assign(S.helden[p], { schild: false, versteckt: false, lauer: false, segen: 0, gift: 0, giftR: 0, immun: false, fels: false, beschuetzt: null, netz: 0, kokon: null, stille: 0, wundbrand: 0, todesmal: null,
+      chi: 1 + passiv(S.helden[p], "chistart"), windbonus: 0, wind: false, wirbelwind: false, leer: 0, letztesZiel: null });
     S.entscheidung = null;
     S.log = [];
     planeGegner(S);
@@ -1143,20 +1210,21 @@
     const a = aktionenVon(h).find(x => x.id === m.a);
     if (!a) return false;
     if ((a.cd || a.meister) && (h.cd[a.id] || 0) > 0) return false;   // Meisterfähigkeiten: einmal pro Kampf
-    if (a.id === "trank" && h.wundbrand > 0) return false;   // Wundbrand: Trank würde nicht wirken
+    if (a.id === "trank" && h.wundbrand > 0) return false;
+    if (a.chi && (h.chi || 0) < chiKosten(h, a)) return false;   // Wundbrand: Trank würde nicht wirken
     if (a.ziel === "gegner" && !S.gegner.some(g => g.id === m.ziel && g.hp > 0)) return false;
     if (a.ziel === "held" && !S.helden[m.ziel]) return false;
     if (a.ziel === "anderer" && (!S.helden[m.ziel] || m.ziel === pid || S.helden[m.ziel].hp <= 0)) return false;
     return true;
   }
-  const HEILEND = { heilen: 1, handauflegen: 1, kraeuter: 1 };
+  const HEILEND = { heilen: 1, handauflegen: 1, kraeuter: 1, chigabe: 1 };
   // Angriffe auf ein einzelnes Ziel (die ein Leibwächter abfangen kann)
-  const EINZELZIEL = Object.fromEntries("schlag vernichten stab funken pfeil hammer dolch gift taschendieb eis markieren sternschuss kopfschuss ranken gottesurteil todesstoss meisterdieb".split(" ").map(x => [x, 1]));
+  const EINZELZIEL = Object.fromEntries("schlag vernichten stab funken pfeil hammer dolch gift taschendieb eis markieren sternschuss kopfschuss ranken gottesurteil todesstoss meisterdieb faust hundert herausforderung drachenfaust".split(" ").map(x => [x, 1]));
   function standardWahl(S, pid) {
     const h = S.helden[pid], ziel = gegnerLebend(S).sort((a, b) => a.hp - b.hp)[0];
     if (h.kokon) return { a: "zappeln", ziel: null };
     if (h.netz > 0) return { a: "befreien", ziel: null };
-    const heil = aktionenVon(h).find(a => HEILEND[a.id] && !(h.cd[a.id] > 0));
+    const heil = aktionenVon(h).find(a => HEILEND[a.id] && !(h.cd[a.id] > 0) && !(a.chi && (h.chi || 0) < chiKosten(h, a)));
     if (heil) {
       const schwach = S.teilnehmer.filter(p => S.helden[p].hp < S.helden[p].max * 0.5).sort((a2, b) => S.helden[a2].hp - S.helden[b].hp)[0];
       if (schwach) return { a: heil.id, ziel: schwach };
@@ -1244,6 +1312,23 @@
     aufGegner(S, pid, g, n, still);
     log.push(`${heldName(S, pid)} ${wie} ${g.name}: ${n} Schaden${g.hp <= 0 ? ". " + g.name + " fällt!" : "."}`, ...still);
   }
+  // Schlagserie (Mönch): mehrere Schläge, fällt das Ziel, geht es beim nächsten weiter; eine Zeile im Protokoll
+  function serie(S, pid, z, werte, log, wie, nurErster) {
+    const h = S.helden[pid], bonus = angriffsBonus(S, h), segen = h.segen || 0, teile = [], still = [];
+    h.segen = 0;
+    werte.forEach((n, i) => {
+      if (!z || z.hp <= 0) z = gegnerLebend(S)[0];
+      if (!z) return;
+      n += nurErster && i > 0 ? 0 : i > 0 ? bonus - segen : bonus;
+      n += zielBonus(S, h, z);
+      if (passiv(h, "krit") && chance(S, passiv(h, "krit") / 100)) n *= 2;
+      n = wirkung(S, z, n); aufGegner(S, pid, z, n, still);
+      const t = teile[teile.length - 1];
+      if (t && t.g === z) t.n.push(n); else teile.push({ g: z, n: [n] });
+    });
+    if (teile.length) log.push(`${heldName(S, pid)} ${wie}: ` + teile.map(t => `${t.g.name} ${t.n.join(" + ")} Schaden${t.g.hp <= 0 ? " (fällt!)" : ""}`).join(", ") + ".", ...still);
+    return teile.length ? teile[0].g : null;
+  }
   // Flächenschaden: Bonus zählt einmal, Markierung und Untotenjäger je Ziel
   function flaeche(S, pid, n, log, text) {
     const h = S.helden[pid];
@@ -1308,7 +1393,9 @@
       const text = log.slice(logAb);
       if (text.length || d.length) ev.push(Object.assign({ d, text }, e));
     };
-    const cd = (h, w) => { const a = aktionDef(h.rolle, w.a); if (a && (a.cd || a.meister)) h.cd[a.id] = cdVon(h, a); };
+    const cd = (h, w) => { const a = aktionDef(h.rolle, w.a); if (a && (a.cd || a.meister)) h.cd[a.id] = cdVon(h, a); if (a && a.chi) h.chi = Math.max(0, (h.chi || 0) - chiKosten(h, a)); };
+    // Gift, Stille und Wundbrand lösen (Mönch)
+    const loesen = z => { z.gift = 0; z.giftR = 0; z.stille = 0; z.wundbrand = 0; };
     const rs = (h, id) => plusVon(h, id, "schaden"), rh = (h, id) => plusVon(h, id, "heil");
     const ohneMeister = h => { for (const id in h.cd) if (!(NEUE[id] && NEUE[id].meister)) delete h.cd[id]; };
     // 1. Schutz, Heilung und Vorbereitung zuerst, damit sie noch in dieser Runde wirken
@@ -1390,6 +1477,27 @@
           break;
         }
         case "licht": alleHeilen(S, p, 4); break;     // Schaden folgt unten
+        case "windschritt": h.wind = true; h.windbonus = 4; log.push(`${n} wird leicht wie der Wind.`); break;
+        case "wirbelwind": h.wirbelwind = true; log.push(`${n} wirbelt mitten zwischen die Gegner.`); break;
+        case "leergeist": h.leer = 2; log.push(`${n} leert den Geist. Kein Schlag wird ihn treffen.`); break;
+        case "innereruhe": {
+          loesen(h); const x = 10 + rh(h, "innereruhe");
+          heilenAuf(S, p, p, x, log, "findet innere Ruhe und heilt");
+          if (passiv(h, "lotusruhe")) { let e = 0; for (const q of lebend(S)) if (q !== p) e += heldHeilen(S, q, Math.ceil(x / 2)); h.stats.geheilt += e; if (e) log.push(`Die Ruhe überträgt sich: alle anderen bis zu +${Math.ceil(x / 2)} Leben.`); }
+          break;
+        }
+        case "chigabe": {
+          const ziele = [w.ziel];
+          if (passiv(h, "chizwei")) { const z2 = lebend(S).filter(q => q !== p && q !== w.ziel).sort((a2, b2) => S.helden[a2].hp / S.helden[a2].max - S.helden[b2].hp / S.helden[b2].max)[0]; if (z2) ziele.push(z2); }
+          for (const q of ziele) { loesen(S.helden[q]); heilenAuf(S, p, q, 8, log, "überträgt Chi auf"); }
+          break;
+        }
+        case "lotusbluete": {
+          for (const q of S.teilnehmer) { const z = S.helden[q]; if (z.gefallen) continue; loesen(z); z.todesmal = null; h.stats.geheilt += heldHeilen(S, q, 12); }
+          for (const g of S.gegner) if (g.mal) { g.mal = null; g.mtakt = k.runde + 3; }
+          log.push(`${n} lässt tausend Lotusblüten regnen: alle +12 Leben, alle bösen Zeichen sind fort.`); break;
+        }
+        case "nirwana": k.nirwana = 2; log.push(`${n} versinkt im Nirwana. Zwei Runden lang trifft kein Schlag mit voller Wucht.`); break;
       }
       ende({ von: p, a: w.a, ziel: w.ziel || null, phase: 1 });
     }
@@ -1399,6 +1507,7 @@
       if (!gegnerLebend(S).length) break;
       const h = S.helden[p], w = k.wahl[p];
       angriffsart = ANGRIFFSART[w.a] || "nah"; feuerangriff = !!FEUER[w.a]; dornenSchon = false;
+      if (h.rolle === "moench" && angriffsart === "nah" && passiv(h, "druckpunkte")) angriffsart = "stich";   // geht durch Panzer
       beginn();
       // Leibwächter fangen Nahkampf und Zauber gegen andere Gegner ab (Pfeile kommen vorbei)
       let wz = w.ziel;
@@ -1501,6 +1610,27 @@
         }
         case "licht": flaeche(S, p, 5 + rs(h, "licht"), log, "lässt heiliges Licht strahlen (alle Helden +4)"); break;
         case "doppel": pfeile(S, p, 2, 5 + rs(h, "doppel"), log, "schießt zwei Pfeile"); break;
+        case "faust": {
+          const z = ziel1(S, wz), plus = rs(h, "faust") + (h.windbonus || 0); h.windbonus = 0;
+          serie(S, p, z, [wurf(S, 3, 4) + plus, wurf(S, 3, 4) + plus], log, h.windbonus === 0 && plus > rs(h, "faust") ? "schlägt wie der Wind zu" : "schlägt zweimal zu");
+          chiDazu(h, passiv(h, "fliessend") && z && z.id === h.letztesZiel ? 2 : 1);
+          h.letztesZiel = z ? z.id : null;
+          break;
+        }
+        case "hundert": {
+          const x = 4 + rs(h, "hundert");
+          serie(S, p, ziel1(S, wz), [x, x, x, x, x], log, "lässt hundert Hände fliegen", true);
+          break;
+        }
+        case "bebenfaust": flaeche(S, p, 7 + rs(h, "bebenfaust"), log, "schlägt die Faust in den Boden"); break;
+        case "herausforderung": {
+          const z = ziel1(S, wz);
+          schadenAnGegner(S, p, z, 3, log, "fordert heraus und trifft");
+          if (z && z.hp > 0) { z.spott = p; log.push(`${z.name} nimmt die Herausforderung an.`); }
+          break;
+        }
+        case "drachenfaust": { const c = h.chi || 0; h.chi = 0; schadenAnGegner(S, p, ziel1(S, wz), 12 + 8 * c, log, `entfesselt die Drachenfaust (${c} Chi) gegen`); break; }
+        case "fauststurm": pfeile(S, p, 10, 5, log, "wird zum Sturm der Fäuste"); break;
         case "hagel": pfeile(S, p, 4, 5 + rs(h, "hagel"), log, "lässt Pfeile regnen"); break;
       }
       ende({ von: p, a: w.a, ziel: wz || null, phase: 2 });
@@ -1603,7 +1733,7 @@
       if (k.nebel && chance(S, 0.5)) { log.push(`${g.name} schlägt im Rauch ins Leere.`); return { a: "daneben", ziel: plan.ziel || null }; }
       // Meuchler lassen sich von Spott und Schildwall nicht ablenken; Jäger und Meuchler suchen sich sonst den Schwächsten
       const meuchler = hat(g, "meuchler"), sucht = meuchler || hat(g, "jaeger");
-      const zieher = meuchler ? [] : lebend(S).filter(p => S.helden[p].schild || S.helden[p].fels);
+      const zieher = meuchler ? [] : lebend(S).filter(p => S.helden[p].schild || S.helden[p].fels || S.helden[p].wirbelwind || S.helden[p].leer > 0);
       const ziele = lebend(S).filter(p => !S.helden[p].versteckt);
       const spott = !meuchler && g.spott && ziele.includes(g.spott) ? g.spott : null;
       const sonst = () => !ziele.length ? null : sucht ? ziele.slice().sort((x, y) => S.helden[x].hp - S.helden[y].hp)[0] : eins(S, ziele);
@@ -1616,13 +1746,23 @@
       const rudel = art.rudel ? art.rudel * gegnerLebend(S).filter(x => x !== g && x.art === g.art).length : 0;
       const orks = art.ork && S.gegner.some(x => x !== g && x.hp > 0 && GEGNER[x.art].anfuehrer) ? 2 : 0;
       const z = S.helden[p], hpVorher = z.hp;
+      // Ausweichen (Mönch): Windschritt und Leerer Geist sicher, Wirbelwind jeder zweite, sonst die Ausweich-Chance
+      const aw = z.immun ? 0 : z.wind || z.leer > 0 ? 100 : z.wirbelwind ? Math.max(50, ausweichen(z)) : ausweichen(z);
+      if (aw && chance(S, aw / 100)) {
+        log.push(`${heldName(S, p)} weicht ${g.name} aus.`);
+        const kn = passiv(z, "konter");
+        if (kn) { const e = Math.min(kn, g.hp); g.hp -= e; z.stats.schaden += e; chiDazu(z, 1); log.push(`Konter: ${g.name} bekommt ${e} Schaden${g.hp <= 0 ? ". " + g.name + " fällt!" : "."}`); }
+        if (passiv(z, "ausweichchi")) chiDazu(z, passiv(z, "ausweichchi"));
+        return { a: "ausweichen", ziel: p };
+      }
       treffer(S, p, Math.round(gdmg(S, wurf(S, art.dmg[0], art.dmg[1])) * wut(S, g) * (plan.halb ? 0.5 : 1)) + rudel + orks + (g.zorn || 0) + racheBonus(S) - minus, log, g.name, g);
       const schaden = hpVorher - z.hp;
       if (hat(g, "vampir") && schaden > 0 && g.hp > 0 && g.hp < g.max) { const x = Math.min(g.max - g.hp, Math.ceil(schaden / 2)); g.hp += x; log.push(`${g.name} trinkt Lebenskraft: +${x} Leben.`); }
       if (schaden > 0 && z.hp > 0) {
         if (art.wundbrand && !(z.wundbrand > 0)) { const wr = (S.ebene || 1) === 1 ? 1 : WUNDBRAND; z.wundbrand = wr + 1; log.push(`Wundbrand: ${heldName(S, p)} kann ${wr === 1 ? "nächste Runde" : wr + " Runden lang"} nicht geheilt werden.`); }
         if (art.stille && !(z.stille > 0)) { z.stille = 2; log.push(`${heldName(S, p)} ist verstummt: nächste Runde nur angreifen.`); }
-        if (art.zeitfresser) { const l = Object.keys(z.cd).filter(c => z.cd[c] > 0 && !(NEUE[c] && NEUE[c].meister)); for (const c of l) z.cd[c] += 1; if (l.length) log.push(`${g.name} frisst Zeit: Die Fähigkeiten von ${heldName(S, p)} brauchen eine Runde länger.`); }
+        if (art.zeitfresser && z.rolle === "moench" && z.chi > 0) { z.chi -= 1; log.push(`${g.name} frisst Zeit: ${heldName(S, p)} verliert 1 Chi.`); }
+        else if (art.zeitfresser) { const l = Object.keys(z.cd).filter(c => z.cd[c] > 0 && !(NEUE[c] && NEUE[c].meister)); for (const c of l) z.cd[c] += 1; if (l.length) log.push(`${g.name} frisst Zeit: Die Fähigkeiten von ${heldName(S, p)} brauchen eine Runde länger.`); }
       }
       if (art.gift && z.hp > 0 && !z.immun && chance(S, 0.4)) { setzeGift(z, gdmg(S, 2), 2); log.push(`${heldName(S, p)} ist vergiftet.`); }
       if (art.brand && z.hp > 0 && !z.immun && chance(S, 0.4)) { setzeGift(z, gdmg(S, 3), 2, true); log.push(`${heldName(S, p)} steht in Flammen.`); }
@@ -1642,6 +1782,8 @@
     };
     const vernichtung = (g, plan) => {
       const mal = plan.a === "todesmal";
+      // Tausend Lotusblüten haben das Mal schon gelöscht
+      if (mal && !(plan.ziele || []).some(z => S.helden[z] && S.helden[z].todesmal)) { g.mal = null; g.mtakt = k.runde + 3; log.push(`${g.name} will das Todesmal aufbrechen, doch es ist erloschen.`); return { a: "keinziel", ziel: null }; }
       if (mal) { for (const z of plan.ziele || []) if (S.helden[z]) S.helden[z].todesmal = null; g.mal = null; g.mtakt = k.runde + 3; }
       log.push(mal ? `Das Todesmal auf ${(plan.ziele || []).map(z => heldName(S, z)).join(" und ")} bricht auf!` : VTEXT[g.art] || `${g.name} holt zum Vernichtungsschlag aus!`);
       const getroffen = [];
@@ -1789,7 +1931,8 @@
     }
     for (const p of S.teilnehmer) {
       const h = S.helden[p];
-      Object.assign(h, { schild: false, versteckt: false, immun: false, fels: false, beschuetzt: null });
+      Object.assign(h, { schild: false, versteckt: false, immun: false, fels: false, beschuetzt: null, wind: false, wirbelwind: false });
+      if (h.leer > 0) h.leer -= 1;
       if (h.stille > 0) h.stille -= 1;
       if (h.wundbrand > 0) h.wundbrand -= 1;
       if (h.todesmal && !S.gegner.some(x => x.id === h.todesmal && x.hp > 0)) { h.todesmal = null; log.push(`Das Todesmal auf ${heldName(S, p)} verblasst.`); }
@@ -1804,6 +1947,14 @@
       k.heiligtum.runden -= 1;
       log.push(k.heiligtum.n ? `Der Lebensquell sprudelt: alle +${x} Leben.` : `Das Heiligtum leuchtet: alle +${x} Leben.`);
       ende({ von, a: "heiligtumTick" });
+    }
+    // Gleichmut (Mönch): am Rundenende ein paar Leben
+    for (const p of lebend(S)) {
+      const h = S.helden[p], x = passiv(h, "gleichmut");
+      if (!x || h.hp >= h.max || !gegnerLebend(S).length) continue;
+      beginn(); const e = heldHeilen(S, p, x); h.stats.geheilt += e;
+      if (e) log.push(`${heldName(S, p)} atmet ruhig: +${e} Leben.`);
+      ende({ von: p, a: "gleichmut" });
     }
     // Seelenband: Wer allein fällt, steht wieder auf, solange sein Partner lebt
     for (const g of S.gegner) {
@@ -1826,6 +1977,7 @@
     }
     for (const g of gegnerLebend(S)) { if (hat(g, "zorn")) g.zorn = Math.min(ZORN_MAX, (g.zorn || 0) + ZORN); if (g.haut) g.haut = g.haut === "nah" ? "zauber" : "nah"; }
     for (const g of S.gegner) { if (g.taut > 0) g.taut -= 1; if (g.starr > 0) { g.starr -= 1; if (!g.starr) g.taut = 1; } if (g.markiert > 0) g.markiert -= 1; if (g.feuer > 0) g.feuer -= 1; g.spott = null; }
+    if (k.nirwana > 0) k.nirwana -= 1;
     k.nebel = false; k.frost = 0; k.bollwerk = (k.bollwerkNoch || 0) > 0; if (k.bollwerkNoch) k.bollwerkNoch -= 1;
     S.log = log;
     S.letzte = { id: `${S.spielNr}:${S.raumNr}:${k.runde}`, runde: k.runde, titel: S.seite ? S.seite.titel : "", start, ev };
@@ -1854,6 +2006,7 @@
     if (h.schild) n = Math.ceil(n / 2);
     if (h.hp < h.max / 2) n = Math.max(1, n - passiv(h, "notpanzer"));
     if (S.kampf && S.kampf.bollwerk) n = Math.ceil(n / 2);
+    if (S.kampf && S.kampf.nirwana > 0) n = Math.min(n, 4);
     const echt = Math.min(n, h.hp);
     h.hp -= echt;
     log.push((von ? `${von} trifft ${wer}: ` : `${wer}: `) + `−${n} Leben${h.hp <= 0 ? ". " + wer + " bricht zusammen!" : "."}`);
@@ -2118,5 +2271,5 @@
 
   window.VL = { zustand, ZUSAETZE, hat, SCHWERE, GRUPPE, FLUECHE, hatKnoten, AUFSTIEG_AESTE, AUFSTIEG_STUFE, RUHM, ruhmVon, epFuer, endlos, umverteilenPreis, staerke, BEFREIEN, EBENEN, LAENGEN, ebeneVon, EIGENSCHAFTEN, eigenschaften, knochenschild, RAEUME, REIHEN, RAUMNAME, SEGEN, UMVERTEILEN, sicht, MAX_HELDEN, LAGER_NACH, ROLLEN, ROLLEN_REIHE, AKTIONEN, NEUE, TRANK, GEGNER, EP_STUFEN, MAX_STUFE, STUFENBONUS,
     AESTE, TALENT, talenteVon, talentWaehlbar, hauptast, passiv, stufeBonus, trankMax, aktionZusatz,
-    neu, aktion, aktionenVon, angebot, standardWahl, lebend, gegnerLebend, goldSumme, cdVon };
+    neu, aktion, aktionenVon, angebot, chiKosten, chiMax, ausweichen, standardWahl, lebend, gegnerLebend, goldSumme, cdVon };
 })();

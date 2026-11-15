@@ -37,10 +37,15 @@
       <g class="waffe"><path d="M30 -6v-118" ${L(5, "#6B4A2E")}/><circle cx="30" cy="-128" r="8" fill="#FFE27A" stroke="${T}" stroke-width="2.5"/></g>`,
     heilerin: `${schatten(30)}<path d="M-24 -76q-12 40-12 76h72q0-36-12-76z" ${F("#3E8C62")}/><path d="M0 -70v68" ${L(2, "#2C6648")}/>
       <path d="M-22 -80q-4-36 22-42 26 6 22 42-22 8-44 0z" ${F("#4FB98A")}/><path d="M-8 -110q8-8 16 0" ${L(2, "#2C6648")}/>
-      <g class="waffe"><path d="M-34 -4v-112" ${L(5, "#6B4A2E")}/><path d="M-34 -116q-16-4-16-18 14-2 16 12 2-14 16-12 0 14-16 18z" ${F("#7BE3A0")}/></g>`
+      <g class="waffe"><path d="M-34 -4v-112" ${L(5, "#6B4A2E")}/><path d="M-34 -116q-16-4-16-18 14-2 16 12 2-14 16-12 0 14-16 18z" ${F("#7BE3A0")}/></g>`,
+    moench: `${schatten(30)}<path d="M-12 0v-24h9v24zM3 0v-24h9v24z" ${F("#6B4A2E")}/>
+      <path d="M-24 -80q-12 34-12 62h72q0-28-12-62z" ${F("#E08A2E")}/><path d="M-30 -38q30 6 60 0" ${L(5, "#8C3A1E")}/><path d="M-20 -80l36 42" ${L(6, "#B8461E")}/>
+      <path d="M-14 -82q14 8 28 0" fill="none" stroke="#5A3A22" stroke-width="4" stroke-dasharray="1 5" stroke-linecap="round"/>
+      <circle cx="0" cy="-96" r="14" ${F("#D9A77A")}/><path d="M-9 -102q9-6 18 0" ${L(1.5, "#B58560")}/>
+      <g class="waffe"><path d="M-24 -74q-16 6-16 26M24 -74q16 6 16 26" ${L(8, "#E08A2E")}/><circle cx="-40" cy="-44" r="8" ${F("#F3E6CC")}/><circle cx="40" cy="-44" r="8" ${F("#F3E6CC")}/><path d="M-44 -46h8M36 -46h8" ${L(1.5)}/></g>`
   };
   // Waffenspitze (für Strahlen und Geschosse), relativ zum Fuß
-  const SPITZE = { kaempfer: [44, -130], paladin: [50, -132], dieb: [40, -40], waldlaeufer: [-40, -72], magierin: [30, -128], heilerin: [-34, -126] };
+  const SPITZE = { kaempfer: [44, -130], paladin: [50, -132], dieb: [40, -40], waldlaeufer: [-40, -72], magierin: [30, -128], heilerin: [-34, -126], moench: [40, -44] };
 
   const GEG = {
     ratte: { h: 52, svg: `${schatten(46)}<path d="M-40 -4q4-40 40-40 32 0 40 22l18 6-18 8q-24 8-80 4z" ${F("#8C7A6B")}/><circle cx="34" cy="-22" r="3" fill="#E23B2E"/>
@@ -390,8 +395,9 @@
     const istHeld = id => heldIds.includes(id);
 
     async function zahl(id, text, farbe) {
-      const m = M(id), x = m.x + (Math.random() * 24 - 12);
-      const t = elt("text", { x, y: m.y, "text-anchor": "middle", "font-family": "Unbounded,system-ui", "font-weight": "800", "font-size": "24", fill: farbe, stroke: T, "stroke-width": "5", "paint-order": "stroke" });
+      // Wörter nicht über den Rand hinaus (grobe Breite der fetten Schrift)
+      const m = M(id), halb = String(text).length * 11.5 + 4, x = Math.min(400 - halb, Math.max(halb, m.x + (Math.random() * 24 - 12)));
+      const t = elt("text", { x, y: m.y, class: "vl-mitte", "text-anchor": "middle", "font-family": "Unbounded,system-ui", "font-weight": "800", "font-size": "24", fill: farbe, stroke: T, "stroke-width": "5", "paint-order": "stroke" });
       t.textContent = text; fx().appendChild(t);
       await animiere(t, [{ transform: "translateY(0) scale(.6)", opacity: 0 }, { transform: "translateY(-16px) scale(1.15)", opacity: 1, offset: .25 }, { transform: "translateY(-44px) scale(1)", opacity: 0 }], 900, { easing: "ease-out" });
       t.remove();
@@ -478,7 +484,7 @@
 
     // ---------- Heldenaktionen ----------
     const HFX = {
-      nah: ["schlag", "vernichten", "dolch", "gift", "taschendieb", "hammer"],
+      nah: ["schlag", "vernichten", "dolch", "gift", "taschendieb", "hammer", "faust", "hundert", "drachenfaust", "herausforderung"],
       geschoss: ["funken", "pfeil", "eis", "markieren"],
       salve: ["doppel", "hagel"], strahl: ["stab"],
       heil: ["heilen", "handauflegen", "kraeuter", "trank"],
@@ -494,7 +500,8 @@
       for (const id of lebende) { const m = M(id); partikel(m.x, m.y, "#DFF4FF", 14, 80, 40, 800); glut(m.x, m.y, "vl-heil", 55, 700); }
       await warte(450); senken(e.von); await folgen(e, "#BFE8FF");
     }
-    const FARBE = { schlag: "#FFD447", vernichten: "#FF6B57", dolch: "#C9B8FF", gift: "#8BD14A", taschendieb: "#FFD447", hammer: "#FFE27A" };
+    const FARBE = { schlag: "#FFD447", vernichten: "#FF6B57", dolch: "#C9B8FF", gift: "#8BD14A", taschendieb: "#FFD447", hammer: "#FFE27A",
+      faust: "#FFB547", hundert: "#FFB547", drachenfaust: "#FF6B57", herausforderung: "#FFD447" };
     // Talent-Fähigkeiten nutzen die Effekte verwandter Grundfähigkeiten
     const AEHNLICH = { spott: "schlag", raserei: "wirbel", gottesurteil: "vernichten", todesstoss: "vernichten", meisterdieb: "taschendieb",
       kopfschuss: "pfeil", ranken: "eis", durchschuss: "hagel", treibjagd: "hagel", wolfsrudel: "hagel", inferno: "meteor", sonnenstrahl: "licht",
@@ -502,7 +509,9 @@
       schlachtruf: "kriegsschrei", gnadenlicht: "wiedergeburt", auferstehung: "wiedergeburt", erloesung: "wiedergeburt", heiligtum: "wiedergeburt",
       heiligtumTick: "laeutern", zeitriss: "segen",
       ansturm: "wirbel", klingensturm: "wirbel", feuerweihe: "licht", ewigschild: "fels", schattentanz: "hagel", schwarztod: "rauch", sternschuss: "pfeil",
-      wildnis: "hagel", sternenfall: "meteor", gnade: "wiedergeburt", lebensquell: "wiedergeburt" };
+      wildnis: "hagel", sternenfall: "meteor", gnade: "wiedergeburt", lebensquell: "wiedergeburt",
+      bebenfaust: "wirbel", fauststurm: "wirbel", windschritt: "arkan", leergeist: "arkan", wirbelwind: "fels", nirwana: "fels",
+      innereruhe: "heilen", chigabe: "heilen", lotusbluete: "wiedergeburt" };
     async function heldAktion(e0) {
       if (e0.a === "frost" || e0.a === "winter" || e0.a === "zeitstillstand") { await frostwelle(e0); return; }
       if (e0.a === "befreien" || e0.a === "frei") { await wackeln(e0.von); await wort(e0.von, "frei!", "#F3F0FF"); return; }
@@ -706,6 +715,11 @@
       await vorstossen(g, ziel, .6);
       if (w) animiere(w, [{ transform: "rotate(-25deg)" }, { transform: "rotate(50deg)" }], 140);
       if (e.a === "daneben") { await wort(ziel, "daneben", "#F3F0FF"); }
+      else if (e.a === "ausweichen") {
+        sfx("hieb"); const f = $("vl-f-" + ziel);
+        if (f) animiere(f, [{ transform: "translateX(0)" }, { transform: "translateX(-26px)", offset: .35 }, { transform: "translateX(0)" }], 520);
+        await wort(ziel, "weicht aus", "#FFE6B0"); await folgen(e);
+      }
       else {
         const prallt = !opfer.length;
         sfx(prallt ? "schutz" : "treffer"); if (!prallt) { bebenBild(art === "ork" || art === "koenig" || art === "orkhaeuptling" ? 7 : 4); blitz(e.a === "biss" ? "#8BD14A" : "#E23B2E", .18); }

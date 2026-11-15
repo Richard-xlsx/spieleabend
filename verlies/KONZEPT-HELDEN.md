@@ -267,3 +267,30 @@ Die drei Äste rufen drei verschiedene Diener: Skelette für Schaden, den Golem 
 2. **Bardin außerhalb des Kampfes:** Feilschen und Heldensage bleiben so.
 3. **Diener heilen:** Nein. Heilerin, Paladin und andere Heilungen wirken nicht auf Diener.
 4. **Kröte beim Endgegner:** wirkt gar nicht.
+
+## 7. Mönch umgesetzt (15.11.2026)
+
+**Abweichungen vom Plan oben:**
+- **Innere Ruhe** löst Gift und Wundbrand, aber nicht Stille. Wer verstummt ist, kann sie ohnehin nicht wählen.
+- **Chi übertragen** zielt auf einen beliebigen Helden, auch bewusstlose (sonst könnte es nicht wecken). Im Lotus-Ast steht es auf Stufe 3, **Gleichmut** auf Stufe 2. So ist Stufe 2 eine echte Wahl: Gleichmut *oder* „Innere Ruhe kostet 1 Chi weniger“.
+- **Wind** etwas stärker als geplant: Leichtfüßig +15 % Ausweichen (statt 10), Zäher Leib +10 Leben (statt 8). Mit den geplanten Werten gewann der Wind-Ast zu dritt nur 50 %.
+- **Ausweichen** wirkt nur gegen einzelne Schläge, nicht gegen Flächenangriffe, Vernichtungsschlag und Todesmal. Der Konter trifft den Angreifer direkt.
+- **Hundert Hände:** Waffe und Talente zählen nur beim ersten der fünf Schläge, Markierung bei jedem.
+- **Druckpunkte:** Faustschläge gehen durch Panzer, sind aber weiter Nahkampf (Wechselhaut, Leibwächter).
+- **Zeitfresser** nimmt dem Mönch 1 Chi statt seine Abklingzeiten zu verlängern.
+- **Tausend Lotusblüten** löschen ein Todesmal. Bricht es danach auf, passiert nichts, und der Totenbeschwörer setzt neu an.
+- Schwebende Wörter auf der Bühne bleiben jetzt im Bild und wachsen aus ihrer Mitte (vorher liefen lange Wörter am rechten Rand hinaus).
+
+**Simulation** (Abenteurer, 3 Ebenen, kluge Bots, 40 Partien je Gruppe). „Mit“ heißt: mittlere Siegquote aller Gruppen, in denen die Rolle spielt.
+
+| Gruppe | Mönch | Kämpfer | Dieb | Paladin | Heilerin |
+|---|---|---|---|---|---|
+| 2 Helden | 56 % | 59 % | 51 % | 71 % | 92 % |
+| 3 Helden | 65 % | 60 % | 63 % | 72 % | 92 % |
+| 4 Helden | 66 % | 66 % | 64 % | 70 % | 80 % |
+| 5 Helden | 68 % | 68 % | 67 % | 72 % | 77 % |
+| 6 Helden | 69 % | 69 % | 68 % | 70 % | 70 % |
+
+- Der Mönch liegt bei Kämpfer und Dieb. Alle drei Äste sind spielbar: zu dritt Faust 66 %, Lotus 70 %, Wind 59 %.
+- Die Heilerin bleibt die stärkste Rolle. Ohne Heilerin hilft der Mönch kaum mehr als andere Rollen, denn nur der Lotus-Ast heilt nennenswert.
+- Prüfung aller aufgezeichneten Runden: 0 Fehler. Browser-Test mit drei Handys (Mönch, Magierin, Heilerin): kein Fehler, gleicher Stand auf allen.

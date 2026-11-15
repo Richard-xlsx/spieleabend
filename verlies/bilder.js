@@ -36,6 +36,7 @@
     heilerin: `<path d="M100 112V38" ${L(5)}/><path d="M100 40q-30-6-30-28 26-2 30 22 4-24 30-22 0 22-30 28z" ${F("#4FB98A")}/><circle cx="100" cy="40" r="8" ${F("#F5CF4A")}/>`,
     magierin: `<path d="M64 108l36-92 36 92z" ${F("#3E5BB8")}/><path d="M76 78h48" ${L(4, "#F5CF4A")}/><path d="M98 44l4 8 8 1-6 6 2 8-8-4-8 4 2-8-6-6 8-1z" fill="#F5CF4A" stroke="${T}" stroke-width="2"/>`,
     waldlaeufer: `<path d="M74 16q44 44 0 92" ${L(5)}/><path d="M74 16v92" ${L(1.5)}/><path d="M66 62h70" ${L(3)}/><path d="M136 62l-12-8M136 62l-12 8" ${L(3)}/><path d="M66 62l-8-6M66 62l-8 6" ${L(3, "#3E7A55")}/>`,
+    moench: `<path d="M80 108V84h40v24" ${F("#B8461E")}/><rect x="68" y="28" width="64" height="58" rx="16" ${F("#E08A2E")}/><path d="M84 30v24M100 30v24M116 30v24" ${L(3)}/><path d="M70 66q-14-2-12-16 2-10 16-8" ${F("#E08A2E")}/>`,
     paladin: `<path d="M82 108l8-60h20l8 60z" ${F("#8A6A44")}/><rect x="64" y="20" width="72" height="34" rx="6" ${F("#C9CCD6")}/><path d="M100 26v22M90 37h20" ${L(5, "#C99A2E")}/>`
   };
 
