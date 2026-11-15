@@ -473,7 +473,8 @@
       h += `<p class="etikett">Dein Zug</p><div class="aktionen">${V.aktionenVon(mh).map(a => {
         const cd = mh.cd[a.id] || 0, meister = a.meister && cd > 50;
         const ohneZiel = a.ziel === "anderer" && !S.teilnehmer.some(p => p !== PID && S.helden[p].hp > 0);
-        return `<button class="aktion ${auswahl && auswahl.id === a.id ? "an" : ""}" data-aktion="${a.id}" ${cd || ohneZiel ? "disabled" : ""}><b>${a.meister ? "★ " : ""}${esc(a.name)}${a.id === "trank" ? ` (${mh.traenke})` : ""}</b><small>${meister ? "Schon eingesetzt, im nächsten Kampf wieder" : cd ? `Wieder bereit in ${cd} ${cd === 1 ? "Runde" : "Runden"}` : esc(a.text) + V.aktionZusatz(mh, a)}</small></button>`;
+        const brand = a.id === "trank" && mh.wundbrand > 0;
+        return `<button class="aktion ${auswahl && auswahl.id === a.id ? "an" : ""}" data-aktion="${a.id}" ${cd || ohneZiel || brand ? "disabled" : ""}><b>${a.meister ? "★ " : ""}${esc(a.name)}${a.id === "trank" ? ` (${mh.traenke})` : ""}</b><small>${meister ? "Schon eingesetzt, im nächsten Kampf wieder" : brand ? "Wundbrand: Heilung wirkt gerade nicht" : cd ? `Wieder bereit in ${cd} ${cd === 1 ? "Runde" : "Runden"}` : esc(a.text) + V.aktionZusatz(mh, a)}</small></button>`;
       }).join("")}</div>
       ${auswahl ? `<button class="link" id="abbrechen">Abbrechen</button>` : ""}`;
     }

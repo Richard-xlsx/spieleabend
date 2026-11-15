@@ -8,7 +8,7 @@ function waehle(S,p,klug){
   const h=S.helden[p]; if(!klug) return V.standardWahl(S,p);
   const akt=V.aktionenVon(h).filter(a=>!((a.cd||a.meister)&&(h.cd[a.id]||0)>0));
   const g=V.gegnerLebend(S), tot=S.teilnehmer.find(q=>S.helden[q].hp<=0), schwach=S.teilnehmer.filter(q=>S.helden[q].hp>0&&S.helden[q].hp<S.helden[q].max*0.45);
-  const hat=id=>akt.find(a=>a.id===id);
+  const hat=id=>akt.find(a=>a.id===id&&!(id==='trank'&&h.wundbrand>0));
   if(h.hp<h.max*0.35&&hat('trank')) return {a:'trank'};
   if(tot){ for(const id of ['gnade','lebensquell','auferstehung','erloesung','wiedergeburt','gnadenlicht']) if(hat(id)) return {a:id}; for(const id of ['heilen','handauflegen','kraeuter']) if(hat(id)) return {a:id,ziel:tot}; }
   // Ankündigungen kontern wie echte Spieler: Spezialzüge (Verstärkung, Beben, Netz) durch Erstarren verhindern,

@@ -580,7 +580,8 @@
   };
   // Elite-Zusätze: ab Ebene 2 bekommt jeder Elite-Gegner einen zufälligen Zusatz, auf Legende zwei
   const ZUSATZ_HP = 0.85;
-  const ZUSAETZE = { eisig: "Eisig", vampir: "Vampirisch", zorn: "Zornig", schnell: "Geschwind", leibwaechter: "Wächter", fluchtraeger: "Fluchträger" };
+  const ZUSAETZE = { eisig: "Eisig", vampir: "Vampirisch", zorn: "Zornig", schnell: "Geschwind", leibwaechter: "Wächter" };
+  const ZUSATZ_EP = 5;   // Belohnung je Elite-Zusatz
   // hat ein Gegner eine Eigenschaft (von seiner Art oder als Elite-Zusatz)?
   const hat = (g, e) => !!(GEGNER[g.art][e] || (g.zusatz && g.zusatz.includes(e)));
   const eigenschaften = (art, zusatz) => Object.keys(EIGENSCHAFTEN).filter(e => GEGNER[art] && (GEGNER[art][e] || (zusatz || []).includes(e)));
@@ -1142,6 +1143,7 @@
     const a = aktionenVon(h).find(x => x.id === m.a);
     if (!a) return false;
     if ((a.cd || a.meister) && (h.cd[a.id] || 0) > 0) return false;   // Meisterfähigkeiten: einmal pro Kampf
+    if (a.id === "trank" && h.wundbrand > 0) return false;   // Wundbrand: Trank würde nicht wirken
     if (a.ziel === "gegner" && !S.gegner.some(g => g.id === m.ziel && g.hp > 0)) return false;
     if (a.ziel === "held" && !S.helden[m.ziel]) return false;
     if (a.ziel === "anderer" && (!S.helden[m.ziel] || m.ziel === pid || S.helden[m.ziel].hp <= 0)) return false;
@@ -1322,7 +1324,7 @@
         case "fels": h.fels = true; h.immun = true; log.push(`${n} steht wie ein Fels. Alle Gegner wenden sich gegen ihn.`); break;
         case "verstecken": h.versteckt = true; h.lauer = true; log.push(`${n} verschwindet in den Schatten.`); break;
         case "rauch": k.nebel = true; log.push(`${n} wirft eine Rauchbombe. Die Gegner sehen kaum noch etwas.`); break;
-        case "trank": { h.traenke -= 1; const e = heldHeilen(S, p, 14 + passiv(h, "trankplus")); log.push(`${n} trinkt einen Heiltrank: +${e} Leben.`); break; }
+        case "trank": { if (h.wundbrand > 0) { log.push(`${n} will einen Heiltrank trinken, doch der Wundbrand lässt es nicht zu. Der Trank bleibt in der Tasche.`); break; } h.traenke -= 1; const e = heldHeilen(S, p, 14 + passiv(h, "trankplus")); log.push(`${n} trinkt einen Heiltrank: +${e} Leben.`); break; }
         case "heilen": {
           heilenAuf(S, p, w.ziel, 10 + rh(h, "heilen"), log, "heilt");
           if (passiv(h, "heilsprung")) {
@@ -1527,7 +1529,7 @@
     const racheZaehlen = () => { for (const x of S.gegner) if (x.hp <= 0 && !x.geflohen && !x.gezaehlt && !GEGNER[x.art].objekt) { x.gezaehlt = true; k.rache = (k.rache || 0) + 1; } };
     const aufraeumen = () => {
       racheZaehlen();
-      for (const x of S.gegner) if (x.hp <= 0 && !x.gerufen && !x.geflohen && !x.epDa) { x.epDa = true; k.epTot = (k.epTot || 0) + (GEGNER[x.art].ep || 0); }
+      for (const x of S.gegner) if (x.hp <= 0 && !x.gerufen && !x.geflohen && !x.epDa) { x.epDa = true; k.epTot = (k.epTot || 0) + (GEGNER[x.art].ep || 0) + ZUSATZ_EP * (x.zusatz || []).length; }
       // wer per Seelenband noch aufstehen kann, bleibt liegen
       S.gegner = S.gegner.filter(x => x.hp > 0 || bandHoffnung(x));
     };
@@ -1891,7 +1893,7 @@
     const boss = S.gegner.some(g => GEGNER[g.art].boss);
     const t = [];
     const koVor = S.kampf.koVor || {};
-    const ep = (S.kampf.epTot || 0) + S.gegner.filter(g => !g.gerufen && !g.geflohen && !g.epDa).reduce((a, g) => a + (GEGNER[g.art].ep || 0), 0);
+    const ep = (S.kampf.epTot || 0) + S.gegner.filter(g => !g.gerufen && !g.geflohen && !g.epDa).reduce((a, g) => a + (GEGNER[g.art].ep || 0) + ZUSATZ_EP * (g.zusatz || []).length, 0);
     S.kampf = null;
     for (const p of S.teilnehmer) {
       const h = S.helden[p]; h.gift = 0; h.giftR = 0; h.segen = 0; h.lauer = false; h.netz = 0; h.kokon = null; h.stille = 0; h.wundbrand = 0; h.todesmal = null;

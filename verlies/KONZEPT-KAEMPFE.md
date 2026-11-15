@@ -374,6 +374,7 @@ Simulation (Abenteurer, 3 Ebenen, kluge Bots, je 40 Partien pro Gruppe):
   - **Wundbrand:**
     - Wer getroffen wird, kann 2 Runden lang nicht geheilt werden, auch nicht mit Tränken. In Ebene 1 gilt das nur für eine Runde.
     - Bewusstlose können trotzdem zurückgeholt werden.
+    - Den Heiltrank kann man in der Zeit nicht wählen (Knopf ausgegraut), er geht also nicht verloren.
   - **Todesmal:**
     - Der Totenbeschwörer zeichnet ab Runde 2 einen Helden. 2 Runden später bricht das Mal auf. Danach kommt das nächste Mal nach 3 Runden.
     - Der Schlag wirkt wie der Vernichtungsschlag und wird genauso abgewehrt. Erstarren hilft nicht.
@@ -392,7 +393,7 @@ Simulation (Abenteurer, 3 Ebenen, kluge Bots, je 40 Partien pro Gruppe):
   - **Fluchträger:** Solange er steht, wirkt jede Heilung an Helden nur halb.
 - **Elite-Zusätze:**
   - Sie kommen zufällig ab Ebene 2, auf Legende zwei.
-  - Zur Wahl stehen Eisig, Vampirisch, Zornig, Geschwind, Wächter und Fluchträger.
+  - Zur Wahl stehen Eisig, Vampirisch, Zornig, Geschwind und Wächter. (Fluchträger war anfangs dabei, siehe Nachtrag.)
   - Je Zusatz hat der Elite-Gegner 15 % weniger Leben.
   - Geschwind: Der zweite Schlag trifft nur halb. Mit vollem zweiten Schlag kostete dieser eine Zusatz allein 8 Siegpunkte.
   - Der Zusatz steht als Eigenschaft am Namensschild und in der Liste unter der Bühne.
@@ -422,3 +423,17 @@ Simulation (Abenteurer, 3 Ebenen, kluge Bots, je 40 Partien pro Gruppe; zu sechs
   - Siege 61 → 72 %.
   - Bosskämpfe mit K.o.: Ebene 1 38 → 30 %, Ebene 2 32 → 30 %, Ebene 3 32 → 24 %.
   - Runden: Ebene 1 10,6 → 9,4, Ebene 2 11,6 → 9,7, Ebene 3 10,2 → 8,6.
+
+**Nachtrag: Heilerin und Elite-Belohnung (15.11.2026).**
+- **Heiltrank bei Wundbrand:** Bisher war der Trank weg und wirkte nicht (+0 Leben). Jetzt ist der Knopf ausgegraut („Wundbrand: Heilung wirkt gerade nicht“), und der Trank bleibt in der Tasche.
+- **Fluchträger ist kein Elite-Zusatz mehr.** Die Heilerin wurde sonst dreifach gekontert: vom Meuchler, vom Wundbrand und vom Fluchträger. Den Fluchträger gibt es weiter beim Goblin-Schamanen.
+- **Belohnung:** Jeder Elite-Zusatz bringt +5 EP.
+- Simulation (Abenteurer, 3 Ebenen, kluge Bots):
+
+  | Gruppe | 2 | 3 | 4 | 5 | 6 |
+  |---|---|---|---|---|---|
+  | Siege vorher | 74 % | 79 % | 72 % | 74 % | 78 % |
+  | Siege jetzt | 76 % | 78 % | 74 % | 74 % | 76 % |
+
+  - Die Unterschiede liegen im Rauschen der Simulation.
+  - Eure Runde: 19 → 16 %, ebenfalls im Rauschen (die Partien streuen je Zusammenstellung zwischen 5 und 24 %).

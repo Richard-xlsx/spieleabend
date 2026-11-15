@@ -178,7 +178,7 @@ seinen nächsten Zug an (gelbes Schild über dem Kopf, wie in der Vorschau).
 | **Langfinger** | stiehlt Gold und flieht nach 3 Runden | schnell besiegen, dann gibt's das Gold zurück |
 | **Jäger** (Fledermausschwarm) | greift immer den Helden mit den wenigsten Leben an | Spott, Schildwall, Beschützen |
 | **Meuchler** (Skelett-Bogenschütze) | sucht die Heilerin (sonst den Schwächsten), Spott und Schildwall lenken ihn nicht ab | Verstecken, Obhut, Arkaner Schild |
-| **Wundbrand** (Ghul) | Getroffene können 2 Runden nicht geheilt werden (Ebene 1: eine) | vorher schützen |
+| **Wundbrand** (Ghul) | Getroffene können 2 Runden nicht geheilt werden (Ebene 1: eine) | vorher schützen; der Heiltrank ist so lange gesperrt |
 | **Todesmal** (Totenbeschwörer) | zeichnet einen Helden, 2 Runden später ein Schlag wie der Vernichtungsschlag | schützen oder den Zeichner vorher besiegen |
 | **Stille** (Netzweberin) | Getroffene können nächste Runde nur angreifen | Fähigkeiten früh nutzen |
 | **Zorn** (Ork-Krieger) | +2 Schaden je Runde, die er lebt (höchstens +12) | zuerst ausschalten |
@@ -187,7 +187,7 @@ seinen nächsten Zug an (gelbes Schild über dem Kopf, wie in der Vorschau).
 | **Wechselhaut** (Salamander) | abwechselnd immun gegen Nahkampf und gegen Zauber (am Namensschild) | die passende Rolle greift an, Pfeile und Gift |
 | **Zeitfresser** (Pilzling) | Abklingzeiten des Getroffenen +1 | Fähigkeiten früh nutzen |
 | **Fluchträger** (Goblin-Schamane) | solange er steht, wirkt Heilung an Helden nur halb | zuerst ausschalten |
-| **Elite-Zusätze** (ab Ebene 2, Legende zwei) | zufällig: Eisig (erstarrt nicht), Vampirisch (heilt sich um den halben Schaden), Zornig, Geschwind (zweiter Schlag halb), Wächter (Leibwächter), Fluchträger; je Zusatz 15 % weniger Leben | siehe die Eigenschaft |
+| **Elite-Zusätze** (ab Ebene 2, Legende zwei) | zufällig: Eisig (erstarrt nicht), Vampirisch (heilt sich um den halben Schaden), Zornig, Geschwind (zweiter Schlag halb), Wächter (Leibwächter); je Zusatz 15 % weniger Leben und +5 EP | siehe die Eigenschaft |
 
 ### Gegner je Ebene
 
