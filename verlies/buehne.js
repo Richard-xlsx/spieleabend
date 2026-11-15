@@ -289,14 +289,14 @@
     // Plaketten, Absichten, Ziele
     for (const g of daten.gegner) {
       const p = pos[g.id], hoehe = (GEG[g.art] ? GEG[g.art].h : 80) * p.s, w = p.w, y = Math.max(28, p.y - hoehe - 42);
-      const V = window.VL, eig = V ? V.eigenschaften(g.art).filter(e => !["wucht", "gift", "standhaft", "vernichtung", "seelenernte", "eier", "kokon", "lava", "ei", "huelle"].includes(e)).map(e => V.EIGENSCHAFTEN[e][0]) : [];
+      const V = window.VL, eig = V ? V.eigenschaften(g.art, g.zusatz).filter(e => !["wucht", "gift", "standhaft", "vernichtung", "seelenernte", "eier", "kokon", "lava", "ei", "huelle", "wechselhaut", "zorn", "todesmal"].includes(e)).map(e => V.EIGENSCHAFTEN[e][0]) : [];
       const marken = [...(g.zustand || []), g.giftR > 0 ? "Gift" : "", g.markiert > 0 ? "markiert" : "", g.starr > 0 ? "erstarrt" : ""].concat(eig).filter(Boolean).join(" · ");
       s += `<g ${g.hp <= 0 ? 'opacity=".25"' : ""}>${plakette(g.id, p.x - w / 2, y, w, kurzName(g.name), g.hp, g.max, marken)}</g>`;
       const a = daten.absicht && daten.absicht[g.id];
       if (a && g.hp > 0) {
         const wer = id => (daten.helden.find(x => x.id === id) || { name: "?" }).name;
         let txt = a.a === "beben" ? `⟁ ${a.name || "Beben"} → alle` : a.a === "ruf" ? "☠ ruft Verstärkung" : a.a === "flucht" ? "↯ will fliehen!"
-          : a.a === "netz" ? `🕸 ${a.kokon ? "Kokon" : "Netz"} → ${wer(a.ziel)}` : a.a === "vernichtung" ? `💀 Vernichtung → ${(a.ziele || []).map(wer).join(", ")}`
+          : a.a === "netz" ? `🕸 ${a.kokon ? "Kokon" : "Netz"} → ${wer(a.ziel)}` : a.a === "vernichtung" ? `💀 Vernichtung → ${(a.ziele || []).map(wer).join(", ")}` : a.a === "todesmal" ? `💀 Todesmal → ${(a.ziele || []).map(wer).join(", ")}` : a.a === "mal" ? `☠ Todesmal → ${wer(a.ziel)}`
           : a.a === "brueten" ? (a.n <= 1 ? "🥚 schlüpft gleich!" : `🥚 schlüpft in ${a.n} Runden`) : a.a === "halten" ? `🕸 hält ${wer(a.ziel)}` : a.a === "ruhe" ? "… sammelt Kraft" : a.a === "schuetzen" ? `🛡 → ${kurzName((daten.gegner.find(x => x.id === a.ziel) || { name: "?" }).name)}`
           : a.a === "angriff" && a.doppelt ? `⚔⚔ → ${wer(a.ziel)}`
           : a.a === "stehlen" ? `✋ Gold → ${(daten.helden.find(x => x.id === a.ziel) || { name: "?" }).name}` : a.a === "heilen" ? `✚ → ${kurzName((daten.gegner.find(x => x.id === a.ziel) || { name: "?" }).name)}` : `⚔ → ${(daten.helden.find(x => x.id === a.ziel) || { name: "?" }).name}`;
@@ -617,7 +617,7 @@
     async function aufstellen(e) {
       for (const [id, , nach] of e.d || []) if (zust[id]) zust[id].hp = nach;   // z. B. ein Schleim, der sich teilt, oder ein Ei, das platzt
       gegner = gegner.filter(x => x.hp > 0);    // Besiegte machen Platz
-      for (const n of e.neu || []) { const z = Object.assign({ giftR: 0, markiert: 0 }, n); gegner.push(z); zust[z.id] = z; }
+      for (const n of e.neu || []) { if (gegner.some(x => x.id === n.id)) continue; const z = Object.assign({ giftR: 0, markiert: 0 }, n); gegner.push(z); zust[z.id] = z; }
       bau = svgBauen({ gegner, helden, absicht: {}, ebene: R.start.ebene }); el.innerHTML = bau.svg; pos = bau.pos;
       svg = el.querySelector("svg");
       for (const n of e.neu || []) { const f = $("vl-f-" + n.id); if (f) animiere(f, [{ transform: "translateY(40px)", opacity: 0 }, { transform: "translateY(0)", opacity: 1 }], 700, { easing: "ease-out" }); }
@@ -688,7 +688,15 @@
         for (const h of helden) { const m = M(h.id); partikel(m.x, m.y + 30, "#FF9A3C", 10, 50, 50, 700); }
         await folgen(e); return;
       }
-      if (e.a === "vernichtung") { sfx("stampfen"); blitz("#E23B2E", .35); bebenBild(10); await animiere($("vl-f-" + g), [{ transform: "scale(1)" }, { transform: "scale(1.15)" }, { transform: "scale(1)" }], 450); }
+      if (e.a === "mal" && e.ziel && pos[e.ziel]) { sfx("ruf"); const m = M(e.ziel); glut(m.x, m.y, "vl-heil", 50, 700); await partikel(m.x, m.y, "#B9A8FF", 16, 50, 60, 800); await wort(e.ziel, "Todesmal", "#B9A8FF"); return; }
+      if (e.a === "aufstehen") {
+        const z = gegner.find(x => x.id === g), f = $("vl-f-" + g);
+        if (!z || !f) { await folgen(e); return; }
+        sfx("ruf"); const pl = $("vl-pl-" + g); if (pl) animiere(pl, [{ opacity: .25 }, { opacity: 1 }], 500);
+        await animiere(f, [{ transform: "translateY(30px)", opacity: 0 }, { transform: "translateY(0)", opacity: 1 }], 700, { easing: "ease-out" }); f.style.opacity = 1;
+        await folgen(e); return;
+      }
+      if (e.a === "vernichtung" || e.a === "todesmal") { sfx("stampfen"); blitz("#E23B2E", .35); bebenBild(10); await animiere($("vl-f-" + g), [{ transform: "scale(1)" }, { transform: "scale(1.15)" }, { transform: "scale(1)" }], 450); }
       // Angriff (auch Biss, daneben)
       const ziel = opfer[0] || e.ziel;
       if (!ziel || !pos[ziel]) { await folgen(e); return; }

@@ -176,14 +176,26 @@ seinen nächsten Zug an (gelbes Schild über dem Kopf, wie in der Vorschau).
 | **Vernichtungsschlag** (alle Endgegner) | alle 4–5 Runden angekündigt (💀 in der Sprechblase): 80–95 % der Höchstleben eines Helden (Ebene 1: 50–65 %, zu zweit ×0,8), ab 5 Helden zwei Ziele; Rüstung und Erstarren helfen nicht | Schildwall, Spott, Obhut, Beschützen (halber Schaden), Arkaner Schild, Verstecken, vorher voll heilen |
 | **Heiler / Schildträger** | heilt oder schützt andere Gegner | zuerst ausschalten |
 | **Langfinger** | stiehlt Gold und flieht nach 3 Runden | schnell besiegen, dann gibt's das Gold zurück |
+| **Jäger** (Fledermausschwarm) | greift immer den Helden mit den wenigsten Leben an | Spott, Schildwall, Beschützen |
+| **Meuchler** (Skelett-Bogenschütze) | sucht die Heilerin (sonst den Schwächsten), Spott und Schildwall lenken ihn nicht ab | Verstecken, Obhut, Arkaner Schild |
+| **Wundbrand** (Ghul) | Getroffene können 2 Runden nicht geheilt werden (Ebene 1: eine) | vorher schützen |
+| **Todesmal** (Totenbeschwörer) | zeichnet einen Helden, 2 Runden später ein Schlag wie der Vernichtungsschlag | schützen oder den Zeichner vorher besiegen |
+| **Stille** (Netzweberin) | Getroffene können nächste Runde nur angreifen | Fähigkeiten früh nutzen |
+| **Zorn** (Ork-Krieger) | +2 Schaden je Runde, die er lebt (höchstens +12) | zuerst ausschalten |
+| **Seelenband** (Lavaschnecke) | fällt eine allein, steht sie am Rundenende mit halben Leben wieder auf (höchstens zweimal) | beide in derselben Runde besiegen |
+| **Leibwächter** (Kerkerwärter) | fängt Nahkampf und Zauber gegen andere Gegner ab | Pfeile, Flächenschaden, Gift, ihn erstarren lassen |
+| **Wechselhaut** (Salamander) | abwechselnd immun gegen Nahkampf und gegen Zauber (am Namensschild) | die passende Rolle greift an, Pfeile und Gift |
+| **Zeitfresser** (Pilzling) | Abklingzeiten des Getroffenen +1 | Fähigkeiten früh nutzen |
+| **Fluchträger** (Goblin-Schamane) | solange er steht, wirkt Heilung an Helden nur halb | zuerst ausschalten |
+| **Elite-Zusätze** (ab Ebene 2, Legende zwei) | zufällig: Eisig (erstarrt nicht), Vampirisch (heilt sich um den halben Schaden), Zornig, Geschwind (zweiter Schlag halb), Wächter (Leibwächter), Fluchträger; je Zusatz 15 % weniger Leben | siehe die Eigenschaft |
 
 ### Gegner je Ebene
 
 | Ebene | Normale Gegner | Elite-Gegner | Endgegner |
 |---|---|---|---|
-| **Kerker** | Riesenratte, Rattenschwarm (Rudel), Goblin, Goblin-Langfinger, Goblin-Schamane (Heiler), Skelett (untot), Skelett-Bogenschütze (untot, steht hinten), Ghul (untot, Gift) | **Kerkerwärter** (gepanzert, trägt den Schlüssel), **Totenbeschwörer** (Beschwörer) | **Knochenkönig**: Beben alle 2–4 Runden, ruft Skelette, Phase 2 ab halben Leben: Knochenschild. **Seelenernte**: solange ein Held bewusstlos ist, +3 % Leben pro Runde |
-| **Spinnengrotte** | Höhlenspinne (Gift), Spinnenbrut (Rudel, schwach, viele), Netzweberin (Netz), Pilzling (explosiv, Sporen), Fledermausschwarm (fliegend, schnell), Schleim (teilt sich bei Treffern) | **Höhlentroll** (Regeneration), **Brutmutter** (Beschwörer) | **Spinnenkönigin**: legt Eier (6 Leben, nach 2 Runden schlüpft Brut), spinnt Helden in einen **Kokon** (12 Leben; der Held kann nichts tun, bis die anderen ihn zerschlagen; zu zweit nur ein Netz), Phase 2: hängt an der Decke (fliegend) |
-| **Glutschlund** | Feuerkobold (schnell), Lavaschnecke (gepanzert), Salamander (Brand), Ork-Krieger, Ork-Schamane (Schildträger), Obsidian-Golem (sehr gepanzert, greift nur jede 2. Runde an) | **Ork-Häuptling** (stärkt alle Orks), **Feuerelementar** (explosiv, Brand) | **Glutdrache**: fliegend, Flammenatem auf alle, Phase 2 am Boden mit Schwanzhieb, Phase 3 unter 25 %: Wut (schnell) und **Lava**: jede Runde 2 Schaden an allen, jede Runde 1 mehr, Rüstung hilft nicht |
+| **Kerker** | Riesenratte, Rattenschwarm (Rudel), Goblin, Goblin-Langfinger, Goblin-Schamane (Heiler, Fluchträger), Skelett (untot), Skelett-Bogenschütze (untot, steht hinten, Meuchler), Ghul (untot, Wundbrand) | **Kerkerwärter** (gepanzert, Leibwächter, trägt den Schlüssel), **Totenbeschwörer** (Beschwörer, Todesmal) | **Knochenkönig**: Beben alle 2–4 Runden, ruft Skelette, Phase 2 ab halben Leben: Knochenschild. **Seelenernte**: solange ein Held bewusstlos ist, +3 % Leben pro Runde |
+| **Spinnengrotte** | Höhlenspinne (Gift), Spinnenbrut (Rudel, schwach, viele), Netzweberin (Netz, Stille), Pilzling (explosiv, Sporen, Zeitfresser), Fledermausschwarm (fliegend, Jäger), Schleim (teilt sich bei Treffern) | **Höhlentroll** (Regeneration), **Brutmutter** (Beschwörer) | **Spinnenkönigin**: legt Eier (6 Leben, nach 2 Runden schlüpft Brut), spinnt Helden in einen **Kokon** (12 Leben; der Held kann nichts tun, bis die anderen ihn zerschlagen; zu zweit nur ein Netz), Phase 2: hängt an der Decke (fliegend) |
+| **Glutschlund** | Feuerkobold (schnell), Lavaschnecke (gepanzert, Seelenband), Salamander (Brand, Wechselhaut), Ork-Krieger (Zorn), Ork-Schamane (Schildträger), Obsidian-Golem (sehr gepanzert, greift nur jede 2. Runde an) | **Ork-Häuptling** (stärkt alle Orks), **Feuerelementar** (explosiv, Brand) | **Glutdrache**: fliegend, Flammenatem auf alle, Phase 2 am Boden mit Schwanzhieb, Phase 3 unter 25 %: Wut (schnell) und **Lava**: jede Runde 2 Schaden an allen, jede Runde 1 mehr, Rüstung hilft nicht |
 
 Das sind **21 normale Gegner, 6 Elite-Gegner und 3 Endgegner** (jetzt: 6 und 1). Alle bekommen eigene Zeichnungen
 für die Kampfbühne, auch eine „holt aus“- und eine „getroffen“-Haltung.

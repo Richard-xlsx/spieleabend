@@ -15,7 +15,7 @@ function waehle(S,p,klug){
   // wenn noch niemand anderes dieses Ziel diese Runde erstarren lässt
   const ab=S.kampf.absicht||{}, gew=Object.values(S.kampf.wahl||{});
   // Vernichtungsschlag: das Ziel schützen (Schildwall, Fels, Wall, Obhut, Arkaner Schild, Beschützen, Spott, Verstecken), sonst voll heilen
-  if(!process.env.OHNE_SCHUTZ) for(const x of g){ const a=ab[x.id]; if(!a||a.a!=='vernichtung') continue;
+  if(!process.env.OHNE_SCHUTZ) for(const x of g){ const a=ab[x.id]; if(!a||(a.a!=='vernichtung'&&a.a!=='todesmal')) continue;
     const wahl=Object.entries(S.kampf.wahl||{});
     const gedeckt=t=>wahl.some(([q,w])=>['schild','fels','wall'].includes(w.a)||(['obhut','arkan','beschuetzen'].includes(w.a)&&w.ziel===t)||(w.a==='spott'&&w.ziel===x.id)||(q===t&&w.a==='verstecken'));
     for(const t of a.ziele.filter(t=>S.helden[t].hp>0&&!gedeckt(t))){

@@ -343,3 +343,73 @@ Simulation (Abenteurer, 3 Ebenen, kluge Bots, je 40 Partien pro Gruppe):
 - Zu dritt machen 59 % der Vernichtungsschläge Schaden und 9 % schicken jemanden zu Boden. Zu fünft sind es 71 % und 34 %, denn dort trifft er zwei Helden.
 - Eure Runde (5 Helden, Lang, Held, Wild + Rachsucht + Verstärkung): Siege 16 → 18 %. Bosskämpfe mit K.o.: Ebene 1 58 → 64 %, Ebene 2 66 → 75 %, Ebene 3 65 → 79 %. Die Bosskämpfe sind kürzer, in Ebene 2 zum Beispiel 14,5 → 11,4 Runden.
 - Offen: Zu zweit und zu fünft verlieren die Bots jetzt öfter, vor allem in Ebene 1. Kleine Gruppen haben dort kaum Schutzfähigkeiten. Echte Spieler, die sich absprechen, schützen vermutlich besser als die Bots.
+
+**Schritt 6 fertig (15.11.2026).** Abweichungen vom Plan oben:
+
+- **Verteilung der neuen Eigenschaften:**
+
+  | Gegner | Eigenschaft |
+  |---|---|
+  | Goblin-Schamane | Fluchträger |
+  | Skelett-Bogenschütze | Meuchler |
+  | Ghul | Wundbrand, statt Gift |
+  | Kerkerwärter | Leibwächter |
+  | Totenbeschwörer | Todesmal |
+  | Fledermausschwarm | Jäger, nicht mehr schnell |
+  | Netzweberin | Stille, zusätzlich zum Netz |
+  | Pilzling | Zeitfresser |
+  | Lavaschnecke | Seelenband |
+  | Salamander | Wechselhaut |
+  | Ork-Krieger | Zorn |
+
+- **Gruppen:** In der Glut gibt es die Gruppe „zwei Lavaschnecken“ (statt Schnecke + Salamander), damit das Seelenband öfter vorkommt.
+- **Leben und Schaden:**
+  - Diese Gegner haben etwa 10 % weniger Leben.
+  - Ghul, Bogenschütze und Ork-Krieger machen 1 Schaden weniger.
+  - Grund: Die Eigenschaften allein kosteten die Bots 7 Siegpunkte.
+- **Die Regeln im Einzelnen:**
+  - **Jäger und Meuchler** kündigen ihr Ziel an wie alle anderen.
+    - Der Meuchler sucht die Heilerin, sonst den Helden mit den wenigsten Leben.
+    - Spott und Schildwall lenken ihn nicht ab, Beschützen schon.
+  - **Wundbrand:**
+    - Wer getroffen wird, kann 2 Runden lang nicht geheilt werden, auch nicht mit Tränken. In Ebene 1 gilt das nur für eine Runde.
+    - Bewusstlose können trotzdem zurückgeholt werden.
+  - **Todesmal:**
+    - Der Totenbeschwörer zeichnet ab Runde 2 einen Helden. 2 Runden später bricht das Mal auf. Danach kommt das nächste Mal nach 3 Runden.
+    - Der Schlag wirkt wie der Vernichtungsschlag und wird genauso abgewehrt. Erstarren hilft nicht.
+    - Fällt der Totenbeschwörer vorher, verblasst das Mal.
+  - **Stille:** Der Getroffene hat nächste Runde nur seinen Grundangriff.
+  - **Zorn:** +2 Schaden je Runde, höchstens +12. Am Namensschild steht „Zorn +4“.
+  - **Seelenband:**
+    - Fällt eine Schnecke, während eine andere noch lebt, steht sie am Rundenende mit halben Leben wieder auf.
+    - Das geht höchstens zweimal, dann reißt das Band. Sonst könnte ein Kampf mit Einzelzielen ewig dauern.
+  - **Leibwächter:**
+    - Er fängt Nahkampf und Zauber auf ein einzelnes anderes Ziel ab.
+    - Pfeile, Flächenschaden und Gift kommen vorbei.
+    - Ist er erstarrt, schützt er niemanden. Eier und Kokons schützt er nicht.
+  - **Wechselhaut:** Sie wechselt jede Runde: „immun: Nahkampf“ oder „immun: Zauber“ (Magie und Licht). Pfeile und Gift treffen immer.
+  - **Zeitfresser:** Alle laufenden Abklingzeiten des Getroffenen werden um 1 länger. Meisterfähigkeiten sind ausgenommen.
+  - **Fluchträger:** Solange er steht, wirkt jede Heilung an Helden nur halb.
+- **Elite-Zusätze:**
+  - Sie kommen zufällig ab Ebene 2, auf Legende zwei.
+  - Zur Wahl stehen Eisig, Vampirisch, Zornig, Geschwind, Wächter und Fluchträger.
+  - Je Zusatz hat der Elite-Gegner 15 % weniger Leben.
+  - Geschwind: Der zweite Schlag trifft nur halb. Mit vollem zweiten Schlag kostete dieser eine Zusatz allein 8 Siegpunkte.
+  - Der Zusatz steht als Eigenschaft am Namensschild und in der Liste unter der Bühne.
+- **Bots:** Sie schützen das Ziel eines Todesmals wie beim Vernichtungsschlag.
+
+Simulation (Abenteurer, 3 Ebenen, kluge Bots, je 40 Partien pro Gruppe; zu sechst 120):
+
+| Gruppe | Siege vorher → jetzt | Elite mit K.o. Ebene 2 / 3, vorher → jetzt |
+|---|---|---|
+| 2 Helden | 76 → 74 % | |
+| 3 Helden | 80 → 79 % | 9 / 0 → 12 / 1 % |
+| 4 Helden | 64 → 61 % | 14 / 2 → 24 / 10 % |
+| 5 Helden | 75 → 74 % | 28 / 2 → 30 / 3 % |
+| 6 Helden | 73 → 78 % | 32 / 2 → 25 / 6 % |
+
+- Elite-Kämpfe ab Ebene 2 sind etwas gefährlicher geworden, normale Kämpfe kaum.
+- Eure Runde (5 Helden, Lang, Held, Wild + Rachsucht + Verstärkung): Siege 23 → 19 %.
+  - Elite mit K.o.: Ebene 1 59 → 48 %, Ebene 2 72 → 60 %, Ebene 3 62 → 57 %.
+  - Die Niederlagen verteilen sich jetzt auf mehr verschiedene Gegner.
+- Offen bleiben die Fragen 3 und 4 aus Abschnitt 5. Die Zusätze sind jetzt zufällig, der Fluch „Verstärkung“ ist unverändert.

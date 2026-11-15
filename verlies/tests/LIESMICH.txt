@@ -16,7 +16,7 @@ Ohne Browser (nur Node.js):
                                      bei Endgegnern und Elite (standhaft) greifen sie stattdessen den ausholenden Gegner an, um die Abbruch-Schwelle zu knacken.
                                      Verwundete kaufen beim Händler zuerst Verbände. Gegen den Vernichtungsschlag schützen sie das Ziel
                                      (Schildwall, Fels, Wall, Obhut, Arkaner Schild, Beschützen, Spott, Verstecken) oder heilen es voll;
-                                     Kokons und Eier zerschlagen sie mit dem einfachen Angriff. Am Ende steht, wie viele Vernichtungsschläge
+                                     Kokons und Eier zerschlagen sie mit dem einfachen Angriff. Ein Todesmal behandeln sie wie einen Vernichtungsschlag. Am Ende steht, wie viele Vernichtungsschläge
                                      Schaden machten und wie viele ein K.o. Mit VERLIES_LOGIK=pfad läuft die Simulation mit einer anderen Logik-Datei (Vergleiche).
                                      „Kampfwerte“ zeigt je Ebene und Raumart (normal, Elite, Endgegner) Ø Runden, Ø K.o. und den Anteil
                                      der Kämpfe mit mindestens einem K.o. Ziel: normal 3–6, Elite 6–9, Endgegner 10–15 Runden.
