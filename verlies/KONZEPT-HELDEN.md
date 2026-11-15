@@ -1,13 +1,13 @@
 # Verlies der Helden: Vier neue Helden
 
-Konzept vom 15.11.2026: Bardin, Hexe, Beschwörer und Mönch.
+Konzept vom 15.11.2026: Bardin, Hexe, Nekromant und Mönch.
 
 ## 0. Leitlinien
 
 - **Jede neue Rolle bringt eine eigene Spielweise mit, nicht nur neue Zahlen.**
   - Bardin: ein **Lied**, das weiterläuft, während sie anderes tut.
   - Hexe: **Hexmale**, die sich auf einem Gegner stapeln.
-  - Beschwörer: **Diener**, die neben ihm auf der Bühne stehen.
+  - Nekromant: **Diener**, die neben ihm auf der Bühne stehen.
   - Mönch: **Chi**, das er mit Schlägen sammelt und für Fähigkeiten ausgibt.
 - **Gleicher Aufbau wie bisher:**
   - 3 Grundfähigkeiten: ein Angriff ohne Abklingzeit und zwei Fähigkeiten.
@@ -17,7 +17,7 @@ Konzept vom 15.11.2026: Bardin, Hexe, Beschwörer und Mönch.
 - **Die Heilerin soll nicht mehr Pflicht sein.** Gruppen ohne Heilerin gewinnen in der Simulation deutlich seltener. Deshalb hat jede neue Rolle einen Ast, der die Gruppe etwas am Leben hält:
   - Bardin: Lied der Rast und Aufmuntern.
   - Hexe: Blutmagie.
-  - Beschwörer: Irrlicht.
+  - Nekromant: Irrlicht.
   - Mönch: Lotus.
 
   Keiner dieser Äste heilt so gut wie die Heilerin.
@@ -25,14 +25,14 @@ Konzept vom 15.11.2026: Bardin, Hexe, Beschwörer und Mönch.
   - Stille, Wundbrand und Todesmal lassen sich vom Mönch lösen.
   - Beschwörer und Heiler unter den Gegnern bringt die Bardin zum Schweigen.
   - Gegner-Eigenschaften schaltet die Hexe ab.
-  - Den Meuchler fängt der Diener des Beschwörers ab.
+  - Den Meuchler fängt der Diener des Nekromanten ab.
 - **Zahlen:** Alle Werte unten sind Startwerte für die Simulation. Ziel: Jede neue Rolle liegt in den Siegquoten höchstens 5 Punkte neben den bisherigen.
 
 | Rolle | Leben | Kurz | Platz in der Gruppe |
 |---|---|---|---|
 | **Bardin** | 27 | Singt Lieder, die die ganze Gruppe stärken | Unterstützung, Kontrolle |
 | **Hexe** | 25 | Verhext und schwächt Gegner, verwandelt sie in Kröten | Schwächen, Schaden über Zeit |
-| **Beschwörer** | 24 | Ruft Diener, die für ihn kämpfen und Schläge abfangen | Schaden, mit Golem auch Schutz |
+| **Nekromant** | 24 | Ruft Diener, die für ihn kämpfen und Schläge abfangen | Schaden, mit Golem auch Schutz |
 | **Mönch** | 30 | Kämpft mit bloßen Fäusten, weicht aus, löst böse Zustände | Nahkampf, Ausweichen, Selbstheilung |
 
 Zum Vergleich: Kämpfer 34, Paladin 32, Dieb 29, Waldläufer 28, Heilerin 26, Magierin 23.
@@ -137,17 +137,17 @@ Zum Vergleich: Kämpfer 34, Paladin 32, Dieb 29, Waldläufer 28, Heilerin 26, Ma
 
 ---
 
-## 3. Beschwörer
+## 3. Nekromant
 
 **Rollenbild:** Er steht hinten, ruft Diener aus Knochen, Stein oder Licht und lässt sie kämpfen.
-Er heißt **Beschwörer**, weil „Totenbeschwörer“ schon ein Elite-Gegner im Kerker ist. Den Totenbeschwörer-Weg gibt es als Ast **Totenruf**.
+Er heißt **Nekromant**, nicht „Totenbeschwörer“, weil es den schon als Elite-Gegner im Kerker gibt. Seine Kunst ist trotzdem nicht nur Totenkunst: Neben dem Ast **Totenruf** gibt es Golem und Irrlicht.
 
 ### Diener
 
-- Ein Diener steht **neben dem Beschwörer auf der Bühne**: kleine Figur, eigener Lebensbalken.
-- Er **schlägt am Ende des Heldenzugs von selbst zu**, auf das Ziel, das der Beschwörer zuletzt angegriffen hat, sonst auf einen zufälligen Gegner.
-- **Angriffe auf den Beschwörer treffen zuerst seinen Diener.** Auch der Meuchler kommt nicht vorbei, Flächenschaden schon.
-- Ein Diener verschwindet bei 0 Leben oder am Ende des Kampfes. Ruft der Beschwörer einen neuen, ersetzt dieser den alten mit vollen Leben.
+- Ein Diener steht **neben dem Nekromanten auf der Bühne**: kleine Figur, eigener Lebensbalken.
+- Er **schlägt am Ende des Heldenzugs von selbst zu**, auf das Ziel, das der Nekromant zuletzt angegriffen hat, sonst auf einen zufälligen Gegner.
+- **Angriffe auf den Nekromanten treffen zuerst seinen Diener.** Auch der Meuchler kommt nicht vorbei, Flächenschaden schon.
+- Ein Diener verschwindet bei 0 Leben oder am Ende des Kampfes. Ruft der Nekromant einen neuen, ersetzt dieser den alten mit vollen Leben.
 - **Normal nur ein Diener** (Totenruf 3 erlaubt zwei, die Meisterfähigkeit drei).
 - Diener sind keine Helden. Sie zählen nicht für Spott, Heilung oder „alle Helden“.
 - Die Heilerin kann sie **nicht** heilen. So bleibt es übersichtlich.
@@ -184,8 +184,8 @@ Die drei Äste rufen drei verschiedene Diener: Skelette für Schaden, den Golem 
 
 ### Zusammenspiel und Gegenspieler
 
-- **Golem-Beschwörer als zweiter Beschützer:** Mit Steinruf zieht der Golem alle Angriffe auf sich, wie der Schildwall des Kämpfers. Damit geht eine Gruppe ohne Kämpfer und Paladin.
-- **Bardin und Beschwörer:** Das Heldenlied wirkt auch auf Diener-Treffer. Sie sind viele kleine Treffer, wie beim Mönch.
+- **Golem-Nekromant als zweiter Beschützer:** Mit Steinruf zieht der Golem alle Angriffe auf sich, wie der Schildwall des Kämpfers. Damit geht eine Gruppe ohne Kämpfer und Paladin.
+- **Bardin und Nekromant:** Das Heldenlied wirkt auch auf Diener-Treffer. Sie sind viele kleine Treffer, wie beim Mönch.
 - **Panzer** (Kerkerwärter, Lavaschnecke, Obsidian-Golem) frisst viel von 4er-Treffern. Gegen gepanzerte Gegner hilft Knochensplitter.
 - **Seelenband** (Lavaschnecken): Skelette verteilen Schaden auf viele Ziele, gut zum gleichzeitigen Erschlagen.
 
@@ -250,7 +250,7 @@ Die drei Äste rufen drei verschiedene Diener: Skelette für Schaden, den Golem 
 | **Mönch** | Chi als Wert am Helden, Kosten statt Abklingzeit auf den Knöpfen, Ausweichen bei Heldentreffern | 1 Heldenfigur | klein |
 | **Hexe** | Hexmale am Gegner (wirken auf seinen Schaden), Zustand „Kröte“, Eigenschaften abschalten (über `hat()` gut machbar, an den Stellen mit `art.xyz` nachziehen) | 1 Heldenfigur, 1 Kröte | klein bis mittel |
 | **Bardin** | Laufendes Lied als Zustand der Gruppe, Zustand „schläft“ (endet bei Schaden), Misston blockiert Gegner-Ruf und -Heilung | 1 Heldenfigur, Noten | mittel |
-| **Beschwörer** | Diener als eigene Figuren auf der Bühne mit Leben, eigener Zug am Ende der Heldenphase, Angriffe auf den Beschwörer umleiten, Steinruf als Spott für Diener | 1 Heldenfigur, Skelett (gibt es als Gegner, gespiegelt und heller), Golem, Irrlicht | groß |
+| **Nekromant** | Diener als eigene Figuren auf der Bühne mit Leben, eigener Zug am Ende der Heldenphase, Angriffe auf den Nekromanten umleiten, Steinruf als Spott für Diener | 1 Heldenfigur, Skelett (gibt es als Gegner, gespiegelt und heller), Golem, Irrlicht | groß |
 
 **Für alle vier:**
 - Rollen, Aktionen, Talentbäume und Aufstiege in `verlies-logic.js`.
@@ -259,11 +259,11 @@ Die drei Äste rufen drei verschiedene Diener: Skelette für Schaden, den Golem 
 - Bühnenanimationen für die neuen Ereignisse.
 - **Lobby:** 10 Rollen, weiterhin höchstens 6 Helden, jede Rolle nur einmal. Die Rollenknöpfe brauchen zwei Spalten mehr oder eine Zeile mehr.
 
-**Reihenfolge, wie ich sie vorschlage:** Mönch → Hexe → Bardin → Beschwörer. Je Held ein Schritt mit Simulation, so wie bei den Kampf-Schritten. Der Beschwörer zuletzt, weil Diener die Bühne und die Zielwahl der Gegner verändern.
+**Reihenfolge, wie ich sie vorschlage:** Mönch → Hexe → Bardin → Nekromant. Je Held ein Schritt mit Simulation, so wie bei den Kampf-Schritten. Der Nekromant zuletzt, weil Diener die Bühne und die Zielwahl der Gegner verändern.
 
-## 6. Offene Fragen
+## 6. Entscheidungen (15.11.2026)
 
-1. **Namen:** Bardin, Hexe, Beschwörer, Mönch. Oder lieber „Mönchin“, „Nekromant“?
-2. **Bardin außerhalb des Kampfes:** Feilschen (Händler −10 %) und Heldensage (+10 % EP) sind die ersten Talente, die nicht im Kampf wirken. In Ordnung, oder lieber nur Kampftalente?
-3. **Diener heilen:** Sollen Heilerin und Paladin Diener heilen können? Das wäre stärker und näher an echter Beschwörung, aber jedes Heil-Ziel bekäme mehr Auswahl.
-4. **Kröte beim Endgegner:** Wirkungslos (Vorschlag), oder 1 Runde wie bei Elite?
+1. **Namen:** Bardin, Hexe, **Nekromant**, Mönch.
+2. **Bardin außerhalb des Kampfes:** Feilschen und Heldensage bleiben so.
+3. **Diener heilen:** Nein. Heilerin, Paladin und andere Heilungen wirken nicht auf Diener.
+4. **Kröte beim Endgegner:** wirkt gar nicht.
