@@ -373,7 +373,7 @@
     const text = { 1: `Gegner schwächer, mehr Gold, die Rast heilt ${Math.round(V.SCHWERE[1].rast * 100)} %. Bewusstlose stehen nach dem Kampf mit halben Leben auf.`,
       2: "So wie bisher. Bewusstlose stehen nach dem Kampf mit 5 Leben auf.",
       3: `Gegner zäher und stärker, weniger Gold, mehr Elite-Räume, die Rast heilt nur ${Math.round(V.SCHWERE[3].rast * 100)} %.`,
-      4: "Noch härter als Held. Wer am Ende eines Kampfes bewusstlos ist, ist gefallen und schaut für den Rest der Partie zu." };
+      4: `Noch härter als Held: Gegner noch zäher und stärker, die Rast heilt nur ${Math.round(V.SCHWERE[4].rast * 100)} %. Bewusstlose stehen nach dem Kampf mit nur 1 Leben auf.` };
     return `<div class="karte"><h3>Schwierigkeit</h3><div class="laengen vier">${[1, 2, 3, 4].map(i => `<button class="laenge ${i === n ? "an" : ""}" data-schwere="${i}" ${host ? "" : "disabled"} aria-pressed="${i === n}"><b>${V.SCHWERE[i].name}</b><small>${esc(V.SCHWERE[i].kurz)}</small></button>`).join("")}</div>
       <p class="leise klein">${esc(W.name)}: ${text[n]}${host ? "" : ` · wählt ${esc(sp(S.host).name)}`}</p></div>`;
   }

@@ -296,7 +296,8 @@ Nach jedem Schritt: Simulation aller Rollenkombinationen für die Balance und ei
 1. **Partielänge:** Eine Partie soll an **einem Abend** fertig werden. Standard ist „Normal“ (2 Ebenen, etwa 1 Stunde),
    „Lang“ (3 Ebenen) bleibt wählbar, soll aber auch an einem Abend schaffbar sein (Ziel: höchstens ~90 Minuten).
    Speichern zwischen Ebenen (Schritt 7) ist damit nur noch ein Sicherheitsnetz, keine Kampagne über mehrere Abende.
-2. **Legende:** Ein gefallener Held scheidet **endgültig** aus (schaut für den Rest der Partie zu).
+2. **Legende:** ~~Ein gefallener Held scheidet endgültig aus.~~ Geändert am 15.11.2026: Niemand scheidet mehr aus,
+   Bewusstlose stehen auf Legende nach dem Kampf mit nur 1 Leben auf.
 3. **Talente neu verteilen:** nur **am Schrein gegen Gold**.
 4. **Zeitdruck:** **nie**, auch nicht als Fluch. Der Fluch „Zeitdruck“ entfällt.
 5. **Reihenfolge:** wie in Abschnitt 10.

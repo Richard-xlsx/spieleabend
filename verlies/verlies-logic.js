@@ -597,7 +597,7 @@
     1: { name: "Wanderer", kurz: "Zum Reinkommen", hp: 0.75, dmg: 0.75, gold: 1.2, rast: 0.6, elite: 1 },
     2: { name: "Abenteurer", kurz: "Der Standard", hp: 1, dmg: 1, gold: 1, rast: 0.4, elite: 1 },
     3: { name: "Held", kurz: "Mehr Elite-Räume", hp: 1.25, dmg: 1.15, gold: 0.9, rast: 0.3, elite: 1.8 },
-    4: { name: "Legende", kurz: "Wer fällt, bleibt liegen", hp: 1.5, dmg: 1.3, gold: 0.8, rast: 0.25, elite: 1.8 }
+    4: { name: "Legende", kurz: "Kaum Gnade", hp: 1.5, dmg: 1.3, gold: 0.8, rast: 0.25, elite: 1.8 }
   };
   const schwere = S => SCHWERE[S.schwere || 2];
   // Gruppengröße: zu zweit weniger, ab vier Helden mehr Gegner-Leben und -Schaden
@@ -1556,8 +1556,7 @@
     k.runde += 1;
 
     if (gegnerLebend(S).length && lebend(S).length) planeGegner(S);
-    // Legende: Steht am Ende niemand mehr, wären alle gefallen, also verloren, auch wenn die Gegner ebenfalls liegen
-    if (!gegnerLebend(S).length && (lebend(S).length || (S.schwere || 2) < 4)) kampfGewonnen(S);
+    if (!gegnerLebend(S).length) kampfGewonnen(S);
     else if (!lebend(S).length) { S.phase = "ende"; S.ergebnis = "niederlage"; S.seite = { bild: "grab", titel: "Ihr seid gefallen", text: [ebeneVon(S).niederlage] }; S.kampf = null; }
   }
   function setzeGift(h, n, runden, brand) { h.gift = n; h.giftR = runden; h.giftArt = brand ? "Brand" : "Gift"; }
@@ -1611,8 +1610,8 @@
     for (const p of S.teilnehmer) {
       const h = S.helden[p]; h.gift = 0; h.giftR = 0; h.segen = 0; h.lauer = false; h.netz = 0;
       if (h.hp <= 0 && !h.gefallen) {
-        if ((S.schwere || 2) >= 4) { h.gefallen = true; h.hp = 0; t.push(`${heldName(S, p)} ist gefallen und schaut ab jetzt nur noch zu.`); }
-        else { h.hp = S.schwere === 1 ? Math.ceil(h.max / 2) : 5; t.push(`${heldName(S, p)} kommt mit ${h.hp} Leben wieder zu sich.`); }
+        h.hp = S.schwere === 1 ? Math.ceil(h.max / 2) : (S.schwere || 2) >= 4 ? 1 : 5;
+        t.push(`${heldName(S, p)} kommt mit ${h.hp} Leben wieder zu sich.`);
       }
     }
     const sammeln = S.teilnehmer.reduce((a, p) => a + passiv(S.helden[p], "siegheil"), 0);
@@ -1817,7 +1816,8 @@
       }
       default: return S0;
     }
-    if (S.helden) for (const p in S.helden) if (S.helden[p].gefallen) S.helden[p].hp = 0;   // Legende: gefallen bleibt gefallen
+    // alte Spielstände: früher schied man auf Legende endgültig aus, jetzt steht man wieder auf
+    if (S.helden) for (const p in S.helden) { const h = S.helden[p]; if (h.gefallen) { delete h.gefallen; if (!S.kampf && h.hp <= 0) h.hp = 1; } }
     S.aenderung = Date.now();
     return S;
   }
