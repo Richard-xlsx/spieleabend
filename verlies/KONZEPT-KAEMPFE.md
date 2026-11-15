@@ -437,3 +437,23 @@ Simulation (Abenteurer, 3 Ebenen, kluge Bots, je 40 Partien pro Gruppe; zu sechs
 
   - Die Unterschiede liegen im Rauschen der Simulation.
   - Eure Runde: 19 → 16 %, ebenfalls im Rauschen (die Partien streuen je Zusammenstellung zwischen 5 und 24 %).
+
+## Held und Legende härter (15.11.2026)
+
+Rückmeldung vom Spieleabend: Nekromant, Heilerin und Mönch fanden „Held“ viel zu leicht, die Spinnenkönigin war keine Gefahr,
+und „ruft Verstärkung“ ließ sich fast immer unterbrechen.
+
+- **Anführer:** Auf Held und Legende hat ab Raum 4 in normalen Kämpfen ein Gegner einen Elite-Zusatz (eisig, vampirisch, zornig, geschwind oder Wächter), ohne Abzug bei den Leben.
+- **Endgegner mit Zusatz:** Auf Held und Legende bekommt jeder Endgegner einen Zusatz (eisig, vampirisch oder geschwind). Dafür hat er etwas weniger Leben: ×0,85 auf Held, ×0,78 auf Legende.
+- **Eier und Kokons wachsen mit:** Ihre Leben steigen mit Ebene, Schwierigkeit und Gruppengröße (60 % des Wachstums normaler Gegner). Ist die Königin unter halben Leben, schlüpfen neue Eier schon nach 1 Runde.
+- **Der Gegner lernt dazu:** Jedes Unterbrechen hebt die Schwelle dieses Gegners um die Hälfte (10 % → 15 % → 22 % seiner Leben).
+
+Der erste Entwurf hatte auf Legende zwei Endgegner-Zusätze ohne Abzug bei den Leben. Damit gewann das Trio auf Held nur noch 58 % und auf Legende 6 %. Vor allem „geschwind“ ist bei Endgegnern stark.
+
+| Siegquote (klug spielende Bots, 2 Ebenen) | vorher | jetzt |
+|---|---|---|
+| Nekromant, Heilerin, Mönch auf Held | 88 % | 71 % |
+| Nekromant, Heilerin, Mönch auf Legende | 53 % | 36 % |
+| alle Dreiergruppen auf Abenteurer | 86 % | 86 % |
+| alle Dreiergruppen auf Held | 57 % | 47 % |
+| alle Dreiergruppen auf Legende | 22 % | 18 % |

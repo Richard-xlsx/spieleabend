@@ -913,6 +913,10 @@
   const VERNICHTUNG_START = [3, 4], VERNICHTUNG_TAKT = [4, 5], VERNICHTUNG = [80, 95], VERNICHTUNG_E1 = [50, 65];
   // Knochenkönig: +3 % Leben je Runde, solange ein Held bewusstlos ist; Spinnenei: schlüpft nach 2 Runden; Lava: 2 Schaden, jede Runde 1 mehr
   const SEELENERNTE = 0.03, BRUTZEIT = 2, LAVA = 2;
+  const OBJEKT_HP = 0.6;
+  const BOSS_ZUSATZ_HP = { held: 0.85, legende: 0.78 };   // Leben eines Endgegners mit Zusatz              // Eier und Kokons: Anteil am Wachstum der Gegner
+  const SCHWELLE_LERNT = 1.5;         // jedes Unterbrechen hebt die Schwelle dieses Gegners
+  const ANFUEHRER_AB = 4;             // ab diesem Raum hat auf Held und Legende ein Gegner jeder Gruppe einen Zusatz
   // Zorn: +2 Schaden je Runde (höchstens +12); Seelenband: höchstens zweimal wieder aufstehen; Wundbrand: 2 Runden keine Heilung
   const ZORN = 2, ZORN_MAX = 12, BAND_MAX = 2, WUNDBRAND = 2;
   const wut = (S, g) => GEGNER[g.art].boss && S.kampf && S.kampf.runde >= WUT_AB ? 1 + WUT_PRO * (S.kampf.runde - WUT_AB + 1) : 1;
@@ -936,7 +940,8 @@
     // zu zweit schwächer; je tiefer, desto zäher (Helden steigen ja auch auf)
     const g = GEGNER[art], f = gruppe(S).hp * (g.boss ? gruppe(S).boss || 1 : 1) * (g.boss ? 1 + (schwere(S).hp - 1) / 2 : schwere(S).hp) * (g.boss ? 1 : 1 + 0.11 * Math.max(0, S.raumNr - 1)) * (1 + (S.karte ? S.karte.fluch || 0 : 0)) * (fluch(S, "zaeh") ? 1.25 : 1);
     // Endgegner ab Ebene 2: weniger Leben als die Ebene sonst vorsieht, damit der Kampf nicht ewig dauert (Wut-Uhr macht ihn gefährlich)
-    const hp = g.objekt ? g.hp : Math.max(4, Math.round(g.hp * f * staerke(S).hp * (g.boss ? ((S.ebene || 1) >= 2 ? BOSS_TIEF : BOSS_E1) : 1)));
+    // Eier und Kokons: wachsen mit Ebene, Schwierigkeit und Gruppengröße (aber nicht mit Raum, Flüchen oder Endgegner-Faktor)
+    const hp = g.objekt ? Math.max(g.hp, Math.round(g.hp * staerke(S).hp * schwere(S).hp * gruppe(S).hp * OBJEKT_HP)) : Math.max(4, Math.round(g.hp * f * staerke(S).hp * (g.boss ? ((S.ebene || 1) >= 2 ? BOSS_TIEF : BOSS_E1) : 1)));
     S.gegnerNr = (S.gegnerNr || 0) + 1;
     return Object.assign({ id: "g" + S.gegnerNr, art, name: g.name, hp, max: hp, gift: 0, giftR: 0, starr: 0, markiert: 0 }, g.elite ? { elite: true } : {}, g.ei ? { brut: BRUTZEIT } : {}, g.wechselhaut ? { haut: "nah" } : {});
   }
@@ -1446,7 +1451,7 @@
     const vziele = () => { const l = helden.slice(), z = []; for (let i = 0; i < (S.teilnehmer.length >= 5 ? 2 : 1) && l.length; i++) z.push(l.splice(l.indexOf(eins(S, l)), 1)[0]); return z; };
     const faellig = g => { if (g.takt == null) g.takt = k.runde + wurf(S, ...TAKT_START); if (k.runde < g.takt) return false; g.takt = k.runde + wurf(S, ...TAKT); return true; };
     // große Züge von Endgegnern und Elite lassen sich mit Schaden abbrechen
-    const gross = (g, x) => { const art = GEGNER[g.art]; if ((x.a === "ruf" || x.a === "beben") && (art.boss || art.elite)) x.schwelle = Math.max(1, Math.round(g.max * (art.boss ? SCHWELLE_BOSS : SCHWELLE_ELITE))); return x; };
+    const gross = (g, x) => { const art = GEGNER[g.art]; if ((x.a === "ruf" || x.a === "beben") && (art.boss || art.elite)) x.schwelle = Math.max(1, Math.round(g.max * (art.boss ? SCHWELLE_BOSS : SCHWELLE_ELITE) * SCHWELLE_LERNT ** (g.unterbrochen || 0))); return x; };
     for (const g of gegnerLebend(S)) {
       const art = GEGNER[g.art];
       // Eier brüten, Kokons halten ihren Helden fest
@@ -1518,13 +1523,21 @@
       gruppe = gruppe.concat(einfach.length ? eins(S, einfach) : eins(S, ebeneVon(S).gruppen[0].flat().filter(a => !GEGNER[a].langfinger)));
     }
     S.gegner = gruppe.map(a => gegnerErzeugen(S, a));
-    // Elite-Zusätze ab Ebene 2 (Legende: zwei)
-    if ((S.ebene || 1) >= 2) for (const g of S.gegner) if (GEGNER[g.art].elite) {
-      const frei = Object.keys(ZUSAETZE).filter(e => !GEGNER[g.art][e]);
+    const zusaetzeGeben = (g, n, pool, hpFaktor) => {
+      const frei = pool.filter(e => !GEGNER[g.art][e]);
       g.zusatz = [];
-      for (let i = 0; i < ((S.schwere || 2) >= 4 ? 2 : 1) && frei.length; i++) { const e = eins(S, frei); frei.splice(frei.indexOf(e), 1); g.zusatz.push(e); }
-      // ein Zusatz macht ihn auf andere Art stark, dafür hat er weniger Leben
-      g.max = g.hp = Math.max(4, Math.round(g.hp * ZUSATZ_HP ** g.zusatz.length));
+      for (let i = 0; i < n && frei.length; i++) { const e = eins(S, frei); frei.splice(frei.indexOf(e), 1); g.zusatz.push(e); }
+      g.max = g.hp = Math.max(4, Math.round(g.hp * hpFaktor ** g.zusatz.length));
+    };
+    const hart = (S.schwere || 2) >= 3, zwei = (S.schwere || 2) >= 4;
+    // Elite-Zusätze ab Ebene 2 (Legende: zwei); ein Zusatz macht ihn auf andere Art stark, dafür hat er weniger Leben
+    if ((S.ebene || 1) >= 2) for (const g of S.gegner) if (GEGNER[g.art].elite) zusaetzeGeben(g, zwei ? 2 : 1, Object.keys(ZUSAETZE), ZUSATZ_HP);
+    // Held und Legende: Endgegner bekommen einen Zusatz und dafür etwas weniger Leben (auf Legende mehr, weil dort alles andere schon hart ist)
+    if (hart) for (const g of S.gegner) if (GEGNER[g.art].boss) zusaetzeGeben(g, 1, ["eisig", "vampir", "schnell"], zwei ? BOSS_ZUSATZ_HP.legende : BOSS_ZUSATZ_HP.held);
+    // Held und Legende: In normalen Kämpfen ab Raum 4 führt ein Gegner die Gruppe an
+    if (hart && (S.raumNr || 0) >= ANFUEHRER_AB && !S.gegner.some(g => GEGNER[g.art].elite || GEGNER[g.art].boss)) {
+      const kand = S.gegner.filter(g => !GEGNER[g.art].langfinger && !GEGNER[g.art].objekt);
+      if (kand.length) { const g = eins(S, kand); zusaetzeGeben(g, 1, Object.keys(ZUSAETZE), 1); g.fuehrt = true; }
     }
     S.kampf = { runde: 1, wahl: {}, bossPhase: 1, epTot: 0, nebel: false, absicht: {}, rache: 0, diener: [], dnr: 0, koVor: Object.fromEntries(S.teilnehmer.map(p => [p, S.helden[p].stats.umgefallen])) };
     for (const p of S.teilnehmer) { const h = S.helden[p]; for (const id in h.cd) if (NEUE[id] && NEUE[id].meister) delete h.cd[id]; }
@@ -2082,7 +2095,8 @@
     const rufen = (anzahl, art) => {
       aufraeumen();
       const neu = [];
-      for (let i = 0; i < anzahl && gegnerLebend(S).length < maxGegner(S) && (k.gerufen || 0) < MAX_GERUFEN; i++) { const g = Object.assign(gegnerErzeugen(S, art), { gerufen: true }); S.gegner.push(g); neu.push(g); k.gerufen = (k.gerufen || 0) + 1; }
+      const eilig = art === "ei" && S.gegner.some(x => x.art === "koenigin" && x.hp > 0 && x.hp <= x.max / 2);
+      for (let i = 0; i < anzahl && gegnerLebend(S).length < maxGegner(S) && (k.gerufen || 0) < MAX_GERUFEN; i++) { const g = Object.assign(gegnerErzeugen(S, art), { gerufen: true }, eilig ? { brut: 1 } : {}); S.gegner.push(g); neu.push(g); k.gerufen = (k.gerufen || 0) + 1; }
       return neu.map(kurz);
     };
     // Wessen Kokon zerschlagen ist, der ist frei
@@ -2260,7 +2274,8 @@
         return { a: "starr" };
       }
       if (plan.schwelle && hpVor[g.id] - g.hp >= plan.schwelle) {
-        log.push(`${g.name} wird unterbrochen: ${SPEZIALNAME(plan)} bricht ab!`);
+        g.unterbrochen = (g.unterbrochen || 0) + 1;
+        log.push(`${g.name} wird unterbrochen: ${SPEZIALNAME(plan)} bricht ab! Beim nächsten Mal ist er darauf gefasst.`);
         return { a: "unterbrochen" };
       }
       if (plan.a === "ruf" && gegnerLebend(S).length < maxGegner(S)) {
