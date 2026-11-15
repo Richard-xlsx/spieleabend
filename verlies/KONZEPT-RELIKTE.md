@@ -75,9 +75,20 @@ einer eigenen kleinen Regel. Sie sollen jede Partie anders machen und Truhen wie
 - **Aktive Relikte mit eigenem Knopf**: Das macht die Kampfauswahl am Handy voller. Vielleicht später.
 - **Seltenheit, die man farmen muss**: Kein Relikt ist so stark, dass ohne es nichts geht.
 
-## 7. Offene Fragen
+## 7. Entscheidungen (15.11.2026)
 
-1. **Verteilung**: automatisch an den Helden mit den wenigsten Relikten (fair, kein Streit) oder abstimmen wie bei der Karte (mehr Gespräch)?
-2. **Verfluchte Relikte**: rein oder weglassen?
-3. **Schatzkammer**: Relikt statt +1 Waffe oder Rüstung, oder beides?
-4. Welche Relikte sollen raus, welche fehlen?
+- Truhen und Elite-Gegner geben ihr Relikt automatisch dem Helden mit den wenigsten. Um die Trophäe des Endgegners stimmt die Gruppe ab.
+- Verfluchte Relikte sind drin, über drei neue Ereignisse: „Ein Thron im Staub“, „Ein freundlicher Geldverleiher“, „Ein Spieltisch ohne Spieler“.
+- Die Schatzkammer gibt ein Relikt statt +1 Waffe oder Rüstung.
+- Weitergeben geht zwischen den Kämpfen (nicht während der Abstimmung auf der Karte). Der andere muss annehmen. Sind seine Plätze voll, tauscht er eins zurück.
+
+## 8. Simulation (klug spielende Bots, Abenteurer)
+
+| | ohne Relikte | mit Relikten |
+|---|---|---|
+| 3 Helden, 2 Ebenen | 84 % Siege | 88 % |
+| 3 Helden, 3 Ebenen | 75 % | 81 % |
+| 5 Helden, 2 Ebenen | 78 % | 76 % |
+
+Der erste Entwurf brachte bei 3 Ebenen +10 Punkte. Deshalb sind Knochenzepter (30 → 20 %) und Seidenmantel (−2 → −1) abgeschwächt,
+und Elite-Gegner lassen nur noch in 60 % der Fälle ein Relikt fallen. Am Ende einer Partie mit 2 Ebenen trägt jeder Held im Schnitt 1,5 Relikte, bei 3 Ebenen 2,3.
