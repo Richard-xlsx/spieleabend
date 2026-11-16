@@ -76,11 +76,11 @@ export class Welt {
     [this.gTerrain, this.gLand, this.gNetz, this.gBauten, this.gZug, this.gMarke, this.gRauch, this.gSchweben].forEach(g => sc.add(g));
     this.rauch = [];
     const rg = new THREE.IcosahedronGeometry(.16, 0);
-    for (let i = 0; i < 60; i++) { const m = new THREE.Mesh(rg, new THREE.MeshLambertMaterial({ color: 0xF4F4F6, transparent: true, opacity: 0, depthWrite: false })); m.visible = false; this.gRauch.add(m); this.rauch.push({ m, alter: 9 }); }
+    for (let i = 0; i < 120; i++) { const m = new THREE.Mesh(rg, new THREE.MeshLambertMaterial({ color: 0xF4F4F6, transparent: true, opacity: 0, depthWrite: false })); m.visible = false; this.gRauch.add(m); this.rauch.push({ m, alter: 9 }); }
     this.rNr = 0; this.rauchZeit = 0;
     const marke = this.marke = new THREE.Mesh(new THREE.RingGeometry(.62, .78, 4, 1, Math.PI / 4).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: 0xFFD447, depthTest: false, transparent: true }));
     marke.scale.set(F * .92, 1, F * .92); marke.renderOrder = 9; marke.visible = false; this.gMarke.add(marke);
-    this.wagen = []; this.folgen = false; this.onTap = null; this.onFolgenAus = null; this.S = null;
+    this.zuege = {}; this.ich = null; this.folgen = false; this.onTap = null; this.onFolgenAus = null; this.S = null;
     this.tippen();
     this.uhr = new THREE.Clock();
     addEventListener("resize", () => this.groesse());
@@ -132,24 +132,29 @@ export class Welt {
   }
 
   // ---------- Stand übernehmen (nach jeder Aktion) ----------
-  setzen(S) {
-    this.S = S;
+  // ich = eigene Spieler-ID (bestimmt eigenes Land, Kamera beim Folgen)
+  setzen(S, ich) {
+    this.S = S; this.ich = ich; this.gid = G.gruppeVon(S, ich);
     const tunnel = Object.keys(S.gleise).filter(k => S.karte.g[k] === "b").join(",");
-    const tk = S.seed + "|" + S.karte.g + "|" + S.land + "|" + tunnel;
+    const tk = S.seed + "|" + S.karte.g + "|" + S.land.join(",") + "|" + tunnel + "|" + this.gid;
     if (tk !== this.terrainKey) { this.terrainKey = tk; this.gelaende(S); }
-    const lk = S.land + "|" + G.landPreis(S);
+    const lk = S.land.join(",") + "|" + this.gid + "|" + (this.gid ? G.landPreis(S, this.gid) : 0) + "|" + Object.keys(S.gruppen).map(g => S.gruppen[g].name).join();
     if (lk !== this.landKey) { this.landKey = lk; this.landZeichnen(S); }
     const gk = JSON.stringify(S.gleise);
     if (gk !== this.gleisKey) { this.gleisKey = gk; this.gleiseZeichnen(S); }
     const bk = JSON.stringify(Object.keys(S.bauten).map(k => k + S.bauten[k].t));
     if (bk !== this.bautenKey) { this.bautenKey = bk; this.bautenZeichnen(S); }
-    if (this.wagen.length !== 2 + S.zug.stufen.wagen) this.zugBauen(S);
+    for (const pid in this.zuege) if (!S.zuege[pid]) { this.zuege[pid].teile.forEach(o => this.gZug.remove(o)); delete this.zuege[pid]; }
+    for (const pid in S.zuege) {
+      const z = this.zuege[pid], farbe = S.spieler[pid] ? S.spieler[pid].farbe : 0;
+      if (!z || z.teile.length !== 2 + S.zuege[pid].stufen.wagen || z.farbe !== farbe) this.zugBauen(S, pid);
+    }
   }
   gelaende(S) {
     const K = S.karte, boden = [], baeume = [], kronen = [], felsen = [], haeuser = [], daecher = [];
     leeren(this.gTerrain);
     for (let i = 0; i < G.B * G.H; i++) {
-      const g = K.g[i], c = i % G.B, r = i / G.B | 0, x = this.wx(c + .5), zz = this.wz(r + .5), an = G.besitzt(S, i);
+      const g = K.g[i], c = i % G.B, r = i / G.B | 0, x = this.wx(c + .5), zz = this.wz(r + .5), an = !!this.gid && G.besitzer(S, i) === this.gid;
       const fl = FARBE[g], h = HOEHE[g];
       boden.push({ x, y: 0, z: zz, sx: F, sy: h, sz: F, farbe: abdunkeln(fl[(c * 7 + r * 13) % fl.length], an) });
       const q = rng(i * 31 + K.seed);
@@ -179,24 +184,33 @@ export class Welt {
     }
     K.doerfer.forEach(d => { const sp = schild(d.name, { groesse: 1.6 }); sp.position.set(this.wx(d.x + .5), 3.2, this.wz(d.y + .5)); this.gTerrain.add(sp); });
   }
-  // Grenze des eigenen Landes und Preisschilder für kaufbare Grundstücke
+  // Grenzen aller Bahnen (eigene gelb, andere in ihrer Farbe), Namen der anderen Bahnen, Preisschilder für kaufbares Land
   landZeichnen(S) {
     leeren(this.gLand);
-    const n = G.B / G.P, striche = [], P = G.P;
+    const n = G.B / G.P, P = G.P, striche = {};
     for (let p = 0; p < n * n; p++) {
-      if (S.land[p] !== "1") continue;
-      const c = p % n, r = p / n | 0;
-      const frei = (cc, rr) => cc < 0 || rr < 0 || cc >= n || rr >= n || S.land[rr * n + cc] !== "1";
-      const x0 = this.wx(c * P), z0 = this.wz(r * P), L = P * F;
-      if (frei(c, r - 1)) striche.push({ x: x0 + L / 2, y: GY + .02, z: z0, sx: L, sy: .05, sz: .14 });
-      if (frei(c, r + 1)) striche.push({ x: x0 + L / 2, y: GY + .02, z: z0 + L, sx: L, sy: .05, sz: .14 });
-      if (frei(c - 1, r)) striche.push({ x: x0, y: GY + .02, z: z0 + L / 2, sx: .14, sy: .05, sz: L });
-      if (frei(c + 1, r)) striche.push({ x: x0 + L, y: GY + .02, z: z0 + L / 2, sx: .14, sy: .05, sz: L });
+      const gid = S.land[p]; if (!gid) continue;
+      const c = p % n, r = p / n | 0, l = striche[gid] = striche[gid] || [];
+      const frei = (cc, rr) => cc < 0 || rr < 0 || cc >= n || rr >= n || S.land[rr * n + cc] !== gid;
+      const x0 = this.wx(c * P), z0 = this.wz(r * P), L = P * F, d = gid === this.gid ? .14 : .1, y = GY + .02 + (gid === this.gid ? .01 : 0);
+      if (frei(c, r - 1)) l.push({ x: x0 + L / 2, y, z: z0 + .07, sx: L, sy: .05, sz: d });
+      if (frei(c, r + 1)) l.push({ x: x0 + L / 2, y, z: z0 + L - .07, sx: L, sy: .05, sz: d });
+      if (frei(c - 1, r)) l.push({ x: x0 + .07, y, z: z0 + L / 2, sx: d, sy: .05, sz: L });
+      if (frei(c + 1, r)) l.push({ x: x0 + L - .07, y, z: z0 + L / 2, sx: d, sy: .05, sz: L });
     }
-    this.gLand.add(instanzen(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshBasicMaterial({ color: 0xFFD447 }), striche, false));
-    const preis = G.landPreis(S).toLocaleString("de-DE") + " T";
+    for (const gid in striche) {
+      const farbe = gid === this.gid ? 0xFFD447 : new THREE.Color(G.FARBEN[(S.gruppen[gid] || {}).farbe || 0]).getHex();
+      this.gLand.add(instanzen(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshBasicMaterial({ color: farbe }), striche[gid], false));
+    }
+    for (const pid in S.spieler) {
+      const sp = S.spieler[pid], gid = sp.gruppe; if (gid === this.gid || !S.gruppen[gid]) continue;
+      const sc = schild(S.gruppen[gid].name, { bg: G.FARBEN[S.gruppen[gid].farbe], fg: "#FFFFFF", groesse: 2.2, unter: sp.name });
+      sc.position.set(this.wx(sp.start.x), 4.2, this.wz(sp.start.y - 3)); this.gLand.add(sc);
+    }
+    if (!this.gid) return;
+    const preis = G.landPreis(S, this.gid).toLocaleString("de-DE") + " T";
     for (let p = 0; p < n * n; p++) {
-      if (!G.landKaufbar(S, p)) continue;
+      if (!G.landKaufbar(S, this.gid, p)) continue;
       const sp = schild("Land kaufen", { bg: "#FFD447", fg: "#1C1A33", unter: preis, groesse: 2.6 });
       sp.position.set(this.wx((p % n + .5) * P), 3, this.wz(((p / n | 0) + .5) * P)); this.gLand.add(sp);
     }
@@ -314,12 +328,13 @@ export class Welt {
     sp.position.set(this.wx(x), 2.6, this.wz(y));
     this.gSchweben.add(sp); this.schwebende.push({ sp, alter: 0 });
   }
-  zugBauen(S) {
-    leeren(this.gZug); this.wagen = [];
-    const n = 1 + S.zug.stufen.wagen, schwarz = mat(0x2A2A35), rot = mat(0xE2453A);
-    const rad = (g, x, z, r) => { const m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, .08, 10).rotateX(Math.PI / 2), schwarz); m.position.set(x, r, z); g.add(m); };
-    const box = (g, w, h, d, x, y, z, m) => { const b = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); b.position.set(x, y, z); b.castShadow = true; g.add(b); return b; };
-    // Lok, Länge 1,6 in x-Richtung, vorne = +x
+  zugBauen(S, pid) {
+    const alt = this.zuege[pid]; if (alt) alt.teile.forEach(o => this.gZug.remove(o));
+    const farbe = S.spieler[pid] ? S.spieler[pid].farbe : 0, z = S.zuege[pid];
+    const n = 1 + z.stufen.wagen, schwarz = mat(0x2A2A35), rot = mat(new THREE.Color(G.FARBEN[farbe]).getHex()), teile = [];
+    const rad = (g, x, zz, r) => { const m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, .08, 10).rotateX(Math.PI / 2), schwarz); m.position.set(x, r, zz); g.add(m); };
+    const box = (g, w, h, d, x, y, zz, m) => { const b = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); b.position.set(x, y, zz); b.castShadow = true; g.add(b); return b; };
+    // Lok, Länge 1,6 in x-Richtung, vorne = +x; Farbe des Spielers
     const lok = new THREE.Group();
     box(lok, 1.5, .14, .62, 0, .26, 0, schwarz);
     const kessel = new THREE.Mesh(new THREE.CylinderGeometry(.27, .27, .95, 12).rotateZ(Math.PI / 2), rot); kessel.position.set(.22, .6, 0); kessel.castShadow = true; lok.add(kessel);
@@ -328,36 +343,39 @@ export class Welt {
     box(lok, .3, .22, .4, -.48, .75, 0, mat(0xBFE3F2));
     [-.5, -.1, .3].forEach(x => { rad(lok, x, .3, .2); rad(lok, x, -.3, .2); });
     lok.position.y = GY + .1;
-    this.gZug.add(lok); this.wagen.push(lok);
+    this.gZug.add(lok); teile.push(lok);
     for (let k = 0; k < n; k++) {
-      const w = new THREE.Group(), f = mat(WAGENFARBE[k % WAGENFARBE.length]);
+      const w = new THREE.Group(), f = mat(WAGENFARBE[(k + farbe) % WAGENFARBE.length]);
       box(w, 1.12, .12, .58, 0, .24, 0, schwarz);
       box(w, 1.1, .46, .64, 0, .52, 0, f);
       box(w, .9, .14, .66, 0, .6, 0, mat(0xF3F0FF));
       box(w, 1.18, .07, .72, 0, .79, 0, mat(0x3D3868));
       [-.35, .35].forEach(x => { rad(w, x, .3, .16); rad(w, x, -.3, .16); });
       w.position.y = GY + .1;
-      this.gZug.add(w); this.wagen.push(w);
+      this.gZug.add(w); teile.push(w);
     }
+    this.zuege[pid] = { teile, farbe, rauch: Math.random() * .3 };
   }
+  // Lok eines Spielers in Feldkoordinaten (für Kamera und Texte)
+  lokBei(pid) { const z = this.S && this.S.zuege[pid]; if (!z) return null; const l = G.wagenlage(z)[0]; return { x: l.x, y: l.y }; }
 
   // ---------- jedes Bild ----------
   bild() {
     const dt = Math.min(.05, this.uhr.getDelta());
     if (this.vorBild) this.vorBild(dt);
     const S = this.S;
-    if (S && this.wagen.length) {
-      const l = G.wagenlage(S);
-      l.forEach((w, k) => { const o = this.wagen[k]; if (!o) return; o.position.x = this.wx(w.x); o.position.z = this.wz(w.y); o.rotation.y = -w.w; });
-      const lok = this.wagen[0], v = S.zug.v;
+    if (S) for (const pid in this.zuege) {
+      const zug = S.zuege[pid], zz = this.zuege[pid]; if (!zug) continue;
+      G.wagenlage(zug).forEach((w, k) => { const o = zz.teile[k]; if (!o) return; o.position.x = this.wx(w.x); o.position.z = this.wz(w.y); o.rotation.y = -w.w; });
+      const lok = zz.teile[0], v = zug.v;
       // Rauch aus dem Schlot
-      this.rauchZeit -= dt;
-      if (this.rauchZeit <= 0) {
-        this.rauchZeit = v > .05 ? Math.max(.06, .3 - v * .1) : .9;
+      zz.rauch -= dt;
+      if (zz.rauch <= 0) {
+        zz.rauch = v > .05 ? Math.max(.06, .3 - v * .1) : .9;
         const r = this.rauch[this.rNr++ % this.rauch.length], c = Math.cos(lok.rotation.y), s = Math.sin(lok.rotation.y);
         r.m.position.set(lok.position.x + .55 * c, lok.position.y + 1.1, lok.position.z - .55 * s); r.alter = 0; r.m.visible = true; r.m.scale.setScalar(.6);
       }
-      if (this.folgen) {
+      if (this.folgen && pid === this.ich) {
         const t = this.controls.target, dx = (lok.position.x - t.x) * Math.min(1, dt * 3), dz = (lok.position.z - t.z) * Math.min(1, dt * 3);
         t.x += dx; t.z += dz; this.camera.position.x += dx; this.camera.position.z += dz;
       }

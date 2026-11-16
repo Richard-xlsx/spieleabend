@@ -5,7 +5,8 @@ Stand 16.11.2026. Ersetzt das bisherige Gleisgenossen (Monatsrunden auf Sechseck
 
 ## Entscheidungen
 - **Gemeinsame Welt:** Alle bauen auf derselben Karte.
-- **Gemeinsame Kasse.**
+- **Eigener Start, später zusammentun** (Änderung vom 16.11.2026, ersetzt „gemeinsame Kasse“): Jeder startet als eigene
+  Bahn mit Startbereich, Gleiskreis, Zug und Kasse. Bahnen können sich zu einer Genossenschaft zusammentun.
 - **Spielstand:** Man kann speichern und später weiterspielen. Wer ohne Speichern schließt, verwirft den Stand.
   Im Mehrspieler-Spiel speichert das Handy des Spielleiters.
 - **Ordner und Name bleiben** (`gleisgenossen/`), damit alte Links weiter gehen.
@@ -70,14 +71,33 @@ Preise steigen mit jeder Stufe.
   das nächste offene steht als gelbe Leiste oben.
 - Große Kurven sind verschoben (sie würden mehrere Felder belegen); Kurvenlauf als Verbesserung deckt das Tempo ab.
 
+## Schritt 3 (16.11.2026, gebaut): zusammen spielen
+- **Karte nach Spielerzahl:** allein 64 × 64, zu zweit 80 × 80, zu dritt und viert 96 × 96, zu fünft und sechst 112 × 112 Felder.
+  Startbereiche (2 × 2 Grundstücke) liegen gleichmäßig im Kreis um die Mitte, ohne Wasser, Berge und Dörfer.
+- **Jede Bahn für sich:** eigene Kasse (80 T), eigenes Land, eigene Ziele, eigener Zug in der Spielerfarbe.
+  Bauen, Abreißen und Weichen stellen nur auf eigenem Land; Züge fahren nur auf Gleisen ihrer Bahn.
+- **Zusammentun (👥):** Eine Bahn lädt ein, die andere nimmt an. Die einladende Bahn nimmt die andere auf:
+  Kassen, Land, Gleise, erreichte Ziele und Zähler werden zusammengelegt, der Name wird „Genossenschaft …“.
+  Ab dann fahren alle Züge im ganzen gemeinsamen Netz. Der Landpreis zählt nur zugekauftes Land.
+- **Mehrere Züge in einem Netz:** Ein Zug hält vor einem Feld, auf dem ein anderer Zug steht. Bei Gegenverkehr warten
+  beide; dann hilft „Zug wenden“.
+- **Verbindung:** Lobby mit Code, Link und QR-Code (bis 6 Bahnen). Das Handy des Spielleiters rechnet und schickt
+  alle 0,3 s Züge und Kassen, nach jeder Aktion den ganzen Stand. Mitspieler rechnen dazwischen selbst weiter.
+  Lädt der Spielleiter neu, öffnet er den Raum mit dem laufenden Spiel wieder (Sitzung im Tab).
+  Mitspieler, die neu laden, kommen automatisch zurück. Wer in ein laufendes Spiel kommt, übernimmt eine Bahn,
+  die gerade niemand steuert, oder schaut zu.
+- **Speichern:** nur der Spielleiter (oder wer allein spielt). „Raum öffnen und weiterspielen“ öffnet den gespeicherten
+  Stand im selben Raumcode; Mitspieler finden ihre Bahn über ihre Geräte-ID oder übernehmen sie.
+- Alte Spielstände (Schritt 1 und 2) werden beim Laden zu einer Bahn umgebaut.
+
 ## Schritte
 1. **Kern (dieser Stand):** Karte, Startkreis, fahrender Zug, Geld pro Meter, Kurven bremsen, Gleisteile bauen,
    drehen, ersetzen, abreißen, Zug-Verbesserungen, Land kaufen, Speichern und Fortsetzen. Ein Handy.
 2. **Ausbau (gebaut, siehe oben):** Weichen, Bahnhöfe in Dörfern (Fahrgäste zahlen nach Entfernung), Brücken über Wasser,
    Tunnel durch Berge, kaufbare Sehenswürdigkeiten (Wasserturm, Burg, Windmühle, Aussichtspunkt) mit Boni,
    Aufträge und Meilensteine.
-3. **Mehrspieler:** Gemeinsame Welt auf mehreren Handys (Lobby wie bei den anderen Spielen), mehrere Züge,
-   Signale gegen Zusammenstöße. Das Handy des Spielleiters rechnet und speichert.
+3. **Mehrspieler (gebaut, siehe oben):** jeder mit eigener Bahn, später zusammentun; Züge halten vor anderen Zügen.
+   Echte Signale und Ausweichstellen könnten später kommen.
 
 ## Simulation (Bot kauft immer die billigste Zug-Verbesserung, baut nichts)
 | | 1 Min | 10 Min | 30 Min |

@@ -202,7 +202,7 @@ Spielern (rund 47.000 Züge), dabei nie eine Karte verloren oder doppelt.
 Getestet am 13.11.2026 mit drei simulierten Spielern im Browser (alle Spiele: ganze Runde, Punkte bzw. Ketten und Herzen,
 Neuladen eines Mitspielers, Neuladen der Spielleiterin, Übernahme der Spielleitung). Noch nicht auf echten Handys.
 
-Gleisgenossen (neu vom 16.11.2026, vorerst 1 Handy; Plan in gleisgenossen/KONZEPT.md)
+Gleisgenossen (neu vom 16.11.2026, allein oder 2 bis 6 Bahnen; Plan in gleisgenossen/KONZEPT.md)
   Offene Welt: ein kleiner Zug fährt auf einem Gleiskreis, jeder gefahrene Meter bringt Geld (gemeinsame Kasse, Start 80 T).
   Ersetzt das alte Gleisgenossen mit Monatsrunden auf Sechsecken (liegt in Git, Commit c0f542e).
   Karte 64 × 64 Felder im Quadratraster (1 Feld = 10 m), Three.js 0.160 vom CDN; Grundstücke zu 8 × 8 Feldern,
@@ -218,3 +218,8 @@ Gleisgenossen (neu vom 16.11.2026, vorerst 1 Handy; Plan in gleisgenossen/KONZEP
   anderen Bahnhof 0,5 T pro Feld. Gerade auf Wasser = Brücke (+100 T), im Berg = Tunnel (+180 T).
   Bauwerke (Werkzeug „Bauten“): Wasserturm 150 T (20 s 30 % schneller), Windmühle 300 T, Burg 900 T, Riesenrad 2.200 T
   (Bonus bei jeder Durchfahrt, mehrere kurz hintereinander bis × 2). 16 Ziele mit Belohnung, gelbe Leiste oben.
+  Schritt 3 (16.11.2026): zusammen spielen. Karte 64/80/96/112 Felder je nach Spielerzahl, jeder startet als eigene Bahn
+  (Startbereich, Gleiskreis, Zug in Spielerfarbe, Kasse 80 T, eigene Ziele) und baut nur auf eigenem Land.
+  👥 Zusammentun: Einladung annehmen legt Kasse, Land, Gleise und Ziele zusammen („Genossenschaft …“), dann fahren alle
+  Züge im gemeinsamen Netz; ein Zug hält vor einem Feld mit einem anderen Zug. Spielleiter rechnet, schickt alle 0,3 s
+  Züge und Kassen; Neuladen von Spielleiter (Sitzung im Tab) und Mitspielern getestet. Speichern nur beim Spielleiter.
