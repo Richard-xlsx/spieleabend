@@ -232,3 +232,7 @@ Gleisgenossen (neu vom 16.11.2026, allein oder 2 bis 6 Bahnen; Plan in gleisgeno
   Grafik: durchgehendes Gelände, bewegtes Wasser mit Flussbett, Tannen/Laubbäume/Birken im Wind, Blumen, Gras, Büsche,
   Felsen mit Schnee, Satteldächer und Kirche, Landschaft bis zum Horizont, Himmel mit Wolken; Raster und abgedunkeltes
   fremdes Land nur beim Bauen. Die Karte geht nur bei Änderungen und in Stücken an die Mitspieler (sonst zu groß).
+  Paket 2 (16.11.2026): 🎥 wechselt Frei → Folgen → Mitfahren → Kino. Mitfahren: Blick vom Führerstand über Kessel und
+  Schlot, schaut in Kurven voraus, Tunnel innen dunkel mit Lampen; Tacho, nächster Bahnhof, Knopf für die nächste eigene
+  Weiche, Pfeife. Kino: wechselnde Blickwinkel (am Gleis, Brücke, von oben, hinterher, seitlich), zeigt reihum alle Züge,
+  auch für Zuschauer (Fernseher). Einen Zug antippen: Kamera folgt ihm (auch fremden). Weichen gehen beim Antippen vor.

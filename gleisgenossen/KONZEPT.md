@@ -96,7 +96,7 @@ Preise steigen mit jeder Stufe.
   Stand im selben Raumcode; Mitspieler finden ihre Bahn über ihre Geräte-ID oder übernehmen sie.
 - Alte Spielstände (Schritt 1 und 2) werden beim Laden zu einer Bahn umgebaut.
 
-## Schritt 4 (Plan vom 16.11.2026, 4a gebaut): schönere Welt, Hügel, Mitfahren
+## Schritt 4 (Plan vom 16.11.2026, 4a und 4b gebaut): schönere Welt, Hügel, Mitfahren
 Schwächen des jetzigen Aussehens: Der Boden ist ein Schachbrett aus Klötzen, alles liegt auf einer Höhe, Berge sind Kegelhaufen,
 Wasser hat eckige Ränder, die Startwiese ist leer, und am Kartenrand endet die Welt wie eine Tischkante.
 
@@ -115,11 +115,13 @@ Deko ist nur zum Schmücken (kein Fahrgast-Bonus).
 - Fahren: bergauf langsamer, bergab schneller (etwas über Höchsttempo). Aussicht: je Höhenstufe etwa +10 % Geld pro Meter.
   Bauwerke auf einer Kuppe wirken ein Feld weiter. Ein kleiner Hügel in jedem Startbereich. Alte Spielstände bleiben flach.
 
-**4b Mitfahren und Kameras** (🎥 wechselt: Frei → Folgen → Mitfahren → Kino)
+**4b Mitfahren und Kameras (gebaut 16.11.2026)** (🎥 wechselt: Frei → Folgen → Mitfahren → Kino)
 - Mitfahren: Blick vom Führerstand, Kessel und Schlot im Bild, Kamera schaut in Kurven voraus und neigt sich mit der Steigung (gedämpft).
   Tunnel innen dunkel mit Lampen. Anzeige: Tacho, nächster Bahnhof, Knopf für die nächste eigene Weiche, Pfeife.
 - Kino: wechselnde Blickwinkel am Gleis, von Brücken und Hügeln, hinterher; für den Fernseher am Spieleabend.
-- Bei anderen mitfahren: Zug antippen.
+- Bei anderen mitfahren: Zug antippen (Kamera folgt ihm, 🎥 zum Mitfahren). Weichen gehen beim Antippen vor.
+- Gebaut: Pfeife im Browser erzeugt (nur beim Mitfahrenden zu hören). Kino zeigt im Wechsel alle Züge, auch für Zuschauer,
+  und blendet Preisschilder aus. Im Hochformat weiterer Blickwinkel.
 
 **4c Details an der Strecke**
 - Prellbock an Gleisenden, Telegrafenmasten, Weichenhebel, Bauvorschau, Teile „plumpsen“ mit Staubwolke hin.
@@ -144,7 +146,7 @@ Das durchgehende Gelände ist billiger als die Klötze jetzt. Keine neuen Biblio
    Aufträge und Meilensteine.
 3. **Mehrspieler (gebaut, siehe oben):** jeder mit eigener Bahn, später zusammentun; Züge halten vor anderen Zügen.
    Leitung übernehmen, wenn der Spielleiter weg ist. Echte Signale und Ausweichstellen könnten später kommen.
-4. **Schönere Welt (4a gebaut, Rest Plan, siehe oben):** Landschaft mit Hügeln, Mitfahren und Kino, Details, Stimmung.
+4. **Schönere Welt (4a und 4b gebaut, Rest Plan, siehe oben):** Landschaft mit Hügeln, Mitfahren und Kino, Details, Stimmung.
 
 ## Simulation (Bot kauft immer die billigste Zug-Verbesserung, baut nichts)
 | | 1 Min | 10 Min | 30 Min |

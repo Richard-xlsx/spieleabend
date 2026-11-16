@@ -217,6 +217,28 @@
     }
     return l;
   }
+  // Punkt d Felder vor der Lok entlang der Strecke (für die Kamera); endet das Gleis, bleibt er am Ende
+  function vorne(S, pid, d) {
+    const z = S.zuege[pid], gid = gruppeVon(S, pid);
+    let seg = z.seg, s = z.s + d;
+    for (let n = 0; n < 60 && s > laenge(seg); n++) { const nx = weiter(S, seg, gid); if (!nx) { s = laenge(seg); break; } s -= laenge(seg); seg = nx; }
+    const p = punkt(seg, s); p.h = gleisHoehe(seg, s); p.i = seg.i; return p;
+  }
+  // Was vor dem Zug liegt: nächster Bahnhof und nächste Weiche, die vom Stamm her befahren wird (Wege in Feldern)
+  function voraus(S, pid, weit = 40) {
+    const z = S.zuege[pid], gid = gruppeVon(S, pid), r = { bf: null, weiche: null };
+    if (!z) return r;
+    let seg = z.seg, d = laenge(seg) - z.s;
+    if (istBahnhof(S, seg.i) && z.bedient !== seg.i && z.s < .5) r.bf = { i: seg.i, d: .5 - z.s };
+    for (let n = 0; n < 80 && d < weit && !(r.bf && r.weiche); n++) {
+      const nx = weiter(S, seg, gid); if (!nx) break;
+      const t = S.gleise[nx.i];
+      if (!r.bf && t.t === "b") r.bf = { i: nx.i, d: d + .5 };
+      if (!r.weiche && t.t === "s" && nx.ein === weiche(t.r).stamm) r.weiche = { i: nx.i, d, st: t.st ? 1 : 0 };
+      seg = nx; d += laenge(nx);
+    }
+    return r;
+  }
   const zugFelder = z => [z.seg.i].concat(z.verlauf.map(v => v.i));
   function belegt(S, ohne) { const b = new Set(); for (const p in S.zuege) if (p !== ohne) zugFelder(S.zuege[p]).forEach(i => b.add(i)); return b; }
   function verlaufFuellen(S, z, gid) {
@@ -641,7 +663,7 @@
     neu, auffrischen, karteSetzen, platzUebernehmen, aktion, schritt, werte, kmh, wagenlage, belegt, bauInfo, bauwerkInfo, besteLage,
     paare, weiche, punkt, laenge, stufenPreis, landPreis, landKaufbar, parzelle, besitzer, besitzt, darf, gruppeVon, kopie,
     zielePruefen, offeneZiele, alleZiele, nachfrage, haeuser, bahnhofName, abstand, gekauftesLand,
-    AUSSICHT, ecke, kantenHoehe, gleisHoehe, steigung, gelaendeHoehe, feldHoehe, eben, anhoehe, bauRadius, aussicht
+    AUSSICHT, vorne, voraus, ecke, kantenHoehe, gleisHoehe, steigung, gelaendeHoehe, feldHoehe, eben, anhoehe, bauRadius, aussicht
   };
   Object.defineProperty(GG, "B", { get: () => B });
   Object.defineProperty(GG, "H", { get: () => H });

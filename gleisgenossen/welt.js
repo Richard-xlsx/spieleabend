@@ -133,9 +133,9 @@ export class Welt {
     c.enableDamping = true; c.dampingFactor = .08; c.minDistance = 5; c.maxDistance = 90;
     c.minPolarAngle = .2; c.maxPolarAngle = 1.25; c.zoomToCursor = true;
     c.addEventListener("change", () => this.begrenzen());
-    c.addEventListener("start", () => { this.folgen = false; if (this.onFolgenAus) this.onFolgenAus(); });
+    c.addEventListener("start", () => { if (this.modus === "folgen") { this.modus = "frei"; if (this.onFolgenAus) this.onFolgenAus(); } });
     this.f = formen();
-    ["gTerrain", "gDeko", "gLand", "gRaster", "gNetz", "gBauten", "gZug", "gMarke", "gRauch", "gSchweben"].forEach(n => { this[n] = new THREE.Group(); sc.add(this[n]); });
+    ["gTerrain", "gDeko", "gLand", "gRaster", "gNetz", "gBauten", "gZug", "gMarke", "gRauch", "gSchweben", "gSchilder"].forEach(n => { this[n] = new THREE.Group(); sc.add(this[n]); });
     this.gRaster.visible = false; this.bau = false;
     this.drehteile = []; this.schwebende = [];
     this.himmel();
@@ -145,7 +145,9 @@ export class Welt {
     this.rNr = 0; this.rauchZeit = 0;
     const marke = this.marke = new THREE.Mesh(new THREE.RingGeometry(.62, .78, 4, 1, Math.PI / 4).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: 0xFFD447, depthTest: false, transparent: true }));
     marke.scale.set(F * .92, 1, F * .92); marke.renderOrder = 9; marke.visible = false; this.gMarke.add(marke);
-    this.zuege = {}; this.ich = null; this.folgen = false; this.onTap = null; this.onFolgenAus = null; this.S = null;
+    this.zuege = {}; this.ich = null; this.modus = "frei"; this.ziel = null; this.onTap = null; this.onZug = null; this.onFolgenAus = null; this.S = null;
+    this.blickRichtung = new THREE.Vector3(1, 0, 0); this.kino = null; this.tunnelWert = 0; this.fokus = new THREE.Vector3();
+    const tb = this.tunnelEl = document.createElement("div"); tb.className = "tunnelblick"; tb.innerHTML = "<i></i><i></i>"; tb.style.opacity = 0; el.appendChild(tb);
     this.tippen();
     this.uhr = new THREE.Clock();
     addEventListener("resize", () => this.groesse());
@@ -156,7 +158,13 @@ export class Welt {
   }
   groesse() {
     const w = this.el.clientWidth || innerWidth, h = this.el.clientHeight || innerHeight;
-    this.camera.aspect = w / h; this.camera.updateProjectionMatrix(); this.renderer.setSize(w, h);
+    this.camera.aspect = w / h; this.renderer.setSize(w, h); this.sicht();
+  }
+  // Blickwinkel: beim Mitfahren und im Kino weiter, im Hochformat noch weiter
+  sicht() {
+    const hoch = this.camera.aspect < 1, m = this.modus;
+    this.camera.fov = m === "mitfahren" ? (hoch ? 75 : 55) : m === "kino" ? (hoch ? 62 : 45) : 45;
+    this.camera.updateProjectionMatrix();
   }
   // Feldkoordinaten (x nach Osten, y nach Süden, Einheit Feld) → Welt
   wx(x) { return (x - G.B / 2) * F; }
@@ -174,6 +182,26 @@ export class Welt {
     this.camera.position.set(this.wx(x) - d * .1, h + d * .8, this.wz(y) + d * .62);
     this.controls.update();
   }
+  // Kamera: "frei", "folgen" (von oben hinterher), "mitfahren" (Führerstand), "kino" (wechselnde Blickwinkel)
+  get folgen() { return this.modus === "folgen"; }
+  kamera(modus, pid) {
+    const vorher = this.modus;
+    this.modus = modus; this.ziel = pid || this.ziel || this.ich;
+    const fest = modus === "mitfahren" || modus === "kino";
+    this.controls.enabled = !fest; this.gSchilder.visible = !fest;
+    this.camera.near = modus === "mitfahren" ? .06 : .25; this.sicht(); 
+    this.kino = null; this.kinoAlle = modus === "kino" && !pid;
+    this.el.classList.toggle("kino", modus === "kino");
+    if (modus === "mitfahren") { const z = this.zuege[this.ziel]; if (z) { const l = z.teile[0]; this.blickRichtung.set(Math.cos(l.rotation.y), 0, -Math.sin(l.rotation.y)); } }
+    this.kabine(modus === "mitfahren");
+    if (!fest && (vorher === "mitfahren" || vorher === "kino")) {
+      const l = this.lokBei(this.ziel); this.tunnelWert = 0; this.tunnelEl.style.opacity = 0;
+      if (l) this.blick(l.x, l.y, 22); else this.controls.update();
+    }
+    if (modus === "folgen") { const l = this.lokBei(this.ziel); if (l) this.blick(l.x, l.y, 22); }
+  }
+  // Im Führerstand das eigene Dach ausblenden, damit der Blick frei bleibt
+  kabine(aus) { for (const pid in this.zuege) { const an = aus && pid === this.ziel; this.zuege[pid].kabine.forEach(m => m.visible = !an); } }
   // Antippen: Strahl von der Kamera bis zum Gelände verfolgen
   tippen() {
     const el = this.renderer.domElement, ray = new THREE.Raycaster(), maus = new THREE.Vector2(), p = new THREE.Vector3();
@@ -184,18 +212,30 @@ export class Welt {
       aktiv = Math.max(0, aktiv - 1);
       if (!start || e.type === "pointercancel" || Math.hypot(e.clientX - start.x, e.clientY - start.y) > 9 || performance.now() - start.t > 500) { start = null; return; }
       start = null;
-      if (!this.onTap || e.target !== el) return;
+      if (e.target !== el || this.modus === "mitfahren" || this.modus === "kino") return;
       const r = el.getBoundingClientRect();
+      let best = null;      // Zug in Fingernähe? (Weichen gehen vor, damit man sie auch unter dem Zug stellen kann)
+      if (this.onZug && !this.bau) {
+        let bd = 30; const v = new THREE.Vector3();
+        for (const pid in this.zuege) for (const o of this.zuege[pid].teile) {
+          v.copy(o.position); v.y += .5; v.project(this.camera); if (v.z > 1) continue;
+          const dd = Math.hypot((v.x + 1) / 2 * r.width + r.left - e.clientX, (1 - v.y) / 2 * r.height + r.top - e.clientY);
+          if (dd < bd) { bd = dd; best = pid; }
+        }
+      }
+      if (!this.onTap && !best) return;
       maus.set((e.clientX - r.left) / r.width * 2 - 1, -(e.clientY - r.top) / r.height * 2 + 1);
       ray.setFromCamera(maus, this.camera);
       const o = ray.ray.origin, d = ray.ray.direction;
       let a = 0, b = -1;
       for (let t = .3; t < 700; t += .3) { if (boden(t, o, d) <= 0) { b = t; break; } a = t; }
-      if (b < 0) return;
+      if (b < 0) { if (best) this.onZug(best); return; }
       for (let k = 0; k < 12; k++) { const m = (a + b) / 2; if (boden(m, o, d) <= 0) b = m; else a = m; }
       boden(b, o, d);
       const c = Math.floor(p.x / F + G.B / 2), rr = Math.floor(p.z / F + G.H / 2);
-      if (c >= 0 && rr >= 0 && c < G.B && rr < G.H) this.onTap(rr * G.B + c);
+      const i = c >= 0 && rr >= 0 && c < G.B && rr < G.H ? rr * G.B + c : -1, gl = i >= 0 && this.S && this.S.gleise[i];
+      if (best && !(gl && gl.t === "s")) this.onZug(best);
+      else if (i >= 0 && this.onTap) this.onTap(i);
     };
     addEventListener("pointerup", ende); addEventListener("pointercancel", ende);
   }
@@ -418,7 +458,7 @@ export class Welt {
   }
   // Grenzen aller Bahnen (eigene gelb, andere in ihrer Farbe), Namen der anderen Bahnen, Preisschilder für kaufbares Land, Raster
   landZeichnen(S) {
-    leeren(this.gLand); leeren(this.gRaster);
+    leeren(this.gLand); leeren(this.gRaster); leeren(this.gSchilder);
     const n = G.B / G.P, P = G.P, B = G.B, striche = {}, ey = (cx, cy) => wy(G.ecke(cx, cy)) + .035;
     // ein Strich je Feldkante, folgt den Hügeln
     const kante = (l, cx, cy, waag, innen, dick) => {
@@ -466,7 +506,7 @@ export class Welt {
     for (let p = 0; p < n * n; p++) {
       if (!G.landKaufbar(S, this.gid, p)) continue;
       const sp = schild("Land kaufen", { bg: "#FFD447", fg: "#1C1A33", unter: preis, groesse: 2.6 }), x = (p % n + .5) * P, y = ((p / n | 0) + .5) * P;
-      sp.position.set(this.wx(x), this.hy(x, y) + 3, this.wz(y)); this.gLand.add(sp);
+      sp.position.set(this.wx(x), this.hy(x, y) + 3, this.wz(y)); this.gSchilder.add(sp);
     }
   }
   gleiseZeichnen(S) {
@@ -598,8 +638,7 @@ export class Welt {
     box(lok, 1.5, .14, .62, 0, .26, 0, schwarz);
     const kessel = new THREE.Mesh(new THREE.CylinderGeometry(.27, .27, .95, 12).rotateZ(Math.PI / 2), rot); kessel.position.set(.22, .6, 0); kessel.castShadow = true; lok.add(kessel);
     const schlot = new THREE.Mesh(new THREE.CylinderGeometry(.08, .11, .3, 8), schwarz); schlot.position.set(.55, .98, 0); lok.add(schlot);
-    box(lok, .5, .62, .66, -.48, .64, 0, rot); box(lok, .62, .07, .76, -.48, .98, 0, schwarz);
-    box(lok, .3, .22, .4, -.48, .75, 0, mat(0xBFE3F2));
+    const kabine = [box(lok, .5, .62, .66, -.48, .64, 0, rot), box(lok, .62, .07, .76, -.48, .98, 0, schwarz), box(lok, .3, .22, .4, -.48, .75, 0, mat(0xBFE3F2))];
     [-.5, -.1, .3].forEach(x => { rad(lok, x, .3, .2); rad(lok, x, -.3, .2); });
     this.gZug.add(lok); teile.push(lok);
     for (let k = 0; k < n; k++) {
@@ -611,10 +650,81 @@ export class Welt {
       [-.35, .35].forEach(x => { rad(w, x, .3, .16); rad(w, x, -.3, .16); });
       this.gZug.add(w); teile.push(w);
     }
-    this.zuege[pid] = { teile, farbe, rauch: Math.random() * .3 };
+    this.zuege[pid] = { teile, farbe, rauch: Math.random() * .3, kabine };
+    if (this.modus === "mitfahren") this.kabine(true);
   }
   // Lok eines Spielers in Feldkoordinaten (für Kamera und Texte)
   lokBei(pid) { const z = this.S && this.S.zuege[pid]; if (!z) return null; const l = G.wagenlage(z)[0]; return { x: l.x, y: l.y }; }
+
+  // ---------- Mitfahren ----------
+  fahrKamera(dt) {
+    const S = this.S, z = S.zuege[this.ziel], zz = this.zuege[this.ziel];
+    if (!z || !zz) { this.kamera("frei"); if (this.onFolgenAus) this.onFolgenAus(); return; }
+    const lok = zz.teile[0], cam = this.camera; lok.updateMatrixWorld();
+    cam.position.set(-.62, 1.06, .17).applyMatrix4(lok.matrixWorld);
+    // Blick auf einen Punkt voraus auf dem Gleis: schaut in Kurven hinein, neigt sich mit der Steigung (gedämpft)
+    // waagerecht zum Punkt voraus, geneigt nur nach der Steigung, damit der Horizont auch in engen Kurven ruhig bleibt
+    const p = G.vorne(S, this.ziel, 1.5), ziel = new THREE.Vector3(this.wx(p.x) - cam.position.x, 0, this.wz(p.y) - cam.position.z);
+    const dist = Math.max(3, ziel.length()); ziel.normalize();
+    ziel.x += Math.cos(lok.rotation.y) * 1.5; ziel.z -= Math.sin(lok.rotation.y) * 1.5; ziel.normalize();   // halb in Fahrtrichtung, Kessel bleibt im Bild
+    ziel.y = (wy(p.h) + 1.06 - cam.position.y) / dist - (cam.aspect < 1 ? .3 : .08); ziel.normalize();
+    const jetzt = performance.now(), echt = Math.min(.5, (jetzt - (this.fahrZeit || jetzt)) / 1000); this.fahrZeit = jetzt;   // echte Zeit, auch bei wenigen Bildern
+    if (this.blickRichtung.dot(ziel) < .3) this.blickRichtung.copy(ziel); else this.blickRichtung.lerp(ziel, Math.min(1, echt * 4)).normalize();
+    this.fokus.copy(cam.position).addScaledVector(this.blickRichtung, 14);
+    cam.lookAt(this.fokus);
+    // Tunnel: innen dunkel, Lampen ziehen vorbei
+    const feld = (x, y) => { x = Math.floor(x / F + G.B / 2); y = Math.floor(y / F + G.H / 2); const i = y * G.B + x; return x >= 0 && y >= 0 && x < G.B && y < G.H && S.karte.g[i] === "b" && S.gleise[i]; };
+    const soll = feld(cam.position.x, cam.position.z) ? 1 : S.karte.g[z.seg.i] === "b" ? .55 : 0;
+    this.tunnelWert += (soll - this.tunnelWert) * Math.min(1, dt * 9);
+    this.tunnelEl.style.opacity = this.tunnelWert < .01 ? 0 : this.tunnelWert.toFixed(2);
+    this.tunnelEl.style.setProperty("--takt", (z.v > .05 ? Math.min(3, 1.1 / z.v) : 0) + "s");
+    this.tunnelEl.classList.toggle("steht", z.v <= .05);
+  }
+  // ---------- Kino: wechselnde Einstellungen, für den Fernseher ----------
+  kinoKamera(dt) {
+    const S = this.S, pids = Object.keys(this.zuege).filter(p => S.zuege[p]);
+    if (!pids.length) return;
+    let k = this.kino;
+    const lokVon = pid => this.zuege[pid].teile[0];
+    if (!k || !S.zuege[k.pid] || !this.zuege[k.pid]) k = null;
+    if (k) {
+      k.zeit = (performance.now() - k.seit) / 1000;
+      const lok = lokVon(k.pid), weit = k.fest && this.camera.position.distanceTo(lok.position) > 22;
+      if (k.zeit > k.dauer || weit) k = null;
+    }
+    if (!k) k = this.kino = this.einstellung(pids);
+    const lok = lokVon(k.pid), c = Math.cos(lok.rotation.y), s = Math.sin(lok.rotation.y), cam = this.camera;
+    const lokal = (x, y, z) => new THREE.Vector3(lok.position.x + x * c + z * s, lok.position.y + y, lok.position.z - x * s + z * c);
+    if (!k.fest) {
+      const soll = k.art === "hinterher" ? lokal(-7, 2.6, -1.2) : k.art === "seite" ? lokal(.6, 1.1, k.seite * 3.4) : lokal(-2, 9, k.seite * 7);
+      if (!k.da) { cam.position.copy(soll); k.da = true; } else cam.position.lerp(soll, Math.min(1, dt * (k.art === "seite" ? 4 : 1.6)));
+    }
+    const boden = this.hy(cam.position.x / F + G.B / 2, cam.position.z / F + G.H / 2) + .45;
+    if (cam.position.y < boden) cam.position.y = boden;
+    const blick = k.art === "hinterher" ? lokal(3, .6, 0) : lokal(.4, .55, 0);
+    if (!k.blick) k.blick = blick.clone(); else k.blick.lerp(blick, Math.min(1, dt * 4));
+    cam.lookAt(k.blick); this.fokus.copy(k.blick);
+  }
+  einstellung(pids) {
+    const alt = this.kino, S = this.S;
+    let pid = alt ? alt.pid : this.ziel;
+    if (this.kinoAlle && pids.length > 1 && alt && (alt.nr + 1) % 3 === 0) pid = pids[(pids.indexOf(alt.pid) + 1) % pids.length];
+    if (!pids.includes(pid)) pid = pids[0];
+    const nr = alt ? alt.nr + 1 : 0, z = S.zuege[pid], arten = ["gleis", "hinterher", "seite", "hoch", "gleis", "seite"];
+    let art = arten[nr % arten.length];
+    const k = { pid, nr, art, zeit: 0, seit: performance.now(), dauer: 6 + Math.random() * 3, seite: Math.random() < .5 ? -1 : 1, fest: false };
+    if (art === "gleis" && z.v < .1) art = k.art = "seite";        // steht der Zug, lieber von der Seite
+    if (art === "gleis" || art === "hoch") {
+      // fester Punkt neben der Strecke voraus; gern an einer Brücke oder auf einem Hügel
+      let d = art === "hoch" ? 7 : 4.5, p = G.vorne(S, pid, d);
+      for (let dd = 2; dd < 12; dd++) { const q = G.vorne(S, pid, dd); if (S.karte.g[q.i] === "~") { p = q; d = dd; k.bruecke = true; break; } }
+      const q = G.vorne(S, pid, d + .3), lx = q.x - p.x, ly = q.y - p.y, l = Math.hypot(lx, ly) || 1;
+      const ab = art === "hoch" ? 6 : k.bruecke ? 2.2 : 1.3, x = p.x - ly / l * ab * k.seite, y = p.y + lx / l * ab * k.seite;
+      const h = art === "hoch" ? this.hy(x, y) + 5.5 : k.bruecke ? WASSER + .3 : Math.max(this.hy(x, y), wy(p.h)) + .55;
+      this.camera.position.set(this.wx(x), h, this.wz(y)); k.fest = true; k.dauer += 3;
+    }
+    return k;
+  }
 
   // ---------- jedes Bild ----------
   bild() {
@@ -636,14 +746,16 @@ export class Welt {
         const r = this.rauch[this.rNr++ % this.rauch.length], c = Math.cos(lok.rotation.y), s = Math.sin(lok.rotation.y);
         r.m.position.set(lok.position.x + .55 * c, lok.position.y + 1.1, lok.position.z - .55 * s); r.alter = 0; r.m.visible = true; r.m.scale.setScalar(.6);
       }
-      if (this.folgen && pid === this.ich) {
+      if (this.modus === "folgen" && pid === this.ziel) {
         const t = this.controls.target, k = Math.min(1, dt * 3), dx = (lok.position.x - t.x) * k, dy = (lok.position.y - .1 - t.y) * k, dz = (lok.position.z - t.z) * k;
         t.x += dx; t.y += dy; t.z += dz; this.camera.position.x += dx; this.camera.position.y += dy; this.camera.position.z += dz;
       }
     }
     // Beim Verschieben der Karte die Kamera sanft der Geländehöhe nachführen
     const t = this.controls.target;
-    if (S && !this.folgen) {
+    if (S && this.modus === "mitfahren") this.fahrKamera(dt);
+    else if (S && this.modus === "kino") this.kinoKamera(dt);
+    if (S && this.modus === "frei") {
       const x = t.x / F + G.B / 2, y = t.z / F + G.H / 2, dy = (this.hy(x, y) - t.y) * Math.min(1, dt * 2);
       t.y += dy; this.camera.position.y += dy;
     }
@@ -659,8 +771,9 @@ export class Welt {
     });
     this.wolken.rotation.y += dt * .004;
     this.kuppel.position.copy(this.camera.position);
-    this.sonne.position.set(t.x + 26, t.y + 32, t.z + 12); this.sonne.target.position.copy(t);
-    this.controls.update();
+    const fk = this.controls.enabled ? t : this.fokus;
+    this.sonne.position.set(fk.x + 26, fk.y + 32, fk.z + 12); this.sonne.target.position.copy(fk);
+    if (this.controls.enabled) this.controls.update();
     this.renderer.render(this.scene, this.camera);
   }
 }

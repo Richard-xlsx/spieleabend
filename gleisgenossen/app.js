@@ -1,6 +1,6 @@
 // Gleisgenossen: Startseite, Lobby, Verbindung (Handy des Spielleiters rechnet, PeerJS), Bedienleiste über der 3D-Welt.
 // Allein: ohne Raum, alles auf diesem Handy. Die Regeln stehen in logic.js (window.GG), die Welt in welt.js.
-import { Welt } from "./welt.js?v=2026-11-16f";
+import { Welt } from "./welt.js?v=2026-11-16g";
 
 const G = window.GG;
 const app = document.getElementById("app"), weltEl = document.getElementById("welt"), hud = document.getElementById("hud");
@@ -439,6 +439,7 @@ function spielZeigen(stand) {
     welt = new Welt(weltEl);
     welt.onTap = feldGetippt;
     welt.onFolgenAus = () => render();
+    welt.onZug = zugGetippt;
     welt.vorBild = () => simulieren();
     setInterval(zahlenAuffrischen, 250);
     setInterval(() => { if (performance.now() - letzteSim > 600) simulieren(); }, 500);   // Hintergrund: weiterrechnen
@@ -523,10 +524,12 @@ function zielMeldung(liste) {
 function render() {
   if (!S || hud.hidden) return;
   welt.bauModus(["bauen", "bauten", "abreissen"].includes(ui.modus) && !(ui.panel && ["zug", "menue", "ziele", "bahnen"].includes(ui.panel.art)));
+  if (welt.modus === "mitfahren" && S.zuege[welt.ziel]) { hud.innerHTML = fahrHud(); knoepfe(); return; }
+  if (welt.modus === "kino") { hud.innerHTML = kinoHud(); knoepfe(); return; }
   const g = gruppe(), z = meinZug(), gid = meine();
   if (!g || !z) {     // Zuschauer
     hud.innerHTML = `<div><div class="hud-oben"><div class="chip gross"><small>Zuschauen</small><b>${Object.keys(S.gruppen).length} Bahnen</b></div>
-      <button class="rund" id="bahnen" aria-label="Bahnen">👥</button><button class="rund" id="menue" aria-label="Menü">☰</button></div><div id="statuszeile">${statusZeile()}</div></div>
+      ${kameraKnopf()}<button class="rund" id="bahnen" aria-label="Bahnen">👥</button><button class="rund" id="menue" aria-label="Menü">☰</button></div><div id="statuszeile">${statusZeile()}</div></div>
       <div class="hud-unten">${ui.panel && ui.panel.art === "bahnen" ? bahnenPanel() : ui.panel && ui.panel.art === "menue" ? menuePanel() : ""}</div>`;
     knoepfe(); return;
   }
@@ -538,7 +541,7 @@ function render() {
         <div class="chip gross"><small>Kasse</small><b id="kasse">${zahl(g.kasse)} T</b></div>
         <div class="chip"><small>pro Minute</small><b id="promin">${zahl(proMinute)} T</b></div>
         <div class="chip"><small>Tempo</small><b id="tempo">${G.kmh(z.v)} km/h</b></div>
-        <button class="rund ${welt.folgen ? "an" : ""}" id="folgen" aria-label="Kamera folgt dem Zug" title="Zug folgen">🎥</button>
+        ${kameraKnopf()}
         ${Object.keys(S.spieler).length > 1 ? `<button class="rund ${anfragen ? "an" : ""}" id="bahnen" aria-label="Bahnen">👥</button>` : ""}
         <button class="rund" id="menue" aria-label="Menü">☰</button>
       </div>
@@ -553,6 +556,73 @@ function render() {
       </div>
     </div>`;
   knoepfe();
+}
+// ---------- Kameras: Frei → Folgen → Mitfahren → Kino ----------
+const KAMERA = { frei: "Freie Kamera", folgen: "Kamera folgt dem Zug", mitfahren: "Mitfahren im Führerstand", kino: "Kino: wechselnde Blickwinkel" };
+function kameraKnopf() {
+  const m = welt.modus;
+  return `<button class="rund ${m !== "frei" ? "an" : ""}" id="folgen" aria-label="Kamera wechseln, jetzt: ${KAMERA[m]}" title="Kamera: ${KAMERA[m]}">${m === "kino" ? "🎬" : m === "mitfahren" ? "🚂" : "🎥"}</button>`;
+}
+function kameraWeiter() {
+  const folge = { frei: "folgen", folgen: "mitfahren", mitfahren: "kino", kino: "frei" };
+  let pid = S.zuege[welt.ziel] ? welt.ziel : S.zuege[PID] ? PID : Object.keys(S.zuege)[0];
+  if (!pid) { hinweis("Hier fährt noch kein Zug."); return; }
+  const neu = folge[welt.modus] || "frei";
+  welt.kamera(neu, neu === "kino" ? null : pid);
+  ui.panel = null; welt.markieren(null);
+  hinweis({ frei: "Freie Kamera", folgen: "Kamera folgt dem Zug", mitfahren: "Mitfahren! 🎥 für Kino", kino: "Kino: wechselnde Blickwinkel, ✕ zum Beenden" }[neu]);
+  render();
+}
+const bahnName = pid => { const g = S.gruppen[G.gruppeVon(S, pid)]; return g ? g.name : "Zug"; };
+function zugGetippt(pid) {
+  if (!S.zuege[pid]) return;
+  welt.kamera("folgen", pid); welt.markieren(null); ui.panel = null;
+  hinweis(pid === PID ? "Kamera folgt deinem Zug. 🎥 zum Mitfahren" : `Du folgst ${bahnName(pid)}. 🎥 zum Mitfahren`);
+  render();
+}
+function bahnhofText(pid) {
+  const z = S.zuege[pid], v = G.voraus(S, pid);
+  if (z.halt > 0) return "Halt in " + G.bahnhofName(S, z.seg.i);
+  return v.bf ? `${G.bahnhofName(S, v.bf.i)} · ${strecke(v.bf.d * G.METER)}` : "keiner in Sicht";
+}
+function fahrHud() {
+  const pid = welt.ziel, z = S.zuege[pid], v = G.voraus(S, pid), w = v.weiche && G.darf(S, PID, v.weiche.i) ? v.weiche : null, g = gruppe();
+  ui.weicheKey = w ? w.i + ":" + w.st : "";
+  return `<div><div class="hud-oben">
+      <div class="chip gross"><small>Mitfahren</small><b>${esc(bahnName(pid))}</b></div>
+      ${g ? `<div class="chip"><small>Kasse</small><b id="kasse">${zahl(g.kasse)} T</b></div>` : ""}
+      ${kameraKnopf()}<button class="rund" id="aussteigen" aria-label="Aussteigen" title="Aussteigen">✕</button>
+    </div><div id="statuszeile">${statusZeile()}</div></div>
+    <div class="hud-unten">
+      <div class="fahrt">
+        <div class="tacho"><b id="tacho">${G.kmh(z.v)}</b><small>km/h</small></div>
+        <div class="chip"><small>Nächster Bahnhof</small><b id="naechster">${esc(bahnhofText(pid))}</b></div>
+      </div>
+      <div class="knopfreihe">
+        ${w ? `<button class="knopf" id="vorweiche">Weiche in <span id="weichemeter">${strecke(w.d * G.METER)}</span>: ${w.st ? "abbiegen" : "geradeaus"} · umstellen</button>` : ""}
+        <button class="knopf zweit" id="pfeife" aria-label="Pfeifen">📯 Pfeifen</button>
+      </div>
+    </div>`;
+}
+function kinoHud() {
+  return `<div><div class="hud-oben" style="justify-content:flex-end">${kameraKnopf()}<button class="rund" id="aussteigen" aria-label="Kino beenden" title="Kino beenden">✕</button></div></div>
+    <div class="hud-unten"><div class="kinotitel" id="kinotitel"></div></div>`;
+}
+// Dampfpfeife, im Browser erzeugt
+let ton = null;
+function pfeifen() {
+  try {
+    ton = ton || new (window.AudioContext || window.webkitAudioContext)();
+    if (ton.state === "suspended") ton.resume();
+    const t = ton.currentTime, g = ton.createGain(), f = ton.createBiquadFilter();
+    f.type = "lowpass"; f.frequency.value = 2600; f.connect(ton.destination); g.connect(f);
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(.16, t + .06); g.gain.setValueAtTime(.16, t + .7); g.gain.exponentialRampToValueAtTime(.001, t + 1.05);
+    [523, 659, 784].forEach(hz => { const o = ton.createOscillator(); o.type = "triangle"; o.frequency.setValueAtTime(hz * .94, t); o.frequency.linearRampToValueAtTime(hz, t + .1); o.connect(g); o.start(t); o.stop(t + 1.1); });
+    const n = ton.createBufferSource(), b = ton.createBuffer(1, ton.sampleRate, ton.sampleRate), d = b.getChannelData(0);
+    for (let k = 0; k < d.length; k++) d[k] = (Math.random() * 2 - 1) * .25;
+    const ng = ton.createGain(); ng.gain.setValueAtTime(.05, t); ng.gain.exponentialRampToValueAtTime(.001, t + 1); n.buffer = b; n.connect(ng); ng.connect(f); n.start(t); n.stop(t + 1);
+  } catch (e) {}
+  const l = welt.lokBei(welt.ziel); if (l) welt.schweben(l.x, l.y, "Tuuut!", "info");
 }
 function statusZeile() {
   if (rolle === "client" && !verbunden) {
@@ -575,9 +645,12 @@ function knoepfe() {
   hud.querySelectorAll("[data-einladen]").forEach(b => b.onclick = () => { const r = tun({ typ: "einladen", an: b.dataset.einladen }); if (!r.fehler) hinweis("Einladung geschickt."); });
   hud.querySelectorAll("[data-annehmen]").forEach(b => b.onclick = () => { if (confirm("Zusammentun? Kasse, Land, Gleise und Ziele werden geteilt, alle Züge fahren im gemeinsamen Netz.")) tun({ typ: "annehmen", von: b.dataset.annehmen }); });
   hud.querySelectorAll("[data-ablehnen]").forEach(b => b.onclick = () => tun({ typ: "ablehnen", von: b.dataset.ablehnen }));
-  hud.querySelectorAll("[data-hin]").forEach(b => b.onclick = () => { const sp = S.spieler[b.dataset.hin]; const l = welt.lokBei(b.dataset.hin) || { x: sp.start.x, y: sp.start.y }; welt.folgen = false; welt.blick(l.x, l.y, 30); ui.panel = null; render(); });
+  hud.querySelectorAll("[data-hin]").forEach(b => b.onclick = () => { const sp = S.spieler[b.dataset.hin]; const l = welt.lokBei(b.dataset.hin) || { x: sp.start.x, y: sp.start.y }; welt.kamera("frei"); welt.blick(l.x, l.y, 30); ui.panel = null; render(); });
   const on = (id, f) => { const el = document.getElementById(id); if (el) el.onclick = f; };
-  on("folgen", () => { welt.folgen = !welt.folgen; render(); });
+  on("folgen", kameraWeiter);
+  on("aussteigen", () => { welt.kamera("frei"); render(); });
+  on("pfeife", pfeifen);
+  on("vorweiche", () => { const v = G.voraus(S, welt.ziel).weiche; if (v) tun({ typ: "weiche", i: v.i }); });
   on("menue", () => { ui.panel = ui.panel && ui.panel.art === "menue" ? null : { art: "menue" }; render(); });
   on("bahnen", () => { ui.panel = ui.panel && ui.panel.art === "bahnen" ? null : { art: "bahnen" }; render(); });
   on("ziele", () => { ui.panel = ui.panel && ui.panel.art === "ziele" ? null : { art: "ziele" }; render(); });
@@ -706,13 +779,24 @@ function zahlenAuffrischen() {
       return;
     }
   }
+  const set = (id, t) => { const el = document.getElementById(id); if (el && el.textContent !== t) el.textContent = t; };
+  if (welt.modus === "mitfahren") {
+    const pid = welt.ziel, zz = S.zuege[pid];
+    if (!zz) { welt.kamera("frei"); render(); return; }
+    const v = G.voraus(S, pid), w = v.weiche && G.darf(S, PID, v.weiche.i) ? v.weiche : null;
+    if ((w ? w.i + ":" + w.st : "") !== ui.weicheKey) { render(); return; }
+    set("tacho", String(G.kmh(zz.v))); set("naechster", bahnhofText(pid)); if (w) set("weichemeter", strecke(w.d * G.METER));
+  }
+  if (welt.modus === "kino" && welt.kino) {
+    const el = document.getElementById("kinotitel"), zz = S.zuege[welt.kino.pid];
+    if (el && zz) { const h = `${esc(bahnName(welt.kino.pid))}<small>${G.kmh(zz.v)} km/h · ${esc(bahnhofText(welt.kino.pid))}</small>`; if (el.innerHTML !== h) el.innerHTML = h; }
+  }
   const g = gruppe(), z = meinZug(); if (!g || !z) return;
   const jetzt = S.zeit;
   verlauf.push([jetzt, g.verdient]);
   while (verlauf.length > 2 && jetzt - verlauf[0][0] > 60) verlauf.shift();
   const [t0, v0] = verlauf[0];
   if (jetzt - t0 > 3) proMinute = Math.max(0, (g.verdient - v0) / (jetzt - t0) * 60);
-  const set = (id, t) => { const el = document.getElementById(id); if (el && el.textContent !== t) el.textContent = t; };
   set("kasse", zahl(g.kasse) + " T"); set("promin", zahl(proMinute) + " T"); set("tempo", G.kmh(z.v) + " km/h");
   hud.querySelectorAll("[data-preis]").forEach(b => b.classList.toggle("teuer", g.kasse < +b.dataset.preis));
 }

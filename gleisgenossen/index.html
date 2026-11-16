@@ -58,6 +58,23 @@ body.spiel{padding:0;height:100%;overflow:hidden;background:linear-gradient(#A9D
 body.spiel #app{display:none}
 #welt{position:fixed;inset:0;z-index:0}
 #welt canvas{display:block;touch-action:none}
+/* Mitfahren: Tunnel von innen, Kino: Balken oben und unten */
+.tunnelblick{position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse 30% 26% at 50% 46%,rgba(255,214,150,.22),rgba(18,12,8,.95) 60%,#060403 100%);transition:opacity .1s;--takt:1s}
+.tunnelblick i{position:absolute;top:44%;width:14px;height:14px;border-radius:50%;background:#FFD27A;box-shadow:0 0 22px 10px rgba(255,190,90,.55);animation:lampe var(--takt) linear infinite}
+.tunnelblick i:first-child{left:50%;--r:-46vw}.tunnelblick i:last-child{left:50%;--r:46vw;animation-delay:calc(var(--takt) / -2)}
+.tunnelblick.steht i{animation-play-state:paused}
+@keyframes lampe{from{transform:translate(0,0) scale(.2);opacity:0}25%{opacity:1}to{transform:translate(var(--r),-30vh) scale(2.2);opacity:1}}
+#welt.kino::before,#welt.kino::after{content:"";position:absolute;left:0;right:0;height:7vh;background:#000;z-index:1;pointer-events:none}
+#welt.kino::before{top:0}#welt.kino::after{bottom:0}
+@media (orientation:portrait){#welt.kino::before,#welt.kino::after{height:3vh}.kinotitel{margin-bottom:3vh}}
+.fahrt{display:flex;gap:8px;align-items:stretch}
+.tacho{background:var(--glas);border-radius:16px;padding:6px 12px;display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:92px;box-shadow:0 4px 14px rgba(0,0,0,.18)}
+.tacho b{font:800 1.9rem var(--display);line-height:1}
+.tacho small{font-size:.66rem;color:var(--leise);font-weight:700;text-transform:uppercase;letter-spacing:.08em}
+.fahrt .chip{flex:1}
+.fahrt .knopfreihe{flex-wrap:wrap}
+.kinotitel{pointer-events:none;align-self:flex-start;background:rgba(0,0,0,.45);color:#fff;border-radius:10px;padding:6px 12px;font:700 .9rem var(--display);margin-bottom:7vh}
+.kinotitel small{display:block;font:600 .72rem var(--fliess);opacity:.8}
 #hud{position:fixed;inset:0;z-index:10;pointer-events:none;display:flex;flex-direction:column;justify-content:space-between;
   padding:max(10px,env(safe-area-inset-top)) max(10px,env(safe-area-inset-right)) max(12px,env(safe-area-inset-bottom)) max(10px,env(safe-area-inset-left))}
 #hud .status{pointer-events:auto;margin-bottom:6px}
@@ -147,8 +164,8 @@ body.spiel #app{display:none}
 <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <script src="../netz.js"></script>
-<script src="logic.js?v=2026-11-16f"></script>
+<script src="logic.js?v=2026-11-16g"></script>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
-<script type="module" src="app.js?v=2026-11-16f"></script>
+<script type="module" src="app.js?v=2026-11-16g"></script>
 </body>
 </html>
