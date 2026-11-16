@@ -178,6 +178,22 @@ function oeffneHostPeer() {
 }
 const senden = (c, m) => { try { if (c && c.open) c.send(m); } catch (e) {} };
 const anAlle = m => { for (const [, c] of conns) senden(c, m); };
+// Ganzer Stand an alle. Die Karte (Gelände und Höhen, bis 25 KB) geht nur, wenn sie sich geändert hat,
+// und in Stücken, weil zu große Nachrichten unterwegs verloren gehen.
+const STUECK = 9000;
+function standAnAlle() {
+  const kt = JSON.stringify(S.karte); let kh = kt.length;
+  for (let i = 0; i < kt.length; i++) kh = (kh * 31 + kt.charCodeAt(i)) | 0;
+  const m = { t: "stand", s: Object.assign({}, S, { karte: null }), kh };
+  for (const [, c] of conns) {
+    if (c.karteH !== kh) {
+      const n = Math.ceil(kt.length / STUECK);
+      for (let k = 0; k < n; k++) senden(c, { t: "karte", kh, k, n, d: kt.slice(k * STUECK, (k + 1) * STUECK) });
+      c.karteH = kh;
+    }
+    senden(c, m);
+  }
+}
 function vonClient(c, m) {
   if (!m || !m.pid) return;
   if (m.t === "hallo") {
@@ -213,7 +229,7 @@ function onlineMelden() {
 function geaendert() {
   if (rolle !== "host" || !S) return;
   S.online = [PID].concat([...conns.keys()]);
-  anAlle({ t: "stand", s: S });
+  standAnAlle();
   sitzungSichern();
   welt.setzen(S, PID); render();
 }
@@ -274,11 +290,21 @@ function fehlschlag(t) {
   clearTimeout(retryTimer); retryTimer = setTimeout(verbindeZumHost, 2500);
 }
 function verloren() { verbunden = false; hostConn = null; if (!offlineSeit) { offlineSeit = Date.now(); setTimeout(neuZeichnen, UEBERNEHMEN_NACH + 100); } fehlerText = "Spielleiter nicht erreichbar, neuer Versuch …"; neuZeichnen(); fehlschlag(token); }
+let karteEmpfang = null, karteDa = null;
 function vomHost(m) {
   if (!m) return;
   if (T && m.t !== "takt") console.log("vom Host", m.t);
   if (m.t === "lobby") { lobby = m.lobby; S = null; neuZeichnen(); }
-  else if (m.t === "stand") {
+  else if (m.t === "karte") {
+    if (!karteEmpfang || karteEmpfang.kh !== m.kh) karteEmpfang = { kh: m.kh, teile: [] };
+    karteEmpfang.teile[m.k] = m.d;
+    if (karteEmpfang.teile.filter(x => x != null).length === m.n) { karteDa = { kh: m.kh, k: JSON.parse(karteEmpfang.teile.join("")) }; karteEmpfang = null; }
+  } else if (m.t === "stand") {
+    if (!m.s.karte) {
+      if (karteDa && karteDa.kh === m.kh) m.s.karte = karteDa.k;
+      else if (S && S.karte) m.s.karte = S.karte;
+      else return;
+    }
     const vorher = S;
     S = G.auffrischen(m.s, PID); lobby = null;
     if (!vorher || hud.hidden) { if (S.spieler[PID]) spielZeigen(S); else platzWahl(); return; }

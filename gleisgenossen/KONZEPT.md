@@ -96,11 +96,14 @@ Preise steigen mit jeder Stufe.
   Stand im selben Raumcode; Mitspieler finden ihre Bahn über ihre Geräte-ID oder übernehmen sie.
 - Alte Spielstände (Schritt 1 und 2) werden beim Laden zu einer Bahn umgebaut.
 
-## Schritt 4 (Plan vom 16.11.2026, noch nicht gebaut): schönere Welt, Hügel, Mitfahren
+## Schritt 4 (Plan vom 16.11.2026, 4a gebaut): schönere Welt, Hügel, Mitfahren
 Schwächen des jetzigen Aussehens: Der Boden ist ein Schachbrett aus Klötzen, alles liegt auf einer Höhe, Berge sind Kegelhaufen,
 Wasser hat eckige Ränder, die Startwiese ist leer, und am Kartenrand endet die Welt wie eine Tischkante.
 
-**4a Landschaft und Hügel**
+Entscheidungen (16.11.2026): Hügel beeinflussen das Tempo, Tag und Nacht wechseln automatisch, Geräusche sind an,
+Deko ist nur zum Schmücken (kein Fahrgast-Bonus).
+
+**4a Landschaft und Hügel (gebaut 16.11.2026)**
 - Boden als ein durchgehendes Gelände mit weichen Farbverläufen (Wiese hell und dunkel, Sand am Ufer, Erde unter Bäumen).
   Raster nur beim Bauen; fremdes Land nur beim Bauen abgedunkelt.
 - Wasser bewegt, mit Ufer, Schilf, Enten. Mehrere Baumarten, die sich im Wind wiegen. Berge als Felsmassiv mit Schnee.
@@ -125,10 +128,10 @@ Wasser hat eckige Ränder, die Startwiese ist leer, und am Kartenrand endet die 
 - Dörfer mit Kirche, Gärten, Zäunen, Wegen, Schornsteinrauch. Feldwege zwischen Dörfern, Bahnübergang mit Schranke.
 - Felder, Heuballen, Kühe und Schafe, Vögel.
 
-**4d Stimmung**
+**4d Stimmung** (Deko ohne Bonus, siehe Entscheidungen)
 - Tag und Nacht (für alle gleich, aus der Spielzeit), Fenster, Laternen und Loklampe leuchten. Wetter und Jahreszeiten optisch.
 - Geräusche im Browser erzeugt (abschaltbar): Schnaufen nach Tempo, Pfeife, Schienenstöße, Brücke, Vögel.
-- Deko kaufen (5–30 T); Deko nahe Bahnhof lockt etwas mehr Fahrgäste. Dörfer mit Bahnanschluss wachsen langsam.
+- Deko kaufen (5–30 T), nur zum Schmücken. Dörfer mit Bahnanschluss wachsen langsam.
 
 **Leistung:** Grafikstufe „Einfach / Schön“, die sich selbst wählt (Schatten, Wind, Wolken nur bei „Schön“).
 Das durchgehende Gelände ist billiger als die Klötze jetzt. Keine neuen Bibliotheken.
@@ -141,7 +144,7 @@ Das durchgehende Gelände ist billiger als die Klötze jetzt. Keine neuen Biblio
    Aufträge und Meilensteine.
 3. **Mehrspieler (gebaut, siehe oben):** jeder mit eigener Bahn, später zusammentun; Züge halten vor anderen Zügen.
    Leitung übernehmen, wenn der Spielleiter weg ist. Echte Signale und Ausweichstellen könnten später kommen.
-4. **Schönere Welt (Plan, siehe oben):** Landschaft mit Hügeln, Mitfahren und Kino, Details, Stimmung.
+4. **Schönere Welt (4a gebaut, Rest Plan, siehe oben):** Landschaft mit Hügeln, Mitfahren und Kino, Details, Stimmung.
 
 ## Simulation (Bot kauft immer die billigste Zug-Verbesserung, baut nichts)
 | | 1 Min | 10 Min | 30 Min |

@@ -225,3 +225,10 @@ Gleisgenossen (neu vom 16.11.2026, allein oder 2 bis 6 Bahnen; Plan in gleisgeno
   Züge und Kassen; Neuladen von Spielleiter (Sitzung im Tab) und Mitspielern getestet. Speichern nur beim Spielleiter.
   Leitung übernehmen: Ist der Spielleiter über 8 s weg, können Mitspieler mit ihrer Kopie weitermachen (Peer-ID Raumcode +
   Leitungsnummer); ein zurückkehrender alter Spielleiter merkt das und spielt als Mitspieler weiter. Mit drei Browsern getestet.
+  Paket 1 der schöneren Welt (16.11.2026): Hügel (Höhen 0–6 an den Feldecken, Nachbarn höchstens 1 Stufe auseinander).
+  Gleise folgen dem Gelände, bergauf langsamer (Zugkraft hilft), bergab bis 15 % über Höchsttempo; Aussicht: +10 % Geld
+  pro Meter je Höhenstufe (nicht im Tunnel). Bahnhöfe nur auf ebenem Boden, Bauwerke auf Anhöhen wirken 1 Feld weiter,
+  Ziel „Fahrt auf einen Hügel“. Jeder Startbereich liegt auf Höhe 1 mit einem kleinen Hügel. Alte Spielstände bleiben flach.
+  Grafik: durchgehendes Gelände, bewegtes Wasser mit Flussbett, Tannen/Laubbäume/Birken im Wind, Blumen, Gras, Büsche,
+  Felsen mit Schnee, Satteldächer und Kirche, Landschaft bis zum Horizont, Himmel mit Wolken; Raster und abgedunkeltes
+  fremdes Land nur beim Bauen. Die Karte geht nur bei Änderungen und in Stücken an die Mitspieler (sonst zu groß).
