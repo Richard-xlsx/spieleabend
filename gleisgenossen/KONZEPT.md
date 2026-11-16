@@ -96,6 +96,43 @@ Preise steigen mit jeder Stufe.
   Stand im selben Raumcode; Mitspieler finden ihre Bahn über ihre Geräte-ID oder übernehmen sie.
 - Alte Spielstände (Schritt 1 und 2) werden beim Laden zu einer Bahn umgebaut.
 
+## Schritt 4 (Plan vom 16.11.2026, noch nicht gebaut): schönere Welt, Hügel, Mitfahren
+Schwächen des jetzigen Aussehens: Der Boden ist ein Schachbrett aus Klötzen, alles liegt auf einer Höhe, Berge sind Kegelhaufen,
+Wasser hat eckige Ränder, die Startwiese ist leer, und am Kartenrand endet die Welt wie eine Tischkante.
+
+**4a Landschaft und Hügel**
+- Boden als ein durchgehendes Gelände mit weichen Farbverläufen (Wiese hell und dunkel, Sand am Ufer, Erde unter Bäumen).
+  Raster nur beim Bauen; fremdes Land nur beim Bauen abgedunkelt.
+- Wasser bewegt, mit Ufer, Schilf, Enten. Mehrere Baumarten, die sich im Wind wiegen. Berge als Felsmassiv mit Schnee.
+- Rund um die Karte eine Landschaft, die im Dunst verschwindet; Himmel mit ziehenden Wolken.
+- Hügel technisch: ganzzahlige Höhen an den Feldecken, benachbarte Ecken unterscheiden sich höchstens um 1.
+  Die Gleishöhe an einer Feldkante ist der Mittelwert ihrer zwei Ecken, dazwischen linear. Damit passen alle Teile
+  ohne Extra-Rampen, Kreuzungen treffen sich in der Mitte auf gleicher Höhe, und eine Gerade steigt höchstens 1 Stufe.
+  Bahnhöfe brauchen gleiche Höhe an beiden Enden. Fluss und Wasser liegen auf Höhe 0 (Täler), Berge bleiben Tunnelfelder.
+- Fahren: bergauf langsamer, bergab schneller (etwas über Höchsttempo). Aussicht: je Höhenstufe etwa +10 % Geld pro Meter.
+  Bauwerke auf einer Kuppe wirken ein Feld weiter. Ein kleiner Hügel in jedem Startbereich. Alte Spielstände bleiben flach.
+
+**4b Mitfahren und Kameras** (🎥 wechselt: Frei → Folgen → Mitfahren → Kino)
+- Mitfahren: Blick vom Führerstand, Kessel und Schlot im Bild, Kamera schaut in Kurven voraus und neigt sich mit der Steigung (gedämpft).
+  Tunnel innen dunkel mit Lampen. Anzeige: Tacho, nächster Bahnhof, Knopf für die nächste eigene Weiche, Pfeife.
+- Kino: wechselnde Blickwinkel am Gleis, von Brücken und Hügeln, hinterher; für den Fernseher am Spieleabend.
+- Bei anderen mitfahren: Zug antippen.
+
+**4c Details an der Strecke**
+- Prellbock an Gleisenden, Telegrafenmasten, Weichenhebel, Bauvorschau, Teile „plumpsen“ mit Staubwolke hin.
+- Bahnhöfe mit Bank, Uhr, Lampen und sichtbar wartenden Fahrgästen; Bahnhof wächst mit den Fahrgästen
+  (Haltestelle → Bahnhofshaus → Uhrturm). Leute in den Wagenfenstern.
+- Dörfer mit Kirche, Gärten, Zäunen, Wegen, Schornsteinrauch. Feldwege zwischen Dörfern, Bahnübergang mit Schranke.
+- Felder, Heuballen, Kühe und Schafe, Vögel.
+
+**4d Stimmung**
+- Tag und Nacht (für alle gleich, aus der Spielzeit), Fenster, Laternen und Loklampe leuchten. Wetter und Jahreszeiten optisch.
+- Geräusche im Browser erzeugt (abschaltbar): Schnaufen nach Tempo, Pfeife, Schienenstöße, Brücke, Vögel.
+- Deko kaufen (5–30 T); Deko nahe Bahnhof lockt etwas mehr Fahrgäste. Dörfer mit Bahnanschluss wachsen langsam.
+
+**Leistung:** Grafikstufe „Einfach / Schön“, die sich selbst wählt (Schatten, Wind, Wolken nur bei „Schön“).
+Das durchgehende Gelände ist billiger als die Klötze jetzt. Keine neuen Bibliotheken.
+
 ## Schritte
 1. **Kern (dieser Stand):** Karte, Startkreis, fahrender Zug, Geld pro Meter, Kurven bremsen, Gleisteile bauen,
    drehen, ersetzen, abreißen, Zug-Verbesserungen, Land kaufen, Speichern und Fortsetzen. Ein Handy.
@@ -104,6 +141,7 @@ Preise steigen mit jeder Stufe.
    Aufträge und Meilensteine.
 3. **Mehrspieler (gebaut, siehe oben):** jeder mit eigener Bahn, später zusammentun; Züge halten vor anderen Zügen.
    Leitung übernehmen, wenn der Spielleiter weg ist. Echte Signale und Ausweichstellen könnten später kommen.
+4. **Schönere Welt (Plan, siehe oben):** Landschaft mit Hügeln, Mitfahren und Kino, Details, Stimmung.
 
 ## Simulation (Bot kauft immer die billigste Zug-Verbesserung, baut nichts)
 | | 1 Min | 10 Min | 30 Min |
