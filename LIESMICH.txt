@@ -203,14 +203,18 @@ Getestet am 13.11.2026 mit drei simulierten Spielern im Browser (alle Spiele: ga
 Neuladen eines Mitspielers, Neuladen der Spielleiterin, Übernahme der Spielleitung). Noch nicht auf echten Handys.
 
 Gleisgenossen (neu vom 16.11.2026, vorerst 1 Handy; Plan in gleisgenossen/KONZEPT.md)
-  Offene Welt: ein kleiner Zug fährt auf einem Gleiskreis, jeder gefahrene Meter bringt Geld (gemeinsame Kasse, Start 60 T).
+  Offene Welt: ein kleiner Zug fährt auf einem Gleiskreis, jeder gefahrene Meter bringt Geld (gemeinsame Kasse, Start 80 T).
   Ersetzt das alte Gleisgenossen mit Monatsrunden auf Sechsecken (liegt in Git, Commit c0f542e).
   Karte 64 × 64 Felder im Quadratraster (1 Feld = 10 m), Three.js 0.160 vom CDN; Grundstücke zu 8 × 8 Feldern,
   am Anfang gehören euch die 2 × 2 in der Mitte, weitere nur neben eigenem Land (300 T, jedes weitere × 1,45).
   Gleisteile: Gerade 20 T, Kurve 25 T, Kreuzung 60 T; im Wald +15 T fürs Roden. Feld antippen = bauen (passend gedreht),
   Gleis antippen = drehen (kostenlos) oder durch das gewählte Teil ersetzen; Abreißen gibt die Hälfte zurück.
-  Wasser, Berge und Dörfer sind noch nicht bebaubar (Brücken, Tunnel, Bahnhöfe kommen in Schritt 2).
   Kurven haben ein Tempolimit, der Zug bremst vorher und beschleunigt danach; lange Geraden bringen mehr Geld pro Minute.
   Am Gleisende hält der Zug und wartet; „Zug wenden“ dreht ihn um.
-  Verbesserungen (Preise steigen je Stufe): Kessel (Höchsttempo), Zugkraft, Kurvenlauf, Bremsen, Wagen (+0,5 T pro 10 m, schwerer).
+  Verbesserungen (Preise steigen je Stufe): Kessel (Höchsttempo), Zugkraft, Kurvenlauf, Bremsen, Wagen (+1 T pro 10 m, schwerer).
   Speichern im Menü (ein Spielstand im Browser); ohne Speichern schließen verwirft die Welt.
+  Schritt 2 (16.11.2026): Geld 2 T + 1 T je Wagen pro 10 m. Weiche 80 T (mit „Schauen“ antippen = umstellen, Lampe grün/gelb).
+  Bahnhof 150 T: Halt 2,5 s, Fahrgäste nach Häusern in der Nähe (3 + 2 je Haus, 6 Plätze je Wagen), zahlen am nächsten
+  anderen Bahnhof 0,5 T pro Feld. Gerade auf Wasser = Brücke (+100 T), im Berg = Tunnel (+180 T).
+  Bauwerke (Werkzeug „Bauten“): Wasserturm 150 T (20 s 30 % schneller), Windmühle 300 T, Burg 900 T, Riesenrad 2.200 T
+  (Bonus bei jeder Durchfahrt, mehrere kurz hintereinander bis × 2). 16 Ziele mit Belohnung, gelbe Leiste oben.

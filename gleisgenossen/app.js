@@ -1,6 +1,6 @@
-// Gleisgenossen: Startseite, Bedienleiste über der 3D-Welt, Speichern. Schritt 1: ein Handy.
+// Gleisgenossen: Startseite, Bedienleiste über der 3D-Welt, Speichern. Vorerst ein Handy.
 // Die Regeln stehen in logic.js (window.GG), die Welt in welt.js.
-import { Welt } from "./welt.js?v=2026-11-16a";
+import { Welt } from "./welt.js?v=2026-11-16c";
 
 const G = window.GG;
 const app = document.getElementById("app"), weltEl = document.getElementById("welt"), hud = document.getElementById("hud");
@@ -20,7 +20,7 @@ const vor = t => { const m = Math.round((Date.now() - t) / 60000); return m < 1 
 
 let S = null, welt = null, gespeichertUm = null, hinweisTimer = null, proMinute = 0;
 const verlauf = [];          // [zeit, verdient] der letzten Minute für „pro Minute“
-const ui = { modus: "schauen", teil: "g", panel: null };
+const ui = { modus: "schauen", teil: "g", bau: "turm", panel: null };
 
 let wake = null;
 async function wachHalten() { try { if (navigator.wakeLock && !wake) { wake = await navigator.wakeLock.request("screen"); wake.addEventListener("release", () => { wake = null; }); } } catch (e) {} }
@@ -65,21 +65,21 @@ function startseite() {
       <button class="knopf ${g ? "zweit" : ""}" id="neu">Neue Welt starten</button></div>
     <p class="leise klein mitte">Zusammen auf mehreren Handys spielen kommt in einem späteren Schritt.</p>
     <a class="link" href="../">Alle Spiele</a>`;
-  if (g) document.getElementById("weiter").onclick = () => spielen(g.S, g.um);
+  if (g) document.getElementById("weiter").onclick = () => spielen(G.auffrischen(g.S), g.um);
   document.getElementById("neu").onclick = () => spielen(G.neu(), null);
 }
 
 // ---------- Spiel ----------
 function spielen(stand, um) {
   S = stand; gespeichertUm = um; verlauf.length = 0; proMinute = 0;
-  Object.assign(ui, { modus: "schauen", teil: "g", panel: null });
+  Object.assign(ui, { modus: "schauen", teil: "g", bau: "turm", panel: null });
   app.hidden = true; weltEl.hidden = false; hud.hidden = false;
   document.documentElement.classList.add("spiel"); document.body.classList.add("spiel");
   if (!welt) {
     welt = new Welt(weltEl);
     welt.onTap = feldGetippt;
     welt.onFolgenAus = () => render();
-    welt.vorBild = dt => { if (S && !hud.hidden) G.schritt(S, dt); };
+    welt.vorBild = dt => { if (!S || hud.hidden) return; G.schritt(S, dt).ereignisse.forEach(ereignis); };
     setInterval(zahlenAuffrischen, 250);
   }
   welt.groesse();
@@ -102,8 +102,14 @@ function feldGetippt(i) {
   if (!S) return;
   if (!G.besitzt(S, i)) { ui.panel = { art: "land", p: G.parzelle(i) }; welt.markieren(i); render(); return; }
   if (ui.modus === "bauen") { welt.markieren(i); tun({ typ: "bauen", i, t: ui.teil }); return; }
+  if (ui.modus === "bauten") { welt.markieren(i); tun({ typ: "bauwerk", i, t: ui.bau }); return; }
   if (ui.modus === "abreissen") { welt.markieren(i); tun({ typ: "abreissen", i }); return; }
-  ui.panel = { art: "feld", i }; welt.markieren(i); render();
+  ui.panel = { art: "feld", i }; welt.markieren(i);
+  if (S.gleise[i] && S.gleise[i].t === "s") weicheStellen(i); else render();
+}
+function weicheStellen(i) {
+  const r = tun({ typ: "weiche", i });
+  if (r.ok) hinweis(r.st ? "Weiche: abbiegen" : "Weiche: geradeaus");
 }
 
 function speichern() {
@@ -115,8 +121,7 @@ function speichern() {
 }
 function beenden() {
   if (!confirm(gespeichertUm ? "Zur Startseite? Was seit dem letzten Speichern passiert ist, geht verloren." : "Zur Startseite? Diese Welt ist nicht gespeichert und geht verloren.")) return;
-  S = null; welt.markieren(null); if (T) window.__gg = { get S() { return S; }, get welt() { return welt; }, ui };
-startseite();
+  S = null; welt.markieren(null); startseite();
 }
 
 // ---------- Bedienleiste ----------
@@ -127,43 +132,53 @@ function hinweis(t) {
   clearTimeout(hinweisTimer); hinweisTimer = setTimeout(() => { el.hidden = true; }, 2800);
 }
 
+const SCHIENE = `stroke="#C8CBD6" stroke-width="1.6" fill="none"`;
 const TEIL_BILD = {
-  g: `<svg viewBox="0 0 34 34"><rect x="11" y="1" width="12" height="32" fill="#B9A68A"/><g fill="#6B4A32">${[4, 10, 16, 22, 28].map(y => `<rect x="9" y="${y}" width="16" height="2.5"/>`).join("")}</g><path d="M14 1v32M20 1v32" stroke="#C8CBD6" stroke-width="1.6"/></svg>`,
-  k: `<svg viewBox="0 0 34 34"><path d="M17 33 A16 16 0 0 1 33 17" fill="none" stroke="#B9A68A" stroke-width="12"/><path d="M14 33 A19 19 0 0 1 33 14 M20 33 A13 13 0 0 1 33 20" fill="none" stroke="#C8CBD6" stroke-width="1.6"/></svg>`,
-  x: `<svg viewBox="0 0 34 34"><rect x="11" y="1" width="12" height="32" fill="#B9A68A"/><rect x="1" y="11" width="32" height="12" fill="#B9A68A"/><path d="M14 1v32M20 1v32M1 14h32M1 20h32" stroke="#C8CBD6" stroke-width="1.6"/></svg>`
+  g: `<svg viewBox="0 0 34 34"><rect x="11" y="1" width="12" height="32" fill="#B9A68A"/><g fill="#6B4A32">${[4, 10, 16, 22, 28].map(y => `<rect x="9" y="${y}" width="16" height="2.5"/>`).join("")}</g><path d="M14 1v32M20 1v32" ${SCHIENE}/></svg>`,
+  k: `<svg viewBox="0 0 34 34"><path d="M17 33 A16 16 0 0 1 33 17" fill="none" stroke="#B9A68A" stroke-width="12"/><path d="M14 33 A19 19 0 0 1 33 14 M20 33 A13 13 0 0 1 33 20" ${SCHIENE}/></svg>`,
+  s: `<svg viewBox="0 0 34 34"><rect x="11" y="1" width="12" height="32" fill="#B9A68A"/><path d="M17 33 A16 16 0 0 1 33 17" fill="none" stroke="#B9A68A" stroke-width="12"/><path d="M14 1v32M20 1v32" ${SCHIENE}/><path d="M14 33 A19 19 0 0 1 33 14 M20 33 A13 13 0 0 1 33 20" ${SCHIENE}/><circle cx="6" cy="28" r="3.5" fill="#5BD69A"/></svg>`,
+  x: `<svg viewBox="0 0 34 34"><rect x="11" y="1" width="12" height="32" fill="#B9A68A"/><rect x="1" y="11" width="32" height="12" fill="#B9A68A"/><path d="M14 1v32M20 1v32M1 14h32M1 20h32" ${SCHIENE}/></svg>`,
+  b: `<svg viewBox="0 0 34 34"><rect x="6" y="1" width="11" height="32" fill="#B9A68A"/><path d="M9 1v32M14 1v32" ${SCHIENE}/><rect x="20" y="4" width="9" height="26" rx="1" fill="#D8CFC0"/><rect x="19" y="10" width="12" height="14" rx="2" fill="#C9553D"/></svg>`
 };
+const BAU_BILD = { turm: "💧", muehle: "🌾", burg: "🏰", rad: "🎡" };
 
 function render() {
   if (!S) return;
-  const w = G.werte(S);
+  const w = G.werte(S), ziel = G.offeneZiele(S)[0], zugOffen = ui.panel && ui.panel.art === "zug";
   hud.innerHTML = `
-    <div class="hud-oben">
-      <div class="chip gross"><small>Kasse</small><b id="kasse">${zahl(S.kasse)} T</b></div>
-      <div class="chip"><small>pro Minute</small><b id="promin">${zahl(proMinute)} T</b></div>
-      <div class="chip"><small>Tempo</small><b id="tempo">${G.kmh(S.zug.v)} km/h</b></div>
-      <button class="rund ${welt.folgen ? "an" : ""}" id="folgen" aria-label="Kamera folgt dem Zug" title="Zug folgen">🎥</button>
-      <button class="rund" id="menue" aria-label="Menü">☰</button>
+    <div>
+      <div class="hud-oben">
+        <div class="chip gross"><small>Kasse</small><b id="kasse">${zahl(S.kasse)} T</b></div>
+        <div class="chip"><small>pro Minute</small><b id="promin">${zahl(proMinute)} T</b></div>
+        <div class="chip"><small>Tempo</small><b id="tempo">${G.kmh(S.zug.v)} km/h</b></div>
+        <button class="rund ${welt.folgen ? "an" : ""}" id="folgen" aria-label="Kamera folgt dem Zug" title="Zug folgen">🎥</button>
+        <button class="rund" id="menue" aria-label="Menü">☰</button>
+      </div>
+      ${ziel ? `<button class="ziel" id="ziele"><span>Ziel</span> ${esc(ziel.text)} <em>+${zahl(ziel.geld)} T</em></button>` : ""}
     </div>
     <div class="hud-unten">
       ${panelHtml(w)}
       <div class="werkzeuge">
-        ${[["schauen", "👆", "Schauen"], ["bauen", "🛤️", "Gleise"], ["abreissen", "⛏️", "Abreißen"], ["zug", "🚂", "Zug"]].map(([m, i, t]) =>
-          `<button data-modus="${m}" class="${(ui.panel && ui.panel.art === "zug") ? (m === "zug" ? "an" : "") : (ui.modus === m && !(ui.panel && ["menue", "land"].includes(ui.panel.art)) ? "an" : "")}"><i>${i}</i>${t}</button>`).join("")}
+        ${[["schauen", "👆", "Schauen"], ["bauen", "🛤️", "Gleise"], ["bauten", "🏰", "Bauten"], ["abreissen", "⛏️", "Abreißen"], ["zug", "🚂", "Zug"]].map(([m, i, t]) =>
+          `<button data-modus="${m}" class="${zugOffen ? (m === "zug" ? "an" : "") : (ui.modus === m && !(ui.panel && ["menue", "land", "ziele"].includes(ui.panel.art)) ? "an" : "")}"><i>${i}</i>${t}</button>`).join("")}
       </div>
     </div>`;
   hud.querySelectorAll("[data-modus]").forEach(b => b.onclick = () => {
     const m = b.dataset.modus;
-    if (m === "zug") { ui.panel = ui.panel && ui.panel.art === "zug" ? null : { art: "zug" }; }
+    if (m === "zug") ui.panel = zugOffen ? null : { art: "zug" };
     else { ui.modus = m; ui.panel = null; welt.markieren(null); }
     render();
   });
   hud.querySelectorAll("[data-teil]").forEach(b => b.onclick = () => { ui.teil = b.dataset.teil; render(); });
+  hud.querySelectorAll("[data-bau]").forEach(b => b.onclick = () => { ui.bau = b.dataset.bau; render(); });
   hud.querySelectorAll("[data-stufe]").forEach(b => b.onclick = () => tun({ typ: "stufe", k: b.dataset.stufe }));
   const on = (id, f) => { const el = document.getElementById(id); if (el) el.onclick = f; };
   on("folgen", () => { welt.folgen = !welt.folgen; render(); });
   on("menue", () => { ui.panel = ui.panel && ui.panel.art === "menue" ? null : { art: "menue" }; render(); });
+  on("ziele", () => { ui.panel = ui.panel && ui.panel.art === "ziele" ? null : { art: "ziele" }; render(); });
   on("zu", () => { ui.panel = null; welt.markieren(null); render(); });
   on("wenden", () => { tun({ typ: "wenden" }); });
+  on("stellen", () => weicheStellen(ui.panel.i));
   on("land", () => { const r = tun({ typ: "land", p: ui.panel.p }); if (r.ok) { ui.panel = null; welt.markieren(null); render(); hinweis("Neues Land gekauft."); } });
   on("speichern", speichern);
   on("beenden", beenden);
@@ -178,7 +193,15 @@ function panelHtml(w) {
       <p class="stand">${strecke(S.meter)} gefahren · ${zahl(S.verdient)} T verdient · ${S.gebaut} Gleisteile gebaut · Spielzeit ${dauer(S.zeit)}</p>
       <p class="hinweis">${gespeichertUm ? "Zuletzt gespeichert " + esc(vor(gespeichertUm)) + "." : "Diese Welt ist noch nicht gespeichert."} Wer ohne Speichern schließt, verwirft den Spielstand.</p>
       <div class="knopfreihe"><button class="knopf" id="speichern">Speichern</button><button class="knopf zweit" id="beenden">Zur Startseite</button></div>
-      <p class="hinweis"><b>So geht's:</b> Gleise: Teil wählen, Feld antippen. Ein Gleis nochmal antippen dreht es. Kurven bremsen den Zug, auf langen Geraden wird er schnell und verdient mehr.</p>
+      <p class="hinweis"><b>So geht's:</b> Kurven bremsen den Zug, auf langen Geraden wird er schnell und verdient mehr.
+        Bahnhöfe: Fahrgäste steigen ein und zahlen am nächsten anderen Bahnhof nach Entfernung, neben Dörfern steigen mehr ein.
+        Weichen stellt ihr mit „Schauen“ durch Antippen um. Bauwerke neben der Strecke geben bei jeder Durchfahrt Geld,
+        mehrere kurz hintereinander geben bis doppelt so viel.</p>
+    </div>`;
+  }
+  if (p && p.art === "ziele") {
+    return `<div class="panel">${kopf("Ziele")}
+      <div class="stufen">${G.ZIELE.map(z => `<div class="stufe ${S.ziele[z.id] ? "erledigt" : ""}"><div><b>${S.ziele[z.id] ? "✓ " : ""}${esc(z.text)}</b></div><small>+${zahl(z.geld)} T</small></div>`).join("")}</div>
     </div>`;
   }
   if (p && p.art === "land") {
@@ -195,10 +218,10 @@ function panelHtml(w) {
       kraft: `+22 % Beschleunigung`,
       kurve: `${G.kmh(w.vk)} km/h → ${G.kmh(w.vk + .12)} km/h in Kurven`,
       bremse: `+22 % Bremskraft`,
-      wagen: `${wagen} → ${wagen + 1} Wagen, ${(w.geld).toLocaleString("de-DE")} → ${(w.geld + .5).toLocaleString("de-DE")} T pro 10 m`
+      wagen: `${wagen} → ${wagen + 1} Wagen: ${w.geld} → ${w.geld + 1} T pro 10 m, ${w.plaetze} → ${w.plaetze + G.PLAETZE} Plätze`
     };
     return `<div class="panel">${kopf("Zug")}
-      <p class="hinweis">${S.zug.wartet ? "<b>Der Zug steht am Gleisende.</b> Baut weiter oder wendet ihn. " : ""}Jede 10 m bringen ${w.geld.toLocaleString("de-DE")} T.</p>
+      <p class="hinweis">${S.zug.wartet ? "<b>Der Zug steht am Gleisende.</b> Baut weiter oder wendet ihn. " : ""}Jede 10 m bringen ${w.geld} T. ${w.plaetze} Plätze für Fahrgäste.${S.zug.schub > 0 ? " Volldampf vom Wasserturm!" : ""}</p>
       <div class="stufen">${Object.keys(G.STUFEN).map(k => {
         const d = G.STUFEN[k], voll = st[k] >= d.max, preis = G.stufenPreis(S, k);
         return `<div class="stufe"><div><b>${d.name} · Stufe ${st[k]}</b><small>${voll ? "ganz ausgebaut" : was[k]}</small></div>
@@ -208,24 +231,49 @@ function panelHtml(w) {
     </div>`;
   }
   if (p && p.art === "feld") {
-    const g = S.karte.g[p.i], t = S.gleise[p.i];
-    return `<div class="panel kompakt">${kopf(t ? G.TEILE[t.t].name : G.GELAENDE[g])}
-      <p class="hinweis">${t ? "Gleisteil. Zum Drehen oder Ersetzen auf „Gleise“ tippen, zum Entfernen auf „Abreißen“." :
-        g === "w" ? "Wald. Bauen kostet 15 T mehr fürs Roden." : g === "~" ? "Wasser. Brücken kommen später." : g === "b" ? "Berg. Tunnel kommen später." : g === "h" ? "Ein Dorf. Bahnhöfe kommen später." : "Freie Wiese, hier könnt ihr bauen."}</p>
+    const g = S.karte.g[p.i], t = S.gleise[p.i], b = S.bauten[p.i];
+    if (b) { const d = G.BAUTEN[b.t]; return `<div class="panel kompakt">${kopf(d.name)}<p class="hinweis">${d.text}, wenn die Lok bis ${d.radius} Feld${d.radius > 1 ? "er" : ""} entfernt vorbeifährt.</p></div>`; }
+    if (t && t.t === "s") return `<div class="panel kompakt">${kopf("Weiche")}<p class="hinweis">Gestellt auf <b>${t.st ? "abbiegen" : "geradeaus"}</b> (Lampe ${t.st ? "gelb" : "grün"}). Züge von den Zweigen fahren immer durch.</p><button class="knopf" id="stellen">Umstellen</button></div>`;
+    if (t && t.t === "b") return `<div class="panel kompakt">${kopf("Bahnhof " + esc(G.bahnhofName(S, p.i)))}<p class="hinweis">${G.haeuser(S, p.i)} Häuser in der Nähe: bis zu ${G.nachfrage(S, p.i)} Fahrgäste steigen ein. Sie zahlen am nächsten anderen Bahnhof ${G.FAHRPREIS.toLocaleString("de-DE")} T pro Feld Fahrt.</p></div>`;
+    const name = t ? (g === "~" ? "Brücke" : g === "b" ? "Tunnel" : G.TEILE[t.t].name) : G.GELAENDE[g];
+    return `<div class="panel kompakt">${kopf(name)}
+      <p class="hinweis">${t ? "Zum Drehen oder Ersetzen auf „Gleise“ tippen, zum Entfernen auf „Abreißen“." :
+        g === "w" ? "Wald. Bauen kostet 15 T mehr fürs Roden." : g === "~" ? `Wasser. Eine Gerade wird hier zur Brücke (+${G.BRUECKE} T).` : g === "b" ? `Berg. Eine Gerade wird hier zum Tunnel (+${G.TUNNEL} T).` : g === "h" ? "Ein Dorf. Ein Bahnhof daneben bringt viele Fahrgäste." : "Freie Wiese, hier könnt ihr bauen."}</p>
     </div>`;
   }
   if (ui.modus === "bauen") {
     return `<div class="panel kompakt">
       <div class="teile">${Object.keys(G.TEILE).map(k => `<button data-teil="${k}" class="${ui.teil === k ? "an" : ""}">${TEIL_BILD[k]}${G.TEILE[k].name}<small>${G.TEILE[k].preis} T</small></button>`).join("")}</div>
-      <p class="hinweis">Feld antippen: bauen. Gleis antippen: drehen (kostenlos) oder durch das gewählte Teil ersetzen.</p>
+      <p class="hinweis">Feld antippen: bauen. Gleis antippen: drehen (kostenlos) oder ersetzen. Eine Gerade auf Wasser wird zur Brücke (+${G.BRUECKE} T), im Berg zum Tunnel (+${G.TUNNEL} T).</p>
     </div>`;
   }
-  if (ui.modus === "abreissen") return `<div class="panel kompakt"><p class="hinweis">Gleis antippen: abreißen. Ihr bekommt die Hälfte des Preises zurück.</p></div>`;
+  if (ui.modus === "bauten") {
+    return `<div class="panel kompakt">
+      <div class="teile">${Object.keys(G.BAUTEN).map(k => `<button data-bau="${k}" class="${ui.bau === k ? "an" : ""}"><i class="emoji">${BAU_BILD[k]}</i>${G.BAUTEN[k].name}<small>${zahl(G.BAUTEN[k].preis)} T</small></button>`).join("")}</div>
+      <p class="hinweis"><b>${G.BAUTEN[ui.bau].name}:</b> ${G.BAUTEN[ui.bau].text}, wenn die Lok bis ${G.BAUTEN[ui.bau].radius} Feld${G.BAUTEN[ui.bau].radius > 1 ? "er" : ""} entfernt vorbeifährt. Feld neben der Strecke antippen.</p>
+    </div>`;
+  }
+  if (ui.modus === "abreissen") return `<div class="panel kompakt"><p class="hinweis">Gleis oder Bauwerk antippen: abreißen. Ihr bekommt die Hälfte des Preises zurück.</p></div>`;
   return "";
+}
+
+// Ereignisse aus der Fahrt als aufsteigender Text
+function ereignis(e) {
+  const x = e.i % G.B + .5, y = (e.i / G.B | 0) + .5;
+  if (e.art === "halt") welt.schweben(x, y, e.geld ? `+${zahl(e.geld)} T · ${e.leute} Fahrgäste` : e.gleicher ? "Fahrgäste wollen woanders hin" : "Fahrgäste steigen ein", e.geld ? "geld" : "info");
+  if (e.art === "bonus") welt.schweben(x, y, `+${zahl(e.geld)} T ${e.name}${e.kette > 1 ? " · ×" + e.faktor.toLocaleString("de-DE") : ""}`);
+  if (e.art === "schub") welt.schweben(x, y, "Volldampf! 20 s schneller", "info");
 }
 
 function zahlenAuffrischen() {
   if (!S || hud.hidden) return;
+  const neu = G.zielePruefen(S);
+  if (neu.length) {
+    const l = G.wagenlage(S)[0];
+    neu.forEach((z, k) => setTimeout(() => welt.schweben(l.x, l.y, `Ziel erreicht: +${zahl(z.geld)} T`, "ziel"), k * 700));
+    hinweis(`Ziel erreicht: ${neu[0].text}. +${zahl(neu.reduce((s, z) => s + z.geld, 0))} T`);
+    render(); return;
+  }
   const jetzt = S.zeit;
   verlauf.push([jetzt, S.verdient]);
   while (verlauf.length > 2 && jetzt - verlauf[0][0] > 60) verlauf.shift();

@@ -71,8 +71,9 @@ export class Welt {
     c.minPolarAngle = .2; c.maxPolarAngle = 1.25; c.zoomToCursor = true;
     c.addEventListener("change", () => this.begrenzen());
     c.addEventListener("start", () => { this.folgen = false; if (this.onFolgenAus) this.onFolgenAus(); });
-    this.gTerrain = new THREE.Group(); this.gLand = new THREE.Group(); this.gNetz = new THREE.Group(); this.gZug = new THREE.Group(); this.gMarke = new THREE.Group(); this.gRauch = new THREE.Group();
-    [this.gTerrain, this.gLand, this.gNetz, this.gZug, this.gMarke, this.gRauch].forEach(g => sc.add(g));
+    this.gTerrain = new THREE.Group(); this.gLand = new THREE.Group(); this.gNetz = new THREE.Group(); this.gZug = new THREE.Group(); this.gMarke = new THREE.Group(); this.gRauch = new THREE.Group(); this.gBauten = new THREE.Group(); this.gSchweben = new THREE.Group();
+    this.drehteile = []; this.schwebende = [];
+    [this.gTerrain, this.gLand, this.gNetz, this.gBauten, this.gZug, this.gMarke, this.gRauch, this.gSchweben].forEach(g => sc.add(g));
     this.rauch = [];
     const rg = new THREE.IcosahedronGeometry(.16, 0);
     for (let i = 0; i < 60; i++) { const m = new THREE.Mesh(rg, new THREE.MeshLambertMaterial({ color: 0xF4F4F6, transparent: true, opacity: 0, depthWrite: false })); m.visible = false; this.gRauch.add(m); this.rauch.push({ m, alter: 9 }); }
@@ -133,12 +134,15 @@ export class Welt {
   // ---------- Stand übernehmen (nach jeder Aktion) ----------
   setzen(S) {
     this.S = S;
-    const tk = S.seed + "|" + S.karte.g + "|" + S.land;
+    const tunnel = Object.keys(S.gleise).filter(k => S.karte.g[k] === "b").join(",");
+    const tk = S.seed + "|" + S.karte.g + "|" + S.land + "|" + tunnel;
     if (tk !== this.terrainKey) { this.terrainKey = tk; this.gelaende(S); }
     const lk = S.land + "|" + G.landPreis(S);
     if (lk !== this.landKey) { this.landKey = lk; this.landZeichnen(S); }
     const gk = JSON.stringify(S.gleise);
     if (gk !== this.gleisKey) { this.gleisKey = gk; this.gleiseZeichnen(S); }
+    const bk = JSON.stringify(Object.keys(S.bauten).map(k => k + S.bauten[k].t));
+    if (bk !== this.bautenKey) { this.bautenKey = bk; this.bautenZeichnen(S); }
     if (this.wagen.length !== 2 + S.zug.stufen.wagen) this.zugBauen(S);
   }
   gelaende(S) {
@@ -154,7 +158,8 @@ export class Welt {
         baeume.push({ x: bx, y: GY, z: bz, sx: s, sy: s, sz: s });
         kronen.push({ x: bx, y: GY + .35 * s, z: bz, sx: s, sy: s * (1 + q() * .4), sz: s, ry: q() * 6, farbe: abdunkeln([0x2F8A4A, 0x3C9A52, 0x2A7D43][k + (i % 2)], an) });
       }
-      if (g === "b") felsen.push({ x: x + (q() - .5) * .4, y: HOEHE.b, z: zz + (q() - .5) * .4, sx: F * .62, sy: F * (.55 + q() * .9), sz: F * .62, ry: q() * 6, farbe: abdunkeln([0x9C9C8E, 0xA6A496, 0x8E8B84][i % 3], an) });
+      const tun = S.gleise[i] ? 1.45 : 1;
+      if (g === "b") felsen.push({ x: x + (q() - .5) * .4 / tun / tun, y: HOEHE.b, z: zz + (q() - .5) * .4 / tun / tun, sx: F * .62 * tun, sy: F * (.55 + q() * .9) * (tun > 1 ? .85 : 1), sz: F * .62 * tun, ry: q() * 6, farbe: abdunkeln([0x9C9C8E, 0xA6A496, 0x8E8B84][i % 3], an) });
       if (g === "h") {
         const ry = (q() < .5 ? 0 : Math.PI / 2) + (q() - .5) * .2;
         haeuser.push({ x, y: GY, z: zz, sx: 1.05, sy: .75 + q() * .3, sz: .8, ry, farbe: abdunkeln(WAND[Math.floor(q() * WAND.length)], an) });
@@ -198,30 +203,116 @@ export class Welt {
   }
   gleiseZeichnen(S) {
     leeren(this.gNetz);
-    const bett = [], schwellen = [], schienen = [], y0 = GY;
+    const bett = [], schwellen = [], schienen = [], matt = [], holz = [], stein = [], bahnsteig = [], dach = [], lampen = [], portal = [], y0 = GY;
     const lage = (seg, s, quer) => {
       const p = G.punkt(seg, s), q = G.punkt(seg, Math.min(G.laenge(seg), s + .01)), o = G.punkt(seg, Math.max(0, s - .01));
       const dx = q.x - o.x, dy = q.y - o.y, n = Math.hypot(dx, dy) || 1;
       return { x: this.wx(p.x - dy / n * quer), z: this.wz(p.y + dx / n * quer), ry: -Math.atan2(dy, dx) };
     };
     for (const k in S.gleise) {
-      const i = +k, t = S.gleise[k];
-      for (const [a, b] of G.paare(t.t, t.r)) {
+      const i = +k, t = S.gleise[k], gel = S.karte.g[i], bruecke = gel === "~", tunnel = gel === "b";
+      G.paare(t.t, t.r).forEach(([a, b], nr) => {
         const seg = { i, ein: a, aus: b }, L = G.laenge(seg), teile = L === 1 ? 1 : 8;
+        const aus = t.t === "s" && nr !== (t.st ? 1 : 0);          // nicht gestellter Weichenzweig: dunkle Schienen
         for (let j = 0; j < teile; j++) {
           const s0 = L * j / teile, s1 = L * (j + 1) / teile, m = (s0 + s1) / 2, len = (s1 - s0) * F;
           const mi = lage(seg, m, 0);
-          bett.push({ x: mi.x, y: y0, z: mi.z, sx: len + (teile > 1 ? .12 : .02), sy: .05, sz: .78, ry: mi.ry });
-          for (const quer of [-.16, .16]) { const r = lage(seg, m, quer); schienen.push({ x: r.x, y: y0 + .1, z: r.z, sx: len * (teile > 1 ? 1.35 : 1) + .03, sy: .06, sz: .05, ry: r.ry }); }
+          if (!bruecke) bett.push({ x: mi.x, y: y0, z: mi.z, sx: len + (teile > 1 ? .12 : .02), sy: .05, sz: .78, ry: mi.ry });
+          for (const quer of [-.16, .16]) { const r = lage(seg, m, quer); (aus ? matt : schienen).push({ x: r.x, y: y0 + .1, z: r.z, sx: len * (teile > 1 ? 1.35 : 1) + .03, sy: .06, sz: .05, ry: r.ry }); }
         }
         const anzahl = Math.round(L / .24);
         for (let j = 0; j < anzahl; j++) { const r = lage(seg, (j + .5) * L / anzahl, 0); schwellen.push({ x: r.x, y: y0 + .05, z: r.z, sx: .12, sy: .05, sz: .62, ry: r.ry }); }
-      }
+        const mi = lage(seg, L / 2, 0);
+        if (bruecke) {
+          holz.push({ x: mi.x, y: y0 - .1, z: mi.z, sx: F * 1.01, sy: .14, sz: F * .5, ry: mi.ry });
+          for (const q of [-.24, .24]) { const r = lage(seg, L / 2, q); holz.push({ x: r.x, y: y0 + .04, z: r.z, sx: F, sy: .3, sz: .06, ry: r.ry }); }
+          for (const s of [.1, .9]) { const r = lage(seg, s, 0); stein.push({ x: r.x, y: 0, z: r.z, sx: .3, sy: y0 - .1, sz: F * .45, ry: r.ry }); }
+        }
+        if (tunnel) stein.push({ x: mi.x, y: y0 + .55, z: mi.z, sx: F * 1.02, sy: .6, sz: F * .8, ry: mi.ry });
+        if (tunnel) for (const [s, seite] of [[0, a], [L, b]]) {   // Portale nur am Ein- und Ausgang, der Berg verdeckt den Zug
+          const c = i % G.B + G.DIR[seite][0], rr = (i / G.B | 0) + G.DIR[seite][1], j = rr * G.B + c;
+          if (c >= 0 && rr >= 0 && c < G.B && rr < G.H && S.karte.g[j] === "b" && S.gleise[j]) continue;
+          const r = lage(seg, s, 0);
+          stein.push({ x: r.x, y: y0, z: r.z, sx: .22, sy: 1.15, sz: F * .5, ry: r.ry });
+          portal.push({ x: r.x, y: y0, z: r.z, sx: .26, sy: .8, sz: F * .3, ry: r.ry });
+        }
+        if (t.t === "b") {
+          const r = lage(seg, L / 2, .36);
+          bahnsteig.push({ x: r.x, y: y0, z: r.z, sx: F * .96, sy: .24, sz: .5, ry: r.ry });
+          const r2 = lage(seg, L / 2, .42);
+          dach.push({ x: r2.x, y: y0 + 1.05, z: r2.z, sx: F * .7, sy: .08, sz: .6, ry: r2.ry });
+          for (const s of [.3, .7]) { const p = lage(seg, s, .48); stein.push({ x: p.x, y: y0 + .24, z: p.z, sx: .07, sy: .82, sz: .07, ry: p.ry }); }
+          const sp = schild(G.bahnhofName(S, i), { groesse: 1.1, unter: "Bahnhof" }); sp.position.set(r.x, 2.3, r.z); this.gNetz.add(sp);
+        }
+        if (t.t === "s" && nr === 0) {
+          const p = lage(seg, .12, .4);
+          lampen.push({ x: p.x, y: y0 + .45, z: p.z, sx: .2, sy: .2, sz: .2, farbe: t.st ? 0xFFB020 : 0x5BD69A });
+          stein.push({ x: p.x, y: y0, z: p.z, sx: .05, sy: .45, sz: .05 });
+        }
+      });
     }
     const box = new THREE.BoxGeometry(1, 1, 1).translate(0, .5, 0);
     this.gNetz.add(instanzen(box, mat(0xB9A68A), bett, false));
     this.gNetz.add(instanzen(box, mat(0x6B4A32), schwellen, false));
     this.gNetz.add(instanzen(box, mat(0x8C8F99, { metalness: .5, roughness: .4 }), schienen));
+    if (matt.length) this.gNetz.add(instanzen(box, mat(0x5A5D66), matt));
+    if (holz.length) this.gNetz.add(instanzen(box, mat(0x8A5A3A), holz));
+    if (stein.length) this.gNetz.add(instanzen(box, mat(0x8E8B84), stein));
+    if (portal.length) this.gNetz.add(instanzen(box, mat(0x1C1A33), portal, false));
+    if (bahnsteig.length) this.gNetz.add(instanzen(box, mat(0xD8CFC0), bahnsteig));
+    if (dach.length) this.gNetz.add(instanzen(box, mat(0xC9553D), dach));
+    if (lampen.length) this.gNetz.add(instanzen(new THREE.SphereGeometry(.5, 10, 8), new THREE.MeshBasicMaterial({ color: 0xffffff }), lampen, false));
+  }
+  // Bauwerke neben der Strecke; Windmühlenflügel und Riesenrad drehen sich
+  bautenZeichnen(S) {
+    leeren(this.gBauten); this.drehteile = [];
+    const box = (g, w, h, d, x, y, z, m) => { const b = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); b.position.set(x, y, z); b.castShadow = true; g.add(b); return b; };
+    const zyl = (g, r1, r2, h, x, y, z, m, n = 10) => { const c = new THREE.Mesh(new THREE.CylinderGeometry(r1, r2, h, n), m); c.position.set(x, y, z); c.castShadow = true; g.add(c); return c; };
+    for (const k in S.bauten) {
+      const i = +k, t = S.bauten[k].t, g = new THREE.Group(), q = rng(i * 7 + 3);
+      if (t === "turm") {
+        for (const [x, z] of [[-.35, -.35], [.35, -.35], [-.35, .35], [.35, .35]]) box(g, .09, 1.5, .09, x, .75, z, mat(0x6B4A32));
+        zyl(g, .55, .55, .7, 0, 1.8, 0, mat(0x8C4A3A), 14);
+        const kegel = new THREE.Mesh(new THREE.ConeGeometry(.62, .45, 14), mat(0x3D3868)); kegel.position.y = 2.38; g.add(kegel);
+        zyl(g, .06, .06, .6, .5, 1.4, 0, mat(0x2A2A35), 6).rotation.z = .6;
+      } else if (t === "muehle") {
+        zyl(g, .38, .58, 1.7, 0, .85, 0, mat(0xF3E6CC), 8);
+        const kappe = new THREE.Mesh(new THREE.ConeGeometry(.48, .6, 8), mat(0x8C4A3A)); kappe.position.y = 2; g.add(kappe);
+        const fluegel = new THREE.Group(); fluegel.position.set(0, 1.6, .55);
+        for (let a = 0; a < 4; a++) { const f = box(fluegel, .16, 1.2, .03, 0, .65, 0, mat(0xE8E1F5)); const h = new THREE.Group(); h.add(f); h.rotation.z = a * Math.PI / 2; fluegel.add(h); }
+        g.add(fluegel); this.drehteile.push({ o: fluegel, achse: "z", tempo: 1.2 });
+      } else if (t === "burg") {
+        const st = mat(0xB8B2A6);
+        box(g, 1.4, .9, 1.4, 0, .45, 0, st);
+        for (const [x, z] of [[-.7, -.7], [.7, -.7], [-.7, .7], [.7, .7]]) {
+          zyl(g, .26, .28, 1.5, x, .75, z, st, 8);
+          const d = new THREE.Mesh(new THREE.ConeGeometry(.34, .55, 8), mat(0xC9553D)); d.position.set(x, 1.78, z); g.add(d);
+        }
+        box(g, .5, 1.4, .5, 0, .9, 0, st);
+        box(g, .03, .6, .03, 0, 1.9, 0, mat(0x2A2A35)); box(g, .3, .18, .02, .15, 2.1, 0, mat(0xFFD447));
+        box(g, .36, .5, .05, 0, .25, .71, mat(0x4A3A2A));
+      } else if (t === "rad") {
+        const rot = new THREE.Group(); rot.position.y = 1.9;
+        const ring = new THREE.Mesh(new THREE.TorusGeometry(1.35, .05, 6, 28), mat(0xF3F0FF)); rot.add(ring);
+        for (let a = 0; a < 8; a++) {
+          const sp = box(rot, .04, 1.35, .04, 0, 0, 0, mat(0xF3F0FF)); const h = new THREE.Group(); sp.position.y = .67; h.add(sp); h.rotation.z = a * Math.PI / 4; rot.add(h);
+          const kab = box(rot, .26, .24, .3, Math.cos(a * Math.PI / 4) * 1.35, Math.sin(a * Math.PI / 4) * 1.35, 0, mat([0xE2453A, 0x2F6FDE, 0xFFD447, 0x2E9E5B][a % 4]));
+          kab.userData.gondel = true;
+        }
+        g.add(rot); this.drehteile.push({ o: rot, achse: "z", tempo: .35 });
+        for (const z of [-.3, .3]) for (const x of [-.6, .6]) { const b = box(g, .08, 2.2, .08, x * .55, 1, z, mat(0x8C8F99)); b.rotation.z = x > 0 ? .28 : -.28; }
+      }
+      g.position.set(this.wx(i % G.B + .5), GY, this.wz((i / G.B | 0) + .5));
+      g.rotation.y = Math.floor(q() * 4) * Math.PI / 2;
+      this.gBauten.add(g);
+    }
+  }
+  // Text, der über einem Feld aufsteigt und verblasst (Geld, Ziele)
+  schweben(x, y, text, art = "geld") {
+    const farben = { geld: ["#FFD447", "#1C1A33"], info: ["#F3F0FF", "#1C1A33"], ziel: ["#5BD69A", "#1C1A33"] }[art];
+    const sp = schild(text, { bg: farben[0], fg: farben[1], groesse: 1.3 });
+    sp.position.set(this.wx(x), 2.6, this.wz(y));
+    this.gSchweben.add(sp); this.schwebende.push({ sp, alter: 0 });
   }
   zugBauen(S) {
     leeren(this.gZug); this.wagen = [];
@@ -274,6 +365,12 @@ export class Welt {
     this.rauch.forEach(r => {
       if (r.alter > 2.2) { r.m.visible = false; return; }
       r.alter += dt; r.m.position.y += dt * .7; r.m.scale.setScalar(.6 + r.alter * .9); r.m.material.opacity = Math.max(0, .75 * (1 - r.alter / 2.2));
+    });
+    this.drehteile.forEach(d => { d.o.rotation[d.achse] += dt * d.tempo; d.o.children.forEach(c => { if (c.userData.gondel) c.rotation.z = -d.o.rotation.z; }); });
+    this.schwebende = this.schwebende.filter(e => {
+      e.alter += dt; e.sp.position.y += dt * .9; e.sp.material.opacity = Math.max(0, 1 - Math.max(0, e.alter - 1.2) / .8);
+      if (e.alter < 2) return true;
+      this.gSchweben.remove(e.sp); e.sp.material.map.dispose(); e.sp.material.dispose(); return false;
     });
     const t = this.controls.target;
     this.sonne.position.set(t.x + 22, 38, t.z + 14); this.sonne.target.position.copy(t);
