@@ -13,7 +13,7 @@ const BODEN = { ".": 0x92C955, w: 0x5E9B3D, h: 0xB2C97A, b: 0x948C80, "~": 0xD6C
 const WAND = [0xF3E6CC, 0xF9C7A8, 0xE8E1F5, 0xFFE3A3, 0xD9EEF7], DACH = [0xC9553D, 0x8C4A3A, 0x4A5A8C, 0xB8643C, 0x6E4A3A];
 const BLUMEN = [0xFFFFFF, 0xFFD447, 0xF27BA8, 0x8FA8FF, 0xFF8A5B];
 const WAGENFARBE = [0x2F6FDE, 0x2E9E5B, 0xF2B705, 0x8E5BD6, 0xF08A24, 0x1FA5A5];
-const ZEIT = { value: 0 };
+const ZEIT = { value: 0 }, WIND = { value: 1 };
 const mats = new Map();
 function mat(farbe, extra) {
   const key = farbe + (extra ? JSON.stringify(extra) : "");
@@ -24,11 +24,11 @@ function mat(farbe, extra) {
 function windMat() {
   const m = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: .9, flatShading: true });
   m.onBeforeCompile = sh => {
-    sh.uniforms.uZeit = ZEIT;
-    sh.vertexShader = "uniform float uZeit;\n" + sh.vertexShader.replace("#include <begin_vertex>", `#include <begin_vertex>
+    sh.uniforms.uZeit = ZEIT; sh.uniforms.uWind = WIND;
+    sh.vertexShader = "uniform float uZeit;\nuniform float uWind;\n" + sh.vertexShader.replace("#include <begin_vertex>", `#include <begin_vertex>
       #ifdef USE_INSTANCING
         float ph = instanceMatrix[3].x * .37 + instanceMatrix[3].z * .51;
-        float k = max(0., position.y - .3);
+        float k = max(0., position.y - .3) * uWind;
         transformed.x += sin(uZeit * 1.6 + ph) * .06 * k;
         transformed.z += cos(uZeit * 1.25 + ph * 1.3) * .045 * k;
       #endif`);
@@ -118,8 +118,8 @@ export class Welt {
   constructor(el) {
     this.el = el;
     const r = this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-    r.setPixelRatio(Math.min(devicePixelRatio, 2)); r.setSize(el.clientWidth || innerWidth, el.clientHeight || innerHeight);
-    r.shadowMap.enabled = true; r.shadowMap.type = THREE.PCFSoftShadowMap;
+    r.setPixelRatio(Math.min(devicePixelRatio, 1.5));     // mehr sieht man auf dem Handy kaum, kostet aber viel r.setSize(el.clientWidth || innerWidth, el.clientHeight || innerHeight);
+    r.shadowMap.enabled = true; r.shadowMap.type = THREE.PCFShadowMap; r.shadowMap.autoUpdate = false;   // Schatten nur jedes zweite Bild
     el.appendChild(r.domElement);
     const sc = this.scene = new THREE.Scene();
     sc.fog = new THREE.Fog(DUNST, 80, 230);
@@ -152,7 +152,8 @@ export class Welt {
     this.uhr = new THREE.Clock();
     addEventListener("resize", () => this.groesse());
     this.groesse();
-    this.vorBild = null;
+    this.vorBild = null; this.onGrafik = null; this.bildNr = 0;
+    this.stufe = "schoen"; this.grafikWahl = "auto"; this.mess = { t: 0, n: 0, warte: 3 };
     const schleife = () => { this.bild(); requestAnimationFrame(schleife); };
     requestAnimationFrame(schleife);
   }
@@ -165,6 +166,20 @@ export class Welt {
     const hoch = this.camera.aspect < 1, m = this.modus;
     this.camera.fov = m === "mitfahren" ? (hoch ? 75 : 55) : m === "kino" ? (hoch ? 62 : 45) : 45;
     this.camera.updateProjectionMatrix();
+  }
+  // Grafikstufe: "schoen" oder "einfach"; wahl "auto" stellt bei Ruckeln selbst auf "einfach"
+  grafik(wahl) {
+    this.grafikWahl = wahl;
+    this.stufeSetzen(wahl === "einfach" ? "einfach" : "schoen");
+    this.mess = { t: 0, n: 0, warte: 3 };
+  }
+  stufeSetzen(st) {
+    if (st === this.stufe) return;
+    this.stufe = st; const einfach = st === "einfach", s = this.sonne;
+    this.renderer.setPixelRatio(Math.min(devicePixelRatio, einfach ? 1.1 : 1.5)); this.groesse();
+    s.shadow.mapSize.set(einfach ? 1024 : 2048, einfach ? 1024 : 2048); if (s.shadow.map) { s.shadow.map.dispose(); s.shadow.map = null; }
+    WIND.value = einfach ? 0 : 1; this.wolken.visible = !einfach;
+    if (this.S) this.deko(this.S);
   }
   // Feldkoordinaten (x nach Osten, y nach Süden, Einheit Feld) → Welt
   wx(x) { return (x - G.B / 2) * F; }
@@ -439,7 +454,7 @@ export class Welt {
     leeren(this.gDeko);
     const K = S.karte, B = G.B, f = this.f, blumen = [], halme = [], buesche = [], steine = [], kronen = [], staemme = [];
     for (let i = 0; i < B * G.H; i++) {
-      if (K.g[i] !== "." || S.gleise[i] || S.bauten[i]) continue;
+      if (K.g[i] !== "." || S.gleise[i] || S.bauten[i] || (this.stufe === "einfach" && i % 2)) continue;
       const q = rng(i * 17 + K.seed * 3), c = i % B, r = i / B | 0;
       const at = (x, y) => ({ x: this.wx(x), y: this.hy(x, y), z: this.wz(y) });
       if (q() < .22) { const fx = c + .2 + q() * .6, fy = r + .2 + q() * .6, farbe = BLUMEN[Math.floor(q() * BLUMEN.length)];
@@ -728,7 +743,14 @@ export class Welt {
 
   // ---------- jedes Bild ----------
   bild() {
-    const dt = Math.min(.05, this.uhr.getDelta());
+    const roh = this.uhr.getDelta(), dt = Math.min(.05, roh);
+    // Bildrate messen: läuft es bei "auto" dauerhaft unter etwa 40 Bildern pro Sekunde, auf "einfach" schalten
+    const m = this.mess;
+    if (this.S && this.grafikWahl === "auto" && this.stufe === "schoen" && roh < 1 && !document.hidden) {
+      if (m.warte > 0) m.warte -= roh;
+      else { m.t += roh; m.n++; if (m.t > 4) { if (m.t / m.n > 1 / 40) { this.stufeSetzen("einfach"); if (this.onGrafik) this.onGrafik("einfach"); } m.t = 0; m.n = 0; } }
+    }
+    if (++this.bildNr % 2 === 0 || this.bildNr < 3) this.renderer.shadowMap.needsUpdate = true;
     ZEIT.value += dt;
     if (this.vorBild) this.vorBild(dt);
     const S = this.S;

@@ -135,7 +135,7 @@ Deko ist nur zum Schmücken (kein Fahrgast-Bonus).
 - Geräusche im Browser erzeugt (abschaltbar): Schnaufen nach Tempo, Pfeife, Schienenstöße, Brücke, Vögel.
 - Deko kaufen (5–30 T), nur zum Schmücken. Dörfer mit Bahnanschluss wachsen langsam.
 
-**Leistung:** Grafikstufe „Einfach / Schön“, die sich selbst wählt (Schatten, Wind, Wolken nur bei „Schön“).
+**Leistung:** Grafikstufe „Einfach / Schön“, die sich selbst wählt (Schatten, Wind, Wolken nur bei „Schön“). Gebaut 16.11.2026: Automatisch / Schön / Einfach im Menü; für alle Stufen Pixeldichte ≤ 1,5, harte PCF-Schatten, Schatten jedes zweite Bild.
 Das durchgehende Gelände ist billiger als die Klötze jetzt. Keine neuen Bibliotheken.
 
 ## Schritte

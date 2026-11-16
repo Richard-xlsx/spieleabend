@@ -236,3 +236,6 @@ Gleisgenossen (neu vom 16.11.2026, allein oder 2 bis 6 Bahnen; Plan in gleisgeno
   Schlot, schaut in Kurven voraus, Tunnel innen dunkel mit Lampen; Tacho, nächster Bahnhof, Knopf für die nächste eigene
   Weiche, Pfeife. Kino: wechselnde Blickwinkel (am Gleis, Brücke, von oben, hinterher, seitlich), zeigt reihum alle Züge,
   auch für Zuschauer (Fernseher). Einen Zug antippen: Kamera folgt ihm (auch fremden). Weichen gehen beim Antippen vor.
+  Leistung (16.11.2026): Pixeldichte höchstens 1,5, einfachere Schattenkanten, Schatten nur jedes zweite Bild.
+  Grafik im Menü: Automatisch / Schön / Einfach. Automatisch schaltet auf „Einfach“, wenn es dauerhaft unter etwa
+  40 Bildern pro Sekunde läuft (Pixeldichte 1,1, kleinere Schattenkarte, halbe Deko, kein Wind, keine Wolken).

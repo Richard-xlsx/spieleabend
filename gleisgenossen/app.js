@@ -1,6 +1,6 @@
 // Gleisgenossen: Startseite, Lobby, Verbindung (Handy des Spielleiters rechnet, PeerJS), Bedienleiste über der 3D-Welt.
 // Allein: ohne Raum, alles auf diesem Handy. Die Regeln stehen in logic.js (window.GG), die Welt in welt.js.
-import { Welt } from "./welt.js?v=2026-11-16g";
+import { Welt } from "./welt.js?v=2026-11-16h";
 
 const G = window.GG;
 const app = document.getElementById("app"), weltEl = document.getElementById("welt"), hud = document.getElementById("hud");
@@ -440,6 +440,8 @@ function spielZeigen(stand) {
     welt.onTap = feldGetippt;
     welt.onFolgenAus = () => render();
     welt.onZug = zugGetippt;
+    welt.grafik(ls.get("gg2:grafik") || "auto");
+    welt.onGrafik = () => { hinweis("Grafik auf „Einfach“ gestellt, damit es flüssig läuft (änderbar im Menü)."); if (ui.panel && ui.panel.art === "menue") render(); };
     welt.vorBild = () => simulieren();
     setInterval(zahlenAuffrischen, 250);
     setInterval(() => { if (performance.now() - letzteSim > 600) simulieren(); }, 500);   // Hintergrund: weiterrechnen
@@ -641,6 +643,7 @@ function knoepfe() {
   });
   hud.querySelectorAll("[data-teil]").forEach(b => b.onclick = () => { ui.teil = b.dataset.teil; render(); });
   hud.querySelectorAll("[data-bau]").forEach(b => b.onclick = () => { ui.bau = b.dataset.bau; render(); });
+  hud.querySelectorAll("[data-grafik]").forEach(b => b.onclick = () => { ls.set("gg2:grafik", b.dataset.grafik); welt.grafik(b.dataset.grafik); render(); });
   hud.querySelectorAll("[data-stufe]").forEach(b => b.onclick = () => tun({ typ: "stufe", k: b.dataset.stufe }));
   hud.querySelectorAll("[data-einladen]").forEach(b => b.onclick = () => { const r = tun({ typ: "einladen", an: b.dataset.einladen }); if (!r.fehler) hinweis("Einladung geschickt."); });
   hud.querySelectorAll("[data-annehmen]").forEach(b => b.onclick = () => { if (confirm("Zusammentun? Kasse, Land, Gleise und Ziele werden geteilt, alle Züge fahren im gemeinsamen Netz.")) tun({ typ: "annehmen", von: b.dataset.annehmen }); });
@@ -674,6 +677,8 @@ function menuePanel() {
       `<p class="hinweis">${gespeichertUm ? "Zuletzt gespeichert " + esc(vor(gespeichertUm)) + "." : "Diese Welt ist noch nicht gespeichert."} Wer ohne Speichern beendet, verwirft den Spielstand.</p>`}
     ${rolle === "host" ? `<p class="hinweis">Raumcode <b>${esc(code)}</b>: Weitere Mitspieler können eine Bahn übernehmen, die gerade niemand steuert, oder zuschauen.</p>` : ""}
     <div class="knopfreihe">${rolle !== "client" ? `<button class="knopf" id="speichern">Speichern</button>` : ""}${rolle === "host" ? `<button class="knopf zweit" id="teilen">Link teilen</button>` : ""}<button class="knopf zweit" id="beenden">${rolle === "client" ? "Verlassen" : "Beenden"}</button></div>
+    <div><p class="hinweis" style="margin-bottom:6px">Grafik${welt.grafikWahl === "auto" ? ` (gerade: ${welt.stufe === "einfach" ? "Einfach" : "Schön"})` : ""}</p>
+      <div class="wahl">${[["auto", "Automatisch"], ["schoen", "Schön"], ["einfach", "Einfach"]].map(([k, t]) => `<button data-grafik="${k}" class="${welt.grafikWahl === k ? "an" : ""}">${t}</button>`).join("")}</div></div>
     <p class="hinweis"><b>So geht's:</b> Kurven bremsen den Zug, auf langen Geraden wird er schnell und verdient mehr.
       Bahnhöfe: Fahrgäste steigen ein und zahlen am nächsten anderen Bahnhof nach Entfernung, neben Dörfern steigen mehr ein.
       Weichen stellt ihr mit „Schauen“ durch Antippen um. Bauwerke neben der Strecke geben bei jeder Durchfahrt Geld,
