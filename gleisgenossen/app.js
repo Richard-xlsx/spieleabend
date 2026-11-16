@@ -1,6 +1,6 @@
 // Gleisgenossen: Startseite, Lobby, Verbindung (Handy des Spielleiters rechnet, PeerJS), Bedienleiste über der 3D-Welt.
 // Allein: ohne Raum, alles auf diesem Handy. Die Regeln stehen in logic.js (window.GG), die Welt in welt.js.
-import { Welt } from "./welt.js?v=2026-11-16e";
+import { Welt } from "./welt.js?v=2026-11-16f";
 
 const G = window.GG;
 const app = document.getElementById("app"), weltEl = document.getElementById("welt"), hud = document.getElementById("hud");
@@ -496,6 +496,7 @@ function zielMeldung(liste) {
 
 function render() {
   if (!S || hud.hidden) return;
+  welt.bauModus(["bauen", "bauten", "abreissen"].includes(ui.modus) && !(ui.panel && ["zug", "menue", "ziele", "bahnen"].includes(ui.panel.art)));
   const g = gruppe(), z = meinZug(), gid = meine();
   if (!g || !z) {     // Zuschauer
     hud.innerHTML = `<div><div class="hud-oben"><div class="chip gross"><small>Zuschauen</small><b>${Object.keys(S.gruppen).length} Bahnen</b></div>
@@ -602,7 +603,7 @@ function panelHtml(w, z, g) {
   if (p && p.art === "bahnen") return bahnenPanel();
   if (p && p.art === "ziele") {
     return `<div class="panel">${kopf("Ziele")}
-      <div class="stufen">${G.ZIELE.map(zz => `<div class="stufe ${g.ziele[zz.id] ? "erledigt" : ""}"><div><b>${g.ziele[zz.id] ? "✓ " : ""}${esc(zz.text)}</b></div><small>+${zahl(zz.geld)} T</small></div>`).join("")}</div>
+      <div class="stufen">${G.alleZiele().map(zz => `<div class="stufe ${g.ziele[zz.id] ? "erledigt" : ""}"><div><b>${g.ziele[zz.id] ? "✓ " : ""}${esc(zz.text)}</b></div><small>+${zahl(zz.geld)} T</small></div>`).join("")}</div>
     </div>`;
   }
   if (p && p.art === "land") {
@@ -622,7 +623,7 @@ function panelHtml(w, z, g) {
       wagen: `${wagen} → ${wagen + 1} Wagen: ${w.geld} → ${w.geld + 1} T pro 10 m, ${w.plaetze} → ${w.plaetze + G.PLAETZE} Plätze`
     };
     return `<div class="panel">${kopf("Dein Zug")}
-      <p class="hinweis">${z.wartet === "ende" ? "<b>Der Zug steht am Gleisende.</b> Baut weiter oder wendet ihn. " : z.wartet === "zug" ? "<b>Ein anderer Zug steht im Weg.</b> Wartet oder wendet. " : ""}Jede 10 m bringen ${w.geld} T. ${w.plaetze} Plätze für Fahrgäste.${z.schub > 0 ? " Volldampf vom Wasserturm!" : ""}</p>
+      <p class="hinweis">${z.wartet === "ende" ? "<b>Der Zug steht am Gleisende.</b> Baut weiter oder wendet ihn. " : z.wartet === "zug" ? "<b>Ein anderer Zug steht im Weg.</b> Wartet oder wendet. " : ""}Jede 10 m bringen ${w.geld} T${G.aussicht(S, z) > 1.001 ? `, hier oben mit Aussicht ${Math.round((G.aussicht(S, z) - 1) * 100)} % mehr` : ""}. ${w.plaetze} Plätze für Fahrgäste. Bergauf fährt der Zug langsamer, Zugkraft hilft.${z.schub > 0 ? " Volldampf vom Wasserturm!" : ""}</p>
       <div class="stufen">${Object.keys(G.STUFEN).map(k => {
         const d = G.STUFEN[k], voll = st[k] >= d.max, preis = G.stufenPreis(z, k);
         return `<div class="stufe"><div><b>${d.name} · Stufe ${st[k]}</b><small>${voll ? "ganz ausgebaut" : was[k]}</small></div>
@@ -633,26 +634,26 @@ function panelHtml(w, z, g) {
   }
   if (p && p.art === "feld") {
     const gel = S.karte.g[p.i], t = S.gleise[p.i], b = S.bauten[p.i];
-    if (b) { const d = G.BAUTEN[b.t]; return `<div class="panel kompakt">${kopf(d.name)}<p class="hinweis">${d.text}, wenn eine Lok bis ${d.radius} Feld${d.radius > 1 ? "er" : ""} entfernt vorbeifährt.</p></div>`; }
+    if (b) { const d = G.BAUTEN[b.t], rad = G.bauRadius(p.i, b.t); return `<div class="panel kompakt">${kopf(d.name)}<p class="hinweis">${d.text}, wenn eine Lok bis ${rad} Feld${rad > 1 ? "er" : ""} entfernt vorbeifährt.${rad > d.radius ? " Auf der Anhöhe sieht man es weiter." : ""}</p></div>`; }
     if (t && t.t === "s") return `<div class="panel kompakt">${kopf("Weiche")}<p class="hinweis">Gestellt auf <b>${t.st ? "abbiegen" : "geradeaus"}</b> (Lampe ${t.st ? "gelb" : "grün"}). Züge von den Zweigen fahren immer durch.</p><button class="knopf" id="stellen">Umstellen</button></div>`;
     if (t && t.t === "b") return `<div class="panel kompakt">${kopf("Bahnhof " + esc(G.bahnhofName(S, p.i)))}<p class="hinweis">${G.haeuser(S, p.i)} Häuser in der Nähe: bis zu ${G.nachfrage(S, p.i)} Fahrgäste steigen ein. Sie zahlen am nächsten anderen Bahnhof ${G.FAHRPREIS.toLocaleString("de-DE")} T pro Feld Fahrt.</p></div>`;
     const nm = t ? (gel === "~" ? "Brücke" : gel === "b" ? "Tunnel" : G.TEILE[t.t].name) : G.GELAENDE[gel];
     return `<div class="panel kompakt">${kopf(nm)}
       <p class="hinweis">${t ? "Zum Drehen oder Ersetzen auf „Gleise“ tippen, zum Entfernen auf „Abreißen“." :
-        gel === "w" ? "Wald. Bauen kostet 15 T mehr fürs Roden." : gel === "~" ? `Wasser. Eine Gerade wird hier zur Brücke (+${G.BRUECKE} T).` : gel === "b" ? `Berg. Eine Gerade wird hier zum Tunnel (+${G.TUNNEL} T).` : gel === "h" ? "Ein Dorf. Ein Bahnhof daneben bringt viele Fahrgäste." : "Freie Wiese, hier könnt ihr bauen."}</p>
+        gel === "w" ? "Wald. Bauen kostet 15 T mehr fürs Roden." : gel === "~" ? `Wasser. Eine Gerade wird hier zur Brücke (+${G.BRUECKE} T).` : gel === "b" ? `Berg. Eine Gerade wird hier zum Tunnel (+${G.TUNNEL} T).` : gel === "h" ? "Ein Dorf. Ein Bahnhof daneben bringt viele Fahrgäste." : "Freie Wiese, hier könnt ihr bauen."}${S.karte.hoehe ? ` Höhe ${(Math.round(G.feldHoehe(p.i) * 10) / 10).toLocaleString("de-DE")}${G.eben(p.i) ? ", eben" : ", am Hang"}${G.anhoehe(p.i) ? " (Anhöhe)" : ""}.` : ""}</p>
     </div>`;
   }
   if (ui.modus === "bauen") {
     return `<div class="panel kompakt">
       <div class="teile">${Object.keys(G.TEILE).map(k => `<button data-teil="${k}" class="${ui.teil === k ? "an" : ""}">${TEIL_BILD[k]}${G.TEILE[k].name}<small>${G.TEILE[k].preis} T</small></button>`).join("")}</div>
-      <p class="hinweis">Feld antippen: bauen. Gleis antippen: drehen (kostenlos) oder ersetzen. Eine Gerade auf Wasser wird zur Brücke (+${G.BRUECKE} T), im Berg zum Tunnel (+${G.TUNNEL} T).</p>
+      <p class="hinweis">Feld antippen: bauen. Gleis antippen: drehen (kostenlos) oder ersetzen. Eine Gerade auf Wasser wird zur Brücke (+${G.BRUECKE} T), im Berg zum Tunnel (+${G.TUNNEL} T). Gleise folgen den Hügeln, Bahnhöfe brauchen ebenen Boden.</p>
     </div>`;
   }
   if (ui.modus === "bauten") {
     const d = G.BAUTEN[ui.bau];
     return `<div class="panel kompakt">
       <div class="teile">${Object.keys(G.BAUTEN).map(k => `<button data-bau="${k}" class="${ui.bau === k ? "an" : ""}"><i class="emoji">${BAU_BILD[k]}</i>${G.BAUTEN[k].name}<small>${zahl(G.BAUTEN[k].preis)} T</small></button>`).join("")}</div>
-      <p class="hinweis"><b>${d.name}:</b> ${d.text}, wenn eine Lok bis ${d.radius} Feld${d.radius > 1 ? "er" : ""} entfernt vorbeifährt. Feld neben der Strecke antippen.</p>
+      <p class="hinweis"><b>${d.name}:</b> ${d.text}, wenn eine Lok bis ${d.radius} Feld${d.radius > 1 ? "er" : ""} entfernt vorbeifährt. Auf einer Anhöhe ein Feld weiter. Feld neben der Strecke antippen.</p>
     </div>`;
   }
   if (ui.modus === "abreissen") return `<div class="panel kompakt"><p class="hinweis">Gleis oder Bauwerk antippen: abreißen. Ihr bekommt die Hälfte des Preises zurück.</p></div>`;

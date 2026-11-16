@@ -5,6 +5,7 @@
 // Ein Feld = 10 m. Seiten eines Feldes: 0 = Norden, 1 = Osten, 2 = Süden, 3 = Westen.
 (function () {
   let B = 64, H = 64;                           // Kartengröße in Feldern, je nach Spielerzahl (karteSetzen)
+  let HK = null;                                // Höhen an den Feldecken ((B+1) × (H+1) Ziffern), null = flache Karte
   const P = 8;                                  // Grundstücke zu P × P Feldern, Startbereich 2 × 2 Grundstücke
   const GROESSE = [64, 64, 80, 96, 96, 112, 112];   // nach Spielerzahl
   const METER = 10, START_KASSE = 80, MAX_SPIELER = 6;
@@ -26,6 +27,7 @@
     burg: { name: "Burg", preis: 900, radius: 3, bonus: 20, text: "großer Bonus bei jeder Durchfahrt" },
     rad: { name: "Riesenrad", preis: 2200, radius: 3, bonus: 45, text: "sehr großer Bonus bei jeder Durchfahrt" }
   };
+  const AUSSICHT = .1;                          // je Höhenstufe so viel mehr Geld pro Meter (nicht im Tunnel)
   const KETTE_WEG = 200;                        // m: so kurz nacheinander zählt als Kette
   const HALT_ZEIT = 2.5, PLAETZE = 6, FAHRPREIS = .5;   // T pro Fahrgast und Feld
   const STUFEN = {
@@ -56,6 +58,7 @@
     { id: "dorf2", text: "Verbindet zwei Dörfer mit Bahnhöfen", geld: 500, ok: (S, g) => g.stat.doerfer > 0 },
     { id: "bruecke", text: "Fahrt über eine Brücke", geld: 300, ok: (S, g) => g.stat.bruecke > 0 },
     { id: "tunnel", text: "Fahrt durch einen Tunnel", geld: 400, ok: (S, g) => g.stat.tunnel > 0 },
+    { id: "hoehe3", text: "Fahrt auf einen Hügel (Höhe 3)", geld: 300, huegel: true, ok: (S, g) => (g.stat.hoehe || 0) >= 3 },
     { id: "wagen3", text: "Hängt 3 Wagen an", geld: 600, ok: (S, g, gid) => zuegeVon(S, gid).some(z => 1 + z.stufen.wagen >= 3) },
     { id: "kette3", text: "Fahrt an 3 Bauwerken kurz hintereinander vorbei", geld: 600, ok: (S, g) => g.stat.kette >= 3 },
     { id: "tempo100", text: "Erreicht 100 km/h", geld: 1500, ok: (S, g) => kmh(g.stat.vmax) >= 100 },
@@ -68,7 +71,7 @@
     let a = seed >>> 0;
     return () => { a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
   }
-  function karteSetzen(K) { B = K.B; H = K.H; }
+  function karteSetzen(K) { B = K.B; H = K.H; HK = K.hoehe || null; }
 
   // ---------- Raster und Besitz ----------
   const nb = (i, s) => { const c = i % B + DIR[s][0], r = (i / B | 0) + DIR[s][1]; return c < 0 || r < 0 || c >= B || r >= H ? -1 : r * B + c; };
@@ -121,6 +124,42 @@
     const kx = mx + .5 * (e[0] + a[0]), ky = my + .5 * (e[1] + a[1]), th = t * Math.PI / 2, co = Math.cos(th), si = Math.sin(th);
     return { x: kx + (ax - kx) * co + (bx - kx) * si, y: ky + (ay - ky) * co + (by - ky) * si };
   }
+  // ---------- Höhen ----------
+  // Ganzzahlige Höhen an den Feldecken, benachbarte Ecken unterscheiden sich höchstens um 1.
+  // Ein Gleis liegt an jeder Feldkante auf dem Mittelwert ihrer zwei Ecken und steigt dazwischen gleichmäßig.
+  const ecke = (cx, cy) => HK ? HK.charCodeAt(Math.max(0, Math.min(H, cy)) * (B + 1) + Math.max(0, Math.min(B, cx))) - 48 : 0;
+  const KANTE = [[0, 0, 1, 0], [1, 0, 1, 1], [0, 1, 1, 1], [0, 0, 0, 1]];
+  function kantenHoehe(i, s) {
+    const c = i % B, r = i / B | 0, k = KANTE[s];
+    return (ecke(c + k[0], r + k[1]) + ecke(c + k[2], r + k[3])) / 2;
+  }
+  function gleisHoehe(seg, s) {
+    const a = kantenHoehe(seg.i, seg.ein), t = Math.min(1, Math.max(0, s / laenge(seg)));
+    return a + (kantenHoehe(seg.i, seg.aus) - a) * t;
+  }
+  const steigung = seg => (kantenHoehe(seg.i, seg.aus) - kantenHoehe(seg.i, seg.ein)) / laenge(seg);   // Stufen pro Feld
+  // Geländehöhe an einem Punkt (Feldkoordinaten), zwischen den Ecken gemittelt
+  function gelaendeHoehe(x, y) {
+    if (!HK) return 0;
+    x = Math.max(0, Math.min(B, x)); y = Math.max(0, Math.min(H, y));
+    const cx = Math.min(B - 1, Math.floor(x)), cy = Math.min(H - 1, Math.floor(y)), fx = x - cx, fy = y - cy;
+    const a = ecke(cx, cy), b = ecke(cx + 1, cy), c = ecke(cx, cy + 1), d = ecke(cx + 1, cy + 1);
+    return (a + (b - a) * fx) * (1 - fy) + (c + (d - c) * fx) * fy;
+  }
+  const feldHoehe = i => gelaendeHoehe(i % B + .5, (i / B | 0) + .5);
+  function eben(i) { const c = i % B, r = i / B | 0, h = ecke(c, r); return ecke(c + 1, r) === h && ecke(c, r + 1) === h && ecke(c + 1, r + 1) === h; }
+  // Anhöhe: mindestens Höhe 3 und kein Nachbarfeld höher. Bauwerke wirken dort ein Feld weiter.
+  function anhoehe(i) {
+    if (!HK) return false;
+    const h = feldHoehe(i); if (h < 3) return false;
+    const c = i % B, r = i / B | 0;
+    for (let y = r - 1; y <= r + 1; y++) for (let x = c - 1; x <= c + 1; x++) if (x >= 0 && y >= 0 && x < B && y < H && feldHoehe(y * B + x) > h + 1e-6) return false;
+    return true;
+  }
+  const bauRadius = (i, t) => BAUTEN[t].radius + (anhoehe(i) ? 1 : 0);
+  // Aussicht: Faktor auf das Geld pro Meter an der Stelle der Lok
+  const aussicht = (S, z) => S.karte.g[z.seg.i] === "b" ? 1 : 1 + AUSSICHT * gleisHoehe(z.seg, z.s);
+
   // Lage, in der ein neues Teil am besten an die Nachbargleise passt
   function besteLage(S, i, t) {
     let best = 0, bw = -1e9;
@@ -165,15 +204,15 @@
   const zugLaenge = z => LOK_L + (1 + z.stufen.wagen) * (LUECKE + WAGEN_L);
   function hinten(z, d) {
     let seg = z.seg, s = z.s, k = 0;
-    while (d > s) { const v = z.verlauf[k++]; if (!v) return punkt(seg, 0); d -= s; seg = v; s = laenge(v); }
-    return punkt(seg, s - d);
+    while (d > s) { const v = z.verlauf[k++]; if (!v) { s = d; break; } d -= s; seg = v; s = laenge(v); }
+    const p = punkt(seg, s - d); p.h = gleisHoehe(seg, s - d); return p;
   }
   // Lok und Wagen: Mitte und Richtung (Winkel in der x-y-Ebene)
   function wagenlage(z) {
     const l = [], n = 1 + z.stufen.wagen; let d = 0;
     for (let k = 0; k <= n; k++) {
       const len = k ? WAGEN_L : LOK_L, v = hinten(z, d), h = hinten(z, d + len);
-      l.push({ x: (v.x + h.x) / 2, y: (v.y + h.y) / 2, w: Math.atan2(v.y - h.y, v.x - h.x), lok: !k });
+      l.push({ x: (v.x + h.x) / 2, y: (v.y + h.y) / 2, w: Math.atan2(v.y - h.y, v.x - h.x), lok: !k, h: (v.h + h.h) / 2, dh: v.h - h.h, len });
       d += len + LUECKE;
     }
     return l;
@@ -210,10 +249,10 @@
     if (gel === "~") g.stat.bruecke++;
     if (gel === "b") g.stat.tunnel++;
     for (const k in S.bauten) {
-      const b = S.bauten[k], d = BAUTEN[b.t];
-      if (abstand(+k, i) > d.radius) continue;
+      const b = S.bauten[k], d = BAUTEN[b.t], rad = bauRadius(+k, b.t);
+      if (abstand(+k, i) > rad) continue;
       b.zuletzt = b.zuletzt && typeof b.zuletzt === "object" ? b.zuletzt : {};
-      if (z.meter - (b.zuletzt[pid] == null ? -1e9 : b.zuletzt[pid]) < (2 * d.radius + 3) * METER) continue;
+      if (z.meter - (b.zuletzt[pid] == null ? -1e9 : b.zuletzt[pid]) < (2 * rad + 3) * METER) continue;
       b.zuletzt[pid] = z.meter;
       z.kette = z.meter - (z.ketteM == null ? -1e9 : z.ketteM) < KETTE_WEG ? (z.kette || 1) + 1 : 1;
       z.ketteM = z.meter;
@@ -236,7 +275,10 @@
       return;
     }
     const w = werte(z), kriech = d => Math.sqrt(2 * w.b * Math.max(0, d)) + (d > .01 ? .06 : 0);
-    let erl = w.vmax, seg = z.seg, d = laenge(seg) - z.s;
+    // Steigung: bergauf langsamer (Zugkraft hilft), bergab etwas schneller als das Höchsttempo
+    const st = steigung(z.seg), zk = Math.pow(1.22, z.stufen.kraft) * 1.2 / (1 + .2 * w.wagen);
+    const erlBerg = w.vmax * (st > 0 ? Math.max(.3, 1 - .4 * st / zk) : 1 + .15 * Math.min(1, -st));
+    let erl = erlBerg, seg = z.seg, d = laenge(seg) - z.s;
     if (istKurve(seg)) erl = Math.min(erl, w.vk);
     if (istBahnhof(S, seg.i) && z.bedient !== seg.i && z.s < .5) erl = Math.min(erl, kriech(.5 - z.s));
     const weit = z.v * z.v / (2 * w.b) + 1.5;
@@ -247,7 +289,8 @@
       if (istBahnhof(S, nx.i)) erl = Math.min(erl, kriech(d + .5));
       seg = nx; d += laenge(nx);
     }
-    z.v = z.v < erl ? Math.min(erl, z.v + w.a * dt) : Math.max(erl, z.v - w.b * dt);
+    const aE = w.a / (1 + Math.max(0, st) * .6 / zk) + .25 * Math.max(0, -st);
+    z.v = z.v < erl ? Math.min(erl, z.v + aE * dt) : Math.max(erl, z.v - (erl === erlBerg ? Math.max(.12, .5 * Math.max(0, st)) : w.b) * dt);
     let ds = z.v * dt, weg = 0;
     z.wartet = null;
     while (ds > 0) {
@@ -270,7 +313,8 @@
     verlaufFuellen(S, z, gid);
     z.seitBf = (z.seitBf || 0) + weg;
     z.meter += weg * METER;
-    const geld = weg * w.geld;
+    const hoch = aussicht(S, z), geld = weg * w.geld * hoch;
+    if (S.karte.g[z.seg.i] !== "b") g.stat.hoehe = Math.max(g.stat.hoehe || 0, Math.round(gleisHoehe(z.seg, z.s) * 10) / 10);
     g.kasse += geld; g.verdient += geld; g.meter += weg * METER;
   }
   // Ein Zeitschritt für alle Züge. Gibt { ereignisse } zurück.
@@ -295,11 +339,12 @@
     const neu = [];
     for (const gid in S.gruppen) {
       const g = S.gruppen[gid];
-      ZIELE.forEach(z => { if (!g.ziele[z.id] && z.ok(S, g, gid)) { g.ziele[z.id] = 1; g.kasse += z.geld; neu.push({ gid, ziel: z }); } });
+      ZIELE.forEach(z => { if (!g.ziele[z.id] && (!z.huegel || HK) && z.ok(S, g, gid)) { g.ziele[z.id] = 1; g.kasse += z.geld; neu.push({ gid, ziel: z }); } });
     }
     return neu;
   }
-  const offeneZiele = (S, gid) => ZIELE.filter(z => !S.gruppen[gid].ziele[z.id]);
+  const offeneZiele = (S, gid) => ZIELE.filter(z => !S.gruppen[gid].ziele[z.id] && (!z.huegel || HK));
+  const alleZiele = () => ZIELE.filter(z => !z.huegel || HK);
 
   // ---------- Preise ----------
   const stufenPreis = (z, k) => Math.round(STUFEN[k].preis * Math.pow(STUFEN[k].faktor, z.stufen[k]) / 5) * 5;
@@ -318,6 +363,7 @@
     if (g === "h") return { fehler: "Hier steht ein Dorf. Baut den Bahnhof daneben." };
     if (S.bauten[i]) return { fehler: "Hier steht schon ein Bauwerk." };
     if ((g === "~" || g === "b") && t !== "g") return { fehler: g === "~" ? "Über Wasser gehen nur Geraden (als Brücke)." : "Durch Berge gehen nur Geraden (als Tunnel)." };
+    if (t === "b" && !eben(i)) return { fehler: "Bahnhöfe brauchen ebenen Boden." };
     const alt = S.gleise[i];
     if (alt && belegt(S).has(i)) return { fehler: "Hier steht gerade ein Zug." };
     if (alt && alt.t === t) return TEILE[t].lagen > 1 ? { kosten: 0, art: "drehen" } : { fehler: "Eine Kreuzung lässt sich nicht drehen." };
@@ -379,6 +425,31 @@
       g[r * B + c] = wald > .66 ? "w" : ".";
     }
     starts.forEach(s => { for (let r = s.r * P + 4; r < s.r * P + 11; r++) for (let c = s.c * P + 4; c < s.c * P + 11; c++) g[r * B + c] = "."; });
+    // Höhen an den Ecken: aus der Höhenkarte, Startbereiche eben mit einem kleinen Hügel, Wasser auf 0, dann glätten
+    const HB = B + 1, hk = new Array(HB * (H + 1));
+    for (let cy = 0; cy <= H; cy++) for (let cx = 0; cx <= B; cx++) {
+      const x = Math.min(.9999, cx / B), y = Math.min(.9999, cy / H), rand = Math.hypot(x - .5, y - .5) * 2;
+      const hoehe = .55 * h1(x, y) + .3 * h2(x, y) + .15 * h3(x, y) + .28 * Math.max(0, rand - .45);
+      hk[cy * HB + cx] = Math.max(0, Math.min(6, Math.floor((hoehe - .3) * 13)));
+    }
+    starts.forEach(s => {
+      const x0 = s.c * P, y0 = s.r * P, L = 1;
+      for (let cy = y0; cy <= y0 + 2 * P; cy++) for (let cx = x0; cx <= x0 + 2 * P; cx++) hk[cy * HB + cx] = L;
+      const hx = x0 + (z() < .5 ? 3 : 13), hy = y0 + (z() < .5 ? 3 : 13);
+      for (let cy = hy - 3; cy <= hy + 3; cy++) for (let cx = hx - 3; cx <= hx + 3; cx++) hk[cy * HB + cx] += Math.max(0, 2 - Math.floor(Math.hypot(cx - hx, cy - hy) / 1.5));
+    });
+    for (let i = 0; i < B * H; i++) if (g[i] === "~") { const c = i % B, r = i / B | 0; hk[r * HB + c] = hk[r * HB + c + 1] = hk[(r + 1) * HB + c] = hk[(r + 1) * HB + c + 1] = 0; }
+    for (let weiter = true; weiter;) {
+      weiter = false;
+      for (let cy = 0; cy <= H; cy++) for (let cx = 0; cx <= B; cx++) {
+        let m = 99;
+        for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+          const x = cx + dx, y = cy + dy;
+          if ((dx || dy) && x >= 0 && y >= 0 && x <= B && y <= H) m = Math.min(m, hk[y * HB + x] + 1);
+        }
+        if (hk[cy * HB + cx] > m) { hk[cy * HB + cx] = m; weiter = true; }
+      }
+    }
     // Dörfer
     const doerfer = [], namen = DORFNAMEN.slice(), soll = Math.round(7 * skala * skala);
     for (let v = 0; v < 800 && doerfer.length < soll; v++) {
@@ -394,12 +465,14 @@
         const d = DIR[Math.floor(z() * 4)]; hc = Math.max(1, Math.min(B - 2, c + d[0] * Math.floor(z() * 3) + Math.floor(z() * 3) - 1)); hr = Math.max(1, Math.min(H - 2, r + d[1] * Math.floor(z() * 3) + Math.floor(z() * 3) - 1));
       }
     }
-    return { K: { seed, B, H, g: g.join(""), doerfer }, starts };
+    const K = { seed, B, H, g: g.join(""), doerfer, hoehe: hk.join("") };
+    HK = K.hoehe;
+    return { K, starts };
   }
 
   const neueGruppe = (name, pid, farbe) => ({
     name, farbe, kasse: START_KASSE, verdient: 0, meter: 0, gebaut: 0, starts: 1, mitglieder: [pid], ziele: {},
-    stat: { vmax: 0, fahrgaeste: 0, doerfer: 0, bruecke: 0, tunnel: 0, kette: 0 }
+    stat: { vmax: 0, fahrgaeste: 0, doerfer: 0, bruecke: 0, tunnel: 0, kette: 0, hoehe: 0 }
   });
   const neuerZug = () => ({ seg: null, s: .5, v: 0, verlauf: [], wartet: null, stufen: { tempo: 0, kraft: 0, kurve: 0, bremse: 0, wagen: 0 },
     halt: 0, bedient: null, letzterBf: null, seitBf: 0, fahrgaeste: 0, schub: 0, kette: 0, ketteM: null, meter: 0 });
@@ -448,6 +521,7 @@
     for (const k in S.bauten) if (typeof S.bauten[k].zuletzt !== "object") S.bauten[k].zuletzt = {};
     for (const p in S.zuege) if (typeof S.zuege[p].wartet === "boolean") S.zuege[p].wartet = S.zuege[p].wartet ? "ende" : null;
     S.einladungen = S.einladungen || [];
+    for (const gid in S.gruppen) S.gruppen[gid].stat.hoehe = S.gruppen[gid].stat.hoehe || 0;
     return S;
   }
   // Ein neues Gerät übernimmt den Platz eines Spielers (z. B. beim Fortsetzen eines gespeicherten Spiels)
@@ -550,7 +624,7 @@
         ziel.kasse += weg.kasse; ziel.verdient += weg.verdient; ziel.meter += weg.meter; ziel.gebaut += weg.gebaut; ziel.starts += weg.starts;
         ziel.mitglieder = ziel.mitglieder.concat(weg.mitglieder);
         Object.assign(ziel.ziele, weg.ziele);
-        for (const k in ziel.stat) ziel.stat[k] = ["vmax", "kette"].includes(k) ? Math.max(ziel.stat[k], weg.stat[k]) : ziel.stat[k] + weg.stat[k];
+        for (const k in ziel.stat) ziel.stat[k] = ["vmax", "kette", "hoehe"].includes(k) ? Math.max(ziel.stat[k] || 0, weg.stat[k] || 0) : (ziel.stat[k] || 0) + (weg.stat[k] || 0);
         weg.mitglieder.forEach(p => { if (S.spieler[p]) S.spieler[p].gruppe = m.von; });
         S.land = S.land.map(x => x === gid ? m.von : x);
         ziel.name = "Genossenschaft " + ziel.mitglieder.map(p => S.spieler[p] ? S.spieler[p].name : "?").join(", ");
@@ -566,7 +640,8 @@
     P, METER, MAX_SPIELER, FARBEN, TEILE, BAUTEN, STUFEN, ZIELE, GELAENDE, DIR, LOK_L, WAGEN_L, BRUECKE, TUNNEL, RODEN, PLAETZE, FAHRPREIS,
     neu, auffrischen, karteSetzen, platzUebernehmen, aktion, schritt, werte, kmh, wagenlage, belegt, bauInfo, bauwerkInfo, besteLage,
     paare, weiche, punkt, laenge, stufenPreis, landPreis, landKaufbar, parzelle, besitzer, besitzt, darf, gruppeVon, kopie,
-    zielePruefen, offeneZiele, nachfrage, haeuser, bahnhofName, abstand, gekauftesLand
+    zielePruefen, offeneZiele, alleZiele, nachfrage, haeuser, bahnhofName, abstand, gekauftesLand,
+    AUSSICHT, ecke, kantenHoehe, gleisHoehe, steigung, gelaendeHoehe, feldHoehe, eben, anhoehe, bauRadius, aussicht
   };
   Object.defineProperty(GG, "B", { get: () => B });
   Object.defineProperty(GG, "H", { get: () => H });
