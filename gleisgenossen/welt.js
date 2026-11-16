@@ -114,6 +114,60 @@ function formen() {
   };
 }
 
+// Zug-Formen: einmal gebaut, von allen Zügen geteilt (je Farbe ein zusammengefügtes Stück)
+let ZF = null;
+function zugFormen() {
+  if (ZF) return ZF;
+  const PI = Math.PI, B = (w, h, d, x, y, z) => new THREE.BoxGeometry(w, h, d).translate(x, y, z);
+  const X = (r1, r2, l, x, y, z, seg = 16) => new THREE.CylinderGeometry(r1, r2, l, seg).rotateZ(PI / 2).translate(x, y, z);     // Achse längs x
+  const Y = (r1, r2, h, x, y, z, seg = 10) => new THREE.CylinderGeometry(r1, r2, h, seg).translate(x, y, z);
+  const kuppel = (r, x, y, z) => new THREE.SphereGeometry(r, 10, 6, 0, 2 * PI, 0, PI / 2).translate(x, y, z);
+  const bogen = (r, l, x, y, z, flach) => new THREE.CylinderGeometry(r, r, l, 12, 1, false, 0, PI).rotateZ(PI / 2).scale(1, flach, 1).translate(x, y, z);
+  const zus = l => mergeGeometries(l.map(g => g.toNonIndexed()));
+  const puffer = (x, s) => [X(.035, .035, .1, x + s * .05, .3, .2, 8), X(.06, .06, .02, x + s * .1, .3, .2, 10), X(.035, .035, .1, x + s * .05, .3, -.2, 8), X(.06, .06, .02, x + s * .1, .3, -.2, 10)];
+  // Lok: Rahmen, Kessel mit Bändern und Domen, Rauchkammer mit Tür und Laterne, Schlot, Schienenräumer, Kohlenkasten
+  const lok = {
+    schwarz: zus([B(1.5, .12, .5, 0, .3, 0), X(.26, .26, .2, .58, .62, 0), Y(.075, .1, .3, .6, 1.0, 0), Y(.12, .12, .05, .6, 1.17, 0),
+      ...puffer(.75, 1), ...puffer(-.75, -1)]),
+    farbe: zus([B(.16, .3, .66, -.7, .5, 0), X(.25, .25, .72, .14, .62, 0), Y(.07, .09, .1, -.02, .88, 0), B(.86, .06, .06, .05, .38, .29), B(.86, .06, .06, .05, .38, -.29)]),
+    messing: zus([X(.205, .205, .02, .685, .62, 0, 16), B(.03, .03, .12, .715, .62, 0), X(.262, .262, .035, -.12, .62, 0), X(.262, .262, .035, .14, .62, 0), X(.262, .262, .035, .42, .62, 0), kuppel(.11, .24, .85, 0), Y(.11, .11, .05, .24, .85, 0), Y(.02, .02, .1, -.1, .92, 0)]),
+    dunkel: zus([X(.17, .17, .03, .695, .62, 0, 14), B(.2, .1, .6, -.7, .67, 0)]),
+    rot: zus([B(.05, .14, .7, .76, .3, 0), B(.05, .14, .7, -.76, .3, 0)]),
+    lampe: zus([X(.05, .05, .03, .72, .93, 0, 10)]),
+    glas: zus([B(.012, .14, .12, -.21, .82, .2), B(.012, .14, .12, -.21, .82, -.2)])
+  };
+  lok.schwarz = zus([lok.schwarz, B(.08, .08, .08, .69, .93, 0)]);
+  // Schienenräumer: schräge Keile vorne
+  lok.schwarz = zus([lok.schwarz, B(.2, .04, .5, .84, .13, 0).rotateZ(-.5).translate(.03, .02, 0)]);
+  // Führerhaus mit Fensteröffnungen (Wände als Rahmen) und gewölbtem Dach
+  const kabine = { dach: zus([bogen(.4, .54, -.42, .97, 0, .3)]) };
+  // Vorderwand: Fenster links und rechts frei lassen (Mitte und Ränder als Rahmen)
+  kabine.farbe = zus([B(.44, .36, .66, -.42, .52, 0), B(.04, .26, .16, -.21, .83, 0), B(.04, .26, .07, -.21, .83, .3), B(.04, .26, .07, -.21, .83, -.3),
+    B(.04, .26, .66, -.63, .83, 0), B(.07, .26, .04, -.6, .83, .31), B(.07, .26, .04, -.24, .83, .31), B(.07, .26, .04, -.6, .83, -.31), B(.07, .26, .04, -.24, .83, -.31),
+    B(.44, .05, .7, -.42, .96, 0)]);
+  // Treibrad: schwarzer Reifen, rote Scheibe, Speichen und Nabe (Farben im Modell, damit alle Räder ein Aufruf sind)
+  const farbig = (g, f) => { g = g.toNonIndexed(); const c = new THREE.Color(f), a = []; for (let k = 0; k < g.attributes.position.count; k++) a.push(c.r, c.g, c.b); g.setAttribute("color", new THREE.Float32BufferAttribute(a, 3)); return g; };
+  const R = .18, radTeile = [farbig(new THREE.CylinderGeometry(R, R, .06, 18).rotateX(PI / 2), 0x2A2A35), farbig(new THREE.CylinderGeometry(R * .8, R * .8, .07, 16).rotateX(PI / 2), 0xB0302A)];
+  for (let k = 0; k < 4; k++) radTeile.push(farbig(new THREE.BoxGeometry(R * 1.6, .025, .08).rotateZ(k * PI / 4), 0x2A2A35));
+  radTeile.push(farbig(new THREE.CylinderGeometry(.04, .04, .09, 8).rotateX(PI / 2), 0xD9A440));
+  const radPos = []; for (const x of [-.4, 0, .4]) for (const z of [.3, -.3]) radPos.push(new THREE.Vector3(x, R, z));
+  const stangen = zus([B(.84, .035, .025, 0, R, .35), B(.84, .035, .025, 0, R, -.35), Y(.025, .025, .02, -.4, R, .36).rotateX(0)]);
+  // Wagen (Länge 1,2): Fensterreihe, Türen, gewölbtes Dach, Puffer, Drehgestelle
+  const fenster = []; for (const x of [-.27, -.09, .09, .27]) for (const z of [.322, -.322]) fenster.push(B(.13, .14, .012, x, .62, z));
+  const wagen = {
+    farbe: zus([B(1.08, .44, .64, 0, .53, 0)]),
+    weiss: zus([B(1.1, .04, .66, 0, .73, 0), B(1.1, .03, .66, 0, .4, 0)]),
+    dunkel: zus([B(.13, .3, .66, -.46, .52, 0), B(.13, .3, .66, .46, .52, 0)]),
+    glas: zus(fenster),
+    dach: zus([bogen(.36, 1.16, 0, .75, 0, .32)])
+  };
+  // Wagenräder: Zylinder mit Achse quer zur Fahrtrichtung
+  wagen.schwarz = zus([B(1.12, .1, .5, 0, .26, 0), ...puffer(.56, 1), ...puffer(-.56, -1), B(.36, .08, .5, -.36, .17, 0), B(.36, .08, .5, .36, .17, 0),
+    ...[-.48, -.24, .24, .48].flatMap(x => [.29, -.29].map(z => new THREE.CylinderGeometry(.13, .13, .05, 14).rotateX(PI / 2).translate(x, .13, z)))]);
+  ZF = { lok, kabine, rad: mergeGeometries(radTeile), radMat: new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .7, flatShading: true }), radPos, stangen, wagen };
+  return ZF;
+}
+
 export class Welt {
   constructor(el) {
     this.el = el;
@@ -644,29 +698,34 @@ export class Welt {
   }
   zugBauen(S, pid) {
     const alt = this.zuege[pid]; if (alt) alt.teile.forEach(o => this.gZug.remove(o));
-    const farbe = S.spieler[pid] ? S.spieler[pid].farbe : 0, z = S.zuege[pid];
-    const n = 1 + z.stufen.wagen, schwarz = mat(0x2A2A35), rot = mat(new THREE.Color(G.FARBEN[farbe]).getHex()), teile = [];
-    const rad = (g, x, zz, r) => { const m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, .08, 10).rotateX(Math.PI / 2), schwarz); m.position.set(x, r, zz); g.add(m); };
-    const box = (g, w, h, d, x, y, zz, m) => { const b = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); b.position.set(x, y, zz); b.castShadow = true; g.add(b); return b; };
-    // Lok, Länge 1,6 in x-Richtung, vorne = +x; Farbe des Spielers
+    const farbe = S.spieler[pid] ? S.spieler[pid].farbe : 0, z = S.zuege[pid], n = 1 + z.stufen.wagen, teile = [];
+    const zf = zugFormen(), eigen = mat(new THREE.Color(G.FARBEN[farbe]).getHex());
+    const M = { schwarz: mat(0x2A2A35), farbe: eigen, messing: mat(0xD9A440, { roughness: .45, metalness: .5 }), dunkel: mat(0x3A3A48), rot: mat(0xB0302A),
+      glas: mat(0xBFE3F2, { roughness: .2 }), lampe: mat(0xFFF2B0, { emissive: 0xFFD87A, emissiveIntensity: .9 }), dach: mat(0x3D3868), weiss: mat(0xF3F0FF) };
+    const stueck = (g, geo, m, schatten = true) => { const o = new THREE.Mesh(geo, m); o.castShadow = schatten; g.add(o); return o; };
+    // Lok (Länge 1,6, vorne = +x): Teile gleicher Farbe sind zu einem Stück zusammengefügt
     const lok = new THREE.Group();
-    box(lok, 1.5, .14, .62, 0, .26, 0, schwarz);
-    const kessel = new THREE.Mesh(new THREE.CylinderGeometry(.27, .27, .95, 12).rotateZ(Math.PI / 2), rot); kessel.position.set(.22, .6, 0); kessel.castShadow = true; lok.add(kessel);
-    const schlot = new THREE.Mesh(new THREE.CylinderGeometry(.08, .11, .3, 8), schwarz); schlot.position.set(.55, .98, 0); lok.add(schlot);
-    const kabine = [box(lok, .5, .62, .66, -.48, .64, 0, rot), box(lok, .62, .07, .76, -.48, .98, 0, schwarz), box(lok, .3, .22, .4, -.48, .75, 0, mat(0xBFE3F2))];
-    [-.5, -.1, .3].forEach(x => { rad(lok, x, .3, .2); rad(lok, x, -.3, .2); });
+    for (const k in zf.lok) stueck(lok, zf.lok[k], M[k], k !== "glas" && k !== "lampe");
+    const kabine = [stueck(lok, zf.kabine.farbe, eigen), stueck(lok, zf.kabine.dach, M.schwarz)];
+    const raeder = new THREE.InstancedMesh(zf.rad, zf.radMat, zf.radPos.length); raeder.castShadow = true; lok.add(raeder);
+    const stangen = stueck(lok, zf.stangen, M.messing, false);
     this.gZug.add(lok); teile.push(lok);
     for (let k = 0; k < n; k++) {
-      const w = new THREE.Group(), f = mat(WAGENFARBE[(k + farbe) % WAGENFARBE.length]);
-      box(w, 1.12, .12, .58, 0, .24, 0, schwarz);
-      box(w, 1.1, .46, .64, 0, .52, 0, f);
-      box(w, .9, .14, .66, 0, .6, 0, mat(0xF3F0FF));
-      box(w, 1.18, .07, .72, 0, .79, 0, mat(0x3D3868));
-      [-.35, .35].forEach(x => { rad(w, x, .3, .16); rad(w, x, -.3, .16); });
+      const w = new THREE.Group();
+      for (const t in zf.wagen) stueck(w, zf.wagen[t], t === "farbe" ? mat(WAGENFARBE[(k + farbe) % WAGENFARBE.length]) : M[t], t !== "glas");
       this.gZug.add(w); teile.push(w);
     }
-    this.zuege[pid] = { teile, farbe, rauch: Math.random() * .3, kabine };
+    this.zuege[pid] = { teile, farbe, rauch: Math.random() * .3, kabine, raeder, stangen, winkel: Math.random() * 6 };
+    this.raederDrehen(this.zuege[pid]);
     if (this.modus === "mitfahren") this.kabine(true);
+  }
+  // Treibräder drehen sich, die Kuppelstangen laufen im Kreis mit
+  raederDrehen(zz) {
+    const zf = zugFormen(), m = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Vector3(1, 1, 1), ach = new THREE.Vector3(0, 0, 1);
+    q.setFromAxisAngle(ach, -zz.winkel);
+    zf.radPos.forEach((p, k) => { m.compose(p, q, e); zz.raeder.setMatrixAt(k, m); });
+    zz.raeder.instanceMatrix.needsUpdate = true;
+    zz.stangen.position.set(Math.cos(-zz.winkel) * .07, Math.sin(-zz.winkel) * .07, 0);
   }
   // Lok eines Spielers in Feldkoordinaten (für Kamera und Texte)
   lokBei(pid) { const z = this.S && this.S.zuege[pid]; if (!z) return null; const l = G.wagenlage(z)[0]; return { x: l.x, y: l.y }; }
@@ -676,7 +735,7 @@ export class Welt {
     const S = this.S, z = S.zuege[this.ziel], zz = this.zuege[this.ziel];
     if (!z || !zz) { this.kamera("frei"); if (this.onFolgenAus) this.onFolgenAus(); return; }
     const lok = zz.teile[0], cam = this.camera; lok.updateMatrixWorld();
-    cam.position.set(-.62, 1.06, .17).applyMatrix4(lok.matrixWorld);
+    cam.position.set(-.64, 1.13, .2).applyMatrix4(lok.matrixWorld);
     // Blick auf einen Punkt voraus auf dem Gleis: schaut in Kurven hinein, neigt sich mit der Steigung (gedämpft)
     // waagerecht zum Punkt voraus, geneigt nur nach der Steigung, damit der Horizont auch in engen Kurven ruhig bleibt
     const p = G.vorne(S, this.ziel, 1.5), ziel = new THREE.Vector3(this.wx(p.x) - cam.position.x, 0, this.wz(p.y) - cam.position.z);
@@ -761,12 +820,13 @@ export class Welt {
         o.position.set(this.wx(w.x), wy(w.h) + .1, this.wz(w.y)); o.rotation.set(0, -w.w, Math.atan2(w.dh * HS, w.len * F), "YZX");
       });
       const lok = zz.teile[0], v = zug.v;
+      if (v > 0) { zz.winkel += v * F / .18 * dt; this.raederDrehen(zz); }
       // Rauch aus dem Schlot
       zz.rauch -= dt;
       if (zz.rauch <= 0) {
         zz.rauch = v > .05 ? Math.max(.06, .3 - v * .1) : .9;
         const r = this.rauch[this.rNr++ % this.rauch.length], c = Math.cos(lok.rotation.y), s = Math.sin(lok.rotation.y);
-        r.m.position.set(lok.position.x + .55 * c, lok.position.y + 1.1, lok.position.z - .55 * s); r.alter = 0; r.m.visible = true; r.m.scale.setScalar(.6);
+        r.m.position.set(lok.position.x + .6 * c, lok.position.y + 1.25, lok.position.z - .6 * s); r.alter = 0; r.m.visible = true; r.m.scale.setScalar(.6);
       }
       if (this.modus === "folgen" && pid === this.ziel) {
         const t = this.controls.target, k = Math.min(1, dt * 3), dx = (lok.position.x - t.x) * k, dy = (lok.position.y - .1 - t.y) * k, dz = (lok.position.z - t.z) * k;

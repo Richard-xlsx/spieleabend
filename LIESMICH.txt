@@ -239,3 +239,7 @@ Gleisgenossen (neu vom 16.11.2026, allein oder 2 bis 6 Bahnen; Plan in gleisgeno
   Leistung (16.11.2026): Pixeldichte höchstens 1,5, einfachere Schattenkanten, Schatten nur jedes zweite Bild.
   Grafik im Menü: Automatisch / Schön / Einfach. Automatisch schaltet auf „Einfach“, wenn es dauerhaft unter etwa
   40 Bildern pro Sekunde läuft (Pixeldichte 1,1, kleinere Schattenkarte, halbe Deko, kein Wind, keine Wolken).
+  Neue Züge (16.11.2026): Lok mit Messingbändern, Dampf- und Sanddom, Rauchkammertür, Laterne, Puffern, Kohlenkasten,
+  Führerhaus mit Fenstern und gewölbtem Dach, Speichenrädern, die sich drehen, und mitlaufender Kuppelstange.
+  Wagen mit Fensterreihe, Türen, gewölbtem Dach, Puffern und Drehgestellen. Teile gleicher Farbe sind zu einem
+  Stück zusammengefügt, alle Treibräder einer Lok ein Aufruf: mehr Details, aber weniger Zeichenaufrufe als vorher.

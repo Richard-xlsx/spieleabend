@@ -1,6 +1,6 @@
 // Gleisgenossen: Startseite, Lobby, Verbindung (Handy des Spielleiters rechnet, PeerJS), Bedienleiste über der 3D-Welt.
 // Allein: ohne Raum, alles auf diesem Handy. Die Regeln stehen in logic.js (window.GG), die Welt in welt.js.
-import { Welt } from "./welt.js?v=2026-11-16h";
+import { Welt } from "./welt.js?v=2026-11-16i";
 
 const G = window.GG;
 const app = document.getElementById("app"), weltEl = document.getElementById("welt"), hud = document.getElementById("hud");
