@@ -47,18 +47,8 @@ button:focus-visible,input:focus-visible,a:focus-visible{outline:3px solid var(-
 .wahl button{appearance:none;flex:1;border:1px solid var(--linie);background:var(--flaeche2);color:var(--text);border-radius:999px;padding:8px 12px;font:600 .88rem var(--fliess);cursor:pointer;white-space:nowrap}
 .wahl button.an{background:var(--text);color:var(--bg);border-color:var(--text)}
 .link{background:none;border:0;color:var(--leise);text-decoration:underline;font:inherit;cursor:pointer;padding:8px;align-self:center}
-.code{font-family:var(--display);font-weight:800;font-size:3.4rem;letter-spacing:.12em;line-height:1}
-.qr{background:#fff;border-radius:16px;padding:10px;width:200px;max-width:60%;align-self:center}
-.qr svg{display:block;width:100%;height:auto}
-.spieler{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
-.spieler li{display:flex;align-items:center;gap:10px;font-weight:600}
-.spieler small{color:var(--leise);font-weight:500}
-.punkt{width:10px;height:10px;border-radius:50%;background:var(--linie);display:inline-block;flex:none}
-.punkt.an{background:var(--gut)}
 .regeln{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:5px;font-size:.92rem;color:var(--leise)}
 .regeln b{color:var(--text)}
-.status{position:sticky;top:0;z-index:30;background:var(--gelb);color:var(--bg);border-radius:12px;padding:10px 12px;font-weight:600;font-size:.9rem;display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
-.status button{background:var(--bg);color:var(--text);border:0;border-radius:999px;padding:6px 12px;font:600 .85rem var(--fliess)}
 .unten{position:sticky;bottom:0;padding-block:10px calc(4px + env(safe-area-inset-bottom));background:linear-gradient(transparent,var(--bg) 30%);display:flex;flex-direction:column;gap:8px;z-index:3}
 .toast{position:fixed;left:50%;bottom:calc(150px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--text);color:var(--bg);font-weight:600;padding:10px 16px;border-radius:12px;z-index:40;max-width:90vw;text-align:center;box-shadow:0 8px 20px rgba(0,0,0,.4)}
 
@@ -78,12 +68,6 @@ body.spiel #app{display:none}
 .chip b{font:800 .95rem var(--display);white-space:nowrap}
 .chip.gross{flex:1}
 .chip .ruf{color:var(--gelb);letter-spacing:.05em;text-transform:none}
-.ereignis{pointer-events:auto;display:block;margin:6px auto 0;max-width:620px;width:100%;appearance:none;border:0;background:var(--gelb);color:var(--bg);border-radius:12px;padding:8px 12px;font:700 .85rem var(--fliess);text-align:left;box-shadow:0 4px 14px rgba(0,0,0,.18);cursor:pointer}
-.karteEreignis{background:var(--gelb);color:var(--bg);border-radius:14px;padding:10px 12px;display:flex;flex-direction:column;gap:2px;transform:rotate(-1deg)}
-.karteEreignis small{font-size:.66rem;text-transform:uppercase;letter-spacing:.1em;font-weight:700;opacity:.7}
-.karteEreignis b{font-family:var(--display);font-size:.95rem}
-.karteEreignis span{font-size:.85rem}
-.zugkarte .knoepfe button:disabled{opacity:.4}
 .chip.minus b{color:#FF8A7A}
 .rund{appearance:none;border:0;background:var(--glas);color:var(--text);border-radius:14px;width:46px;font-size:1.25rem;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.18)}
 .hud-unten{display:flex;flex-direction:column;gap:8px;max-width:620px;width:100%;margin:0 auto}
@@ -102,48 +86,44 @@ body.spiel #app{display:none}
 .werkzeuge button i{font-style:normal;font-size:1.15rem;line-height:1.2}
 .werkzeuge button em{font-style:normal;background:var(--akzent);color:var(--bg);border-radius:999px;padding:0 6px;margin-left:4px;font-size:.7rem}
 .werkzeuge button.an{background:var(--text);color:var(--bg)}
-.fertig{display:flex;gap:6px}
-.fertig .knopf{box-shadow:0 6px 18px rgba(0,0,0,.25)}
-.fertig .knopf.bereit{background:var(--gut)}
 .zeile{display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-bottom:1px solid var(--linie);font-size:.9rem}
 .zeile:last-child{border:0}
 .zeile > :last-child{white-space:nowrap}
 .plus{color:var(--gut);font-weight:700}
 .minus{color:#FF8A7A;font-weight:700}
 .warn{color:#FFB4A8}
-.zuglist{display:flex;flex-direction:column;gap:8px}
-.zugkarte{background:var(--flaeche2);border-radius:14px;padding:10px 12px;display:flex;flex-direction:column;gap:6px}
-.zugkarte .titel2{display:flex;align-items:center;gap:8px;font-weight:700}
-.farbe{width:14px;height:14px;border-radius:4px;display:inline-block;flex:none}
-.zugkarte .knoepfe{display:flex;gap:6px}
-.zugkarte .knoepfe button{appearance:none;flex:1;border:1px solid var(--linie);background:transparent;color:var(--text);border-radius:10px;padding:7px;font:600 .82rem var(--fliess);cursor:pointer}
-.lokwahl{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.lokwahl button{appearance:none;border:2px solid var(--linie);background:var(--flaeche2);color:var(--text);border-radius:14px;padding:7px 9px;text-align:left;font:500 .72rem/1.35 var(--fliess);cursor:pointer}
-.lokwahl button b{display:block;font-size:.92rem}
-.lokwahl button.an{border-color:var(--gelb)}
-.halte{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
-.schalterchip{appearance:none;align-self:flex-start;border:1px solid var(--linie);background:var(--flaeche2);color:var(--leise);border-radius:999px;padding:6px 12px;font:600 .78rem var(--fliess);cursor:pointer;text-align:left}
-.schalterchip.an{background:var(--gut);color:var(--bg);border-color:var(--gut)}
-.halte span.kreis{background:var(--gut)}
-.halte span{background:var(--gelb);color:var(--bg);border-radius:999px;padding:4px 10px;font-weight:700;font-size:.82rem}
-.mitglieder{display:flex;flex-wrap:wrap;gap:6px}
-.mitglieder span{background:var(--flaeche2);border-radius:999px;padding:4px 10px 4px 8px;font-size:.8rem;font-weight:600;display:inline-flex;align-items:center;gap:6px}
-.mitglieder span.ok{background:rgba(91,214,154,.18);color:#BFF3D8}
-.sterne{font-size:2rem;letter-spacing:.15em;color:var(--gelb);text-align:center}
-.sterne .aus{color:var(--linie)}
 .balken{height:8px;background:var(--flaeche2);border-radius:6px;overflow:hidden}
 .balken i{display:block;height:100%;background:var(--gut)}
+
+/* ---------- neu: offene Welt ---------- */
+.stand{background:var(--flaeche2);border-radius:12px;padding:10px 12px;font-size:.88rem;color:var(--leise)}
+.stand b{color:var(--text)}
+.teile{display:flex;gap:6px}
+.teile button{appearance:none;flex:1;border:2px solid var(--linie);background:var(--flaeche2);color:var(--text);border-radius:14px;padding:6px 4px;font:600 .78rem var(--fliess);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px}
+.teile button.an{border-color:var(--gelb)}
+.teile svg{width:34px;height:34px}
+.teile small{color:var(--leise);font-weight:600}
+.stufen{display:flex;flex-direction:column;gap:6px}
+.stufe{display:flex;align-items:center;gap:10px;background:var(--flaeche2);border-radius:14px;padding:8px 10px}
+.stufe div{flex:1;min-width:0;display:flex;flex-direction:column}
+.stufe b{font-size:.92rem}
+.stufe small{color:var(--leise);font-size:.76rem}
+.stufe button{appearance:none;border:0;border-radius:12px;padding:9px 10px;min-width:84px;background:var(--akzent);color:var(--akzent-text);font:700 .85rem var(--fliess);cursor:pointer;white-space:nowrap}
+.stufe button.teuer{background:var(--linie);color:var(--leise)}
+.stufe button:disabled{opacity:.5}
+.knopfreihe{display:flex;gap:6px}
+.knopfreihe .knopf{flex:1}
+.rund.an{background:var(--gelb);color:var(--bg)}
+.knopf.teuer{opacity:.55}
+.hinweis{font-size:.82rem;color:var(--leise);margin:0}
 </style>
 </head>
 <body>
 <div id="app"></div>
 <div id="welt" hidden></div>
 <div id="hud" hidden></div>
-<script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
-<script src="../netz.js"></script>
-<script src="logic.js"></script>
+<script src="logic.js?v=2026-11-16a"></script>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
-<script type="module" src="app.js"></script>
+<script type="module" src="app.js?v=2026-11-16a"></script>
 </body>
 </html>

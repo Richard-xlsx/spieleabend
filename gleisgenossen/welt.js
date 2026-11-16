@@ -1,15 +1,16 @@
-// Gleisgenossen: die 3D-Welt (Three.js). Zeichnet Karte, Gleise, Bahnhöfe und fahrende Züge, meldet angetippte Felder.
+// Gleisgenossen: die 3D-Welt (Three.js). Zeichnet Gelände, Gleise und den fahrenden Zug, meldet angetippte Felder.
 import * as THREE from "three";
 import { MapControls } from "three/addons/controls/MapControls.js";
 
-const W3 = Math.sqrt(3), GY = .35, TY = .37;
-const HOEHE = { ".": GY, w: GY, h: .62, b: .5, "~": .12, x: GY };
+const G = window.GG;
+const F = 2, GY = .3;                       // Weltgröße eines Feldes, Höhe der Wiese
+const HOEHE = { ".": GY, w: GY, h: GY, b: .45, "~": .1 };
 const FARBE = {
-  ".": [0x9BD45A, 0x8FCB50, 0xA5DA66], w: [0x84C04F, 0x7DB84A], h: [0x7FB64B, 0x76AD45],
-  "~": [0x4F86D9, 0x4A80D2], b: [0x9C9C8E, 0xA6A496], x: [0x9BD45A, 0x8FCB50]
+  ".": [0x9BD45A, 0x93CE52, 0xA3D963], w: [0x7DB84A, 0x76B044], h: [0xB5D77A, 0xADD072],
+  b: [0x9A9A8A, 0x8F8F80], "~": [0x4F86D9, 0x4A80D2]
 };
 const WAND = [0xF3E6CC, 0xF9C7A8, 0xE8E1F5, 0xFFE3A3, 0xD9EEF7], DACH = [0xC9553D, 0x8C4A3A, 0x4A5A8C, 0xB8643C];
-const V = (x, y, z) => new THREE.Vector3(x, y, z);
+const WAGENFARBE = [0x2F6FDE, 0x2E9E5B, 0xF2B705, 0x8E5BD6, 0xF08A24, 0x1FA5A5];
 const mats = new Map();
 function mat(farbe, extra) {
   const key = farbe + (extra ? JSON.stringify(extra) : "");
@@ -17,16 +18,10 @@ function mat(farbe, extra) {
   return mats.get(key);
 }
 function rng(seed) { let a = seed >>> 0; return () => { a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
-function schatten(o) { o.traverse(k => { if (k.isMesh) { k.castShadow = true; k.receiveShadow = true; } }); return o; }
-function balken(a, b, dicke, material) {
-  const m = new THREE.Mesh(new THREE.BoxGeometry(dicke, dicke, Math.max(.001, a.distanceTo(b))), material);
-  m.position.copy(a).add(b).multiplyScalar(.5); m.lookAt(b); m.castShadow = true; return m;
-}
 function leeren(g) {
-  g.traverse(o => { if (o.geometry) o.geometry.dispose(); if (o.material && o.material.map) { o.material.map.dispose(); o.material.dispose(); } });
+  g.traverse(o => { if (o.isInstancedMesh) o.dispose(); if (o.material && o.material.map) { o.material.map.dispose(); o.material.dispose(); } });
   while (g.children.length) g.remove(g.children[0]);
 }
-// Beschriftung als Sprite (immer zur Kamera gedreht)
 function schild(text, { bg = "#1C1A33", fg = "#F3F0FF", groesse = 1, unter = "" } = {}) {
   const c = document.createElement("canvas"), x = c.getContext("2d"), s = 4;
   const f1 = `700 ${26 * s / 2}px Inter, system-ui, sans-serif`, f2 = `600 ${19 * s / 2}px Inter, system-ui, sans-serif`;
@@ -42,19 +37,19 @@ function schild(text, { bg = "#1C1A33", fg = "#F3F0FF", groesse = 1, unter = "" 
   const k = groesse / 165; sp.scale.set(c.width * k, c.height * k, 1); sp.renderOrder = 10;
   return sp;
 }
-
-const kante = (a, b) => a < b ? a + "-" + b : b + "-" + a;
-const SPUR = .31;
-// Spurwechsel weich machen (gleitender Mittelwert über einige Punkte)
-function glaetten(pts) { return pts.map((p, i) => { let s = 0, n = 0; for (let k = -4; k <= 4; k++) { const q = pts[i + k]; if (q) { s += q.sp; n++; } } return { x: p.x, z: p.z, sp: s / n }; }); }                    // Abstand der beiden Gleise einer zweigleisigen Strecke von der Mitte
-// Linienzug seitlich versetzen (positiv = rechts in Laufrichtung)
-function versetzt(l, o) {
-  return l.map((p, i) => {
-    const a = l[Math.max(0, i - 1)], b = l[Math.min(l.length - 1, i + 1)];
-    let tx = b.x - a.x, tz = b.z - a.z; const n = Math.hypot(tx, tz) || 1; tx /= n; tz /= n;
-    return { x: p.x + tz * o, z: p.z - tx * o };
+// Viele gleiche Körper auf einmal: liste = [{ x, y, z, sx, sy, sz, ry, farbe }]
+function instanzen(geo, material, liste, schatten = true) {
+  const m = new THREE.InstancedMesh(geo, material, Math.max(1, liste.length)), o = new THREE.Object3D(), col = new THREE.Color();
+  m.count = liste.length;
+  liste.forEach((e, k) => {
+    o.position.set(e.x, e.y, e.z); o.rotation.set(0, e.ry || 0, 0); o.scale.set(e.sx || 1, e.sy || 1, e.sz || 1); o.updateMatrix();
+    m.setMatrixAt(k, o.matrix);
+    if (e.farbe != null) m.setColorAt(k, col.set(e.farbe));
   });
+  m.castShadow = schatten; m.receiveShadow = true;
+  return m;
 }
+const abdunkeln = (farbe, an) => an ? farbe : new THREE.Color(farbe).lerp(new THREE.Color(0x6E7A66), .45).multiplyScalar(.72).getHex();
 
 export class Welt {
   constructor(el) {
@@ -64,26 +59,32 @@ export class Welt {
     r.shadowMap.enabled = true; r.shadowMap.type = THREE.PCFSoftShadowMap;
     el.appendChild(r.domElement);
     const sc = this.scene = new THREE.Scene();
-    sc.fog = new THREE.Fog(0xD7EDF6, 70, 170);
-    this.camera = new THREE.PerspectiveCamera(45, 1, .1, 250);
+    sc.fog = new THREE.Fog(0xD7EDF6, 60, 150);
+    this.camera = new THREE.PerspectiveCamera(45, 1, .1, 260);
     sc.add(new THREE.HemisphereLight(0xffffff, 0x5f7f4a, 1.7));
     const s = this.sonne = new THREE.DirectionalLight(0xfff1d6, 2.6);
-    s.castShadow = true; s.shadow.mapSize.set(2048, 2048); s.shadow.bias = -.0006; sc.add(s); sc.add(s.target);
+    s.castShadow = true; s.shadow.mapSize.set(2048, 2048); s.shadow.bias = -.0006;
+    Object.assign(s.shadow.camera, { left: -32, right: 32, top: 32, bottom: -32, near: 1, far: 120 }); s.shadow.camera.updateProjectionMatrix();
+    sc.add(s); sc.add(s.target);
     const c = this.controls = new MapControls(this.camera, r.domElement);
-    c.enableDamping = true; c.dampingFactor = .08; c.minDistance = 4; c.maxDistance = 75;
-    c.minPolarAngle = .2; c.maxPolarAngle = 1.22; c.zoomToCursor = true;
+    c.enableDamping = true; c.dampingFactor = .08; c.minDistance = 5; c.maxDistance = 90;
+    c.minPolarAngle = .2; c.maxPolarAngle = 1.25; c.zoomToCursor = true;
     c.addEventListener("change", () => this.begrenzen());
-    this.gTerrain = new THREE.Group(); this.gNetz = new THREE.Group(); this.gZuege = new THREE.Group(); this.gVorschau = new THREE.Group(); this.gMarken = new THREE.Group(); this.gEffekte = new THREE.Group();
-    [this.gTerrain, this.gNetz, this.gZuege, this.gVorschau, this.gMarken, this.gEffekte].forEach(g => sc.add(g));
-    this.zuege = []; this.muenzenListe = []; this.rauchQuellen = []; this.wolken = [];
-    const wg = new THREE.IcosahedronGeometry(.13, 0);
-    for (let i = 0; i < 120; i++) { const m = new THREE.Mesh(wg, new THREE.MeshLambertMaterial({ color: 0xF4F4F6, transparent: true, opacity: 0, depthWrite: false })); m.visible = false; this.gEffekte.add(m); this.wolken.push({ m, alter: 9 }); }
-    this.wNr = 0;
-    this.onTap = null;
+    c.addEventListener("start", () => { this.folgen = false; if (this.onFolgenAus) this.onFolgenAus(); });
+    this.gTerrain = new THREE.Group(); this.gLand = new THREE.Group(); this.gNetz = new THREE.Group(); this.gZug = new THREE.Group(); this.gMarke = new THREE.Group(); this.gRauch = new THREE.Group();
+    [this.gTerrain, this.gLand, this.gNetz, this.gZug, this.gMarke, this.gRauch].forEach(g => sc.add(g));
+    this.rauch = [];
+    const rg = new THREE.IcosahedronGeometry(.16, 0);
+    for (let i = 0; i < 60; i++) { const m = new THREE.Mesh(rg, new THREE.MeshLambertMaterial({ color: 0xF4F4F6, transparent: true, opacity: 0, depthWrite: false })); m.visible = false; this.gRauch.add(m); this.rauch.push({ m, alter: 9 }); }
+    this.rNr = 0; this.rauchZeit = 0;
+    const marke = this.marke = new THREE.Mesh(new THREE.RingGeometry(.62, .78, 4, 1, Math.PI / 4).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: 0xFFD447, depthTest: false, transparent: true }));
+    marke.scale.set(F * .92, 1, F * .92); marke.renderOrder = 9; marke.visible = false; this.gMarke.add(marke);
+    this.wagen = []; this.folgen = false; this.onTap = null; this.onFolgenAus = null; this.S = null;
     this.tippen();
     this.uhr = new THREE.Clock();
     addEventListener("resize", () => this.groesse());
     this.groesse();
+    this.vorBild = null;
     const schleife = () => { this.bild(); requestAnimationFrame(schleife); };
     requestAnimationFrame(schleife);
   }
@@ -91,500 +92,191 @@ export class Welt {
     const w = this.el.clientWidth || innerWidth, h = this.el.clientHeight || innerHeight;
     this.camera.aspect = w / h; this.camera.updateProjectionMatrix(); this.renderer.setSize(w, h);
   }
-  pos(i) { const K = this.K, c = i % K.B, r = (i / K.B) | 0; return { x: W3 * (c + .5 * (r & 1)) - this.ox, z: 1.5 * r - this.oz }; }
-  mitte(a, b) { const p = this.pos(a), q = this.pos(b); return { x: (p.x + q.x) / 2, z: (p.z + q.z) / 2 }; }
+  // Feldkoordinaten (x nach Osten, y nach Süden, Einheit Feld) → Welt
+  wx(x) { return (x - G.B / 2) * F; }
+  wz(y) { return (y - G.H / 2) * F; }
   begrenzen() {
-    if (!this.K) return;
-    const t = this.controls.target, bx = W3 * this.K.B / 2, bz = .75 * this.K.H;
+    const t = this.controls.target, bx = G.B * F / 2, bz = G.H * F / 2;
     const vx = Math.max(-bx, Math.min(bx, t.x)) - t.x, vz = Math.max(-bz, Math.min(bz, t.z)) - t.z;
     if (vx || vz) { t.x += vx; t.z += vz; this.camera.position.x += vx; this.camera.position.z += vz; }
   }
-  // ganz = ganze Karte, sonst ein mittlerer Ausschnitt (etwa 15 Felder breit)
-  uebersicht(ganz) {
-    if (!this.K) return;
-    const hoch = this.camera.aspect < 1, tief = 1.5 * this.K.H;
-    const breit = ganz ? W3 * this.K.B : Math.min(W3 * this.K.B, 26);
-    const d = hoch ? breit / this.camera.aspect * .82 : Math.max((ganz ? tief : Math.min(tief, 18)) * 1.15, breit / this.camera.aspect * .6);
-    this.controls.target.set(0, 0, hoch ? Math.min(tief, 20) * .1 : tief * .05);
-    this.camera.position.set(-d * .12, d * .78, this.controls.target.z + d * .6);
+  // Kamera auf einen Punkt (Feldkoordinaten) richten
+  blick(x, y, abstand = 26) {
+    const hoch = this.camera.aspect < 1, d = hoch ? abstand * 1.35 : abstand;
+    this.controls.target.set(this.wx(x), 0, this.wz(y));
+    this.camera.position.set(this.wx(x) - d * .1, d * .8, this.wz(y) + d * .62);
     this.controls.update();
   }
-  // ---------- Antippen ----------
   tippen() {
-    const el = this.renderer.domElement, ray = new THREE.Raycaster(), maus = new THREE.Vector2();
+    const el = this.renderer.domElement, ray = new THREE.Raycaster(), maus = new THREE.Vector2(), ebene = new THREE.Plane(new THREE.Vector3(0, 1, 0), -GY), p = new THREE.Vector3();
     let aktiv = 0, start = null;
     el.addEventListener("pointerdown", e => { aktiv++; start = aktiv === 1 ? { x: e.clientX, y: e.clientY, t: performance.now() } : null; });
     const ende = e => {
       aktiv = Math.max(0, aktiv - 1);
       if (!start || e.type === "pointercancel" || Math.hypot(e.clientX - start.x, e.clientY - start.y) > 9 || performance.now() - start.t > 500) { start = null; return; }
       start = null;
-      if (!this.feldMesh || !this.onTap) return;
+      if (!this.onTap || e.target !== el) return;
       const r = el.getBoundingClientRect();
       maus.set((e.clientX - r.left) / r.width * 2 - 1, -(e.clientY - r.top) / r.height * 2 + 1);
       ray.setFromCamera(maus, this.camera);
-      const t = ray.intersectObject(this.feldMesh)[0];
-      if (t) this.onTap(t.instanceId);
+      if (!ray.ray.intersectPlane(ebene, p)) return;
+      const c = Math.floor(p.x / F + G.B / 2), rr = Math.floor(p.z / F + G.H / 2);
+      if (c >= 0 && rr >= 0 && c < G.B && rr < G.H) this.onTap(rr * G.B + c);
     };
     addEventListener("pointerup", ende); addEventListener("pointercancel", ende);
   }
-
-  // ---------- Karte ----------
-  karteSetzen(K) {
-    const key = K.seed + "|" + K.g + "|" + K.orte.map(o => o.groesse || 0).join(",");
-    if (key === this.karteKey) return;
-    const neueKarte = !this.K || this.K.seed !== K.seed || this.K.g !== K.g;
-    this.karteKey = key; this.K = K; this.rad = []; this.ox = W3 * (K.B - .5) / 2; this.oz = 1.5 * (K.H - 1) / 2;
-    leeren(this.gTerrain); leeren(this.gNetz); leeren(this.gZuege); leeren(this.gVorschau); leeren(this.gMarken);
-    this.netzKey = null; this.zugKey = null; this.zuege = []; this.rauchQuellen = [];
-    const z = rng(K.seed + 17), n = K.B * K.H, hilf = new THREE.Object3D(), col = new THREE.Color();
-    // Felder
-    const fm = this.feldMesh = new THREE.InstancedMesh(new THREE.CylinderGeometry(1, 1, 1, 6).translate(0, .5, 0), mat(0xffffff), n);
-    this.hoehe = [];
-    for (let i = 0; i < n; i++) {
-      const t = K.g[i], p = this.pos(i), h = t === "h" ? HOEHE.h + z() * .2 : HOEHE[t];
-      this.hoehe.push(h);
-      hilf.position.set(p.x, 0, p.z); hilf.scale.set(1, h, 1); hilf.updateMatrix(); fm.setMatrixAt(i, hilf.matrix);
-      const l = FARBE[t]; fm.setColorAt(i, col.setHex(l[Math.floor(z() * l.length)]));
-    }
-    fm.receiveShadow = true; this.gTerrain.add(fm);
-    const so = new THREE.Mesh(new THREE.BoxGeometry(W3 * K.B + 1.6, 1.4, 1.5 * K.H + 1.3), mat(0x7A5A3F));
-    so.position.set(W3 / 4, -.7, 0); this.gTerrain.add(so);
-    // Licht und Schatten passend zur Kartengröße
-    const gr = Math.max(W3 * K.B, 1.5 * K.H) / 2 + 3;
-    this.sonne.position.set(-gr * .6, gr * 1.1, gr * .5);
-    Object.assign(this.sonne.shadow.camera, { left: -gr, right: gr, top: gr, bottom: -gr, near: 1, far: gr * 4 }); this.sonne.shadow.camera.updateProjectionMatrix();
-    // Berge
-    this.berge = {};
-    for (let i = 0; i < n; i++) if (K.g[i] === "b") {
-      const p = this.pos(i), hb = 1.3 + z() * 1.3, g = new THREE.Group();
-      const b = new THREE.Mesh(new THREE.ConeGeometry(.95, hb, 5), mat(0x8E8B84)); b.position.y = hb / 2; g.add(b);
-      const s = new THREE.Mesh(new THREE.ConeGeometry(.34, hb * .36, 5), mat(0xF7F7FA)); s.position.y = hb * .82 + .01; g.add(s);
-      g.position.set(p.x, this.hoehe[i], p.z); g.rotation.y = z() * 6; this.gTerrain.add(schatten(g)); this.berge[i] = g;
-    }
-    // Orte und Betriebe
-    const zentren = new Set(K.orte.map(o => o.zelle)), deko = new Set(K.orte.flatMap(o => o.deko));
-    K.orte.forEach(o => this.ortBauen(o, z));
-    // Bäume (pro Feld gemerkt, damit Gleise sie roden können)
-    const baeume = []; this.baumVon = {};
-    for (let i = 0; i < n; i++) {
-      const t = K.g[i]; if (zentren.has(i) || deko.has(i)) continue;
-      const anzahl = t === "w" ? 3 + Math.floor(z() * 3) : t === "h" ? (z() < .4 ? 1 : 0) : t === "." ? (z() < .1 ? 1 : 0) : 0;
-      const p = this.pos(i); this.baumVon[i] = [];
-      for (let k = 0; k < anzahl; k++) { this.baumVon[i].push(baeume.length); baeume.push({ x: p.x + (z() - .5) * 1.2, z: p.z + (z() - .5) * 1.2, y: this.hoehe[i], s: .7 + z() * .55, r: z() * 6, f: Math.floor(z() * 4) }); }
-    }
-    this.baeume = baeume;
-    const kr = this.kronen = new THREE.InstancedMesh(new THREE.ConeGeometry(.32, .9, 7).translate(0, .62, 0), mat(0xffffff), Math.max(1, baeume.length));
-    const st = this.staemme = new THREE.InstancedMesh(new THREE.CylinderGeometry(.06, .07, .24, 5).translate(0, .12, 0), mat(0x7A5234), Math.max(1, baeume.length));
-    baeume.forEach((b, i) => { kr.setColorAt(i, col.setHex([0x2F8A4A, 0x3A9A52, 0x2A7D44, 0x4BA35A][b.f])); });
-    this.baeumeSetzen(new Set());
-    [kr, st].forEach(m => { m.castShadow = true; m.receiveShadow = true; this.gTerrain.add(m); });
-    if (neueKarte) this.uebersicht();
-  }
-  baeumeSetzen(gerodet) {
-    const hilf = new THREE.Object3D();
-    const weg = new Set(); gerodet.forEach(i => (this.baumVon[i] || []).forEach(k => weg.add(k)));
-    this.baeume.forEach((b, i) => {
-      hilf.position.set(b.x, b.y, b.z); hilf.rotation.y = b.r; hilf.scale.setScalar(weg.has(i) ? 0 : b.s); hilf.updateMatrix();
-      this.kronen.setMatrixAt(i, hilf.matrix); this.staemme.setMatrixAt(i, hilf.matrix);
-    });
-    this.kronen.instanceMatrix.needsUpdate = true; this.staemme.instanceMatrix.needsUpdate = true;
-  }
-  haus(g, x, z, y, b, t, h, wand, dach, dreh) {
-    const k = new THREE.Group();
-    const kv = new THREE.Mesh(new THREE.BoxGeometry(b, h, t), mat(wand)); kv.position.y = h / 2; k.add(kv);
-    const form = new THREE.Shape([new THREE.Vector2(-b * .58, 0), new THREE.Vector2(b * .58, 0), new THREE.Vector2(0, b * .42)]);
-    const d = new THREE.Mesh(new THREE.ExtrudeGeometry(form, { depth: t * 1.08, bevelEnabled: false }).translate(0, 0, -t * .54), mat(dach)); d.position.y = h; k.add(d);
-    const f = new THREE.Mesh(new THREE.BoxGeometry(b * 1.01, h * .22, t * .5), mat(0x3B4A6B)); f.position.y = h * .6; k.add(f);
-    k.position.set(x, y, z); k.rotation.y = dreh; g.add(schatten(k)); return k;
-  }
-  ortBauen(o, z) {
-    const g = new THREE.Group(), p = this.pos(o.zelle);
-    // gepflasterter Platz für den Bahnhof
-    const platz = new THREE.Mesh(new THREE.CylinderGeometry(.82, .82, .03, 6), mat(0xD8D2C4)); platz.position.set(p.x, GY + .015, p.z); platz.receiveShadow = true; g.add(platz);
-    const dk = o.deko.map(i => ({ i, p: this.pos(i) }));
-    const um = (q, r) => ({ x: q.x + (z() - .5) * r, z: q.z + (z() - .5) * r });
-    if (o.typ === "stadt") {
-      dk.forEach(({ p: q }) => {
-        const n = 2 + Math.min(3, o.groesse) + Math.floor(z() * 1.5);
-        for (let k = 0; k < n; k++) {
-          const w = k / n * Math.PI * 2 + z() * .6, rr = k === 0 ? 0 : .52;
-          this.haus(g, q.x + Math.cos(w) * rr, q.z + Math.sin(w) * rr, GY, .45 + z() * .3, .5 + z() * .35, .4 + z() * (.25 + o.groesse * .18), WAND[Math.floor(z() * 5)], DACH[Math.floor(z() * 4)], Math.floor(z() * 4) * Math.PI / 2);
-        }
-      });
-      // Kirchturm ab Stadtgröße
-      if (o.groesse >= 3 && dk[0]) {
-        const q = dk[0].p, t = new THREE.Mesh(new THREE.BoxGeometry(.32, 1.3, .32), mat(0xF3E6CC)); t.position.set(q.x, GY + .65, q.z); g.add(schatten(t));
-        const s = new THREE.Mesh(new THREE.ConeGeometry(.26, .6, 4), mat(0x3E7D6B)); s.position.set(q.x, GY + 1.6, q.z); s.rotation.y = Math.PI / 4; g.add(schatten(s));
-      }
-    } else if (o.typ === "zeche") {
-      const q = dk[0].p, gr = new THREE.Group();
-      const halle = new THREE.Mesh(new THREE.BoxGeometry(.9, .5, .6), mat(0xB65C3A)); halle.position.set(-.2, .25, .3); gr.add(halle);
-      const dach = new THREE.Mesh(new THREE.BoxGeometry(.95, .06, .65), mat(0x4A3B33)); dach.position.set(-.2, .53, .3); gr.add(dach);
-      [[-.18, -.18], [.18, -.18], [-.18, .18], [.18, .18]].forEach(([a, b]) => gr.add(balken(V(.25 + a * .3, 0, -.3 + b * .3), V(.25, 1.25, -.3), .06, mat(0x3A3A44))));
-      const rad = new THREE.Mesh(new THREE.TorusGeometry(.2, .035, 6, 16), mat(0x3A3A44)); rad.position.set(.25, 1.3, -.3); gr.add(rad); this.rad = this.rad || []; this.rad.push(rad);
-      const kohle = new THREE.Mesh(new THREE.ConeGeometry(.4, .35, 7), mat(0x24242A)); kohle.position.set(.45, .17, .45); gr.add(kohle);
-      gr.position.set(q.x, GY, q.z); gr.rotation.y = z() * 6; g.add(schatten(gr));
-    } else if (o.typ === "kraftwerk") {
-      const q = dk[0].p, gr = new THREE.Group();
-      const halle = new THREE.Mesh(new THREE.BoxGeometry(1.1, .65, .8), mat(0xE9E4DA)); halle.position.set(0, .33, .15); gr.add(halle);
-      const dach = new THREE.Mesh(new THREE.BoxGeometry(1.15, .06, .85), mat(0xC9553D)); dach.position.set(0, .68, .15); gr.add(dach);
-      const turm = new THREE.Mesh(new THREE.CylinderGeometry(.3, .42, .8, 10), mat(0xB8BCC6)); turm.position.set(-.35, .4, -.45); gr.add(turm);
-      [.15, .45].forEach(x => {
-        const s = new THREE.Mesh(new THREE.CylinderGeometry(.09, .12, 1.6, 8), mat(0xE9E4DA)); s.position.set(x, .8, -.35); gr.add(s);
-        const ring = new THREE.Mesh(new THREE.CylinderGeometry(.1, .1, .16, 8), mat(0xE2453A)); ring.position.set(x, 1.45, -.35); gr.add(ring);
-        this.rauchQuellen.push({ g: gr, lokal: V(x, 1.65, -.35) });
-      });
-      gr.position.set(q.x, GY, q.z); gr.rotation.y = z() * 6; g.add(schatten(gr));
-    } else if (o.typ === "holzfaeller") {
-      const q = dk[0].p;
-      this.haus(g, q.x - .2, q.z + .1, GY, .55, .45, .35, 0x9A6A42, 0x5E4330, z() * 6);
-      for (let k = 0; k < 6; k++) { const s = new THREE.Mesh(new THREE.CylinderGeometry(.07, .07, .7, 7), mat(0xA0663A)); s.rotation.z = Math.PI / 2; s.position.set(q.x + .35, GY + .07 + Math.floor(k / 3) * .13, q.z - .35 + (k % 3) * .15 + (k > 2 ? .07 : 0)); g.add(schatten(s)); }
-      for (let k = 0; k < 3; k++) { const s = new THREE.Mesh(new THREE.ConeGeometry(.3, .9, 7).translate(0, .62, 0), mat(0x2A7D44)); const w = um(q, 1.2); s.position.set(w.x, GY, w.z); g.add(schatten(s)); }
-    } else if (o.typ === "saegewerk") {
-      const q = dk[0].p, gr = new THREE.Group();
-      const halle = new THREE.Mesh(new THREE.BoxGeometry(1.2, .45, .55), mat(0xC28A55)); halle.position.set(0, .23, 0); gr.add(halle);
-      const form = new THREE.Shape([new THREE.Vector2(-.36, 0), new THREE.Vector2(.36, 0), new THREE.Vector2(0, .3)]);
-      const d = new THREE.Mesh(new THREE.ExtrudeGeometry(form, { depth: 1.3, bevelEnabled: false }).translate(0, 0, -.65), mat(0x6B4A32)); d.rotation.y = Math.PI / 2; d.position.y = .45; gr.add(d);
-      for (let k = 0; k < 4; k++) { const b = new THREE.Mesh(new THREE.BoxGeometry(.7, .05, .3), mat(0xE5C08A)); b.position.set(.1, .03 + k * .055, .5); gr.add(b); }
-      gr.position.set(q.x, GY, q.z); gr.rotation.y = z() * 6; g.add(schatten(gr));
-    }
-    const unter = { stadt: ["", "kleiner Ort", "Ort", "Stadt", "Großstadt"][o.groesse], zeche: "Kohle", kraftwerk: "nimmt Kohle", holzfaeller: "Holz", saegewerk: "Holz → Bretter" }[o.typ];
-    const s = schild(o.name, { unter, bg: o.typ === "stadt" ? "#1C1A33" : "#3B3561" });
-    s.position.set(p.x, 1.55, p.z); g.add(s);
-    this.gTerrain.add(g);
+  markieren(i) {
+    if (i == null || i < 0) { this.marke.visible = false; return; }
+    this.marke.visible = true; this.marke.position.set(this.wx(i % G.B + .5), GY + .06, this.wz((i / G.B | 0) + .5));
   }
 
-  // ---------- Gleise und Bahnhöfe ----------
-  // Linienzug eines Gleiswegs durch die Felder (Bögen in den Feldern, Mitte → Kante → Mitte)
-  // doppel (optional): Gleisstücke mit zwei Gleisen; jeder Punkt bekommt sp = 1 (zweigleisig) oder 0
-  zellenLinie(zellen, rund, doppel) {
-    const pts = [], halt = [];
-    let sp = 0;
-    const dz = (a, b) => (doppel && doppel[kante(a, b)]) ? 1 : 0;
-    const push = (x, z) => { const l = pts[pts.length - 1]; if (!l || Math.hypot(l.x - x, l.z - z) > 1e-4) pts.push({ x, z, sp }); };
-    const bogen = (a, c, b, k, ab) => { for (let t = ab; t <= 8; t++) { const u = t / 8; push((1 - u) ** 2 * a.x + 2 * (1 - u) * u * c.x + u * u * b.x, (1 - u) ** 2 * a.z + 2 * (1 - u) * u * c.z + u * u * b.z); if (t === 4) halt[k] = pts.length - 1; } };
-    // Rundkurs: letzte Zelle = erste; jedes Feld als Bogen, der Kreis schließt sich ohne Knick
-    if (rund && zellen.length > 3) {
-      const m = zellen.length - 1;
-      for (let k = 0; k < m; k++) { sp = dz(zellen[(k - 1 + m) % m], zellen[k]) && dz(zellen[k], zellen[k + 1]) ? 1 : 0; bogen(this.mitte(zellen[(k - 1 + m) % m], zellen[k]), this.pos(zellen[k]), this.mitte(zellen[k], zellen[k + 1]), k, k ? 1 : 0); }
-      return { pts: glaetten(pts), halt };
-    }
-    const n = zellen.length;
-    if (n === 1) { const p = this.pos(zellen[0]); return { pts: [p, p], halt: [0] }; }
-    for (let k = 0; k < n; k++) {
-      const c = this.pos(zellen[k]);
-      sp = k === 0 ? dz(zellen[0], zellen[1]) : k === n - 1 ? dz(zellen[k - 1], zellen[k]) : (dz(zellen[k - 1], zellen[k]) && dz(zellen[k], zellen[k + 1]) ? 1 : 0);
-      if (k === 0) { const m = this.mitte(zellen[0], zellen[1]); halt[0] = pts.length; push(c.x, c.z); for (let t = 1; t <= 4; t++) push(c.x + (m.x - c.x) * t / 4, c.z + (m.z - c.z) * t / 4); }
-      else if (k === n - 1) { const m = this.mitte(zellen[k - 1], zellen[k]); for (let t = 1; t <= 4; t++) push(m.x + (c.x - m.x) * t / 4, m.z + (c.z - m.z) * t / 4); halt[k] = pts.length - 1; }
-      else {
-        const a = this.mitte(zellen[k - 1], zellen[k]), b = this.mitte(zellen[k], zellen[k + 1]);
-        for (let t = 1; t <= 8; t++) { const u = t / 8, x = (1 - u) ** 2 * a.x + 2 * (1 - u) * u * c.x + u * u * b.x, z = (1 - u) ** 2 * a.z + 2 * (1 - u) * u * c.z + u * u * b.z; push(x, z); if (t === 4) halt[k] = pts.length - 1; }
+  // ---------- Stand übernehmen (nach jeder Aktion) ----------
+  setzen(S) {
+    this.S = S;
+    const tk = S.seed + "|" + S.karte.g + "|" + S.land;
+    if (tk !== this.terrainKey) { this.terrainKey = tk; this.gelaende(S); }
+    const lk = S.land + "|" + G.landPreis(S);
+    if (lk !== this.landKey) { this.landKey = lk; this.landZeichnen(S); }
+    const gk = JSON.stringify(S.gleise);
+    if (gk !== this.gleisKey) { this.gleisKey = gk; this.gleiseZeichnen(S); }
+    if (this.wagen.length !== 2 + S.zug.stufen.wagen) this.zugBauen(S);
+  }
+  gelaende(S) {
+    const K = S.karte, boden = [], baeume = [], kronen = [], felsen = [], haeuser = [], daecher = [];
+    leeren(this.gTerrain);
+    for (let i = 0; i < G.B * G.H; i++) {
+      const g = K.g[i], c = i % G.B, r = i / G.B | 0, x = this.wx(c + .5), zz = this.wz(r + .5), an = G.besitzt(S, i);
+      const fl = FARBE[g], h = HOEHE[g];
+      boden.push({ x, y: 0, z: zz, sx: F, sy: h, sz: F, farbe: abdunkeln(fl[(c * 7 + r * 13) % fl.length], an) });
+      const q = rng(i * 31 + K.seed);
+      if (g === "w") for (let k = 0; k < 2; k++) {
+        const bx = x + (q() - .5) * F * .7, bz = zz + (q() - .5) * F * .7, s = .8 + q() * .5;
+        baeume.push({ x: bx, y: GY, z: bz, sx: s, sy: s, sz: s });
+        kronen.push({ x: bx, y: GY + .35 * s, z: bz, sx: s, sy: s * (1 + q() * .4), sz: s, ry: q() * 6, farbe: abdunkeln([0x2F8A4A, 0x3C9A52, 0x2A7D43][k + (i % 2)], an) });
+      }
+      if (g === "b") felsen.push({ x: x + (q() - .5) * .4, y: HOEHE.b, z: zz + (q() - .5) * .4, sx: F * .62, sy: F * (.55 + q() * .9), sz: F * .62, ry: q() * 6, farbe: abdunkeln([0x9C9C8E, 0xA6A496, 0x8E8B84][i % 3], an) });
+      if (g === "h") {
+        const ry = (q() < .5 ? 0 : Math.PI / 2) + (q() - .5) * .2;
+        haeuser.push({ x, y: GY, z: zz, sx: 1.05, sy: .75 + q() * .3, sz: .8, ry, farbe: abdunkeln(WAND[Math.floor(q() * WAND.length)], an) });
+        daecher.push({ x, y: GY + .82, z: zz, sx: 1.25, sy: .55, sz: 1, ry, farbe: abdunkeln(DACH[Math.floor(q() * DACH.length)], an) });
       }
     }
-    return { pts: glaetten(pts), halt };
-  }
-  // Gleisstücke je Feld: zwei Anschlüsse → Bogen, sonst Strahlen von der Mitte
-  netzLinien(adj, doppel = {}) {
-    const linien = [];
-    for (const [c, nb] of adj) {
-      const p = this.pos(c), ms = nb.map(n => this.mitte(c, n)), dd = nb.map(n => !!doppel[kante(c, n)]);
-      if (ms.length === 2) {
-        const l = []; for (let t = 0; t <= 8; t++) { const u = t / 8; l.push({ x: (1 - u) ** 2 * ms[0].x + 2 * (1 - u) * u * p.x + u * u * ms[1].x, z: (1 - u) ** 2 * ms[0].z + 2 * (1 - u) * u * p.z + u * u * ms[1].z }); }
-        if (dd[0] === dd[1]) linien.push({ c, l, d: dd[0] });
-        else {
-          // Übergang ein-/zweigleisig: Weiche in diesem Feld
-          linien.push({ c, l, d: false });
-          const k = dd[0] ? 0 : 1, m = ms[k], h = []; for (let t = 0; t <= 4; t++) h.push({ x: m.x + (p.x - m.x) * t / 4, z: m.z + (p.z - m.z) * t / 4 });
-          linien.push({ c, l: h, d: true, halb: true }); this.weichen.push(c);
-        }
-      } else {
-        ms.forEach((m, i) => { const l = []; for (let t = 0; t <= 4; t++) l.push({ x: p.x + (m.x - p.x) * t / 4, z: p.z + (m.z - p.z) * t / 4 }); linien.push({ c, l, d: dd[i] }); });
-        if (ms.length >= 3) this.weichen.push(c);
-      }
+    const box = new THREE.BoxGeometry(1, 1, 1).translate(0, .5, 0);
+    const bm = instanzen(box, mat(0xffffff), boden, false); this.gTerrain.add(bm);
+    if (baeume.length) {
+      this.gTerrain.add(instanzen(new THREE.CylinderGeometry(.06, .08, .4, 5).translate(0, .2, 0), mat(0x6B4A32), baeume));
+      this.gTerrain.add(instanzen(new THREE.ConeGeometry(.32, .9, 6).translate(0, .45, 0), mat(0xffffff), kronen));
     }
-    return linien;
-  }
-  band(linien, breite, y, versatz = 0) {
-    const pos = [], idx = [];
-    for (const l of linien) {
-      const basis = pos.length / 3;
-      l.forEach((p, i) => {
-        const a = l[Math.max(0, i - 1)], b = l[Math.min(l.length - 1, i + 1)];
-        let tx = b.x - a.x, tz = b.z - a.z; const len = Math.hypot(tx, tz) || 1; tx /= len; tz /= len;
-        const nx = tz, nz = -tx;
-        pos.push(p.x + nx * (versatz + breite), y, p.z + nz * (versatz + breite), p.x + nx * (versatz - breite), y, p.z + nz * (versatz - breite));
-        if (i < l.length - 1) { const k = basis + i * 2; idx.push(k, k + 1, k + 2, k + 1, k + 3, k + 2); }
-      });
+    if (felsen.length) this.gTerrain.add(instanzen(new THREE.ConeGeometry(.6, 1, 5).translate(0, .5, 0), mat(0xffffff), felsen));
+    if (haeuser.length) {
+      this.gTerrain.add(instanzen(new THREE.BoxGeometry(.9, 1, .7).translate(0, .5, 0), mat(0xffffff), haeuser));
+      this.gTerrain.add(instanzen(new THREE.ConeGeometry(.75, 1, 4).rotateY(Math.PI / 4).translate(0, .5, 0), mat(0xffffff), daecher));
     }
-    const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3)); g.setIndex(idx); g.computeVertexNormals();
-    return g;
+    K.doerfer.forEach(d => { const sp = schild(d.name, { groesse: 1.6 }); sp.position.set(this.wx(d.x + .5), 3.2, this.wz(d.y + .5)); this.gTerrain.add(sp); });
   }
-  gleisMeshes(eingabe, gruppe, farbe) {
-    if (!eingabe.length) return;
-    const geist = farbe !== undefined;
-    // zweigleisige Stücke werden als zwei versetzte Gleise gezeichnet (ein „halbes“ läuft zur Mitte der Weiche zusammen)
-    const linien = [], bett = [], breit = [];
-    for (const e of eingabe) {
-      if (Array.isArray(e)) { linien.push(e); bett.push(e); continue; }
-      if (!e.d) { linien.push(e.l); bett.push(e.l); continue; }
-      breit.push(e.l);
-      if (e.halb) { const n = e.l.length - 1; for (const o of [SPUR, -SPUR]) linien.push(e.l.map((p, i) => { const f = 1 - i / n; return versetzt(e.l, o * f)[i]; })); }
-      else linien.push(versetzt(e.l, SPUR), versetzt(e.l, -SPUR));
+  // Grenze des eigenen Landes und Preisschilder für kaufbare Grundstücke
+  landZeichnen(S) {
+    leeren(this.gLand);
+    const n = G.B / G.P, striche = [], P = G.P;
+    for (let p = 0; p < n * n; p++) {
+      if (S.land[p] !== "1") continue;
+      const c = p % n, r = p / n | 0;
+      const frei = (cc, rr) => cc < 0 || rr < 0 || cc >= n || rr >= n || S.land[rr * n + cc] !== "1";
+      const x0 = this.wx(c * P), z0 = this.wz(r * P), L = P * F;
+      if (frei(c, r - 1)) striche.push({ x: x0 + L / 2, y: GY + .02, z: z0, sx: L, sy: .05, sz: .14 });
+      if (frei(c, r + 1)) striche.push({ x: x0 + L / 2, y: GY + .02, z: z0 + L, sx: L, sy: .05, sz: .14 });
+      if (frei(c - 1, r)) striche.push({ x: x0, y: GY + .02, z: z0 + L / 2, sx: .14, sy: .05, sz: L });
+      if (frei(c + 1, r)) striche.push({ x: x0 + L, y: GY + .02, z: z0 + L / 2, sx: .14, sy: .05, sz: L });
     }
-    if (breit.length) { const sb = new THREE.Mesh(this.band(breit, .68, TY - .005), mat(0x9A8C7C, { side: THREE.DoubleSide })); sb.receiveShadow = true; gruppe.add(sb); }
-    const schotter = new THREE.Mesh(this.band(geist ? linien : bett, geist ? .34 : .36, TY + (geist ? .06 : 0)), geist ? new THREE.MeshBasicMaterial({ color: farbe, transparent: true, opacity: .55, side: THREE.DoubleSide, depthWrite: false }) : mat(0x9A8C7C, { side: THREE.DoubleSide }));
-    schotter.receiveShadow = true; gruppe.add(schotter);
-    if (geist) return;
-    if (!bett.length) gruppe.remove(schotter);
-    const schienen = new THREE.Mesh(this.band(linien, .028, TY + .085, .2), mat(0xC9CED6, { metalness: .5, roughness: .4, side: THREE.DoubleSide }));
-    const schienen2 = new THREE.Mesh(this.band(linien, .028, TY + .085, -.2), schienen.material);
-    gruppe.add(schienen, schienen2);
-    const sw = [];
-    for (const l of linien) {
-      let rest = .12;
-      for (let i = 1; i < l.length; i++) {
-        const a = l[i - 1], b = l[i], d = Math.hypot(b.x - a.x, b.z - a.z);
-        while (rest < d) { const u = rest / d; sw.push({ x: a.x + (b.x - a.x) * u, z: a.z + (b.z - a.z) * u, w: Math.atan2(b.x - a.x, b.z - a.z) }); rest += .24; }
-        rest -= d;
-      }
+    this.gLand.add(instanzen(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshBasicMaterial({ color: 0xFFD447 }), striche, false));
+    const preis = G.landPreis(S).toLocaleString("de-DE") + " T";
+    for (let p = 0; p < n * n; p++) {
+      if (!G.landKaufbar(S, p)) continue;
+      const sp = schild("Land kaufen", { bg: "#FFD447", fg: "#1C1A33", unter: preis, groesse: 2.6 });
+      sp.position.set(this.wx((p % n + .5) * P), 3, this.wz(((p / n | 0) + .5) * P)); this.gLand.add(sp);
     }
-    const im = new THREE.InstancedMesh(new THREE.BoxGeometry(.6, .05, .11), mat(0x6B4A32), Math.max(1, sw.length)), hilf = new THREE.Object3D();
-    sw.forEach((s, i) => { hilf.position.set(s.x, TY + .035, s.z); hilf.rotation.set(0, s.w, 0); hilf.updateMatrix(); im.setMatrixAt(i, hilf.matrix); });
-    if (!sw.length) im.count = 0;
-    im.receiveShadow = true; gruppe.add(im);
   }
-  netzSetzen(S, adj) {
-    const doppel = S.doppel || {};
-    const key = Object.keys(S.gleise).sort().join(",") + "|" + S.bahnhoefe.join(",") + "|" + Object.keys(doppel).sort().join(",");
-    if (key === this.netzKey) return;
-    this.netzKey = key;
+  gleiseZeichnen(S) {
     leeren(this.gNetz);
-    this.weichen = [];
-    const K = this.K, linien = this.netzLinien(adj, doppel);
-    this.gleisMeshes(linien, this.gNetz);
-    // Weichen: kleine Weichenlaterne neben jeder Abzweigung
-    for (const c of new Set(this.weichen)) {
-      if (S.bahnhoefe.includes(c)) continue;
-      const p = this.pos(c), g = new THREE.Group();
-      const pf = new THREE.Mesh(new THREE.CylinderGeometry(.025, .03, .34, 6), mat(0x3A3A44)); pf.position.y = .17; g.add(pf);
-      const la = new THREE.Mesh(new THREE.BoxGeometry(.12, .12, .12), mat(0xF3F0FF)); la.position.y = .38; g.add(la);
-      const st = new THREE.Mesh(new THREE.BoxGeometry(.13, .04, .04), mat(0xE2453A)); st.position.y = .38; g.add(st);
-      const hb = new THREE.Mesh(new THREE.BoxGeometry(.05, .05, .22), mat(0x3A3A44)); hb.position.set(0, .05, .12); g.add(hb);
-      g.position.set(p.x + .55, TY, p.z + .32); this.gNetz.add(schatten(g));
-    }
-    // Hügel mit Gleis abtragen (Einschnitt), Wald roden
-    const hilf = new THREE.Object3D(), mitGleis = new Set(adj.keys());
-    for (let i = 0; i < K.B * K.H; i++) if (K.g[i] === "h") {
-      const p = this.pos(i), h = mitGleis.has(i) ? GY : this.hoehe[i];
-      hilf.position.set(p.x, 0, p.z); hilf.scale.set(1, h, 1); hilf.updateMatrix(); this.feldMesh.setMatrixAt(i, hilf.matrix);
-    }
-    this.feldMesh.instanceMatrix.needsUpdate = true;
-    this.baeumeSetzen(mitGleis);
-    // Brücken über den Fluss, Tunnelportale am Berg
-    const blau = mat(0x2F6FDE), grau = mat(0x8D8F99), stein = mat(0x77736C), dunkel = mat(0x1C1A22);
-    for (const { c, l, d } of linien) {
-      if (K.g[c] === "~") {
-        for (let i = 0; i < l.length - 1; i++) {
-          const a = l[i], b = l[i + 1], tx = b.x - a.x, tz = b.z - a.z, len = Math.hypot(tx, tz) || 1, nx = tz / len, nz = -tx / len;
-          for (const s of d ? [-.74, .74] : [-.42, .42]) {
-            const A = V(a.x + nx * s, 0, a.z + nz * s), B = V(b.x + nx * s, 0, b.z + nz * s);
-            this.gNetz.add(balken(A.clone().setY(TY + .55), B.clone().setY(TY + .55), .07, blau), balken(A.clone().setY(TY + .02), B.clone().setY(TY + .02), .07, blau));
-            if (i % 2 === 0) this.gNetz.add(balken(A.clone().setY(TY), A.clone().setY(TY + .55), .05, blau), balken(A.clone().setY(TY + .02), B.clone().setY(TY + .55), .045, blau));
-          }
+    const bett = [], schwellen = [], schienen = [], y0 = GY;
+    const lage = (seg, s, quer) => {
+      const p = G.punkt(seg, s), q = G.punkt(seg, Math.min(G.laenge(seg), s + .01)), o = G.punkt(seg, Math.max(0, s - .01));
+      const dx = q.x - o.x, dy = q.y - o.y, n = Math.hypot(dx, dy) || 1;
+      return { x: this.wx(p.x - dy / n * quer), z: this.wz(p.y + dx / n * quer), ry: -Math.atan2(dy, dx) };
+    };
+    for (const k in S.gleise) {
+      const i = +k, t = S.gleise[k];
+      for (const [a, b] of G.paare(t.t, t.r)) {
+        const seg = { i, ein: a, aus: b }, L = G.laenge(seg), teile = L === 1 ? 1 : 8;
+        for (let j = 0; j < teile; j++) {
+          const s0 = L * j / teile, s1 = L * (j + 1) / teile, m = (s0 + s1) / 2, len = (s1 - s0) * F;
+          const mi = lage(seg, m, 0);
+          bett.push({ x: mi.x, y: y0, z: mi.z, sx: len + (teile > 1 ? .12 : .02), sy: .05, sz: .78, ry: mi.ry });
+          for (const quer of [-.16, .16]) { const r = lage(seg, m, quer); schienen.push({ x: r.x, y: y0 + .1, z: r.z, sx: len * (teile > 1 ? 1.35 : 1) + .03, sy: .06, sz: .05, ry: r.ry }); }
         }
-        const p = this.pos(c), pf = new THREE.Mesh(new THREE.CylinderGeometry(.13, .16, TY, 6), grau); pf.position.set(p.x, TY / 2, p.z); this.gNetz.add(schatten(pf));
+        const anzahl = Math.round(L / .24);
+        for (let j = 0; j < anzahl; j++) { const r = lage(seg, (j + .5) * L / anzahl, 0); schwellen.push({ x: r.x, y: y0 + .05, z: r.z, sx: .12, sy: .05, sz: .62, ry: r.ry }); }
       }
     }
-    for (const [c, nb] of adj) {
-      if (K.g[c] !== "b") continue;
-      if (this.berge[c]) this.berge[c].scale.set(1, 1, 1);
-      for (const n of nb) if (K.g[n] !== "b") {
-        const m = this.mitte(c, n), p = this.pos(c), w = Math.atan2(m.x - p.x, m.z - p.z), gp = new THREE.Group();
-        const rahmen = new THREE.Mesh(new THREE.BoxGeometry(.95, .75, .2), stein); rahmen.position.y = .37; gp.add(rahmen);
-        const loch = new THREE.Mesh(new THREE.BoxGeometry(.6, .5, .22), dunkel); loch.position.y = .28; gp.add(loch);
-        gp.position.set(p.x + (m.x - p.x) * .8, TY - .05, p.z + (m.z - p.z) * .8); gp.rotation.y = w; this.gNetz.add(schatten(gp));
-      }
-    }
-    // Bahnhöfe: Bahnsteig entlang des ersten Gleises, Empfangsgebäude daneben
-    for (const c of S.bahnhoefe) {
-      const nb = adj.get(c) || []; if (!nb.length) continue;
-      const p = this.pos(c), m = this.mitte(c, nb[0]);
-      let dx = m.x - p.x, dz = m.z - p.z; const l = Math.hypot(dx, dz) || 1; dx /= l; dz /= l;
-      let nx = dz, nz = -dx;
-      // Seite ohne zweites Gleis wählen
-      if (nb[1]) { const m2 = this.mitte(c, nb[1]); if ((m2.x - p.x) * nx + (m2.z - p.z) * nz > 0) { nx = -nx; nz = -nz; } }
-      const w = Math.atan2(dx, dz), zw = nb.some(n => doppel[kante(c, n)]) ? .3 : 0;
-      const bs = new THREE.Mesh(new THREE.BoxGeometry(.42, .14, 1.25), mat(0xE7E1D3)); bs.position.set(p.x + nx * (.5 + zw), TY + .07, p.z + nz * (.5 + zw)); bs.rotation.y = w; this.gNetz.add(schatten(bs));
-      const dach = new THREE.Mesh(new THREE.BoxGeometry(.46, .04, .9), mat(0xC9553D)); dach.position.set(p.x + nx * (.52 + zw), TY + .5, p.z + nz * (.52 + zw)); dach.rotation.y = w; this.gNetz.add(schatten(dach));
-      [-.35, .35].forEach(o => { const s = new THREE.Mesh(new THREE.CylinderGeometry(.025, .025, .38, 5), mat(0x3A3A44)); s.position.set(p.x + nx * (.6 + zw) + dx * o, TY + .3, p.z + nz * (.6 + zw) + dz * o); this.gNetz.add(s); });
-      const hs = new THREE.Group();
-      const kv = new THREE.Mesh(new THREE.BoxGeometry(.4, .42, .6), mat(0xF0D9B5)); kv.position.y = .21; hs.add(kv);
-      const form = new THREE.Shape([new THREE.Vector2(-.25, 0), new THREE.Vector2(.25, 0), new THREE.Vector2(0, .2)]);
-      const dd = new THREE.Mesh(new THREE.ExtrudeGeometry(form, { depth: .66, bevelEnabled: false }).translate(0, 0, -.33), mat(0x9A3B2E)); dd.position.y = .42; hs.add(dd);
-      hs.position.set(p.x + nx * (.9 + zw * .5), GY, p.z + nz * (.9 + zw * .5)); hs.rotation.y = w; this.gNetz.add(schatten(hs));
+    const box = new THREE.BoxGeometry(1, 1, 1).translate(0, .5, 0);
+    this.gNetz.add(instanzen(box, mat(0xB9A68A), bett, false));
+    this.gNetz.add(instanzen(box, mat(0x6B4A32), schwellen, false));
+    this.gNetz.add(instanzen(box, mat(0x8C8F99, { metalness: .5, roughness: .4 }), schienen));
+  }
+  zugBauen(S) {
+    leeren(this.gZug); this.wagen = [];
+    const n = 1 + S.zug.stufen.wagen, schwarz = mat(0x2A2A35), rot = mat(0xE2453A);
+    const rad = (g, x, z, r) => { const m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, .08, 10).rotateX(Math.PI / 2), schwarz); m.position.set(x, r, z); g.add(m); };
+    const box = (g, w, h, d, x, y, z, m) => { const b = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); b.position.set(x, y, z); b.castShadow = true; g.add(b); return b; };
+    // Lok, Länge 1,6 in x-Richtung, vorne = +x
+    const lok = new THREE.Group();
+    box(lok, 1.5, .14, .62, 0, .26, 0, schwarz);
+    const kessel = new THREE.Mesh(new THREE.CylinderGeometry(.27, .27, .95, 12).rotateZ(Math.PI / 2), rot); kessel.position.set(.22, .6, 0); kessel.castShadow = true; lok.add(kessel);
+    const schlot = new THREE.Mesh(new THREE.CylinderGeometry(.08, .11, .3, 8), schwarz); schlot.position.set(.55, .98, 0); lok.add(schlot);
+    box(lok, .5, .62, .66, -.48, .64, 0, rot); box(lok, .62, .07, .76, -.48, .98, 0, schwarz);
+    box(lok, .3, .22, .4, -.48, .75, 0, mat(0xBFE3F2));
+    [-.5, -.1, .3].forEach(x => { rad(lok, x, .3, .2); rad(lok, x, -.3, .2); });
+    lok.position.y = GY + .1;
+    this.gZug.add(lok); this.wagen.push(lok);
+    for (let k = 0; k < n; k++) {
+      const w = new THREE.Group(), f = mat(WAGENFARBE[k % WAGENFARBE.length]);
+      box(w, 1.12, .12, .58, 0, .24, 0, schwarz);
+      box(w, 1.1, .46, .64, 0, .52, 0, f);
+      box(w, .9, .14, .66, 0, .6, 0, mat(0xF3F0FF));
+      box(w, 1.18, .07, .72, 0, .79, 0, mat(0x3D3868));
+      [-.35, .35].forEach(x => { rad(w, x, .3, .16); rad(w, x, -.3, .16); });
+      w.position.y = GY + .1;
+      this.gZug.add(w); this.wagen.push(w);
     }
   }
 
-  // ---------- Züge ----------
-  lok(farbe) {
-    const g = new THREE.Group(), m = mat(farbe), schwarz = mat(0x26252E), gold = mat(0xFFD447);
-    const add = (geo, ma, x, y, z, rx, rz) => { const k = new THREE.Mesh(geo, ma); k.position.set(x, y, z); if (rx) k.rotation.x = rx; if (rz) k.rotation.z = rz; g.add(k); return k; };
-    add(new THREE.BoxGeometry(.44, .1, 1.05), schwarz, 0, .16, 0);
-    add(new THREE.CylinderGeometry(.17, .17, .66, 12), m, 0, .36, .14, Math.PI / 2);
-    add(new THREE.CylinderGeometry(.18, .18, .06, 12), schwarz, 0, .36, .49, Math.PI / 2);
-    add(new THREE.SphereGeometry(.05, 8, 6), gold, 0, .42, .53);
-    add(new THREE.BoxGeometry(.46, .42, .36), m, 0, .42, -.33);
-    add(new THREE.BoxGeometry(.47, .14, .2), mat(0xBFE3F2), 0, .52, -.33);
-    add(new THREE.BoxGeometry(.52, .05, .44), schwarz, 0, .65, -.33);
-    add(new THREE.CylinderGeometry(.06, .045, .2, 8), schwarz, 0, .6, .36);
-    add(new THREE.SphereGeometry(.07, 8, 6), gold, 0, .53, .08);
-    [-.36, -.08, .2, .42].forEach(z => add(new THREE.CylinderGeometry(.085, .085, .48, 10), schwarz, 0, .09, z, 0, Math.PI / 2));
-    return schatten(g);
-  }
-  feldbahn(farbe) {
-    const g = new THREE.Group(), m = mat(farbe), schwarz = mat(0x26252E);
-    const add = (geo, ma, x, y, z, rz) => { const k = new THREE.Mesh(geo, ma); k.position.set(x, y, z); if (rz) k.rotation.z = rz; g.add(k); return k; };
-    add(new THREE.BoxGeometry(.4, .1, .78), schwarz, 0, .15, 0);
-    add(new THREE.BoxGeometry(.36, .26, .42), m, 0, .33, .12);
-    add(new THREE.BoxGeometry(.4, .4, .3), m, 0, .4, -.22);
-    add(new THREE.BoxGeometry(.41, .12, .18), mat(0xBFE3F2), 0, .5, -.22);
-    add(new THREE.BoxGeometry(.46, .05, .36), schwarz, 0, .62, -.22);
-    add(new THREE.CylinderGeometry(.05, .04, .2, 8), schwarz, 0, .55, .25);
-    [-.22, .2].forEach(z => add(new THREE.CylinderGeometry(.08, .08, .44, 10), schwarz, 0, .08, z, Math.PI / 2));
-    return schatten(g);
-  }
-  wagen(ladung, farbe) {
-    const g = new THREE.Group(), schwarz = mat(0x26252E);
-    const add = (geo, ma, x, y, z, rz) => { const k = new THREE.Mesh(geo, ma); k.position.set(x, y, z); if (rz) k.rotation.z = rz; g.add(k); return k; };
-    add(new THREE.BoxGeometry(.42, .08, .82), schwarz, 0, .15, 0);
-    if (ladung === "fahrgaeste") {
-      add(new THREE.BoxGeometry(.44, .34, .8), mat(0xF3E6CC), 0, .36, 0);
-      add(new THREE.BoxGeometry(.45, .07, .81), mat(farbe), 0, .25, 0);
-      add(new THREE.BoxGeometry(.45, .1, .62), mat(0x3B4A6B), 0, .42, 0);
-      add(new THREE.BoxGeometry(.48, .05, .84), mat(0x5A5866), 0, .55, 0);
-    } else if (ladung === "kohle") {
-      add(new THREE.BoxGeometry(.44, .24, .78), mat(0x7A5A3F), 0, .31, 0);
-      add(new THREE.BoxGeometry(.38, .1, .7), mat(0x24242A), 0, .44, 0);
-    } else if (ladung === "bretter") {
-      add(new THREE.BoxGeometry(.44, .06, .8), mat(0x7A5A3F), 0, .22, 0);
-      for (let k = 0; k < 4; k++) add(new THREE.BoxGeometry(.38, .045, .74), mat(k % 2 ? 0xE5C08A : 0xD9AE72), 0, .27 + k * .05, 0);
-      [-.2, .2].forEach(x => add(new THREE.BoxGeometry(.03, .2, .03), mat(0x3A3A44), x, .33, .3));
-    } else {
-      add(new THREE.BoxGeometry(.44, .06, .8), mat(0x7A5A3F), 0, .22, 0);
-      [-.13, 0, .13].forEach(x => [0, 1].forEach(y => add(new THREE.CylinderGeometry(.065, .065, .76, 7), mat(0xA0663A), x + y * .065 - .03, .3 + y * .11, 0, 0).rotation.x = Math.PI / 2));
-    }
-    [-.25, .25].forEach(z => add(new THREE.CylinderGeometry(.07, .07, .46, 10), schwarz, 0, .08, z, Math.PI / 2));
-    return schatten(g);
-  }
-  zuegeSetzen(S, linienWeg, LOKS, steht = new Set()) {
-    const key = this.karteKey + "|" + this.netzKey + "|" + JSON.stringify(S.zuege.map(z => [z.id, z.lok, z.ladung, z.linie, !!z.rund, z.farbe, steht.has(z.id)]));
-    if (key === this.zugKey) return;
-    this.zugKey = key;
-    const alt = new Map(this.zuege.map(z => [z.id, z]));
-    leeren(this.gZuege); this.zuege = [];
-    S.zuege.forEach((z, k) => {
-      const w = linienWeg(S, z.linie, null, z.rund); if (!w) return;
-      const rund = !!z.rund && w.pfad.length > 3;
-      const { pts, halt } = this.zellenLinie(w.pfad, rund, S.doppel);
-      const len = [0]; for (let i = 1; i < pts.length; i++) len.push(len[i - 1] + Math.hypot(pts[i].x - pts[i - 1].x, pts[i].z - pts[i - 1].z));
-      const L = len[len.length - 1], L0 = LOKS[z.lok];
-      const teile = [z.lok === "feld" ? this.feldbahn(z.farbe) : this.lok(z.farbe)];
-      for (let i = 0; i < L0.wagen; i++) teile.push(this.wagen(z.ladung, z.farbe));
-      const abst = [0]; for (let i = 1; i < teile.length; i++) abst.push(abst[i - 1] + (i === 1 ? (z.lok === "feld" ? .82 : .98) : .9));
-      teile.forEach(t => this.gZuege.add(t));
-      const laenge = abst[abst.length - 1];
-      const stops = w.pos.map(pi => len[halt[pi]] ?? 0);
-      const ziele = [...new Set(stops.map(s => rund ? (s + laenge / 2) % L : Math.max(laenge, Math.min(L, s + laenge / 2))))].sort((a, b) => a - b);
-      const vorher = alt.get(z.id);
-      const zug = { id: z.id, rund, steht: steht.has(z.id), pts, len, L, teile, abst, laenge, ziele, tempo: L0.tempo * .32, s: vorher && vorher.L === L ? vorher.s : ziele[k % ziele.length] ?? laenge, dir: vorher ? vorher.dir : 1, warten: vorher ? vorher.warten : .5 + k * .7, v: 0 };
-      this.zuege.push(zug); this.zugStellen(zug);
-    });
-  }
-  punktBei(z, s) {
-    s = z.rund ? ((s % z.L) + z.L) % z.L : Math.max(0, Math.min(z.L, s));
-    let lo = 0, hi = z.len.length - 1;
-    while (hi - lo > 1) { const m = (lo + hi) >> 1; if (z.len[m] <= s) lo = m; else hi = m; }
-    const a = z.pts[lo], b = z.pts[hi], d = z.len[hi] - z.len[lo] || 1, u = (s - z.len[lo]) / d;
-    return { x: a.x + (b.x - a.x) * u, z: a.z + (b.z - a.z) * u, sp: (a.sp || 0) + ((b.sp || 0) - (a.sp || 0)) * u };
-  }
-  zugStellen(z) {
-    // auf zweigleisigen Stücken Rechtsverkehr: je nach Fahrtrichtung auf dem rechten Gleis
-    const richtung = z.rund ? 1 : z.dir;
-    z.teile.forEach((t, i) => {
-      const s = z.s - z.abst[i], p = this.punktBei(z, s), q = this.punktBei(z, s + .06), r = this.punktBei(z, s - .06);
-      let tx = q.x - r.x, tz = q.z - r.z; const n = Math.hypot(tx, tz) || 1; tx /= n; tz /= n;
-      const o = p.sp * SPUR * richtung, x = p.x + tz * o, y = p.z - tx * o;
-      t.position.set(x, TY + .08, y); t.lookAt(x + tx, TY + .08, y + tz);
-    });
-  }
-  zugBewegen(z, dt) {
-    if (z.L < .5 || z.steht) return;
-    if (z.warten > 0) { z.warten -= dt; return; }
-    if (z.rund) {
-      // immer vorwärts im Kreis, an jedem Halt kurz stoppen
-      const weite = x => ((x - z.s) % z.L + z.L) % z.L;
-      const vor = z.ziele.reduce((m, x) => (weite(x) > 1e-3 && (m === null || weite(x) < weite(m)) ? x : m), null);
-      const d = vor === null ? z.L : weite(vor);
-      z.v = Math.min(z.v + 1.5 * dt, z.tempo, Math.max(.25, Math.sqrt(2 * 1.2 * d)));
-      if (vor !== null && d <= z.v * dt) { z.s = vor; z.v = 0; z.warten = 1.6; } else z.s = (z.s + z.v * dt) % z.L;
-      this.zugStellen(z); return;
-    }
-    const vor = z.dir > 0 ? z.ziele.find(x => x > z.s + 1e-3) : [...z.ziele].reverse().find(x => x < z.s - 1e-3);
-    if (vor === undefined) { z.dir = -z.dir; z.warten = .4; return; }
-    const d = Math.abs(vor - z.s);
-    z.v = Math.min(z.v + 1.5 * dt, z.tempo, Math.max(.25, Math.sqrt(2 * 1.2 * d)));
-    if (d <= z.v * dt) { z.s = vor; z.v = 0; z.warten = 1.6; } else z.s += z.dir * z.v * dt;
-    this.zugStellen(z);
-  }
-
-  // ---------- Vorschau, Markierungen, Münzen ----------
-  vorschau(zellen, farbe = 0xFF6B57, rund) {
-    leeren(this.gVorschau);
-    if (!zellen || zellen.length < 2) return;
-    const { pts } = this.zellenLinie(zellen, rund);
-    this.gleisMeshes([pts], this.gVorschau, farbe);
-  }
-  markieren(liste) {
-    leeren(this.gMarken);
-    for (const m of liste || []) {
-      const p = this.pos(m.zelle), h = Math.max(GY, this.hoehe[m.zelle]);
-      const ring = new THREE.Mesh(new THREE.RingGeometry(.78, .97, 6, 1, Math.PI / 2).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: m.farbe || 0xFFD447, transparent: true, opacity: .95, depthWrite: false }));
-      ring.position.set(p.x, h + .03, p.z); ring.renderOrder = 5; this.gMarken.add(ring);
-      if (m.text) { const s = schild(m.text, { bg: m.bg || "#FFD447", fg: "#1C1A33", groesse: 1.25 }); s.position.set(p.x, h + .95, p.z); this.gMarken.add(s); }
-    }
-  }
-  muenzen(liste) {
-    (liste || []).forEach((m, i) => {
-      const p = this.pos(m.zelle), s = schild("+" + m.betrag + " T", { bg: "#FFD447", fg: "#1C1A33", groesse: 1.4 });
-      s.position.set(p.x, 1.2, p.z); s.material.opacity = 0; this.gEffekte.add(s);
-      this.muenzenListe.push({ s, alter: -i * .35 });
-    });
-  }
-  hinfliegen(zelle) {
-    const p = this.pos(zelle), t = this.controls.target, dx = p.x - t.x, dz = p.z - t.z;
-    t.x += dx; t.z += dz; this.camera.position.x += dx; this.camera.position.z += dz; this.controls.update();
-  }
-  puff(p, kraft) { const w = this.wolken[this.wNr++ % this.wolken.length]; w.m.position.copy(p); w.alter = 0; w.kraft = kraft; w.m.visible = true; w.dx = (Math.random() - .5) * .2; }
+  // ---------- jedes Bild ----------
   bild() {
-    const echt = this.uhr.getDelta(), dt = Math.min(echt, .05);
-    if (!this.K || document.hidden) { if (this.K) this.renderer.render(this.scene, this.camera); return; }
-    this.zuege.forEach(z => this.zugBewegen(z, dt));
-    this.rauchTakt = (this.rauchTakt || 0) - dt; this.kwTakt = (this.kwTakt || 0) - dt;
-    const wp = new THREE.Vector3();
-    if (this.rauchTakt <= 0) { this.zuege.forEach(z => { if (z.steht) return; if (z.v > .05 || Math.random() < .3) this.puff(z.teile[0].localToWorld(wp.set(0, .7, .32)), z.v > .3 ? .8 : .45); }); this.rauchTakt = .2; }
-    if (this.kwTakt <= 0) { this.rauchQuellen.forEach(q => this.puff(q.g.localToWorld(wp.copy(q.lokal)), 1.3)); this.kwTakt = .4; }
-    this.wolken.forEach(w => {
-      if (w.alter > 2.4) { w.m.visible = false; return; }
-      w.alter += dt; w.m.position.y += dt * (.45 + w.kraft * .3); w.m.position.x += dt * (.25 + w.dx);
-      w.m.scale.setScalar(1 + w.alter * 1.6 * w.kraft); w.m.material.opacity = Math.max(0, .85 - w.alter / 2.6);
+    const dt = Math.min(.05, this.uhr.getDelta());
+    if (this.vorBild) this.vorBild(dt);
+    const S = this.S;
+    if (S && this.wagen.length) {
+      const l = G.wagenlage(S);
+      l.forEach((w, k) => { const o = this.wagen[k]; if (!o) return; o.position.x = this.wx(w.x); o.position.z = this.wz(w.y); o.rotation.y = -w.w; });
+      const lok = this.wagen[0], v = S.zug.v;
+      // Rauch aus dem Schlot
+      this.rauchZeit -= dt;
+      if (this.rauchZeit <= 0) {
+        this.rauchZeit = v > .05 ? Math.max(.06, .3 - v * .1) : .9;
+        const r = this.rauch[this.rNr++ % this.rauch.length], c = Math.cos(lok.rotation.y), s = Math.sin(lok.rotation.y);
+        r.m.position.set(lok.position.x + .55 * c, lok.position.y + 1.1, lok.position.z - .55 * s); r.alter = 0; r.m.visible = true; r.m.scale.setScalar(.6);
+      }
+      if (this.folgen) {
+        const t = this.controls.target, dx = (lok.position.x - t.x) * Math.min(1, dt * 3), dz = (lok.position.z - t.z) * Math.min(1, dt * 3);
+        t.x += dx; t.z += dz; this.camera.position.x += dx; this.camera.position.z += dz;
+      }
+    }
+    this.rauch.forEach(r => {
+      if (r.alter > 2.2) { r.m.visible = false; return; }
+      r.alter += dt; r.m.position.y += dt * .7; r.m.scale.setScalar(.6 + r.alter * .9); r.m.material.opacity = Math.max(0, .75 * (1 - r.alter / 2.2));
     });
-    (this.rad || []).forEach(r => { r.rotation.z += dt * 1.5; });
-    this.muenzenListe = this.muenzenListe.filter(m => {
-      m.alter += Math.min(echt, .5); if (m.alter < 0) return true;
-      m.s.position.y = 1.2 + m.alter * .55; m.s.material.opacity = m.alter < .3 ? m.alter / .3 : Math.max(0, 1 - (m.alter - 2.4) / .8);
-      if (m.alter > 3.2) { this.gEffekte.remove(m.s); m.s.material.map.dispose(); m.s.material.dispose(); return false; }
-      return true;
-    });
+    const t = this.controls.target;
+    this.sonne.position.set(t.x + 22, 38, t.z + 14); this.sonne.target.position.copy(t);
     this.controls.update();
     this.renderer.render(this.scene, this.camera);
   }
