@@ -86,6 +86,12 @@ Preise steigen mit jeder Stufe.
   Lädt der Spielleiter neu, öffnet er den Raum mit dem laufenden Spiel wieder (Sitzung im Tab).
   Mitspieler, die neu laden, kommen automatisch zurück. Wer in ein laufendes Spiel kommt, übernimmt eine Bahn,
   die gerade niemand steuert, oder schaut zu.
+- **Leitung übernehmen** (16.11.2026): Die Verbindungs-ID des Spielleiters ist Raumcode + Leitungsnummer.
+  Ist der Spielleiter länger als 8 s nicht erreichbar (oder hat er beendet), erscheint bei allen Mitspielern
+  „Leitung übernehmen“. Wer tippt, macht mit seiner Kopie des Spielstands unter der nächsten Nummer weiter;
+  die anderen probieren abwechselnd alte und nächste Nummer und finden ihn von selbst. Tippen zwei gleichzeitig,
+  wird der zweite wieder Mitspieler. Ein alter Spielleiter, der zurückkommt (Neuladen) oder ohne Mitspieler dasteht,
+  prüft alle 15 s, ob es schon eine neue Leitung gibt, und spielt dann als Mitspieler weiter.
 - **Speichern:** nur der Spielleiter (oder wer allein spielt). „Raum öffnen und weiterspielen“ öffnet den gespeicherten
   Stand im selben Raumcode; Mitspieler finden ihre Bahn über ihre Geräte-ID oder übernehmen sie.
 - Alte Spielstände (Schritt 1 und 2) werden beim Laden zu einer Bahn umgebaut.
@@ -97,7 +103,7 @@ Preise steigen mit jeder Stufe.
    Tunnel durch Berge, kaufbare Sehenswürdigkeiten (Wasserturm, Burg, Windmühle, Aussichtspunkt) mit Boni,
    Aufträge und Meilensteine.
 3. **Mehrspieler (gebaut, siehe oben):** jeder mit eigener Bahn, später zusammentun; Züge halten vor anderen Zügen.
-   Echte Signale und Ausweichstellen könnten später kommen.
+   Leitung übernehmen, wenn der Spielleiter weg ist. Echte Signale und Ausweichstellen könnten später kommen.
 
 ## Simulation (Bot kauft immer die billigste Zug-Verbesserung, baut nichts)
 | | 1 Min | 10 Min | 30 Min |

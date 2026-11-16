@@ -223,3 +223,5 @@ Gleisgenossen (neu vom 16.11.2026, allein oder 2 bis 6 Bahnen; Plan in gleisgeno
   👥 Zusammentun: Einladung annehmen legt Kasse, Land, Gleise und Ziele zusammen („Genossenschaft …“), dann fahren alle
   Züge im gemeinsamen Netz; ein Zug hält vor einem Feld mit einem anderen Zug. Spielleiter rechnet, schickt alle 0,3 s
   Züge und Kassen; Neuladen von Spielleiter (Sitzung im Tab) und Mitspielern getestet. Speichern nur beim Spielleiter.
+  Leitung übernehmen: Ist der Spielleiter über 8 s weg, können Mitspieler mit ihrer Kopie weitermachen (Peer-ID Raumcode +
+  Leitungsnummer); ein zurückkehrender alter Spielleiter merkt das und spielt als Mitspieler weiter. Mit drei Browsern getestet.

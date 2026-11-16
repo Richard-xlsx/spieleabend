@@ -1,6 +1,6 @@
 // Gleisgenossen: Startseite, Lobby, Verbindung (Handy des Spielleiters rechnet, PeerJS), Bedienleiste über der 3D-Welt.
 // Allein: ohne Raum, alles auf diesem Handy. Die Regeln stehen in logic.js (window.GG), die Welt in welt.js.
-import { Welt } from "./welt.js?v=2026-11-16d";
+import { Welt } from "./welt.js?v=2026-11-16e";
 
 const G = window.GG;
 const app = document.getElementById("app"), weltEl = document.getElementById("welt"), hud = document.getElementById("hud");
@@ -33,6 +33,11 @@ let code = (params.get("raum") || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
 // rolle: null (Startseite), "allein", "host", "client"
 let rolle = null, S = null, lobby = null, welt = null, gespeichertUm = null, hinweisTimer = null, proMinute = 0;
 let peer = null, hostConn = null, verbunden = false, fehlerText = "", retryTimer = null, token = 0;
+let versuch = 0, offlineSeit = null, uebernahme = false, pruefTimer = null;
+// Verbindungs-ID des Spielleiters: Raumcode + Leitungsnummer (epoch). Übernimmt jemand, zählt sie eins hoch.
+const epoch = () => (S && S.epoch) || 0;
+const hostId = ep => PREFIX + code + "-" + ep;
+const UEBERNEHMEN_NACH = 8000;     // ms ohne Spielleiter, bis „Leitung übernehmen“ erscheint
 const conns = new Map();          // pid → Verbindung (nur Spielleiter)
 const verlauf = [];               // [zeit, verdient] der letzten Minute für „pro Minute“
 const ui = { modus: "schauen", teil: "g", bau: "turm", panel: null };
@@ -148,8 +153,9 @@ function sitzungSichern() { if (rolle === "host") ss.set("gg2:sitzung:" + code +
 function oeffneHostPeer() {
   if (peer) { try { peer.destroy(); } catch (e) {} }
   verbunden = false;
-  const p = peer = new Peer(PREFIX + code, PEER_OPT);
-  p.on("open", () => { if (p !== peer) return; verbunden = true; fehlerText = ""; neuZeichnen(); });
+  const p = peer = new Peer(hostId(epoch()), PEER_OPT);
+  if (T) { console.log("öffne Raum", hostId(epoch())); p.on("open", id => console.log("Raum offen", id)); p.on("error", e => console.log("Raumfehler", e.type)); p.on("disconnected", () => console.log("Raum getrennt")); }
+  p.on("open", () => { if (p !== peer) return; verbunden = true; fehlerText = ""; if (uebernahme) { uebernahme = false; hinweis("Du leitest jetzt das Spiel."); } neuZeichnen(); });
   p.on("connection", c => {
     c.on("data", m => vonClient(c, m));
     c.on("close", () => { for (const [k, x] of conns) if (x === c) conns.delete(k); onlineMelden(); });
@@ -159,6 +165,12 @@ function oeffneHostPeer() {
   p.on("error", e => {
     if (p !== peer) return;
     verbunden = false;
+    if (e.type === "unavailable-id" && uebernahme) {      // jemand anderes hat gerade übernommen: wieder mitspielen
+      uebernahme = false; rolle = "client"; conns.clear(); ss.del("gg2:sitzung:" + code + T);
+      try { p.destroy(); } catch (x) {}
+      hinweis("Jemand anderes hat die Leitung schon übernommen.");
+      return clientNeuVerbinden();
+    }
     fehlerText = e.type === "unavailable-id" ? "Der Raum ist noch belegt, gleich geht es weiter …" : "Keine Verbindung zum Vermittlungsdienst, neuer Versuch …";
     neuZeichnen();
     if (["unavailable-id", "network", "server-error", "socket-error", "socket-closed"].includes(e.type)) setTimeout(() => { if (p === peer) oeffneHostPeer(); }, 3000);
@@ -222,6 +234,11 @@ setInterval(() => sitzungSichern(), 5000);
 // ---------- Mitspieler ----------
 function clientStarten() {
   rolle = "client"; S = null; lobby = null;
+  clientNeuVerbinden();
+}
+// Neue Peer-Verbindung als Mitspieler; der bisherige Spielstand (S) bleibt als Kopie für eine Übernahme erhalten
+function clientNeuVerbinden() {
+  rolle = "client"; hostConn = null; verbunden = false;
   if (peer) { try { peer.destroy(); } catch (e) {} }
   const p = peer = new Peer(undefined, PEER_OPT);
   p.on("open", () => { if (p === peer && !hostConn) verbindeZumHost(); });
@@ -236,10 +253,11 @@ function clientStarten() {
 function verbindeZumHost() {
   if (!peer || peer.destroyed || !peer.open || (hostConn && hostConn.open)) return;
   clearTimeout(retryTimer);
-  const t = ++token, c = peer.connect(PREFIX + code, { serialization: "json", reliable: true });
+  const t = ++token, c = peer.connect(hostId(epoch() + (versuch % 2)), { serialization: "json", reliable: true });   // abwechselnd alte und nächste Leitung
+  if (T) console.log("verbinde", hostId(epoch() + (versuch % 2)), "token", t);
   c.on("open", () => {
     if (t !== token) { try { c.close(); } catch (e) {} return; }
-    hostConn = c; verbunden = true; fehlerText = "";
+    hostConn = c; verbunden = true; fehlerText = ""; versuch = 0; offlineSeit = null;
     c.send({ t: "hallo", pid: PID, name }); neuZeichnen();
   });
   c.on("data", vomHost);
@@ -248,14 +266,17 @@ function verbindeZumHost() {
   retryTimer = setTimeout(() => { if (t === token && hostConn !== c) { try { c.close(); } catch (e) {} fehlschlag(t); } }, window.SPIELEABEND_WARTEN || 12000);
 }
 function fehlschlag(t) {
+  if (T) console.log("fehlschlag", t, token);
   if (t !== token) return;
-  token++; verbunden = false;
+  token++; versuch++; verbunden = false;
+  if (!offlineSeit) { offlineSeit = Date.now(); setTimeout(neuZeichnen, UEBERNEHMEN_NACH + 100); }
   fehlerText = "Spielleiter nicht erreichbar, neuer Versuch …"; neuZeichnen();
   clearTimeout(retryTimer); retryTimer = setTimeout(verbindeZumHost, 2500);
 }
-function verloren() { verbunden = false; hostConn = null; fehlerText = "Verbindung zum Spielleiter verloren, neuer Versuch …"; neuZeichnen(); fehlschlag(token); }
+function verloren() { verbunden = false; hostConn = null; if (!offlineSeit) { offlineSeit = Date.now(); setTimeout(neuZeichnen, UEBERNEHMEN_NACH + 100); } fehlerText = "Spielleiter nicht erreichbar, neuer Versuch …"; neuZeichnen(); fehlschlag(token); }
 function vomHost(m) {
   if (!m) return;
+  if (T && m.t !== "takt") console.log("vom Host", m.t);
   if (m.t === "lobby") { lobby = m.lobby; S = null; neuZeichnen(); }
   else if (m.t === "stand") {
     const vorher = S;
@@ -271,6 +292,7 @@ function vomHost(m) {
     meldungenVergleichen(vorher, S);
     if (Object.keys(m.z).some(p => welt && welt.zuege[p] && welt.zuege[p].teile.length !== 2 + m.z[p].stufen.wagen)) welt.setzen(S, PID);
   } else if (m.t === "fehler") hinweis(m.text);
+  else if (m.t === "weg") { offlineSeit = Date.now() - UEBERNEHMEN_NACH; hinweis("Der Spielleiter hat das Spiel verlassen. Jemand kann die Leitung übernehmen."); }
   else if (m.t === "ok" && m.typ === "weiche") hinweis(m.r.st ? "Weiche: abbiegen" : "Weiche: geradeaus");
 }
 // Neue Ziele und Einladungen beim Mitspieler anzeigen (der Spielleiter sieht sie direkt)
@@ -296,6 +318,45 @@ function platzWahl() {
   app.querySelectorAll("[data-platz]").forEach(b => b.onclick = () => senden(hostConn, { t: "platz", pid: PID, alt: b.dataset.platz, name }));
   document.getElementById("zuschauen").onclick = () => spielZeigen(S);
 }
+
+// ---------- Leitung übernehmen ----------
+// Ein Mitspieler macht mit seiner Kopie des Spielstands als Spielleiter unter der nächsten Leitungsnummer weiter.
+function uebernehmen() {
+  if (!S || rolle !== "client") return;
+  if (!confirm("Leitung übernehmen? Dein Handy rechnet dann für alle und speichert. Nur tun, wenn der Spielleiter wirklich weg ist.")) return;
+  S.epoch = epoch() + 1; uebernahme = true;
+  clearTimeout(retryTimer); token++;
+  if (hostConn) { try { hostConn.close(); } catch (e) {} hostConn = null; }
+  rolle = "host"; offlineSeit = null; fehlerText = ""; gespeichertUm = null;
+  oeffneHostPeer(); sitzungSichern(); render();
+}
+// Spielleiter ohne Mitspieler schaut regelmäßig, ob inzwischen jemand anderes übernommen hat (z. B. nach Funkloch)
+function leitungPruefen(dann) {
+  if (!S) return dann && dann(false);
+  const probe = new Peer(undefined, PEER_OPT); let fertig = false;
+  const ende = gibt => { if (T && !fertig) console.log("Prüfung", hostId(epoch() + 1), gibt); if (fertig) return; fertig = true; try { probe.destroy(); } catch (e) {} if (dann) dann(gibt); };
+  // Gibt es die ID nicht, meldet der Vermittlungsdienst schnell „peer-unavailable“. Kommt diese Meldung nicht, gibt es sie.
+  const start = Date.now();
+  probe.on("open", () => {
+    if (T) console.log("Prüfpeer offen nach", Date.now() - start);
+    const c = probe.connect(hostId(epoch() + 1), { serialization: "json" });
+    c.on("open", () => ende(true));
+    setTimeout(() => ende(true), 5000);
+  });
+  probe.on("error", e => { if (T) console.log("Prüffehler", e.type); ende(false); });
+  setTimeout(() => ende(false), 15000);
+}
+function alsMitspielerWeiter() {
+  hinweis("Inzwischen leitet ein anderes Handy das Spiel. Du spielst als Mitspieler weiter.");
+  ss.del("gg2:sitzung:" + code + T); conns.clear();
+  S.epoch = epoch() + 1; versuch = 0;
+  clientNeuVerbinden();
+}
+setInterval(() => {
+  if (rolle !== "host" || !S || conns.size || pruefTimer) return;
+  pruefTimer = true;
+  leitungPruefen(gibt => { pruefTimer = false; if (gibt && rolle === "host" && !conns.size) alsMitspielerWeiter(); });
+}, 15000);
 
 // ---------- Lobby ----------
 function lobbyZeigen() {
@@ -335,7 +396,11 @@ function neuZeichnen() {
     return;
   }
   if (lobby && !S) return lobbyZeigen();
-  if (S && !hud.hidden) render();
+  if (S && !hud.hidden) {           // im Spiel nur die Statuszeile auffrischen, damit Knöpfe nicht unter dem Finger verschwinden
+    const el = document.getElementById("statuszeile"), neu = statusZeile();
+    if (!el) return render();
+    if (el.innerHTML !== neu) { el.innerHTML = neu; const b = document.getElementById("uebernehmen"); if (b) b.onclick = uebernehmen; }
+  }
 }
 
 // ---------- Spiel ----------
@@ -410,7 +475,7 @@ function beenden() {
   if (rolle === "client") { if (confirm("Spiel verlassen? Der Spielleiter spielt weiter, du kannst wieder beitreten.")) verlassen(); return; }
   if (!confirm(gespeichertUm ? "Beenden? Was seit dem letzten Speichern passiert ist, geht verloren." : "Beenden? Diese Welt ist nicht gespeichert und geht verloren.")) return;
   ss.del("gg2:sitzung:" + code + T);
-  if (rolle === "host") { anAlle({ t: "fehler", text: "Der Spielleiter hat das Spiel beendet." }); try { peer.destroy(); } catch (e) {} peer = null; conns.clear(); }
+  if (rolle === "host") { anAlle({ t: "weg" }); try { peer.destroy(); } catch (e) {} peer = null; conns.clear(); }
   welt.markieren(null);
   history.replaceState(null, "", location.pathname + (params.get("test") ? "?test=" + params.get("test") : ""));
   startseite();
@@ -434,7 +499,7 @@ function render() {
   const g = gruppe(), z = meinZug(), gid = meine();
   if (!g || !z) {     // Zuschauer
     hud.innerHTML = `<div><div class="hud-oben"><div class="chip gross"><small>Zuschauen</small><b>${Object.keys(S.gruppen).length} Bahnen</b></div>
-      <button class="rund" id="bahnen" aria-label="Bahnen">👥</button><button class="rund" id="menue" aria-label="Menü">☰</button></div>${statusZeile()}</div>
+      <button class="rund" id="bahnen" aria-label="Bahnen">👥</button><button class="rund" id="menue" aria-label="Menü">☰</button></div><div id="statuszeile">${statusZeile()}</div></div>
       <div class="hud-unten">${ui.panel && ui.panel.art === "bahnen" ? bahnenPanel() : ui.panel && ui.panel.art === "menue" ? menuePanel() : ""}</div>`;
     knoepfe(); return;
   }
@@ -450,7 +515,7 @@ function render() {
         ${Object.keys(S.spieler).length > 1 ? `<button class="rund ${anfragen ? "an" : ""}" id="bahnen" aria-label="Bahnen">👥</button>` : ""}
         <button class="rund" id="menue" aria-label="Menü">☰</button>
       </div>
-      ${statusZeile()}
+      <div id="statuszeile">${statusZeile()}</div>
       ${ziel ? `<button class="ziel" id="ziele"><span>Ziel</span> ${esc(ziel.text)} <em>+${zahl(ziel.geld)} T</em></button>` : ""}
     </div>
     <div class="hud-unten">
@@ -463,7 +528,10 @@ function render() {
   knoepfe();
 }
 function statusZeile() {
-  if (rolle === "client" && !verbunden) return `<p class="status">${esc(fehlerText || "Keine Verbindung zum Spielleiter …")}</p>`;
+  if (rolle === "client" && !verbunden) {
+    const darf = S && S.spieler && offlineSeit && Date.now() - offlineSeit >= UEBERNEHMEN_NACH;
+    return `<p class="status"><span>${esc(fehlerText || "Keine Verbindung zum Spielleiter …")}</span>${darf ? `<button id="uebernehmen">Leitung übernehmen</button>` : ""}</p>`;
+  }
   if (rolle === "host" && !verbunden && fehlerText) return `<p class="status">${esc(fehlerText)}</p>`;
   return "";
 }
@@ -492,6 +560,7 @@ function knoepfe() {
   on("land", () => { const r = tun({ typ: "land", p: ui.panel.p }); if (!r.fehler) { ui.panel = null; welt.markieren(null); render(); hinweis("Neues Land gekauft."); } });
   on("speichern", speichern);
   on("beenden", beenden);
+  on("uebernehmen", uebernehmen);
   on("teilen", async () => { try { if (navigator.share) await navigator.share({ title: "Gleisgenossen", url: link() }); else { await navigator.clipboard.writeText(link()); hinweis("Link kopiert."); } } catch (e) {} });
   zahlenAuffrischen();
 }
@@ -628,7 +697,10 @@ if (T) window.__gg = { get S() { return S; }, get welt() { return welt; }, ui, g
     const sitzung = ss.get("gg2:sitzung:" + code + T);
     if (sitzung) {          // Spielleiter hat neu geladen: Raum wieder öffnen
       rolle = "host"; gespeichertUm = sitzung.um;
-      if (sitzung.S) { S = G.auffrischen(sitzung.S, PID); lobby = null; oeffneHostPeer(); spielZeigen(S); }
+      if (sitzung.S) {
+        S = G.auffrischen(sitzung.S, PID); lobby = null; spielZeigen(S);
+        leitungPruefen(gibt => gibt ? alsMitspielerWeiter() : oeffneHostPeer());
+      }
       else { lobby = sitzung.lobby; oeffneHostPeer(); lobbyZeigen(); }
       return;
     }
