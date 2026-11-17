@@ -17,6 +17,7 @@ Aufbau
                                   bilder.js (Tuschezeichnungen für Räume, Gegner, Helden)
   viererkette/                    index.html, viererkette-logic.js (Brett, Gewinnreihe), viererkette.js (Verbindung und Bildschirme)
   kritzelraten/                   index.html, logic.js (Begriffe, Raten, Punkte), app.js (Verbindung, Malfläche, Bildschirme)
+  wortverbot/                     index.html, logic.js (Karten, Teams, Züge, Punkte), app.js (Verbindung, Karten, Zeichnen, Töne)
   gleisgenossen/                  index.html, logic.js (Karte, Gleise, Zug, Preise), welt.js (3D-Welt mit Three.js),
                                   app.js (Startseite, Bedienleiste, Speichern), KONZEPT.md (Plan in drei Schritten)
   _entwurf/                       Kartenentwürfe, wird nicht hochgeladen
@@ -64,6 +65,19 @@ Kritzelraten (ab 2 Spielern, am besten ab 4)
   Den Begriff kennt nur das Handy des Spielleiters; jeder bekommt eine eigene Fassung des Zustands ohne Lösung (KR.sicht).
   Das Bild geht Strich für Strich live an alle („ab Strich n diese Striche“), höchstens 4000 Punkte wie bei Stille Post.
   Übernimmt jemand die Spielleitung, wird der laufende Zug ohne Auflösung beendet (der neue Spielleiter kennt den Begriff nicht).
+Wortverbot (ab 4 Spielern in zwei Teams, Füchse und Eulen)
+  Neue Mitspieler kommen ins kleinere Team; in der Lobby schiebt der Spielleiter per Tipp um oder lost aus, jeder kann sich
+  selbst umsetzen. Jedes Team braucht mindestens zwei. Die Teams sind abwechselnd dran; im Team wird reihum erklärt (wer nicht
+  da ist, wird übersprungen). Zeit 60, 90 oder 120 s; jeder ist 1× oder 2× dran. „Mit Zeichnen & Pantomime“ wechselt je Runde
+  (beide Teams einmal) Erklären, Zeichnen, Pantomime und spielt dann mindestens drei Runden.
+  Der Erklärer tippt „Los“, sieht die Karte (Begriff und 5 verbotene Wörter, 315 Karten in KARTEN) und tippt „Richtig“ (+1 fürs
+  eigene Team) oder „Überspringen“ (0). Das andere Team sieht die Karte mit und tippt „Erwischt“ (+1 fürs andere Team); das
+  ratende Team sieht die Karte nicht (WV.sicht). Nach jedem Tipp 0,7 s Sperre, damit ein Doppeltipp nicht die nächste Karte
+  nimmt. Im Rückblick vor dem nächsten Zug können Erklärer oder Spielleiter Vertipper ändern (richtig → übersprungen → erwischt).
+  Beim Zeichnen schickt der Zeichner alle 150 ms das ganze Bild, der Spielleiter reicht es an alle weiter (höchstens 4000 Punkte).
+  Töne: Summer bei „Erwischt“, Klingeln bei „Richtig“, Ticken in den letzten 5 s, Gong am Ende des Zugs (erst nach dem ersten Tipp).
+  Ist der Erklärer 6 s weg, kommt der Nächste aus seinem Team dran; während des Zugs endet der Zug nach 15 s ohne ihn.
+  Übernimmt jemand die Spielleitung, endet der laufende Zug (die Karte kannte nur der alte Spielleiter).
 Mau-Mau (2 bis 8 Spieler)
   Eigenes Blatt im Holzschnitt-Stil (maumau/holzschnitt.js + figuren2.js): Zahlenkarten als Medaille mit Symbolkranz,
   Ass mit Strahlenkranz, König/Dame/Bube gezeichnet, Rückseite schwarz. 32 Karten, ab 6 Spielern zwei Blätter. Jeder bekommt 5.

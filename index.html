@@ -46,6 +46,8 @@ h2{font-size:1.2rem;font-weight:800}
 .zeichen.g svg{width:62px;height:62px}
 .zeichen.r{background:#FFD9CF;transform:rotate(2deg)}
 .zeichen.r svg{width:62px;height:62px}
+.zeichen.w{background:#FFE3A3;transform:rotate(-2deg)}
+.zeichen.w svg{width:62px;height:62px}
 .spiel p{margin:0;color:var(--leise);font-size:.92rem}
 .spiel .los{grid-column:1/-1;margin-top:10px;background:var(--akzent);color:var(--akzent-text);border-radius:12px;padding:12px;text-align:center;font-weight:700}
 .tipps{background:var(--flaeche2);border-radius:16px;padding:14px 16px;display:flex;flex-direction:column;gap:6px;font-size:.92rem}
@@ -109,6 +111,13 @@ body.abend-gast .spiel .los,body.abend-leiter .spiel .los{display:none}
     <span class="los">Spielen</span>
   </a>
 
+  <a class="spiel" href="wortverbot/">
+    <div class="zeichen w" aria-hidden="true"><svg viewBox="0 0 60 60" aria-hidden="true"><g transform="rotate(-7 24 28)"><rect x="6" y="6" width="34" height="44" rx="5" fill="#FFFBEF" stroke="#132A31" stroke-width="2.4"/><rect x="12" y="12" width="22" height="5" rx="2" fill="#132A31"/><path d="M13 26h20M15 33h16M13 40h20" stroke="#C6362F" stroke-width="3" stroke-linecap="round"/><path d="M11 26h24M11 40h24" stroke="#132A31" stroke-width="1.8" stroke-linecap="round"/></g><ellipse cx="44" cy="53" rx="13" ry="4.5" fill="#132A31"/><rect x="31" y="45" width="26" height="8" fill="#132A31"/><ellipse cx="44" cy="45" rx="13" ry="4.5" fill="#3A4A52"/><path d="M35 44c0-9 18-9 18 0z" fill="#FF5A5F" stroke="#132A31" stroke-width="2"/><path d="M33 33l-3-3M44 30v-5M55 33l3-3" stroke="#132A31" stroke-width="2.2" stroke-linecap="round"/></svg></div>
+    <h2>Wortverbot</h2>
+    <p>Zwei Teams: Begriffe erklären, ohne die verbotenen Wörter zu sagen. Das andere Team liest mit und drückt den Summer. Auf Wunsch auch Zeichnen und Pantomime. Ab 4 Spielern.</p>
+    <span class="los">Spielen</span>
+  </a>
+
   <a class="spiel" href="maumau/">
     <div class="zeichen m" aria-hidden="true"><svg viewBox="0 0 52 52"><rect x="6" y="8" width="24" height="34" rx="4" fill="#FFFDF7" stroke="#22202A" stroke-width="2.4" transform="rotate(-12 18 25)"/><rect x="20" y="8" width="24" height="34" rx="4" fill="#FFFDF7" stroke="#22202A" stroke-width="2.4" transform="rotate(10 32 25)"/><path d="M32 21c-1.6-3-6-2.2-6 1 0 2.6 3.2 4.6 6 7.4 2.8-2.8 6-4.8 6-7.4 0-3.2-4.4-4-6-1z" fill="#C8282B" stroke="#22202A" stroke-width="1.4" transform="rotate(10 32 25)"/></svg></div>
     <h2>Mau-Mau</h2>
@@ -150,7 +159,7 @@ body.abend-gast .spiel .los,body.abend-leiter .spiel .los{display:none}
 <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <script src="netz.js"></script>
-<script src="abend.js?v=2026-11-17d"></script>
+<script src="abend.js?v=2026-11-17e"></script>
 <script src="start.js?v=2026-11-17d"></script>
 </body>
 </html>
