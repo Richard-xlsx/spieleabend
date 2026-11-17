@@ -17,12 +17,16 @@ const ZEIT = { value: 0 }, WIND = { value: 1 };
 const mats = new Map();
 function mat(farbe, extra) {
   const key = farbe + (extra ? JSON.stringify(extra) : "");
-  if (!mats.has(key)) mats.set(key, new THREE.MeshStandardMaterial(Object.assign({ color: farbe, roughness: .9, metalness: 0, flatShading: true }, extra)));
+  if (!mats.has(key)) {
+    // Einfaches Licht (pro Pixel billig); nur Metall (Schienen, Messing) bekommt Glanz
+    if (extra && extra.metalness) mats.set(key, new THREE.MeshStandardMaterial(Object.assign({ color: farbe, roughness: .9, flatShading: true }, extra)));
+    else { const e = Object.assign({}, extra); delete e.roughness; delete e.metalness; mats.set(key, new THREE.MeshLambertMaterial(Object.assign({ color: farbe, flatShading: true }, e))); }
+  }
   return mats.get(key);
 }
 // Baumkronen wiegen sich im Wind (je Instanz etwas anders)
 function windMat() {
-  const m = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: .9, flatShading: true });
+  const m = new THREE.MeshLambertMaterial({ color: 0xffffff, flatShading: true });
   m.onBeforeCompile = sh => {
     sh.uniforms.uZeit = ZEIT; sh.uniforms.uWind = WIND;
     sh.vertexShader = "uniform float uZeit;\nuniform float uWind;\n" + sh.vertexShader.replace("#include <begin_vertex>", `#include <begin_vertex>
@@ -83,6 +87,18 @@ function schild(text, { bg = "#1C1A33", fg = "#F3F0FF", groesse = 1, unter = "" 
   return sp;
 }
 // Viele gleiche Körper auf einmal: liste = [{ x, y, z, sx, sy, sz, ry, rz, farbe }]; rz neigt in Längsrichtung (Steigung)
+// Viele gleiche Dinge in Kacheln aufteilen: was nicht im Bild (oder im Schattenbereich) ist, zeichnet three.js dann gar nicht
+const KACHEL = 48;
+// fern: einfachere Form für weit entfernte Kacheln (Bäume am Horizont)
+function kacheln(geo, material, liste, schatten = true, klein = false, fern = null) {
+  const teile = new Map(), g = new THREE.Group();
+  for (const e of liste) { const k = Math.floor(e.x / KACHEL) + "," + Math.floor(e.z / KACHEL); if (!teile.has(k)) teile.set(k, []); teile.get(k).push(e); }
+  for (const l of teile.values()) {
+    const m = instanzen(geo, material, l, schatten); m.computeBoundingSphere(); m.userData.klein = klein; g.add(m);
+    if (fern) { const f = instanzen(fern, material, l, false); f.computeBoundingSphere(); f.visible = false; m.userData.fern = f; g.add(f); }
+  }
+  return g;
+}
 function instanzen(geo, material, liste, schatten = true) {
   const m = new THREE.InstancedMesh(geo, material, Math.max(1, liste.length)), o = new THREE.Object3D(), col = new THREE.Color();
   m.count = liste.length;
@@ -101,6 +117,10 @@ function formen() {
     tanne: mergeGeometries([kegel(.44, .75, .62), kegel(.33, .62, .98), kegel(.2, .45, 1.3)]),
     laub: new THREE.IcosahedronGeometry(.44, 0).scale(1, .92, 1).translate(0, .82, 0),
     birke: new THREE.IcosahedronGeometry(.27, 0).scale(.9, 1.55, .9).translate(0, 1.02, 0),
+    // Fernformen: wenige Dreiecke, für Bäume weit weg von der Kamera
+    tanneFern: new THREE.ConeGeometry(.42, 1.15, 5).translate(0, .78, 0),
+    laubFern: new THREE.OctahedronGeometry(.46, 0).scale(1, .92, 1).translate(0, .82, 0),
+    birkeFern: new THREE.OctahedronGeometry(.28, 0).scale(.9, 1.55, .9).translate(0, 1.02, 0),
     stamm: new THREE.CylinderGeometry(.055, .08, .5, 5).translate(0, .25, 0),
     birkenstamm: new THREE.CylinderGeometry(.035, .05, .85, 5).translate(0, .42, 0),
     busch: new THREE.IcosahedronGeometry(.24, 0).scale(1, .7, 1).translate(0, .1, 0),
@@ -164,7 +184,7 @@ function zugFormen() {
   // Wagenräder: Zylinder mit Achse quer zur Fahrtrichtung
   wagen.schwarz = zus([B(1.12, .1, .5, 0, .26, 0), ...puffer(.56, 1), ...puffer(-.56, -1), B(.36, .08, .5, -.36, .17, 0), B(.36, .08, .5, .36, .17, 0),
     ...[-.48, -.24, .24, .48].flatMap(x => [.29, -.29].map(z => new THREE.CylinderGeometry(.13, .13, .05, 14).rotateX(PI / 2).translate(x, .13, z)))]);
-  ZF = { lok, kabine, rad: mergeGeometries(radTeile), radMat: new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .7, flatShading: true }), radPos, stangen, wagen };
+  ZF = { lok, kabine, rad: mergeGeometries(radTeile), radMat: new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true }), radPos, stangen, wagen };
   return ZF;
 }
 
@@ -399,7 +419,7 @@ export class Welt {
       const nor = geo.attributes.normal.array;
       for (let k = 0; k < VB * VH; k++) { const m = 1 - Math.min(.35, (1 - nor[k * 3 + 1]) * 2.2); col[k * 3] *= m; col[k * 3 + 1] *= m; col[k * 3 + 2] *= m; }
       geo.attributes.color.array.set(col);
-      const m = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .95, metalness: 0 }));
+      const m = new THREE.Mesh(geo, new THREE.MeshLambertMaterial({ vertexColors: true }));
       m.receiveShadow = true; this.gTerrain.add(m);
       this.boden = { geo, basis: col, VB, VH, felder };
     }
@@ -434,7 +454,7 @@ export class Welt {
       const geo = new THREE.BufferGeometry();
       geo.setAttribute("position", new THREE.BufferAttribute(pos, 3)); geo.setAttribute("color", new THREE.BufferAttribute(col, 3));
       geo.setIndex(idx); geo.computeVertexNormals();
-      this.gTerrain.add(new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .95, metalness: 0 })));
+      this.gTerrain.add(new THREE.Mesh(geo, new THREE.MeshLambertMaterial({ vertexColors: true })));
       const wasser = new THREE.Mesh(new THREE.PlaneGeometry((B + 2 * R) * F, (H + 2 * R) * F, (B + 2 * R) / 2, (H + 2 * R) / 2).rotateX(-Math.PI / 2), wasserMat());
       wasser.position.y = WASSER; wasser.receiveShadow = true; this.gTerrain.add(wasser);
     }
@@ -460,11 +480,13 @@ export class Welt {
         if (q() < .5) { const o = (q() - .5) * w * .5; kamine.push({ x: x + Math.cos(ry) * o, y: y0 + hh, z: zz - Math.sin(ry) * o + .12, sx: .1, sy: .45, sz: .1, farbe: 0x8C4A3A }); }
       }
     }
-    for (const art of ["tanne", "laub", "birke"]) if (baeume[art].length) this.gTerrain.add(instanzen(f[art], windMat(), baeume[art]));
-    if (baeume.stamm.length) this.gTerrain.add(instanzen(f.stamm, mat(0x6B4A32), baeume.stamm));
-    if (baeume.birkenstamm.length) this.gTerrain.add(instanzen(f.birkenstamm, mat(0xEDEAE0), baeume.birkenstamm));
-    if (felsen.length) this.gTerrain.add(instanzen(f.fels, mat(0xffffff), felsen));
-    if (schnee.length) this.gTerrain.add(instanzen(f.fels, mat(0xffffff), schnee));
+    for (const art of ["tanne", "laub", "birke"]) if (baeume[art].length) this.gTerrain.add(kacheln(f[art], windMat(), baeume[art], true, false, f[art + "Fern"]));
+    // Stämme werfen keinen Schatten (unter den Kronen sieht man ihn nicht)
+    if (baeume.stamm.length) this.gTerrain.add(kacheln(f.stamm, mat(0x6B4A32), baeume.stamm, false, true));
+    if (baeume.birkenstamm.length) this.gTerrain.add(kacheln(f.birkenstamm, mat(0xEDEAE0), baeume.birkenstamm, false, true));
+    if (felsen.length) this.gTerrain.add(kacheln(f.fels, mat(0xffffff), felsen));
+    this.fernKacheln = []; this.kleinTerrain = []; this.gTerrain.traverse(o => { if (o.userData.fern) this.fernKacheln.push(o); if (o.userData.klein) this.kleinTerrain.push(o); });
+    if (schnee.length) this.gTerrain.add(kacheln(f.fels, mat(0xffffff), schnee));
     if (haeuser.length) {
       this.gTerrain.add(instanzen(f.box, mat(0xffffff), haeuser));
       this.gTerrain.add(instanzen(f.dach, mat(0xffffff), daecher));
@@ -519,11 +541,13 @@ export class Welt {
       if (q() < .03 && !G.besitzer(S, i)) { const p = at(c + .3 + q() * .4, r + .3 + q() * .4), s = .9 + q() * .4;
         kronen.push({ x: p.x, y: p.y - .03, z: p.z, sx: s * 1.1, sy: s, sz: s * 1.1, ry: q() * 6, farbe: [0x5DAA3C, 0x6BB541, 0x88B83A][Math.floor(q() * 3)] }); staemme.push({ x: p.x, y: p.y - .03, z: p.z, sx: s, sy: s * 1.2, sz: s }); }
     }
-    if (blumen.length) this.gDeko.add(instanzen(f.blume, mat(0xffffff, { flatShading: false, roughness: .6 }), blumen, false));
-    if (halme.length) this.gDeko.add(instanzen(f.halm, mat(0xffffff), halme, false));
-    if (buesche.length) this.gDeko.add(instanzen(f.busch, windMat(), buesche));
-    if (steine.length) this.gDeko.add(instanzen(f.stein, mat(0xffffff), steine));
-    if (kronen.length) { this.gDeko.add(instanzen(f.laub, windMat(), kronen)); this.gDeko.add(instanzen(f.stamm, mat(0x6B4A32), staemme)); }
+    // Blumen und Halme sind „klein“: weit weg werden sie gar nicht gezeichnet (siehe bild())
+    if (blumen.length) this.gDeko.add(kacheln(f.blume, mat(0xffffff, { flatShading: false }), blumen, false, true));
+    if (halme.length) this.gDeko.add(kacheln(f.halm, mat(0xffffff), halme, false, true));
+    if (buesche.length) this.gDeko.add(kacheln(f.busch, windMat(), buesche));
+    if (steine.length) this.gDeko.add(kacheln(f.stein, mat(0xffffff), steine, false, true));
+    if (kronen.length) { this.gDeko.add(kacheln(f.laub, windMat(), kronen)); this.gDeko.add(kacheln(f.stamm, mat(0x6B4A32), staemme, false)); }
+    this.klein = []; this.gDeko.traverse(o => { if (o.userData.klein) this.klein.push(o); });
   }
   // Grenzen aller Bahnen (eigene gelb, andere in ihrer Farbe), Namen der anderen Bahnen, Preisschilder für kaufbares Land, Raster
   landZeichnen(S) {
@@ -852,6 +876,10 @@ export class Welt {
       this.gSchweben.remove(e.sp); e.sp.material.map.dispose(); e.sp.material.dispose(); return false;
     });
     this.wolken.rotation.y += dt * .004;
+    // Kleine Deko nur in der Nähe der Kamera zeichnen
+    if (this.klein) { const c = this.camera.position; for (const m of this.klein.concat(this.kleinTerrain || [])) { const b = m.boundingSphere; m.visible = c.distanceTo(b.center) < 55 + b.radius; } }
+    // Bäume: nah die volle Form, weit weg die Fernform
+    if (this.fernKacheln) { const c = this.camera.position; for (const m of this.fernKacheln) { const b = m.boundingSphere, nah = c.distanceTo(b.center) < 45 + b.radius; m.visible = nah; m.userData.fern.visible = !nah; } }
     this.kuppel.position.copy(this.camera.position);
     const fk = this.controls.enabled ? t : this.fokus;
     this.sonne.position.set(fk.x + 26, fk.y + 32, fk.z + 12); this.sonne.target.position.copy(fk);

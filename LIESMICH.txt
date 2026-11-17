@@ -243,3 +243,6 @@ Gleisgenossen (neu vom 16.11.2026, allein oder 2 bis 6 Bahnen; Plan in gleisgeno
   Führerhaus mit Fenstern und gewölbtem Dach, Speichenrädern, die sich drehen, und mitlaufender Kuppelstange.
   Wagen mit Fensterreihe, Türen, gewölbtem Dach, Puffern und Drehgestellen. Teile gleicher Farbe sind zu einem
   Stück zusammengefügt, alle Treibräder einer Lok ein Aufruf: mehr Details, aber weniger Zeichenaufrufe als vorher.
+  Leistung 2 (17.11.2026): einfaches Licht (Lambert) für alles außer Metall und Wasser. Bäume, Felsen und Deko liegen in
+  Kacheln von 24 Feldern, was nicht im Bild ist, wird nicht gezeichnet. Bäume weit weg in einfacher Fernform, Stämme,
+  Blumen, Halme und Steine weit weg gar nicht; Stämme ohne Schatten. Etwa halb so viele Dreiecke, rund 35 % schneller.
