@@ -158,7 +158,7 @@
   }
   function zeigeHinweis(t) { hinweis = t; render(); clearTimeout(hinweisTimer); hinweisTimer = setTimeout(() => { hinweis = ""; render(); }, 2500); }
   function neuesSpiel(runden) {
-    code = Array.from({ length: 4 }, () => ZEICHEN[Math.floor(Math.random() * ZEICHEN.length)]).join("");
+    code = (window.ABEND && ABEND.neuerRaum()) || Array.from({ length: 4 }, () => ZEICHEN[Math.floor(Math.random() * ZEICHEN.length)]).join("");
     history.replaceState(null, "", "?raum=" + code + testTeil());
     hostStarten({ S: M.neu(code, PID, name, { runden }), H: M.leerH() });
   }
@@ -181,14 +181,14 @@
   const symbol = (f, cls) => `<svg viewBox="0 0 20 20" class="${cls || "sym"}" aria-hidden="true">${window.FIGUREN2.SYM[f]}</svg>`;
   function statusZeile() {
     if (rolle === "host") return verbunden ? "" : (fehlerText || "Raum wird geöffnet …");
-    if (rolle === "client" && !verbunden) return S ? "Verbindung zum Spielleiter weg, verbinde neu …" : (fehlerText || "Verbinde mit Raum " + code + " …");
+    if (rolle === "client" && !verbunden) return S ? "Verbindung zum Spielleiter weg, verbinde neu …" : (fehlerText || (window.ABEND && ABEND.aktiv ? "" : "Verbinde mit Raum " + code + " …"));
     return "";
   }
   function render() {
     const st = statusZeile(), ueb = rolle === "client" && S && offlineSeit && Date.now() - offlineSeit > 20000;
     let h = `<div class="status" ${st ? "" : "hidden"}><span>${esc(st)}</span>${ueb ? `<button class="klein" id="uebernehmen">Spielleitung übernehmen</button>` : ""}</div>`;
     if (!rolle) h += code ? bildschirmName() : bildschirmStart();
-    else if (rolle === "pruefen" || !S) h += `<div class="mitte"><p class="leise">Verbinde …</p></div>`;
+    else if (rolle === "pruefen" || !S) h += `<div class="mitte"><p class="leise">${window.ABEND ? ABEND.warten() : "Verbinde …"}</p></div>`;
     else h += ({ lobby: bildschirmLobby, spiel: bildschirmSpiel, rundenende: bildschirmRundenende, ende: bildschirmEnde }[S.phase] || (() => ""))();
     if (hinweis) h += `<div class="toast" role="status">${esc(hinweis)}</div>`;
     if (wunschFuer) h += `<div class="modal"><div class="modalbox"><h2>Welche Farbe wünschst du dir?</h2><div class="wunschwahl">${M.FARBEN.map(f => `<button data-wunsch="${f}" class="${f === "herz" || f === "karo" ? "rot" : ""}">${symbol(f, "sym gross")}<span>${FARBNAME[f]}</span></button>`).join("")}</div><button class="link" id="wunschzurueck">Abbrechen</button></div></div>`;

@@ -27,7 +27,8 @@ const strecke = m => m < 1000 ? Math.floor(m) + " m" : (m / 1000).toLocaleString
 const vor = t => { const m = Math.round((Date.now() - t) / 60000); return m < 1 ? "gerade eben" : m < 60 ? `vor ${m} Min.` : new Date(t).toLocaleString("de-DE", { day: "numeric", month: "numeric", hour: "2-digit", minute: "2-digit" }); };
 
 let PID = ls.get("gg2:pid" + T); if (!PID) { PID = Math.random().toString(36).slice(2, 10); ls.set("gg2:pid" + T, PID); }
-let name = ls.get("gg2:name" + T) || "";
+let name = ls.get("gg2:name" + T) || ls.get("slf:name" + T) || "";      // slf:name: gemeinsamer Name aller Spiele
+const ABEND = window.ABEND && window.ABEND.aktiv ? window.ABEND : null;   // ein Raum für den ganzen Abend (../abend.js)
 let code = (params.get("raum") || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
 
 // rolle: null (Startseite), "allein", "host", "client"
@@ -76,7 +77,7 @@ function startseite() {
     <label class="feld">Dein Name<input id="name" maxlength="20" value="${esc(name)}" autocomplete="nickname" placeholder="z. B. Richard"></label>
     ${g ? `<div class="karte-box"><h2>Weiterspielen</h2>
       <p class="stand">Gespeichert ${esc(vor(g.um))} · ${mehrere ? Object.keys(g.S.spieler).length + " Bahnen" : "allein"} · Spielzeit ${dauer(g.S.zeit || 0)}</p>
-      <button class="knopf" id="weiter">${mehrere ? "Raum öffnen und weiterspielen" : "Weiterspielen"}</button></div>` : ""}
+      <button class="knopf" id="weiter">${mehrere || ABEND ? "Raum öffnen und weiterspielen" : "Weiterspielen"}</button></div>` : ""}
     <div class="karte-box"><h2>Zusammen spielen</h2>
       <p class="leise klein">Du öffnest einen Raum, die anderen kommen per Code, Link oder QR-Code dazu. Jeder bekommt einen eigenen Startbereich mit Zug und Kasse.</p>
       <button class="knopf" id="raum">Raum erstellen</button>
@@ -86,8 +87,8 @@ function startseite() {
       <p class="leise klein">Ohne Raum, nur auf diesem Handy. Speichert über das Menü, um später weiterzuspielen. Wer ohne Speichern schließt, verwirft den Spielstand.</p>
       <button class="knopf zweit" id="allein">Neue Welt allein</button></div>
     <a class="link" href="../">Alle Spiele</a>`;
-  const nameLesen = () => { name = document.getElementById("name").value.trim().slice(0, 20); ls.set("gg2:name" + T, name); return name; };
-  if (g) document.getElementById("weiter").onclick = () => { nameLesen(); const s = G.auffrischen(g.S, PID); mehrere ? raumOeffnen(s, g.um) : alleinSpielen(s, g.um); };
+  const nameLesen = () => { name = document.getElementById("name").value.trim().slice(0, 20); ls.set("gg2:name" + T, name); if (name) ls.set("slf:name" + T, name); return name; };
+  if (g) document.getElementById("weiter").onclick = () => { nameLesen(); const s = G.auffrischen(g.S, PID); mehrere || ABEND ? raumOeffnen(s, g.um) : alleinSpielen(s, g.um); };
   document.getElementById("allein").onclick = () => { nameLesen(); alleinSpielen(G.neu(null, [{ pid: PID, name }]), null); };
   document.getElementById("raum").onclick = () => { if (!nameLesen()) return hinweis("Bitte gib zuerst deinen Namen ein."); raumOeffnen(null, null); };
   document.getElementById("beitreten").onclick = () => {
@@ -119,7 +120,7 @@ function alleinSpielen(stand, um) {
 // ---------- Spielleiter ----------
 function raumOeffnen(stand, um) {
   rolle = "host"; gespeichertUm = um;
-  code = (stand && stand.code) || code || Array.from({ length: 4 }, () => ZEICHEN[Math.floor(Math.random() * ZEICHEN.length)]).join("");
+  code = (ABEND && ABEND.neuerRaum()) || (stand && stand.code) || code || Array.from({ length: 4 }, () => ZEICHEN[Math.floor(Math.random() * ZEICHEN.length)]).join("");
   history.replaceState(null, "", "?raum=" + code + (params.get("test") ? "&test=" + params.get("test") : ""));
   if (stand) { stand.code = code; if (stand.spieler[PID] && name) stand.spieler[PID].name = name; S = stand; lobby = null; }
   else { S = null; lobby = { spieler: [{ pid: PID, name }] }; }
@@ -394,7 +395,7 @@ function neuZeichnen() {
   if (rolle === "client" && !S && !lobby) {
     document.documentElement.classList.remove("spiel"); document.body.classList.remove("spiel");
     weltEl.hidden = true; hud.hidden = true; app.hidden = false;
-    app.innerHTML = `<header class="titel"><h1>Gleisgenossen</h1><p class="leise">Verbinde mit Raum <b>${esc(code)}</b> …</p></header>
+    app.innerHTML = `<header class="titel"><h1>Gleisgenossen</h1><p class="leise">${ABEND ? esc(ABEND.warten()) : `Verbinde mit Raum <b>${esc(code)}</b> …`}</p></header>
       ${fehlerText ? `<p class="stand">${esc(fehlerText)}</p>` : ""}<button class="link" id="weg">Abbrechen</button>`;
     document.getElementById("weg").onclick = verlassen;
     return;
@@ -481,6 +482,7 @@ function speichern() {
 function beenden() {
   if (rolle === "client") { if (confirm("Spiel verlassen? Der Spielleiter spielt weiter, du kannst wieder beitreten.")) verlassen(); return; }
   if (!confirm(gespeichertUm ? "Beenden? Was seit dem letzten Speichern passiert ist, geht verloren." : "Beenden? Diese Welt ist nicht gespeichert und geht verloren.")) return;
+  if (ABEND && ABEND.leiter) { ss.del("gg2:sitzung:" + code + T); if (rolle === "host") anAlle({ t: "weg" }); return ABEND.zurueck(); }
   ss.del("gg2:sitzung:" + code + T);
   if (rolle === "host") { anAlle({ t: "weg" }); try { peer.destroy(); } catch (e) {} peer = null; conns.clear(); }
   welt.markieren(null);
@@ -654,7 +656,7 @@ function menuePanel() {
     ${rolle === "client" ? `<p class="hinweis">Gespeichert wird auf dem Handy des Spielleiters.</p>` :
       `<p class="hinweis">${gespeichertUm ? "Zuletzt gespeichert " + esc(vor(gespeichertUm)) + "." : "Diese Welt ist noch nicht gespeichert."} Wer ohne Speichern beendet, verwirft den Spielstand.</p>`}
     ${rolle === "host" ? `<p class="hinweis">Raumcode <b>${esc(code)}</b>: Weitere Mitspieler können eine Bahn übernehmen, die gerade niemand steuert, oder zuschauen.</p>` : ""}
-    <div class="knopfreihe">${rolle !== "client" ? `<button class="knopf" id="speichern">Speichern</button>` : ""}${rolle === "host" ? `<button class="knopf zweit" id="teilen">Link teilen</button>` : ""}<button class="knopf zweit" id="beenden">${rolle === "client" ? "Verlassen" : "Beenden"}</button></div>
+    <div class="knopfreihe">${rolle !== "client" ? `<button class="knopf" id="speichern">Speichern</button>` : ""}${rolle === "host" ? `<button class="knopf zweit" id="teilen">Link teilen</button>` : ""}<button class="knopf zweit" id="beenden">${rolle === "client" ? "Verlassen" : ABEND && ABEND.leiter ? "Zurück zum Abend" : "Beenden"}</button></div>
     <div><p class="hinweis" style="margin-bottom:6px">Grafik${welt.grafikWahl === "auto" ? ` (gerade: ${welt.stufe === "einfach" ? "Einfach" : "Schön"})` : ""}</p>
       <div class="wahl">${[["auto", "Automatisch"], ["schoen", "Schön"], ["einfach", "Einfach"]].map(([k, t]) => `<button data-grafik="${k}" class="${welt.grafikWahl === k ? "an" : ""}">${t}</button>`).join("")}</div></div>
     <p class="hinweis"><b>So geht's:</b> Kurven bremsen den Zug, auf langen Geraden wird er schnell und verdient mehr.

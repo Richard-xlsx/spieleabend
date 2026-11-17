@@ -212,7 +212,7 @@
     tun({ t: "abgabe", schritt: a.schritt, inhalt });
   }
   function neuesSpiel(tempo, durchgaenge) {
-    code = Array.from({ length: 4 }, () => ZEICHEN[Math.floor(Math.random() * ZEICHEN.length)]).join("");
+    code = (window.ABEND && ABEND.neuerRaum()) || Array.from({ length: 4 }, () => ZEICHEN[Math.floor(Math.random() * ZEICHEN.length)]).join("");
     history.replaceState(null, "", "?raum=" + code + testTeil());
     hostStarten({ S: P.neu(code, PID, name, { tempo, durchgaenge }), K: {} });
   }
@@ -362,7 +362,7 @@
   }
   function statusZeile() {
     if (rolle === "host") return verbunden ? "" : (fehlerText || "Raum wird geöffnet …");
-    if (rolle === "client" && !verbunden) return S ? "Verbindung zum Spielleiter weg, verbinde neu …" : (fehlerText || "Verbinde mit Raum " + code + " …");
+    if (rolle === "client" && !verbunden) return S ? "Verbindung zum Spielleiter weg, verbinde neu …" : (fehlerText || (window.ABEND && ABEND.aktiv ? "" : "Verbinde mit Raum " + code + " …"));
     return "";
   }
   function aktualisiere() {
@@ -397,7 +397,7 @@
   function baue() {
     let h = `<div class="status" id="status" hidden><span></span><button class="klein" id="uebernehmen" hidden>Spielleitung übernehmen</button></div>`;
     if (!rolle) h += code ? bildschirmName() : bildschirmStart();
-    else if (rolle === "pruefen" || !S) h += `<div class="mitte"><p class="leise">Verbinde …</p></div>`;
+    else if (rolle === "pruefen" || !S) h += `<div class="mitte"><p class="leise">${window.ABEND ? ABEND.warten() : "Verbinde …"}</p></div>`;
     else h += ({ lobby: bildschirmLobby, runde: bildschirmRunde, show: bildschirmShow, ende: bildschirmEnde }[S.phase] || (() => ""))();
     app.innerHTML = h;
     binden();

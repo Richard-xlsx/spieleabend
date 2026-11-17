@@ -8,6 +8,8 @@ Online: https://richard-xlsx.github.io/spieleabend/ (GitHub Pages, Projekt githu
 Aufbau
   index.html                      Startseite: Spiel auswählen
   netz.js                         Verbindungseinstellungen für alle Spiele: TURN-Server für verschiedene Netze (z. B. mobile Daten)
+  abend.js                        Ein Raum für den ganzen Abend: Verbindung zum Abendleiter, folgen, Knöpfe in den Spielen anpassen
+  start.js                        Startseite: Bereich „Gemeinsamer Abend“ (eröffnen, beitreten, Spiel für alle wählen)
   buchstabenbattle/               index.html, logic.js (Regeln und Punkte), app.js (Verbindung und Bildschirme)
   stillepost/                     index.html, stillepost-logic.js, stillepost.js
   maumau/                         index.html, maumau-logic.js, maumau.js, holzschnitt.js, figuren2.js (Karten)
@@ -18,6 +20,20 @@ Aufbau
                                   app.js (Startseite, Bedienleiste, Speichern), KONZEPT.md (Plan in drei Schritten)
   _entwurf/                       Kartenentwürfe, wird nicht hochgeladen
 
+
+Gemeinsamer Abend (Startseite)
+  Einer tippt auf „Abend eröffnen“ und bekommt einen Abendcode (4 Zeichen, Link ?abend=CODE, QR-Code). Die anderen treten
+  einmal bei. Tippt der Abendleiter auf ein Spiel, springen alle Handys hinein: Der Abendleiter landet auf den Einstellungen,
+  die anderen warten („Anna stellt das Spiel ein …“) und kommen automatisch in den Raum. Spielcode = Abendcode + Zähler (KRAH1, KRAH2 …),
+  damit ein zweites Spiel derselben Art nicht den alten Stand lädt.
+  „Zurück zum Abend“ (beim Abendleiter anstelle von „Raum verlassen“ / „Alle Spiele“, in Gleisgenossen im Menü statt „Beenden“)
+  holt alle auf die Startseite zurück. Mitspieler sehen diese Knöpfe im Abend nicht, sie folgen dem Abendleiter.
+  „Beitreten per Code“ und „Allein spielen“ sind im Abend ausgeblendet.
+  Technik: Das Handy des Abendleiters hält die Verbindungs-ID fmwabend-CODE, auf der Startseite und in jedem Spiel. Alle anderen
+  fragen dort nach, wo gerade gespielt wird, und folgen. So landen Nachzügler direkt im laufenden Spiel.
+  Der Abendcode steht im Tab (sessionStorage), der Stand beim Abendleiter in localStorage („abend:CODE“); Neuladen ist kein Problem.
+  Ein Spiel macht mit, indem es ../abend.js mit data-spiel="ordner" lädt und beim Erstellen ABEND.neuerRaum() als Code nimmt.
+  Noch nicht: Übernahme, wenn das Handy des Abendleiters ausfällt (die Spiele selbst können die Leitung weiter übernehmen).
 Buchstabenbattle (ab 2 Spielern)
   Ein Buchstabe, fünf Kategorien. Die Kategorien werden jede Runde neu aus einem Pool von 31 gelost (POOL in
   buchstabenbattle/logic.js); erst wenn alle dran waren, wiederholen sie sich.

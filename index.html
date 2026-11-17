@@ -48,11 +48,43 @@ h2{font-size:1.2rem;font-weight:800}
 .spiel .los{grid-column:1/-1;margin-top:10px;background:var(--akzent);color:var(--akzent-text);border-radius:12px;padding:12px;text-align:center;font-weight:700}
 .tipps{background:var(--flaeche2);border-radius:16px;padding:14px 16px;display:flex;flex-direction:column;gap:6px;font-size:.92rem}
 .tipps ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px}
+/* Abend: ein Raum für alle Spiele */
+.abend{background:var(--flaeche);border:1px solid var(--linie);border-radius:20px;padding:18px;display:flex;flex-direction:column;gap:12px}
+.abend.an{border-color:var(--karte-gelb)}
+.abend p{margin:0}
+.feld{display:flex;flex-direction:column;gap:6px;font-weight:600;font-size:.9rem}
+.feld input{font:inherit;font-size:1.05rem;font-weight:500;background:var(--bg);color:var(--text);border:1px solid var(--linie);border-radius:12px;padding:12px 14px;width:100%}
+.feld input:focus{outline:none;border-color:var(--akzent)}
+.knopf{font:inherit;font-weight:700;font-size:1rem;border:0;border-radius:12px;padding:13px 16px;background:var(--akzent);color:var(--akzent-text);cursor:pointer;width:100%}
+.knopf.zweit{background:var(--flaeche2);color:var(--text);border:1px solid var(--linie)}
+.knopf:focus-visible,.link:focus-visible{outline:3px solid var(--karte-gelb);outline-offset:2px}
+.reihe{display:flex;gap:10px}
+.reihe>*{flex:1}
+.link{font:inherit;background:none;border:0;color:var(--leise);text-decoration:underline;cursor:pointer;padding:6px;align-self:center}
+.code{font-family:var(--display);font-weight:800;font-size:2.6rem;letter-spacing:.12em;line-height:1}
+.abendkopf{display:flex;align-items:center;justify-content:space-between;gap:14px}
+.qr{width:112px;flex:none;background:#fff;border-radius:12px;padding:6px}
+.qr svg{display:block;width:100%;height:auto}
+.leute{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:8px}
+.leute li{background:var(--flaeche2);border-radius:999px;padding:6px 12px;font-weight:600;font-size:.92rem;display:flex;align-items:center;gap:7px}
+.leute small{color:var(--leise);font-weight:500}
+.punkt{width:8px;height:8px;border-radius:50%;background:#5C5880;flex:none}
+.punkt.an{background:#4ADE80}
+.laeuft{background:var(--flaeche2);border-radius:14px;padding:12px 14px;display:flex;flex-direction:column;gap:10px}
+.hinweis{font-size:.92rem;color:var(--leise)}
+.hinweis b{color:var(--text)}
+.oder{display:flex;align-items:center;gap:10px;color:var(--leise);font-size:.85rem}
+.oder::before,.oder::after{content:"";flex:1;height:1px;background:var(--linie)}
+body.abend-gast .spiel{opacity:.55}
+body.abend-gast .spiel .los,body.abend-leiter .spiel .los{display:none}
+.toast{position:fixed;left:50%;bottom:max(24px,env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--text);color:var(--bg);border-radius:12px;padding:11px 16px;font-weight:600;max-width:calc(100vw - 32px);box-shadow:0 8px 24px rgba(0,0,0,.35);z-index:10}
 </style>
 </head>
 <body>
 <main>
   <header><p class="etikett">Für 2 bis 8 Leute · jeder am eigenen Handy</p><h1>Spieleabend</h1></header>
+
+  <section class="abend" id="abend" aria-live="polite"></section>
 
   <a class="spiel" href="buchstabenbattle/">
     <div class="zeichen b" aria-hidden="true"><svg viewBox="0 0 60 60" aria-hidden="true"><rect x="21.8" y="5.9" width="8.5" height="5.1" rx="1.4" fill="#1C1A33"/><rect x="24.3" y="10.3" width="3.4" height="3.4" fill="#1C1A33"/><rect x="36.5" y="13.3" width="4.4" height="3.1" rx="0.9" fill="#1C1A33" transform="rotate(45 38.8 14.9)"/><circle cx="26" cy="30" r="17" fill="#FFFDF7" stroke="#1C1A33" stroke-width="2.9"/><path d="M26 30V16.7A13.3 13.3 0 0 1 36.2 38.5z" fill="#FF6B5B" opacity=".45"/><line x1="26.0" y1="14.7" x2="26.0" y2="18.1" stroke="#1C1A33" stroke-width="1.4" stroke-linecap="round"/><line x1="33.6" y1="16.7" x2="32.7" y2="18.4" stroke="#1C1A33" stroke-width="1.4" stroke-linecap="round"/><line x1="39.3" y1="22.3" x2="37.6" y2="23.3" stroke="#1C1A33" stroke-width="1.4" stroke-linecap="round"/><line x1="41.3" y1="30.0" x2="37.9" y2="30.0" stroke="#1C1A33" stroke-width="1.4" stroke-linecap="round"/><line x1="39.3" y1="37.6" x2="37.6" y2="36.7" stroke="#1C1A33" stroke-width="1.4" stroke-linecap="round"/><line x1="33.6" y1="43.3" x2="32.7" y2="41.6" stroke="#1C1A33" stroke-width="1.4" stroke-linecap="round"/><line x1="26.0" y1="45.3" x2="26.0" y2="41.9" stroke="#1C1A33" stroke-width="1.4" stroke-linecap="round"/><line x1="18.3" y1="43.3" x2="19.3" y2="41.6" stroke="#1C1A33" stroke-width="1.4" stroke-linecap="round"/><line x1="12.7" y1="37.7" x2="14.4" y2="36.7" stroke="#1C1A33" stroke-width="1.4" stroke-linecap="round"/><line x1="10.7" y1="30.0" x2="14.1" y2="30.0" stroke="#1C1A33" stroke-width="1.4" stroke-linecap="round"/><line x1="12.7" y1="22.3" x2="14.4" y2="23.3" stroke="#1C1A33" stroke-width="1.4" stroke-linecap="round"/><line x1="18.3" y1="16.7" x2="19.3" y2="18.4" stroke="#1C1A33" stroke-width="1.4" stroke-linecap="round"/><text x="26" y="36.1" text-anchor="middle" font-family="Unbounded,Segoe UI,system-ui,sans-serif" font-weight="800" font-size="17.9" fill="#1C1A33">B</text><g transform="rotate(42 44 40)" stroke="#1C1A33" stroke-width="2" stroke-linejoin="round"><rect x="40.5" y="23.0" width="7" height="34" rx="1.5" fill="#FF6B5B"/><rect x="40.5" y="23.0" width="7" height="6" fill="#F9A8D4"/><path d="M40.5 57.0h7l-3.5 9z" fill="#F3E6CC"/><path d="M42.6 62.0h2.8l-1.4 4z" fill="#1C1A33" stroke="none"/></g></svg></div>
@@ -99,11 +131,17 @@ h2{font-size:1.2rem;font-weight:800}
   <div class="tipps">
     <b>So geht's</b>
     <ul>
-      <li>Einer öffnet ein Spiel und tippt auf „Raum erstellen“.</li>
+      <li>Am einfachsten: Einer eröffnet oben einen Abend, alle treten einmal bei. Danach wählt er die Spiele, und alle Handys springen mit.</li>
+      <li>Oder einzeln: Einer öffnet ein Spiel und tippt auf „Raum erstellen“.</li>
       <li>Die anderen scannen den QR-Code oder öffnen den geteilten Link. Ein Konto braucht niemand.</li>
       <li>Am zuverlässigsten klappt es, wenn alle im selben WLAN sind.</li>
     </ul>
   </div>
 </main>
+<script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+<script src="netz.js"></script>
+<script src="abend.js?v=2026-11-17c"></script>
+<script src="start.js?v=2026-11-17c"></script>
 </body>
 </html>

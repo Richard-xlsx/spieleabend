@@ -162,7 +162,7 @@
   }
   function zeigeHinweis(t) { hinweis = t; render(); clearTimeout(hinweisTimer); hinweisTimer = setTimeout(() => { hinweis = ""; render(); }, 2500); }
   function neuesSpiel() {
-    code = Array.from({ length: 4 }, () => ZEICHEN[Math.floor(Math.random() * ZEICHEN.length)]).join("");
+    code = (window.ABEND && ABEND.neuerRaum()) || Array.from({ length: 4 }, () => ZEICHEN[Math.floor(Math.random() * ZEICHEN.length)]).join("");
     history.replaceState(null, "", "?raum=" + code + testTeil());
     hostStarten(V.neu(code, PID, name));
   }
@@ -187,14 +187,14 @@
   const stein = (n, gross) => `<svg class="stein${gross ? " gross" : ""}" viewBox="0 0 48 48" aria-hidden="true">${steinGrafik(n, 24, 24, 21)}</svg>`;
   function statusZeile() {
     if (rolle === "host") return verbunden ? "" : (fehlerText || "Raum wird geöffnet …");
-    if (rolle === "client" && !verbunden) return S ? "Verbindung zum Spielleiter weg, verbinde neu …" : (fehlerText || "Verbinde mit Raum " + code + " …");
+    if (rolle === "client" && !verbunden) return S ? "Verbindung zum Spielleiter weg, verbinde neu …" : (fehlerText || (window.ABEND && ABEND.aktiv ? "" : "Verbinde mit Raum " + code + " …"));
     return "";
   }
   function render() {
     const st = statusZeile(), ueb = rolle === "client" && S && offlineSeit && Date.now() - offlineSeit > 20000;
     let h = `<div class="status" ${st ? "" : "hidden"}><span>${esc(st)}</span>${ueb ? `<button class="klein" id="uebernehmen">Spielleitung übernehmen</button>` : ""}</div>`;
     if (!rolle) h += code ? bildschirmName() : bildschirmStart();
-    else if (rolle === "pruefen" || !S) h += `<div class="mitte"><p class="leise">Verbinde …</p></div>`;
+    else if (rolle === "pruefen" || !S) h += `<div class="mitte"><p class="leise">${window.ABEND ? ABEND.warten() : "Verbinde …"}</p></div>`;
     else h += S.phase === "lobby" ? bildschirmLobby() : bildschirmSpiel();
     if (hinweis) h += `<div class="toast" role="status">${esc(hinweis)}</div>`;
     app.innerHTML = h;
