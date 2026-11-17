@@ -44,6 +44,8 @@ h2{font-size:1.2rem;font-weight:800}
 .zeichen.k svg{width:60px;height:60px}
 .zeichen.g{background:#BFE3F2;transform:rotate(-2deg)}
 .zeichen.g svg{width:62px;height:62px}
+.zeichen.r{background:#FFD9CF;transform:rotate(2deg)}
+.zeichen.r svg{width:62px;height:62px}
 .spiel p{margin:0;color:var(--leise);font-size:.92rem}
 .spiel .los{grid-column:1/-1;margin-top:10px;background:var(--akzent);color:var(--akzent-text);border-radius:12px;padding:12px;text-align:center;font-weight:700}
 .tipps{background:var(--flaeche2);border-radius:16px;padding:14px 16px;display:flex;flex-direction:column;gap:6px;font-size:.92rem}
@@ -100,6 +102,13 @@ body.abend-gast .spiel .los,body.abend-leiter .spiel .los{display:none}
     <span class="los">Spielen</span>
   </a>
 
+  <a class="spiel" href="kritzelraten/">
+    <div class="zeichen r" aria-hidden="true"><svg viewBox="0 0 60 60" aria-hidden="true"><rect x="7" y="9" width="38" height="30" rx="4" fill="#FFFDF7" stroke="#1C1A33" stroke-width="2.4" transform="rotate(-5 26 24)"/><path d="M15 30c4-10 8-12 11-6s7 4 11-6" fill="none" stroke="#E23B2E" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><g transform="rotate(40 40 40)"><rect x="24" y="36" width="26" height="8" rx="2" fill="#FFD447" stroke="#1C1A33" stroke-width="2"/><path d="M50 36l8 4-8 4z" fill="#F3E6CC" stroke="#1C1A33" stroke-width="2" stroke-linejoin="round"/></g><path d="M38 47h14a4 4 0 0 1 4 4v1a4 4 0 0 1-4 4h-8l-5 3 1-3h-2a4 4 0 0 1-4-4v-1a4 4 0 0 1 4-4z" fill="#5BD69A" stroke="#1C1A33" stroke-width="2"/><text x="45.5" y="54.6" font-family="Inter,system-ui,sans-serif" font-weight="800" font-size="7" text-anchor="middle" fill="#1C1A33">?!</text></svg></div>
+    <h2>Kritzelraten</h2>
+    <p>Einer malt, alle anderen raten auf dem Handy. Je schneller, desto mehr Punkte. Ab 2 Spielern, am lustigsten ab 4.</p>
+    <span class="los">Spielen</span>
+  </a>
+
   <a class="spiel" href="maumau/">
     <div class="zeichen m" aria-hidden="true"><svg viewBox="0 0 52 52"><rect x="6" y="8" width="24" height="34" rx="4" fill="#FFFDF7" stroke="#22202A" stroke-width="2.4" transform="rotate(-12 18 25)"/><rect x="20" y="8" width="24" height="34" rx="4" fill="#FFFDF7" stroke="#22202A" stroke-width="2.4" transform="rotate(10 32 25)"/><path d="M32 21c-1.6-3-6-2.2-6 1 0 2.6 3.2 4.6 6 7.4 2.8-2.8 6-4.8 6-7.4 0-3.2-4.4-4-6-1z" fill="#C8282B" stroke="#22202A" stroke-width="1.4" transform="rotate(10 32 25)"/></svg></div>
     <h2>Mau-Mau</h2>
@@ -141,7 +150,7 @@ body.abend-gast .spiel .los,body.abend-leiter .spiel .los{display:none}
 <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <script src="netz.js"></script>
-<script src="abend.js?v=2026-11-17c"></script>
-<script src="start.js?v=2026-11-17c"></script>
+<script src="abend.js?v=2026-11-17d"></script>
+<script src="start.js?v=2026-11-17d"></script>
 </body>
 </html>

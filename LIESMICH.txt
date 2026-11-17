@@ -16,6 +16,7 @@ Aufbau
   verlies/                        index.html, verlies-logic.js (Regeln, Kampf, Zufall), verlies.js (Verbindung und Bildschirme),
                                   bilder.js (Tuschezeichnungen für Räume, Gegner, Helden)
   viererkette/                    index.html, viererkette-logic.js (Brett, Gewinnreihe), viererkette.js (Verbindung und Bildschirme)
+  kritzelraten/                   index.html, logic.js (Begriffe, Raten, Punkte), app.js (Verbindung, Malfläche, Bildschirme)
   gleisgenossen/                  index.html, logic.js (Karte, Gleise, Zug, Preise), welt.js (3D-Welt mit Three.js),
                                   app.js (Startseite, Bedienleiste, Speichern), KONZEPT.md (Plan in drei Schritten)
   _entwurf/                       Kartenentwürfe, wird nicht hochgeladen
@@ -52,6 +53,17 @@ Stille Post mit Bildern (ab 3 Spielern)
   Danach Diashow, die der Spielleiter durchblättert; Bilder malen sich dabei neu auf. ♥ für Lieblingssätze und -bilder,
   am Ende gewinnt, wer die meisten Herzen hat. Bilder werden als Striche gespeichert (höchstens 4000 Punkte je Bild).
 
+Kritzelraten (ab 2 Spielern, am besten ab 4)
+  Reihum malt einer, alle anderen tippen ihre Tipps ein. Der Maler wählt aus drei Begriffen (leicht, mittel, schwer; 15 s,
+  sonst wird gelost). Malzeit 60, 80, 100 oder 120 s; jeder malt 1×, 2× oder 3×. Bei halber und bei einem Viertel der Zeit
+  wird ein Buchstabe aufgedeckt (höchstens ein Drittel des Worts). Falsche Tipps sehen alle; ist ein Tipp knapp daneben
+  (1 bis 2 Buchstaben), steht dort nur „ist ganz nah dran“. Richtig zählen auch Großschreibung egal, Umlaute als ae/oe/ue,
+  Mehrzahl/Endungen und bei Wörtern ab 6 Buchstaben ein Tippfehler. Erlaubte Varianten stehen in WOERTER mit „;“ (Hase;Kaninchen).
+  Punkte: Rater 100 bis 40 je nach Restzeit, Maler bis 100 (Anteil derer, die es erraten haben). Haben alle es, ist der Zug vorbei.
+  Danach 7 s Auflösung mit Bild, am Ende Rangliste und alle Bilder. Der Spielleiter kann Züge beenden oder überspringen.
+  Den Begriff kennt nur das Handy des Spielleiters; jeder bekommt eine eigene Fassung des Zustands ohne Lösung (KR.sicht).
+  Das Bild geht Strich für Strich live an alle („ab Strich n diese Striche“), höchstens 4000 Punkte wie bei Stille Post.
+  Übernimmt jemand die Spielleitung, wird der laufende Zug ohne Auflösung beendet (der neue Spielleiter kennt den Begriff nicht).
 Mau-Mau (2 bis 8 Spieler)
   Eigenes Blatt im Holzschnitt-Stil (maumau/holzschnitt.js + figuren2.js): Zahlenkarten als Medaille mit Symbolkranz,
   Ass mit Strahlenkranz, König/Dame/Bube gezeichnet, Rückseite schwarz. 32 Karten, ab 6 Spielern zwei Blätter. Jeder bekommt 5.
