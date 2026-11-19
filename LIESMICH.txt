@@ -16,7 +16,7 @@ Aufbau
   maumau/                         index.html, maumau-logic.js, maumau.js, holzschnitt.js, figuren2.js (Karten)
   verlies/                        index.html, verlies-logic.js (Regeln, Kampf, Zufall), verlies.js (Verbindung und Bildschirme),
                                   bilder.js (Tuschezeichnungen für Räume, Gegner, Helden)
-  viererkette/                    index.html, viererkette-logic.js (Brett, Gewinnreihe), viererkette.js (Verbindung und Bildschirme)
+  viererkette/                    „Vier gelingt“ (Ordner heißt weiter so): index.html, viererkette-logic.js (Brett, Gewinnreihe), viererkette.js (Verbindung und Bildschirme)
   kritzelraten/                   „Malalarm“ (Ordner heißt weiter so): index.html, logic.js (Begriffe, Raten, Punkte), app.js (Verbindung, Malfläche, Bildschirme)
   wortverbot/                     „Umschreiben“ (Ordner heißt weiter so): index.html, logic.js (Karten, Teams, Züge, Punkte), app.js (Verbindung, Karten, Zeichnen, Töne)
   gleisgenossen/                  index.html, logic.js (Karte, Gleise, Zug, Preise), welt.js (3D-Welt mit Three.js),
@@ -102,7 +102,7 @@ Mau-Mau (2 bis 8 Spieler)
   Fällt der Spielleiter ganz aus und jemand übernimmt, wird die laufende Runde neu gegeben (die Karten kannte nur sein Handy);
   die Punkte bleiben. Ist jemand nicht verbunden und dran, kann der Spielleiter ihn auslassen.
 
-Viererkette (2 bis 3 Spieler; vom 14.11.2026)
+Vier gelingt (früher Viererkette; 2 bis 3 Spieler; vom 14.11.2026)
   Steine fallen in die gewählte Spalte, wer zuerst vier eigene in einer Reihe hat (waagrecht, senkrecht, schräg), gewinnt
   die Runde; volles Brett = unentschieden. Zu zweit 7 × 6, zu dritt 9 × 7 Felder.
   Steine: jeder wählt in der Lobby einen von fünf (Koralle/Punkt, Gelb/Stern, Flieder/Streifen, Himmelblau/Kreuz,

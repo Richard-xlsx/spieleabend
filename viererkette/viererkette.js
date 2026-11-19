@@ -1,4 +1,4 @@
-// Viererkette: Verbindung (Handy des Spielleiters ist der Server, PeerJS) und Oberfläche.
+// Vier gelingt (früher Viererkette): Verbindung (Handy des Spielleiters ist der Server, PeerJS) und Oberfläche.
 (function () {
   const V = window.VK;
   const app = document.getElementById("app");
@@ -216,7 +216,7 @@
     return `<svg class="titelbild" viewBox="0 -14 ${B * Z + 22} ${H * Z + 50}" role="img" aria-label="Spielbrett mit vier Steinen in einer Reihe">${s}</svg>`;
   }
   function bildschirmStart() {
-    return `<header class="titel">${titelbild()}<h1>Viererkette</h1><p class="leise">Steine fallen von oben in die Spalten. Wer zuerst vier in einer Reihe hat, waagrecht, senkrecht oder schräg, gewinnt. Zu zweit oder zu dritt, jeder auf seinem Handy.</p></header>
+    return `<header class="titel">${titelbild()}<h1>Vier gelingt</h1><p class="leise">Steine fallen von oben in die Spalten. Wer zuerst vier in einer Reihe hat, waagrecht, senkrecht oder schräg, gewinnt. Zu zweit oder zu dritt, jeder auf seinem Handy.</p></header>
       <label class="feld">Dein Name<input id="name" maxlength="20" value="${esc(name)}" autocomplete="nickname" placeholder="z. B. Richard"></label>
       <div class="karte-box"><h2>Neues Spiel</h2><p class="leise klein">Zu zweit auf 7 × 6 Feldern, zu dritt auf einem größeren Brett mit 9 × 7.</p>
         <button class="knopf" id="neu">Raum erstellen</button></div>
@@ -226,7 +226,7 @@
       <a class="link" href="../">Alle Spiele</a>`;
   }
   function bildschirmName() {
-    return `<header class="titel"><h1>Viererkette</h1><p class="leise">Du wurdest in Raum <b>${esc(code)}</b> eingeladen.</p></header>
+    return `<header class="titel"><h1>Vier gelingt</h1><p class="leise">Du wurdest in Raum <b>${esc(code)}</b> eingeladen.</p></header>
       <label class="feld">Dein Name<input id="name" maxlength="20" value="${esc(name)}" autocomplete="nickname" placeholder="z. B. Lena"></label>
       <button class="knopf" id="mitspielen">Mitspielen</button>`;
   }
@@ -234,7 +234,7 @@
     const host = rolle === "host", da = S.reihenfolge.filter(p => S.spieler[p] && online(p)), n = Math.min(da.length, V.MAX), f = V.FELD[Math.max(2, n)];
     let qr = "";
     try { if (window.qrcode) { const q = qrcode(0, "M"); q.addData(link()); q.make(); qr = q.createSvgTag({ cellSize: 5, margin: 2, scalable: true }); } } catch (e) {}
-    return `<header class="titel"><p class="etikett">Viererkette · Raumcode</p><div class="code">${esc(code)}</div></header>
+    return `<header class="titel"><p class="etikett">Vier gelingt · Raumcode</p><div class="code">${esc(code)}</div></header>
       ${qr ? `<div class="qr">${qr}</div>` : ""}
       <div class="reihe"><button class="knopf zweit" id="teilen">Link teilen</button><button class="knopf zweit" id="kopieren">Link kopieren</button></div>
       <div class="karte-box"><h2>Im Raum (${da.length})</h2><ul class="spieler">${S.reihenfolge.filter(p => S.spieler[p]).map(p => {
@@ -319,7 +319,7 @@
       code = c; history.replaceState(null, "", "?raum=" + code + testTeil()); clientStarten();
     };
     if ($("mitspielen")) $("mitspielen").onclick = () => { if (nameAus()) clientStarten(); };
-    if ($("teilen")) $("teilen").onclick = () => { if (navigator.share) navigator.share({ title: "Viererkette", text: "Spiel mit! Raum " + code, url: link() }).catch(() => {}); else kopieren(); };
+    if ($("teilen")) $("teilen").onclick = () => { if (navigator.share) navigator.share({ title: "Vier gelingt", text: "Spiel mit! Raum " + code, url: link() }).catch(() => {}); else kopieren(); };
     if ($("kopieren")) $("kopieren").onclick = kopieren;
     if ($("start")) $("start").onclick = () => tun({ t: "start", teilnehmer: S.reihenfolge.filter(p => S.spieler[p] && online(p)) });
     if ($("weiter")) $("weiter").onclick = () => tun({ t: "weiter" });
