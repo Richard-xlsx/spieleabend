@@ -409,7 +409,7 @@
       <label class="feld">Dein Name<input id="name" maxlength="20" value="${esc(name)}" autocomplete="nickname" placeholder="z. B. Richard"></label>
       <div class="karte"><h2>Neues Spiel</h2>
         <div class="wahl" id="wTempo">${["entspannt", "normal", "schnell"].map(t => `<button data-v="${t}" class="${t === "normal" ? "an" : ""}">${tempoText[t]}</button>`).join("")}</div>
-        <p class="leise klein">Normal: 40 Sekunden zum Schreiben, 80 zum Malen. Für 3 bis 8 Leute.</p>
+        <p class="leise klein">Normal: 40 Sekunden zum Schreiben, 80 zum Malen. Ab 3 Leuten.</p>
         <p class="etikett">Wie oft Bild → Satz?</p>
         <div class="wahl" id="wDurchgaenge" style="gap:6px">${P.DURCHGAENGE.map(d => `<button data-v="${d}" class="${d === 0 ? "an" : ""}" style="padding:8px 4px">${durchgangText(d)}</button>`).join("")}</div>
         <p class="leise klein" id="ablauf">${ablaufText(0)}</p>
