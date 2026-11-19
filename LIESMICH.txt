@@ -14,7 +14,7 @@ Aufbau
                                   (Regeln und Punkte), app.js (Verbindung und Bildschirme)
   stillepost/                     „Pinselpost“ (Ordner heißt weiter so): index.html, stillepost-logic.js, stillepost.js
   maumau/                         index.html, maumau-logic.js, maumau.js, holzschnitt.js, figuren2.js (Karten)
-  verlies/                        index.html, verlies-logic.js (Regeln, Kampf, Zufall), verlies.js (Verbindung und Bildschirme),
+  verlies/                        „Dungeons & Disappointments“ (Ordner heißt weiter so): index.html, verlies-logic.js (Regeln, Kampf, Zufall), verlies.js (Verbindung und Bildschirme),
                                   bilder.js (Tuschezeichnungen für Räume, Gegner, Helden)
   viererkette/                    „Vier gelingt“ (Ordner heißt weiter so): index.html, viererkette-logic.js (Brett, Gewinnreihe), viererkette.js (Verbindung und Bildschirme)
   kritzelraten/                   „Malalarm“ (Ordner heißt weiter so): index.html, logic.js (Begriffe, Raten, Punkte), app.js (Verbindung, Malfläche, Bildschirme)
@@ -111,7 +111,7 @@ Vier gelingt (früher Viererkette; 2 bis 3 Spieler; vom 14.11.2026)
   Siege werden gezählt, jede Runde beginnt der Nächste. Wer als Vierter oder später kommt, schaut zu. Spielleiter kann
   nicht verbundene Spieler auslassen; die Spielleitung lässt sich wie bei den anderen Spielen übernehmen.
 
-Verlies der Helden (2 bis 6 Spieler; Stufe 1 und Ausbau mit Händler und 6 Rollen vom 13.11.2026, Kampfbühne, Karte, Talentbaum,
+Dungeons & Disappointments (früher Verlies der Helden; 2 bis 6 Spieler; Stufe 1 und Ausbau mit Händler und 6 Rollen vom 13.11.2026, Kampfbühne, Karte, Talentbaum,
 Gegner-Eigenschaften, drei Ebenen und Schwierigkeitsstufen vom 14.11.2026)
   Schwierigkeit wählt der Spielleiter in der Lobby: Wanderer (Gegner-Leben und -Schaden ×0,75, Gold ×1,2, Rast 60 %,
   Bewusstlose stehen mit halben Leben auf), Abenteurer (Standard, Rast 40 %, Bewusstlose stehen mit 5 Leben auf),

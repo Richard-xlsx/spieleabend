@@ -1,4 +1,4 @@
-// Verlies der Helden: Verbindung (Handy des Spielleiters ist der Server, PeerJS) und Oberfläche.
+// Dungeons & Disappointments (früher Verlies der Helden): Verbindung (Handy des Spielleiters ist der Server, PeerJS) und Oberfläche.
 // Verbindung wie bei Stille Post: Spielleiter hält den Zustand, alle anderen schicken nur Eingaben.
 (function () {
   const V = window.VL, VB = window.VB;
@@ -314,7 +314,7 @@
   }
 
   function bildschirmStart() {
-    return `<header class="titel">${VBuehne.titelbild()}<h1>Verlies der Helden</h1><p class="leise">Zwei bis sechs Helden steigen gemeinsam hinab: durch den Kerker, die Spinnengrotte und den Glutschlund, mit Händlern, Schätzen und einem Endgegner auf jeder Ebene. Jeder spielt auf seinem Handy, gewonnen wird zusammen.</p></header>
+    return `<header class="titel">${VBuehne.titelbild()}<h1 class="wortmarke">Dungeons &amp; Disappointments</h1><p class="leise">Zwei bis sechs Helden steigen gemeinsam hinab: durch den Kerker, die Spinnengrotte und den Glutschlund, mit Händlern, Schätzen und einem Endgegner auf jeder Ebene. Jeder spielt auf seinem Handy, gewonnen wird zusammen.</p></header>
       <label class="feld">Dein Name<input id="name" maxlength="20" value="${esc(name)}" autocomplete="nickname" placeholder="z. B. Richard"></label>
       <div class="karte"><h2>Neues Spiel</h2><p class="leise klein">Für 2 bis 6 Leute. Je nach Länge 30 bis 90 Minuten. Runde für Runde, ohne Zeitdruck.</p>
         <button class="knopf" id="neu">Raum erstellen</button></div>
@@ -324,7 +324,7 @@
       <a class="link" href="../">Alle Spiele</a>`;
   }
   function bildschirmName() {
-    return `<header class="titel">${VBuehne.titelbild()}<h1>Verlies der Helden</h1><p class="leise">Du wurdest in Raum <b>${esc(code)}</b> eingeladen.</p></header>
+    return `<header class="titel">${VBuehne.titelbild()}<h1 class="wortmarke">Dungeons &amp; Disappointments</h1><p class="leise">Du wurdest in Raum <b>${esc(code)}</b> eingeladen.</p></header>
       <label class="feld">Dein Name<input id="name" maxlength="20" value="${esc(name)}" autocomplete="nickname" placeholder="z. B. Lena"></label>
       <button class="knopf" id="mitspielen">Mitspielen</button>`;
   }
@@ -392,7 +392,7 @@
     let qr = "";
     try { if (window.qrcode) { const q = qrcode(0, "M"); q.addData(link()); q.make(); qr = q.createSvgTag({ cellSize: 5, margin: 2, scalable: true }); } } catch (e) {}
     const ohneRolle = leute.filter(p => !S.rollen[p]);
-    return `<header class="titel"><p class="etikett">Verlies · Raumcode</p><div class="code">${esc(code)}</div></header>
+    return `<header class="titel"><p class="etikett">Dungeons &amp; Disappointments · Raumcode</p><div class="code">${esc(code)}</div></header>
       ${qr ? `<div class="qr">${qr}</div>` : ""}
       <div class="reihe"><button class="knopf zweit" id="teilen">Link teilen</button><button class="knopf zweit" id="kopieren">Link kopieren</button></div>
       <div class="karte"><h2>Wähle deine Rolle</h2><p class="leise klein">Acht Rollen, zwei bis sechs gehen hinab. Neue Fähigkeiten lernt jeder im Talentbaum.</p>${rollenKarten()}
@@ -649,7 +649,7 @@
       code = c; history.replaceState(null, "", "?raum=" + code + testTeil()); clientStarten();
     };
     if ($("mitspielen")) $("mitspielen").onclick = () => { if (nameAus()) clientStarten(); };
-    if ($("teilen")) $("teilen").onclick = () => { if (navigator.share) navigator.share({ title: "Verlies der Helden", text: "Komm mit ins Verlies! Raum " + code, url: link() }).catch(() => {}); else kopieren(); };
+    if ($("teilen")) $("teilen").onclick = () => { if (navigator.share) navigator.share({ title: "Dungeons & Disappointments", text: "Komm mit ins Verlies! Raum " + code, url: link() }).catch(() => {}); else kopieren(); };
     if ($("kopieren")) $("kopieren").onclick = kopieren;
     document.querySelectorAll("[data-rolle]").forEach(b => b.onclick = () => tun({ t: "rolle", rolle: S.rollen[PID] === b.dataset.rolle ? null : b.dataset.rolle }));
     const starten = () => tun({ t: "start", anwesend: S.reihenfolge.filter(p => online(p)), mindestens: TEST ? 1 : 2 });
