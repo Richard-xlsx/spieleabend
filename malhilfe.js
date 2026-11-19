@@ -7,6 +7,8 @@
     ["#2F6FDE", "Blau"], ["#38BDF8", "Hellblau"], ["#2E9B4F", "Grün"], ["#84CC16", "Hellgrün"], ["#8B5A2B", "Braun"],
     ["#F1C27D", "Beige"], ["#9CA3AF", "Grau"], ["#16161D", "Schwarz"], ["#FFFFFF", "Radiergummi"]];
   const STANDARD = "#16161D";
+  // Radiergummi-Symbol: schräger Gummi, vorne rosa, hinten blau, mit Krümeln
+  const RADIERER = `<svg viewBox="2 2 20 20" width="28" height="28" aria-hidden="true" style="display:block;margin:auto"><g transform="rotate(-35 12 12)" stroke="#16161D" stroke-width="1.6" stroke-linejoin="round"><rect x="3" y="8" width="18" height="8" rx="2" fill="#7FB2FF"/><path d="M5 8h6v8H5a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2z" fill="#F4A6B8"/></g><path d="M5 21h4M11 21h2" stroke="#16161D" stroke-width="1.6" stroke-linecap="round"/></svg>`;
   const esc = s => String(s).replace(/"/g, "&quot;");
 
   let stilDa = false;
@@ -25,7 +27,7 @@
   // Farbknöpfe; aktiv = gewählter Farbcode
   function farbKnoepfe(aktiv) {
     stil();
-    return `<div class="farbleiste">${FARBEN.map(([f, n]) => `<button type="button" class="farbe ${String(aktiv).toUpperCase() === f ? "an" : ""}" data-farbe="${f}" style="background:${f}" aria-label="${esc(n)}" title="${esc(n)}">${n === "Radiergummi" ? "⌫" : ""}</button>`).join("")}</div>`;
+    return `<div class="farbleiste">${FARBEN.map(([f, n]) => `<button type="button" class="farbe ${String(aktiv).toUpperCase() === f ? "an" : ""}" data-farbe="${f}" style="background:${f}" aria-label="${esc(n)}" title="${esc(n)}">${n === "Radiergummi" ? RADIERER : ""}</button>`).join("")}</div>`;
   }
   // Klicks auf die Farbknöpfe verbinden; waehle(f) bekommt den Farbcode
   function farbenBinden(waehle) {
