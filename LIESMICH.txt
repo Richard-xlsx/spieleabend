@@ -10,7 +10,7 @@ Aufbau
   netz.js                         Verbindungseinstellungen für alle Spiele: TURN-Server für verschiedene Netze (z. B. mobile Daten)
   abend.js                        Ein Raum für den ganzen Abend: Verbindung zum Abendleiter, folgen, Knöpfe in den Spielen anpassen
   start.js                        Startseite: Bereich „Gemeinsamer Abend“ (eröffnen, beitreten, Spiel für alle wählen)
-  buchstabenbattle/               „Glatt, Pfand, Nuss“ (Ordner heißt weiter so, damit alte Links gehen): index.html, logic.js
+  buchstabenbattle/               „Glatt, Strand, Nuss“ (Ordner heißt weiter so, damit alte Links gehen): index.html, logic.js
                                   (Regeln und Punkte), app.js (Verbindung und Bildschirme)
   stillepost/                     index.html, stillepost-logic.js, stillepost.js
   maumau/                         index.html, maumau-logic.js, maumau.js, holzschnitt.js, figuren2.js (Karten)
@@ -37,8 +37,9 @@ Gemeinsamer Abend (Startseite)
   Der Abendcode steht im Tab (sessionStorage), der Stand beim Abendleiter in localStorage („abend:CODE“); Neuladen ist kein Problem.
   Ein Spiel macht mit, indem es ../abend.js mit data-spiel="ordner" lädt und beim Erstellen ABEND.neuerRaum() als Code nimmt.
   Noch nicht: Übernahme, wenn das Handy des Abendleiters ausfällt (die Spiele selbst können die Leitung weiter übernehmen).
-Glatt, Pfand, Nuss (früher Buchstabenbattle; ab 2 Spielern)
-  Helles Späti-Design: Creme, Flaschengrün, Haselnuss, Eisblau; der Buchstabe sitzt auf einem Kronkorken.
+Glatt, Strand, Nuss (früher Buchstabenbattle; ab 2 Spielern)
+  Helles Design: Creme, Flaschengrün, Haselnuss, Eisblau. Titelbild ist ein Spielzettel auf Karopapier, der Buchstabe sitzt auf
+  einem Kronkorken mit Zeit-Ring drumherum (rot ab 30 s und nach STOPP), die Antwortfelder sehen aus wie Kuli auf Karopapier.
   Ein Buchstabe, fünf Kategorien. Die Kategorien werden jede Runde neu aus einem Pool von 31 gelost (POOL in
   buchstabenbattle/logic.js); erst wenn alle dran waren, wiederholen sie sich.
   3, 5 oder 8 Runden; 2, 3 oder 4 Minuten. Wer alle fünf Felder hat, darf STOPP drücken, dann haben alle noch 10 Sekunden.

@@ -4,17 +4,18 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Glatt, Pfand, Nuss">
+<meta name="apple-mobile-web-app-title" content="Glatt, Strand, Nuss">
 <meta name="theme-color" content="#FFF3DC">
-<title>Glatt, Pfand, Nuss</title>
+<title>Glatt, Strand, Nuss</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@600;800&family=Inter:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@600;800&family=Caveat:wght@600;700&family=Inter:wght@400;500;600;700&display=swap">
 <style>
-/* Glatt, Pfand, Nuss: hell und frech wie ein Späti. Creme, Flaschengrün, Haselnuss, Eisblau; der Buchstabe sitzt auf einem Kronkorken */
+/* Glatt, Strand, Nuss: hell und frech wie ein Späti. Creme, Flaschengrün, Haselnuss, Eisblau; der Buchstabe sitzt auf einem Kronkorken */
 :root{
   --bg:#FFF3DC; --flaeche:#FFFFFF; --flaeche2:#FFF8EC; --text:#2A1A12; --leise:#7A6455; --linie:#E6D2B4;
   --akzent:#E8692E; --akzent-text:#FFFFFF; --karte-gelb:#FFD447; --gut:#2F8F5B; --schlecht:#D2452F;
-  --eis:#2B8FC2; --flasche:#2F8F5B; --nuss:#9A5A26; --schatten:#2A1A12;
+  --eis:#2B8FC2; --flasche:#2F8F5B; --nuss:#9A5A26; --schatten:#2A1A12; --kuli:#2B4FA8; --karo:#C9DCEE;
+  --hand:"Caveat","Segoe Print",cursive;
   --display:"Unbounded","Segoe UI",system-ui,sans-serif; --fliess:"Inter","Segoe UI",system-ui,sans-serif;
   color-scheme:light;
 }
@@ -86,8 +87,25 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--eis);outline-of
 .rang .plus{color:var(--gut);font-weight:600}
 .rang b{font-family:var(--display);font-size:1.15rem}
 .wortmarke{font-size:clamp(1.5rem,7vw,2.1rem);line-height:1.1}
-.wortmarke .w1{color:var(--eis)} .wortmarke .w2{color:var(--flasche)} .wortmarke .w3{color:var(--nuss)}
+.wortmarke .w1{color:var(--eis)} .wortmarke .w2{color:var(--akzent)} .wortmarke .w3{color:var(--nuss)}
 .code{color:var(--text)}
+/* Uhr: Ring um den Kronkorken */
+.uhr{position:relative;width:140px;height:140px;flex:none;display:grid;place-items:center}
+.uhr .ring{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg)}
+.uhr .bahn{fill:none;stroke:var(--linie);stroke-width:8}
+.uhr .rest{fill:none;stroke:var(--flasche);stroke-width:8;stroke-linecap:round;stroke-dasharray:100;stroke-dashoffset:0;transition:stroke-dashoffset 1s linear,stroke .3s}
+.uhr.knapp .rest{stroke:var(--schlecht)}
+.uhr .buchstabe{width:100px;height:100px}
+.uhr .buchstabe span{font-size:3rem}
+.uhr.knapp + div .zeit{color:var(--schlecht)}
+/* Antworten wie auf dem Spielzettel: Karopapier, Kuli-Schrift */
+.zettel{background-color:#fff;background-image:linear-gradient(var(--karo) 1px,transparent 1px),linear-gradient(90deg,var(--karo) 1px,transparent 1px);background-size:16px 16px;
+  border:2px solid var(--text);border-radius:6px;box-shadow:0 4px 0 var(--schatten);padding:12px 14px 6px;gap:4px}
+.zettel .feld{font:700 1.15rem var(--hand);color:var(--kuli);gap:0;border-bottom:2px solid var(--kuli);padding-bottom:2px}
+.zettel .feld:last-child{border-bottom:0}
+.zettel .feld input{font:600 1.65rem var(--hand);color:var(--kuli);background:transparent;border:0;border-radius:0;padding:2px 2px 4px}
+.zettel .feld input::placeholder{color:#9FB2D6}
+.zettel .feld input:focus{background:rgba(255,212,71,.28)}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 </head>
@@ -96,8 +114,8 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--eis);outline-of
 <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <script src="../netz.js"></script>
-<script src="../abend.js?v=2026-11-19a" data-spiel="buchstabenbattle"></script>
+<script src="../abend.js?v=2026-11-19b" data-spiel="buchstabenbattle"></script>
 <script src="logic.js"></script>
-<script src="app.js?v=2026-11-19a"></script>
+<script src="app.js?v=2026-11-19b"></script>
 </body>
 </html>
