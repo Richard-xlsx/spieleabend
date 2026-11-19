@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Campus-Rallye">
+<meta name="theme-color" content="#8FD0F5">
+<title>Campus-Rallye</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@600;800;900&family=Inter:wght@500;600;700;800&display=swap">
+<style>
+/* Campus-Rallye (Arbeitstitel): Fun-Racer im Querformat. Creme, Tinte, Korall, Senf */
+:root{--tinte:#2A1A12;--creme:#FFF6E6;--rot:#E23B2E;--senf:#F2B705;--blau:#2F6FDE;--leise:#7A6658;
+  --display:"Unbounded","Segoe UI",system-ui,sans-serif;--fliess:"Inter","Segoe UI",system-ui,sans-serif}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+[hidden]{display:none!important}
+html,body{margin:0;height:100%;overflow:hidden;background:#8FD0F5;color:var(--tinte);font:15px/1.4 var(--fliess);
+  touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;overscroll-behavior:none}
+canvas{display:block;position:fixed;inset:0;width:100vw;height:100dvh}
+.hud{position:fixed;inset:0;pointer-events:none;
+  padding:max(10px,env(safe-area-inset-top)) max(14px,env(safe-area-inset-right)) max(10px,env(safe-area-inset-bottom)) max(14px,env(safe-area-inset-left))}
+.hud>*{position:absolute}
+.platz{left:max(16px,env(safe-area-inset-left));top:8px;font:900 50px/1 var(--display);color:#fff;-webkit-text-stroke:3px var(--tinte);paint-order:stroke;letter-spacing:-2px}
+.platz small{font-size:19px;-webkit-text-stroke:2px var(--tinte);margin-left:4px;letter-spacing:0}
+.runde{left:max(18px,env(safe-area-inset-left));top:66px;background:var(--creme);border:2.5px solid var(--tinte);border-radius:12px;padding:2px 10px;font:800 13px var(--fliess)}
+.uhr{right:calc(max(14px,env(safe-area-inset-right)) + 74px);top:18px;background:var(--creme);border:2.5px solid var(--tinte);border-radius:12px;padding:2px 10px;font:800 14px var(--fliess);font-variant-numeric:tabular-nums}
+.extra{right:max(14px,env(safe-area-inset-right));top:8px;width:62px;height:62px;border-radius:16px;background:var(--creme);border:3px solid var(--tinte);display:grid;place-items:center;box-shadow:0 4px 0 var(--tinte)}
+.extra.leer svg{opacity:0}
+.extra.neu{animation:hupf .35s}
+@keyframes hupf{50%{transform:scale(1.18)}}
+.mini{left:max(12px,env(safe-area-inset-left));bottom:max(10px,env(safe-area-inset-bottom));width:104px;height:84px;background:rgba(255,246,230,.82);border:2.5px solid var(--tinte);border-radius:14px}
+.lenk{left:50%;bottom:max(10px,env(safe-area-inset-bottom));transform:translateX(-50%);display:flex;align-items:center;gap:8px;background:rgba(22,22,29,.6);color:#fff;border-radius:999px;padding:4px 12px 4px 6px;font:700 12px var(--fliess)}
+.lenk svg{transition:transform .05s linear}
+.knopf{pointer-events:auto;border-radius:50%;border:3px solid var(--tinte);display:grid;place-items:center;font:900 13px var(--fliess);box-shadow:0 4px 0 var(--tinte);touch-action:none}
+.knopf.an{transform:translateY(3px);box-shadow:0 1px 0 var(--tinte)}
+.k-drift{left:calc(max(12px,env(safe-area-inset-left)) + 118px);bottom:max(14px,env(safe-area-inset-bottom));width:80px;height:80px;background:rgba(242,183,5,.85)}
+.k-extra{right:max(18px,env(safe-area-inset-right));bottom:max(14px,env(safe-area-inset-bottom));width:88px;height:88px;background:rgba(226,59,46,.85);color:#fff}
+.tasten .k-drift{left:auto;right:calc(max(18px,env(safe-area-inset-right)) + 100px);bottom:max(14px,env(safe-area-inset-bottom))}
+.k-links,.k-rechts{bottom:max(14px,env(safe-area-inset-bottom));width:80px;height:80px;background:rgba(255,246,230,.85);font-size:26px}
+.k-links{left:calc(max(12px,env(safe-area-inset-left)) + 118px)} .k-rechts{left:calc(max(12px,env(safe-area-inset-left)) + 208px)}
+.tag{transform:translate(-50%,-100%);background:rgba(22,22,29,.72);color:#fff;font:700 12px var(--fliess);padding:2px 8px;border-radius:999px;white-space:nowrap}
+.gross{left:50%;top:38%;transform:translate(-50%,-50%);font:900 92px/1 var(--display);color:#fff;-webkit-text-stroke:4px var(--tinte);paint-order:stroke}
+.gross.klein{font-size:40px}
+.meldung{left:50%;top:22%;transform:translateX(-50%);background:var(--creme);border:2.5px solid var(--tinte);border-radius:999px;padding:4px 14px;font:800 14px var(--fliess);white-space:nowrap}
+.pause{pointer-events:auto;right:calc(max(14px,env(safe-area-inset-right)) + 74px);top:52px;width:36px;height:36px;border-radius:10px;background:var(--creme);border:2.5px solid var(--tinte);font:900 14px var(--fliess);display:grid;place-items:center}
+
+.schicht{position:fixed;inset:0;display:grid;place-items:center;background:rgba(143,208,245,.55);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);overflow:auto;touch-action:pan-y;
+  padding:max(10px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) max(10px,env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left))}
+.kasten{background:var(--creme);border:3px solid var(--tinte);border-radius:22px;box-shadow:0 6px 0 var(--tinte);padding:14px 18px;width:min(640px,100%);display:flex;flex-direction:column;gap:10px}
+h1{font:900 26px/1.05 var(--display);margin:0;letter-spacing:-.02em} h1 span{color:var(--rot)}
+.leise{color:var(--leise);margin:0;font-size:13px}
+.zeile{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.zeile>b{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--leise);min-width:82px}
+.wahl{appearance:none;border:2.5px solid var(--tinte);background:#fff;border-radius:12px;padding:6px 10px;font:700 13px var(--fliess);color:var(--tinte);display:flex;align-items:center;gap:6px;cursor:pointer}
+.wahl.an{background:var(--tinte);color:#fff}
+.los{appearance:none;border:3px solid var(--tinte);background:var(--rot);color:#fff;border-radius:14px;padding:10px 18px;font:900 17px var(--display);box-shadow:0 4px 0 var(--tinte);cursor:pointer}
+.los.zweit{background:#fff;color:var(--tinte)}
+.zurueck{color:var(--leise);font-weight:700;font-size:13px}
+table{border-collapse:collapse;font-variant-numeric:tabular-nums} td{padding:2px 12px 2px 0}
+.hochkant{position:fixed;inset:0;background:var(--creme);display:none;place-items:center;text-align:center;padding:30px;z-index:9}
+.hochkant div{font:800 20px var(--display)}
+@media (orientation:portrait) and (pointer:coarse){.hochkant{display:grid}}
+</style>
+</head>
+<body>
+<div class="hud" id="hud" hidden>
+  <div class="platz" id="platz">1<small>. Platz</small></div>
+  <div class="runde" id="runde">Runde 1/3</div>
+  <div class="uhr" id="uhr">0:00,0</div>
+  <div class="extra leer" id="extra"><svg width="40" height="40" viewBox="10 2 46 56"><g stroke="#2A1A12" stroke-width="2.6" stroke-linejoin="round"><path d="M18 16h30l-4 40H22z" fill="#fff"/><path d="M18 26h30l-1.5 16h-27z" fill="#8B5A2B"/><path d="M48 24c10 0 10 14 0 14" fill="none"/><path d="M26 10c0-4 4-4 4-8M36 10c0-4 4-4 4-8" fill="none" stroke-linecap="round"/></g></svg></div>
+  <button class="pause" id="pause" aria-label="Pause">II</button>
+  <svg class="mini" id="mini" viewBox="0 0 104 84"></svg>
+  <div class="lenk" id="lenk"><svg width="26" height="26" viewBox="0 0 26 26" id="lenkrad"><circle cx="13" cy="13" r="10.5" fill="none" stroke="#fff" stroke-width="2.6"/><path d="M3 13h20M13 13v10" stroke="#fff" stroke-width="2.6"/></svg><span id="lenktext">Handy neigen zum Lenken</span></div>
+  <div class="knopf k-drift" id="kdrift">DRIFT</div>
+  <div class="knopf k-extra" id="kextra">EXTRA</div>
+  <div class="knopf k-links" id="klinks" hidden>◀</div>
+  <div class="knopf k-rechts" id="krechts" hidden>▶</div>
+  <div class="gross" id="gross" hidden></div>
+  <div class="meldung" id="meldung" hidden></div>
+</div>
+
+<div class="schicht" id="start">
+  <div class="kasten">
+    <div><h1>Campus-<span>Rallye</span></h1><p class="leise">Testfahrt: eine Strecke, 3 Runden. Gas gibt das Kart von selbst. Durch die grünen Pfandkisten fahren, um einen Espresso-Boost zu holen.</p></div>
+    <div class="zeile"><b>Fahrzeug</b><span id="fahrzeuge" class="zeile"></span></div>
+    <div class="zeile"><b>Lenken</b><button class="wahl" data-st="neigen">📱 Handy neigen</button><button class="wahl" data-st="tasten">◀ ▶ Tasten</button></div>
+    <div class="zeile"><b>Gegner</b><button class="wahl" data-geg="3">3 Übungsgegner</button><button class="wahl" data-geg="0">Allein fahren</button></div>
+    <div class="zeile" style="justify-content:space-between"><a class="zurueck" href="../">‹ Spielauswahl</a><span class="leise" id="best"></span><button class="los" id="los">Los geht's</button></div>
+    <p class="leise" id="hinweis">Am Computer: Pfeiltasten lenken, Leertaste driftet, E zündet das Extra.</p>
+  </div>
+</div>
+
+<div class="schicht" id="ziel" hidden>
+  <div class="kasten">
+    <h1 id="zieltitel">Im Ziel!</h1>
+    <div class="zeile" style="align-items:flex-start;gap:28px"><table id="zeiten"></table><table id="rangliste"></table></div>
+    <div class="zeile" style="justify-content:space-between"><a class="zurueck" href="../">‹ Spielauswahl</a><span><button class="los zweit" id="menue">Einstellungen</button> <button class="los" id="nochmal">Nochmal</button></span></div>
+  </div>
+</div>
+
+<div class="schicht" id="pausiert" hidden>
+  <div class="kasten" style="width:auto;align-items:center">
+    <h1>Pause</h1>
+    <div class="zeile"><button class="los zweit" id="abbruch">Aufgeben</button><button class="los" id="weiter">Weiter</button></div>
+  </div>
+</div>
+
+<div class="hochkant"><div>📱↻<br>Bitte das Handy quer halten</div></div>
+
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"}}</script>
+<script type="module" src="spiel.js?v=2026-11-19a"></script>
+</body>
+</html>
