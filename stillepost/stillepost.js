@@ -96,7 +96,22 @@
       anwenden(P.aktion(S, K, m.pid, m), true);
       const bekannt = new Set(m.nr === S.spielNr ? (m.bekannt || []) : []);
       for (const k in K) if (!bekannt.has(k)) { try { c.send({ t: "eintrag", nr: S.spielNr, key: k, e: K[k] }); } catch (e) {} }
+      // Kennt der Mitspieler Einträge, die mir fehlen (z. B. nach Neustart des Spielleiters), schickt er sie nach
+      const fehlt = m.nr === S.spielNr ? (m.bekannt || []).filter(k => !K[k]).slice(0, 200) : [];
+      if (fehlt.length) { try { c.send({ t: "schick", nr: S.spielNr, keys: fehlt }); } catch (e) {} }
       geaendert();
+      return;
+    }
+    if (m.t === "nachlieferung") {
+      if (m.nr !== S.spielNr) return;
+      let neu = 0;
+      for (const [k, e] of (m.liste || []).slice(0, 200)) {
+        if (K[k] || !/^\d{1,3}:\d{1,3}$/.test(k) || !e || !S.spieler[e.von]) continue;
+        const typ = P.typVon(+k.split(":")[1]), b = P.bereinigen(typ, e);
+        K[k] = Object.assign({ von: e.von }, b, (typ === "text" ? !b.text : !b.striche.length) ? { leer: true } : {});
+        sendeAlle({ t: "eintrag", nr: S.spielNr, key: k, e: K[k] }); neu++;
+      }
+      if (neu) { letzteSig = ""; geaendert(); }
       return;
     }
     if (!anwenden(P.aktion(S, K, m.pid, m))) geaendert();
@@ -144,6 +159,8 @@
         const alt = S; S = m.s;
         if (!alt || alt.spielNr !== S.spielNr) K = {};
         speichernKopie(); render();
+      } else if (m.t === "schick") {
+        if (S && m.nr === S.spielNr) c.send({ t: "nachlieferung", pid: PID, nr: S.spielNr, liste: (m.keys || []).filter(k => K[k]).map(k => [k, K[k]]) });
       } else if (m.t === "eintrag") {
         if (S && m.nr !== S.spielNr) return;
         K[m.key] = m.e; speichernKopie();
@@ -492,7 +509,7 @@
     if ($("beitreten")) $("beitreten").onclick = () => {
       if (!nameAus()) return;
       const c = ($("code").value || "").toUpperCase().replace(/[^A-Z0-9]/g, ""); if (c.length !== 4) { $("code").focus(); return; }
-      code = c; history.replaceState(null, "", "?raum=" + code + testTeil()); clientStarten();
+      code = c; location.replace("?raum=" + code + testTeil());   // neu laden: war ich hier Spielleiter, geht es als Spielleiter weiter
     };
     if ($("mitspielen")) $("mitspielen").onclick = () => { if (nameAus()) clientStarten(); };
     if ($("teilen")) $("teilen").onclick = () => { if (navigator.share) navigator.share({ title: "Pinselpost", text: "Spiel mit! Raum " + code, url: link() }).catch(() => {}); else kopieren(); };

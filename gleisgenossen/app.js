@@ -95,8 +95,7 @@ function startseite() {
     if (!nameLesen()) return hinweis("Bitte gib zuerst deinen Namen ein.");
     code = document.getElementById("code").value.toUpperCase().replace(/[^A-Z0-9]/g, "");
     if (code.length !== 4) return hinweis("Der Raumcode hat 4 Zeichen.");
-    history.replaceState(null, "", "?raum=" + code + (params.get("test") ? "&test=" + params.get("test") : ""));
-    clientStarten();
+    location.replace("?raum=" + code + (params.get("test") ? "&test=" + params.get("test") : ""));   // neu laden: war ich hier Spielleiter, geht es als Spielleiter weiter
   };
 }
 function einladungSeite() {

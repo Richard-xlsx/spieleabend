@@ -87,6 +87,14 @@ Umschreiben (früher Wortverbot; ab 4 Spielern in zwei Teams, Füchse und Eulen)
   Töne: Summer bei „Erwischt“, Klingeln bei „Richtig“, Ticken in den letzten 5 s, Gong am Ende des Zugs (erst nach dem ersten Tipp).
   Ist der Erklärer 6 s weg, kommt der Nächste aus seinem Team dran; während des Zugs endet der Zug nach 15 s ohne ihn.
   Übernimmt jemand die Spielleitung, endet der laufende Zug (die Karte kannte nur der alte Spielleiter).
+Verbindung und Speicher (netz.js, für alle Spiele)
+  Herzschlag: Beide Seiten jeder Verbindung schicken alle 4 s ein Lebenszeichen; 15 s Stille = Verbindung zu, das Spiel
+  verbindet sich wie bei jedem Abbruch neu (vorher hielten Mitspieler eine tote Verbindung zum weggewischten Spielleiter offen).
+  Aufräumen: Spielstände je Raum (sp:, kr:, wv:, mm:, slf:, vl:, vk:) bekommen einen Zeitstempel und werden nach 12 h gelöscht;
+  ist der Speicher voll, werden sofort alle anderen Räume freigegeben.
+  Beitreten mit Code lädt die Seite mit ?raum=… neu: War dieses Handy dort Spielleiter, geht es als Spielleiter weiter.
+  Pinselpost: Fehlen dem Spielleiter nach einem Neustart Einträge, schicken die Mitspieler sie beim Wiederverbinden nach.
+
 Malhilfen (malhilfe.js, von Pinselpost, Malalarm und Umschreiben geladen)
   Feste Farbleiste mit 13 Farben nach Farbkreis (Gelb, Orange, Rot, Rosa, Lila, Blau, Hellblau, Grün, Hellgrün, Braun,
   Beige, Grau, Schwarz) und Radiergummi; Striche speichern den Farbcode (#RRGGBB), alte Striche mit Farbnummer gehen weiter.

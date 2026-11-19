@@ -314,7 +314,7 @@
     if ($("beitreten")) $("beitreten").onclick = () => {
       if (!nameAus()) return;
       const c = ($("code").value || "").toUpperCase().replace(/[^A-Z0-9]/g, ""); if (c.length !== 4) { $("code").focus(); return; }
-      code = c; history.replaceState(null, "", "?raum=" + code + (params.get("test") ? "&test=" + params.get("test") : "")); clientStarten();
+      code = c; location.replace("?raum=" + code + (params.get("test") ? "&test=" + params.get("test") : ""));   // neu laden: war ich hier Spielleiter, geht es als Spielleiter weiter
     };
     if ($("mitspielen")) $("mitspielen").onclick = () => { if (nameAus()) clientStarten(); };
     if ($("teilen")) $("teilen").onclick = () => { if (navigator.share) navigator.share({ title: "Glatt, Strand, Nuss", text: "Spiel mit! Raum " + code, url: link() }).catch(() => {}); else kopieren(); };
