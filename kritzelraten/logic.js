@@ -1,4 +1,4 @@
-// Kritzelraten: Spielregeln ohne Netzwerk und ohne Oberfläche (window.KR).
+// Malalarm (früher Kritzelraten): Spielregeln ohne Netzwerk und ohne Oberfläche (window.KR).
 // Reihum malt einer einen Begriff, alle anderen raten per Eingabe. Wer schneller rät, bekommt mehr Punkte.
 // Der Begriff steht nur beim Spielleiter im Zustand; an jeden Mitspieler geht mit sicht() eine Fassung ohne Lösung.
 // Phasen: lobby → waehlen (Maler wählt aus drei Begriffen) → malen → aufloesung → (nächster Maler) … → ende

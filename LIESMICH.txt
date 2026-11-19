@@ -17,7 +17,7 @@ Aufbau
   verlies/                        index.html, verlies-logic.js (Regeln, Kampf, Zufall), verlies.js (Verbindung und Bildschirme),
                                   bilder.js (Tuschezeichnungen für Räume, Gegner, Helden)
   viererkette/                    index.html, viererkette-logic.js (Brett, Gewinnreihe), viererkette.js (Verbindung und Bildschirme)
-  kritzelraten/                   index.html, logic.js (Begriffe, Raten, Punkte), app.js (Verbindung, Malfläche, Bildschirme)
+  kritzelraten/                   „Malalarm“ (Ordner heißt weiter so): index.html, logic.js (Begriffe, Raten, Punkte), app.js (Verbindung, Malfläche, Bildschirme)
   wortverbot/                     index.html, logic.js (Karten, Teams, Züge, Punkte), app.js (Verbindung, Karten, Zeichnen, Töne)
   gleisgenossen/                  index.html, logic.js (Karte, Gleise, Zug, Preise), welt.js (3D-Welt mit Three.js),
                                   app.js (Startseite, Bedienleiste, Speichern), KONZEPT.md (Plan in drei Schritten)
@@ -57,7 +57,9 @@ Stille Post mit Bildern (ab 3 Spielern)
   Danach Diashow, die der Spielleiter durchblättert; Bilder malen sich dabei neu auf. ♥ für Lieblingssätze und -bilder,
   am Ende gewinnt, wer die meisten Herzen hat. Bilder werden als Striche gespeichert (höchstens 4000 Punkte je Bild).
 
-Kritzelraten (ab 2 Spielern, am besten ab 4)
+Malalarm (früher Kritzelraten; ab 2 Spielern, am besten ab 4)
+  Ruhiges Design: Nachtblau, warmes Weiß, eine Akzentfarbe (gedämpftes Weckerrot). Titelbild: Wecker mit Buntstift-Zeigern.
+  Die Uhr ist ein kleiner Wecker, in den letzten 10 s rot und leicht wackelnd.
   Reihum malt einer, alle anderen tippen ihre Tipps ein. Der Maler wählt aus drei Begriffen (leicht, mittel, schwer; 15 s,
   sonst wird gelost). Malzeit 60, 80, 100 oder 120 s; jeder malt 1×, 2× oder 3×. Bei halber und bei einem Viertel der Zeit
   wird ein Buchstabe aufgedeckt (höchstens ein Drittel des Worts). Falsche Tipps sehen alle; ist ein Tipp knapp daneben

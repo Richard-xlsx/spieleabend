@@ -1,4 +1,4 @@
-// Kritzelraten: Verbindung (Handy des Spielleiters ist der Server, PeerJS) und Oberfläche. Regeln in logic.js (window.KR).
+// Malalarm (früher Kritzelraten): Verbindung (Handy des Spielleiters ist der Server, PeerJS) und Oberfläche. Regeln in logic.js (window.KR).
 // Das Bild wandert Strich für Strich: Der Maler schickt „ab Strich n diese Striche“, der Spielleiter reicht es weiter.
 // Den Begriff kennt nur der Spielleiter; jeder Mitspieler bekommt mit KR.sicht() seine eigene Fassung des Zustands.
 (function () {
@@ -344,7 +344,7 @@
     if (!S || rolle === "pruefen") return;
     const v = ansicht();
     const z = document.getElementById("zeit");
-    if (z) { z.textContent = zeit(v.rest); z.classList.toggle("knapp", v.phase === "malen" && v.rest <= 10); }
+    if (z) { z.textContent = zeit(v.rest); const k = v.phase === "malen" && v.rest <= 10; z.classList.toggle("knapp", k); const w = document.getElementById("wecker"); if (w) w.classList.toggle("knapp", k); }
     const mk = document.getElementById("maske");
     if (mk && v.maske) {
       const buchst = v.maske.filter(c => c !== " " && c !== "-").length;
@@ -376,29 +376,12 @@
     binden();
   }
 
-  // Titelbild: Zeichenblatt mit Kritzel-Katze, Stift, Sprechblasen mit Tipps
-  const TITELBILD = `<svg class="titelbild" viewBox="0 0 320 150" role="img" aria-label="Ein Zeichenblatt mit einer gekritzelten Katze, ein Stift und Sprechblasen mit Tipps">
-    <rect x="2" y="2" width="316" height="146" rx="20" fill="#BFE3F2"/>
-    <g transform="rotate(-4 120 78)"><rect x="40" y="22" width="160" height="112" rx="8" fill="#FFFDF7" stroke="#1C1A33" stroke-width="2.5"/>
-      <path d="M86 112c-14-2-20-16-14-30 4-10 14-14 24-14 10 0 20 4 24 14 6 14 0 28-14 30z" fill="none" stroke="#16161D" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
-      <path d="M78 74l-4-18 14 10M114 74l4-18-14 10" fill="none" stroke="#16161D" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
-      <circle cx="88" cy="86" r="2.6" fill="#16161D"/><circle cx="104" cy="86" r="2.6" fill="#16161D"/>
-      <path d="M93 94l3 2 3-2" fill="none" stroke="#E23B2E" stroke-width="2.6" stroke-linecap="round"/>
-      <path d="M72 92l-14-2M72 97l-13 3M120 92l14-2M120 97l13 3" stroke="#16161D" stroke-width="2" stroke-linecap="round"/>
-      <path d="M124 110c14 0 22-8 20-20" fill="none" stroke="#16161D" stroke-width="3.2" stroke-linecap="round"/>
-      <path d="M150 50c8-6 18-6 26 2" fill="none" stroke="#F2B705" stroke-width="5" stroke-linecap="round"/></g>
-    <g transform="rotate(38 196 104)"><rect x="150" y="98" width="78" height="13" rx="3" fill="#FF6B57" stroke="#1C1A33" stroke-width="2.2"/>
-      <path d="M228 98l14 6.5-14 6.5z" fill="#F3E6CC" stroke="#1C1A33" stroke-width="2.2" stroke-linejoin="round"/><path d="M237 102l5 2.5-5 2.5z" fill="#1C1A33"/>
-      <rect x="144" y="98" width="8" height="13" rx="2" fill="#E86FB0" stroke="#1C1A33" stroke-width="2.2"/></g>
-    <g font-family="Inter,system-ui,sans-serif" font-weight="700" font-size="13">
-      <path d="M222 20h78a8 8 0 0 1 8 8v14a8 8 0 0 1-8 8h-56l-10 9 2-9h-14a8 8 0 0 1-8-8V28a8 8 0 0 1 8-8z" fill="#FFFDF7" stroke="#1C1A33" stroke-width="2.2"/>
-      <text x="262" y="40" text-anchor="middle" fill="#1C1A33">Hund?</text>
-      <path d="M236 62h64a8 8 0 0 1 8 8v14a8 8 0 0 1-8 8h-40l-10 9 2-9h-16a8 8 0 0 1-8-8V70a8 8 0 0 1 8-8z" fill="#5BD69A" stroke="#1C1A33" stroke-width="2.2"/>
-      <text x="268" y="82" text-anchor="middle" fill="#1C1A33">Katze!</text></g>
-  </svg>`;
+  // Titelbild: klingelnder Wecker mit Buntstiften als Zeigern, daneben ein Zettel mit misslungener Katze
+  const TITELBILD = `<svg class="titelbild" viewBox="0 0 320 150" role="img" aria-label="Ein klingelnder Wecker mit zwei Buntstiften als Zeigern, daneben ein Zettel mit einer gekritzelten Katze"><rect x="2" y="2" width="316" height="146" rx="20" fill="#2A3150"/><g transform="rotate(5 232 82)"><rect x="182" y="40" width="102" height="84" rx="4" fill="#FFFFFF" stroke="#141826" stroke-width="2.4"/></g><g transform="translate(232 82) rotate(6) scale(.62) translate(-96 -84)" fill="none" stroke="#16161D" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"><path d="M86 112c-14-2-20-16-14-30 4-10 14-14 24-14 10 0 20 4 24 14 6 14 0 28-14 30z"/><path d="M78 74l-4-18 14 10M114 74l4-18-14 10"/><circle cx="88" cy="86" r="2.6" fill="#16161D" stroke="none"/><circle cx="104" cy="88" r="2.6" fill="#16161D" stroke="none"/><path d="M93 94l3 2 3-2" stroke="#E05A4E"/><path d="M72 92l-14-2M72 97l-13 3M120 92l14-2M120 97l13 3" stroke-width="2.2"/><path d="M124 110c14 0 22-8 20-20"/></g><path d="M135.1 114.7L125.4 128.1" stroke="#141826" stroke-width="4.199999999999999" stroke-linecap="round"/><path d="M80.9 114.7L90.6 128.1" stroke="#141826" stroke-width="4.199999999999999" stroke-linecap="round"/><g transform="translate(75.0 45.4) rotate(-42)"><path d="M-18.5 5.3A18.5 18.5 0 0 1 18.5 5.3z" fill="#FBF7EF" stroke="#141826" stroke-width="3" stroke-linejoin="round"/><circle cx="0" cy="-14.5" r="3.5" fill="#141826"/></g><g transform="translate(141.0 45.4) rotate(42)"><path d="M-18.5 5.3A18.5 18.5 0 0 1 18.5 5.3z" fill="#FBF7EF" stroke="#141826" stroke-width="3" stroke-linejoin="round"/><circle cx="0" cy="-14.5" r="3.5" fill="#141826"/></g><path d="M108 38V28.32" stroke="#141826" stroke-width="3" stroke-linecap="round"/><circle cx="108" cy="26.6" r="4.0" fill="#141826"/><circle cx="108" cy="82" r="44" fill="#FBF7EF" stroke="#141826" stroke-width="3"/><circle cx="108" cy="82" r="37.0" fill="none" stroke="#D9CDB8" stroke-width="1.7999999999999998"/><line x1="108.0" y1="47.7" x2="108.0" y2="53.0" stroke="#141826" stroke-width="1.7999999999999998" stroke-linecap="round"/><line x1="125.2" y1="52.3" x2="123.8" y2="54.6" stroke="#141826" stroke-width="1.7999999999999998" stroke-linecap="round"/><line x1="137.7" y1="64.8" x2="135.4" y2="66.2" stroke="#141826" stroke-width="1.7999999999999998" stroke-linecap="round"/><line x1="142.3" y1="82.0" x2="137.0" y2="82.0" stroke="#141826" stroke-width="1.7999999999999998" stroke-linecap="round"/><line x1="137.7" y1="99.2" x2="135.4" y2="97.8" stroke="#141826" stroke-width="1.7999999999999998" stroke-linecap="round"/><line x1="125.2" y1="111.7" x2="123.8" y2="109.4" stroke="#141826" stroke-width="1.7999999999999998" stroke-linecap="round"/><line x1="108.0" y1="116.3" x2="108.0" y2="111.0" stroke="#141826" stroke-width="1.7999999999999998" stroke-linecap="round"/><line x1="90.8" y1="111.7" x2="92.2" y2="109.4" stroke="#141826" stroke-width="1.7999999999999998" stroke-linecap="round"/><line x1="78.3" y1="99.2" x2="80.6" y2="97.8" stroke="#141826" stroke-width="1.7999999999999998" stroke-linecap="round"/><line x1="73.7" y1="82.0" x2="79.0" y2="82.0" stroke="#141826" stroke-width="1.7999999999999998" stroke-linecap="round"/><line x1="78.3" y1="64.8" x2="80.6" y2="66.2" stroke="#141826" stroke-width="1.7999999999999998" stroke-linecap="round"/><line x1="90.8" y1="52.3" x2="92.2" y2="54.6" stroke="#141826" stroke-width="1.7999999999999998" stroke-linecap="round"/><line x1="47.6" y1="44.2" x2="40.8" y2="40.0" stroke="#E05A4E" stroke-width="2.7" stroke-linecap="round"/><line x1="31.8" y1="57.3" x2="26.0" y2="55.4" stroke="#E05A4E" stroke-width="2.7" stroke-linecap="round"/><line x1="168.4" y1="44.2" x2="175.2" y2="40.0" stroke="#E05A4E" stroke-width="2.7" stroke-linecap="round"/><line x1="184.2" y1="57.3" x2="190.0" y2="55.4" stroke="#E05A4E" stroke-width="2.7" stroke-linecap="round"/><g transform="translate(108 82) rotate(-58)" stroke="#141826" stroke-width="1.8" stroke-linejoin="round"><rect x="-3.2" y="-15.200000000000003" width="6.4" height="11.200000000000003" rx="1" fill="#4F72B8"/><path d="M-3.2 -15.200000000000003L0 -24.200000000000003L3.2 -15.200000000000003z" fill="#EAD9BC"/><path d="M-1 -21.200000000000003L0 -24.200000000000003L1 -21.200000000000003z" fill="#4F72B8" stroke="none"/></g><g transform="translate(108 82) rotate(52)" stroke="#141826" stroke-width="1.8" stroke-linejoin="round"><rect x="-3.2" y="-26.200000000000003" width="6.4" height="22.200000000000003" rx="1" fill="#E05A4E"/><path d="M-3.2 -26.200000000000003L0 -35.2L3.2 -26.200000000000003z" fill="#EAD9BC"/><path d="M-1 -32.2L0 -35.2L1 -32.2z" fill="#E05A4E" stroke="none"/></g><circle cx="108" cy="82" r="3.5" fill="#141826"/></svg>`;
+  const WECKER = '<svg class="weckersymbol" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="7.5"/><path d="M12 9.5V13l2.5 1.6M4 6.2 6.6 3.8M20 6.2 17.4 3.8M7 19.6 5.6 21M17 19.6l1.4 1.4"/></svg>';
   const wahlKnoepfe = (id, werte, an, text) => `<div class="wahl" id="${id}">${werte.map(w => `<button data-v="${w}" class="${w === an ? "an" : ""}">${text(w)}</button>`).join("")}</div>`;
   function bildschirmStart() {
-    return `<header class="titel">${TITELBILD}<h1>Kritzelraten</h1><p class="leise">Reihum malt einer einen Begriff, alle anderen raten auf ihrem Handy. Wer schneller rät, bekommt mehr Punkte.</p></header>
+    return `<header class="titel">${TITELBILD}<h1>Malalarm</h1><p class="leise">Reihum malt einer einen Begriff, alle anderen raten auf ihrem Handy. Wer schneller rät, bekommt mehr Punkte.</p></header>
       <label class="feld">Dein Name<input id="name" maxlength="20" value="${esc(name)}" autocomplete="nickname" placeholder="z. B. Richard"></label>
       <div class="karte"><h2>Neues Spiel</h2>
         <p class="leise klein">Zeit zum Malen</p>${wahlKnoepfe("wZeit", KR.ZEITEN, 80, w => w + " s")}
@@ -410,7 +393,7 @@
       <a class="link" href="../">Alle Spiele</a>`;
   }
   function bildschirmName() {
-    return `<header class="titel">${TITELBILD}<h1>Kritzelraten</h1><p class="leise">Du wurdest in Raum <b>${esc(code)}</b> eingeladen.</p></header>
+    return `<header class="titel">${TITELBILD}<h1>Malalarm</h1><p class="leise">Du wurdest in Raum <b>${esc(code)}</b> eingeladen.</p></header>
       <label class="feld">Dein Name<input id="name" maxlength="20" value="${esc(name)}" autocomplete="nickname" placeholder="z. B. Lena"></label>
       <button class="knopf" id="mitspielen">Mitspielen</button>`;
   }
@@ -418,7 +401,7 @@
     const host = rolle === "host", da = S.reihenfolge.filter(p => S.spieler[p] && online(p));
     let qr = "";
     try { if (window.qrcode) { const q = qrcode(0, "M"); q.addData(link()); q.make(); qr = q.createSvgTag({ cellSize: 5, margin: 2, scalable: true }); } } catch (e) {}
-    return `<header class="titel"><p class="etikett">Kritzelraten · Raumcode</p><div class="code">${esc(code)}</div></header>
+    return `<header class="titel"><p class="etikett">Malalarm · Raumcode</p><div class="code">${esc(code)}</div></header>
       ${qr ? `<div class="qr">${qr}</div>` : ""}
       <div class="reihe"><button class="knopf zweit" id="teilen">Link teilen</button><button class="knopf zweit" id="kopieren">Link kopieren</button></div>
       <div class="karte"><h2>Im Raum (${da.length})</h2><ul class="spieler">${S.reihenfolge.filter(p => S.spieler[p]).map(p => `<li><i class="punkt ${online(p) ? "an" : ""}"></i>${esc(sp(p).name)}${p === S.host ? " <small>Spielleiter</small>" : ""}${p === PID ? " <small>du</small>" : ""}</li>`).join("")}</ul></div>
@@ -439,16 +422,16 @@
   const ueberspringen = text => rolle === "host" ? `<button class="link" id="ueberspringen">${text}</button>` : "";
   function bildschirmWaehlen() {
     const v = ansicht();
-    if (v.maler === PID) return `${leiste()}<div class="spielkopf"><div><p class="etikett">${zugText()}</p><h2>Du malst! Such dir einen Begriff aus</h2></div><div class="zeit" id="zeit"></div></div>
+    if (v.maler === PID) return `${leiste()}<div class="spielkopf"><div><p class="etikett">${zugText()}</p><h2>Du malst! Such dir einen Begriff aus</h2></div><div class="wecker" id="wecker">${WECKER}<span class="zeit" id="zeit"></span></div></div>
       <div class="auswahl">${(v.auswahl || []).map((a, i) => `<button data-wahl="${i}"><span>${esc(a.w)}</span><small>${a.st}</small></button>`).join("")}</div>
       <p class="leise klein mitte">Wählst du nicht, wird gelost.</p>${ueberspringen("Diesen Zug überspringen")}`;
-    return `${leiste()}<div class="spielkopf"><div><p class="etikett">${zugText()}</p><h2>${esc(sp(v.maler).name)} sucht sich einen Begriff aus …</h2></div><div class="zeit" id="zeit"></div></div>
+    return `${leiste()}<div class="spielkopf"><div><p class="etikett">${zugText()}</p><h2>${esc(sp(v.maler).name)} sucht sich einen Begriff aus …</h2></div><div class="wecker" id="wecker">${WECKER}<span class="zeit" id="zeit"></span></div></div>
       <div class="bildbox" id="bild"></div>
       <p class="leise mitte">Gleich wird gemalt. Halte die Finger bereit!</p>${ueberspringen(`${esc(sp(v.maler).name)} überspringen`)}`;
   }
   function bildschirmMalen() {
     const v = ansicht();
-    if (v.maler === PID) return `<div class="spielkopf"><div><p class="etikett">Male</p><div class="malwort">${esc(v.wort)}</div></div><div class="zeit" id="zeit"></div></div>
+    if (v.maler === PID) return `<div class="spielkopf"><div><p class="etikett">Male</p><div class="malwort">${esc(v.wort)}</div></div><div class="wecker" id="wecker">${WECKER}<span class="zeit" id="zeit"></span></div></div>
       <div class="malbox" id="malbox"></div>
       <div class="werkzeug">${FARBEN.map((f, i) => `<button class="farbe ${malFarbe === i ? "an" : ""}" data-farbe="${i}" style="background:${f}" aria-label="${i === FARBEN.length - 1 ? "Radiergummi" : "Farbe " + (i + 1)}">${i === FARBEN.length - 1 ? "⌫" : ""}</button>`).join("")}</div>
       <div class="werkzeug">${[1, 2, 3].map(d => `<button class="klein ${d === malDicke ? "an" : ""}" data-dicke="${d}">${["Fein", "Mittel", "Dick"][d - 1]}</button>`).join("")}
@@ -456,7 +439,7 @@
       <p class="leise klein">Keine Buchstaben oder Zahlen malen, das wäre geschummelt.</p>
       <div class="karte"><h2>Die Tipps der anderen</h2><ul class="tippliste" id="tippliste"></ul></div>
       ${leiste()}${ueberspringen("Zug beenden")}`;
-    return `${leiste()}<div class="spielkopf"><div><p class="etikett">${esc(sp(v.maler).name)} malt</p></div><div class="zeit" id="zeit"></div></div>
+    return `${leiste()}<div class="spielkopf"><div><p class="etikett">${esc(sp(v.maler).name)} malt</p></div><div class="wecker" id="wecker">${WECKER}<span class="zeit" id="zeit"></span></div></div>
       <div class="maske" id="maske" role="img"></div>
       <div class="bildbox" id="bild"></div>
       ${geraten() ? `<div class="karte mitte"><h2>Richtig: ${esc(v.wort)} ✓</h2><p class="leise">+${v.geraten[PID]} Punkte. Mal sehen, wer es noch errät …</p></div>`
@@ -497,7 +480,7 @@
       code = c; history.replaceState(null, "", "?raum=" + code + testTeil()); clientStarten();
     };
     if ($("mitspielen")) $("mitspielen").onclick = () => { if (nameAus()) clientStarten(); };
-    if ($("teilen")) $("teilen").onclick = () => { if (navigator.share) navigator.share({ title: "Kritzelraten", text: "Spiel mit! Raum " + code, url: link() }).catch(() => {}); else kopieren(); };
+    if ($("teilen")) $("teilen").onclick = () => { if (navigator.share) navigator.share({ title: "Malalarm", text: "Spiel mit! Raum " + code, url: link() }).catch(() => {}); else kopieren(); };
     if ($("kopieren")) $("kopieren").onclick = kopieren;
     if ($("start")) $("start").onclick = () => tun({ t: "start", teilnehmer: S.reihenfolge.filter(p => S.spieler[p] && online(p)) });
     if ($("nochmal")) $("nochmal").onclick = () => tun({ t: "neustart" });
