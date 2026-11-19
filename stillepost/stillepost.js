@@ -345,6 +345,7 @@
   const online = p => !!(S && S.online && S.online.includes(p));
   const zeit = s => s == null ? "" : Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0");
   const tempoText = { entspannt: "Entspannt", normal: "Normal", schnell: "Schnell", test: "Test" };
+  const tempoInfo = t => `${tempoText[t]}: ${P.TEMPO[t][0]} Sekunden zum Schreiben, ${P.TEMPO[t][1]} zum Malen. Ab 3 Leuten.`;
   const durchgangText = d => (d ? d + "×" : "Auto");
   const ablaufText = d => (d ? "Satz" + " → Bild → Satz".repeat(d) : "Jeder ist bei jeder Kette einmal dran");
 
@@ -409,7 +410,7 @@
       <label class="feld">Dein Name<input id="name" maxlength="20" value="${esc(name)}" autocomplete="nickname" placeholder="z. B. Richard"></label>
       <div class="karte"><h2>Neues Spiel</h2>
         <div class="wahl" id="wTempo">${["entspannt", "normal", "schnell"].map(t => `<button data-v="${t}" class="${t === "normal" ? "an" : ""}">${tempoText[t]}</button>`).join("")}</div>
-        <p class="leise klein">Normal: 40 Sekunden zum Schreiben, 80 zum Malen. Ab 3 Leuten.</p>
+        <p class="leise klein" id="tempoinfo">${tempoInfo("normal")}</p>
         <p class="etikett">Wie oft Bild → Satz?</p>
         <div class="wahl" id="wDurchgaenge" style="gap:6px">${P.DURCHGAENGE.map(d => `<button data-v="${d}" class="${d === 0 ? "an" : ""}" style="padding:8px 4px">${durchgangText(d)}</button>`).join("")}</div>
         <p class="leise klein" id="ablauf">${ablaufText(0)}</p>
@@ -505,6 +506,7 @@
     const nameAus = () => { const n = ($("name").value || "").trim().slice(0, 20); if (!n) { $("name").focus(); return null; } name = n; ls.set("slf:name", n); return n; };
     if ($("uebernehmen")) $("uebernehmen").onclick = uebernehmen;
     document.querySelectorAll(".wahl").forEach(w => w.querySelectorAll("button").forEach(b => b.onclick = () => { w.querySelectorAll("button").forEach(x => x.classList.remove("an")); b.classList.add("an"); }));
+    if ($("wTempo")) $("wTempo").querySelectorAll("button").forEach(b => b.addEventListener("click", () => { $("tempoinfo").textContent = tempoInfo(b.dataset.v); }));
     if ($("wDurchgaenge")) $("wDurchgaenge").querySelectorAll("button").forEach(b => b.addEventListener("click", () => { $("ablauf").textContent = ablaufText(+b.dataset.v); }));
     if ($("neu")) $("neu").onclick = () => { if (nameAus()) neuesSpiel(document.querySelector("#wTempo .an").dataset.v, +document.querySelector("#wDurchgaenge .an").dataset.v); };
     if ($("beitreten")) $("beitreten").onclick = () => {
