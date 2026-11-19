@@ -19,8 +19,10 @@ Aufbau
   viererkette/                    „Vier gelingt“ (Ordner heißt weiter so): index.html, viererkette-logic.js (Brett, Gewinnreihe), viererkette.js (Verbindung und Bildschirme)
   kritzelraten/                   „Malalarm“ (Ordner heißt weiter so): index.html, logic.js (Begriffe, Raten, Punkte), app.js (Verbindung, Malfläche, Bildschirme)
   wortverbot/                     „Umschreiben“ (Ordner heißt weiter so): index.html, logic.js (Karten, Teams, Züge, Punkte), app.js (Verbindung, Karten, Zeichnen, Töne)
-  kart/                           „Campus-Rallye“ (Arbeitstitel, noch Testfahrt, nicht in der Spielauswahl): index.html, spiel.js (3D-Strecke,
-                                  Fahrphysik, Neigen zum Lenken, Übungsgegner). Testlink: …/kart/  ?auto lässt das eigene Kart selbst fahren
+  kart/                           „Campus-Rallye“ (Arbeitstitel, Testversion, nicht in der Spielauswahl): index.html, spiel.js (3D-Strecke,
+                                  Fahrphysik, Neigen zum Lenken, Übungsgegner, Mehrspieler). Testlink: …/kart/
+                                  Zusammen fahren: jedes Handy rechnet sein Kart selbst und schickt 15×/s seinen Stand an den Spielleiter,
+                                  der rechnet die Übungsgegner und verteilt alles. Zum Testen: ?auto (Kart fährt selbst), ?runden=1
   gleisgenossen/                  index.html, logic.js (Karte, Gleise, Zug, Preise), welt.js (3D-Welt mit Three.js),
                                   app.js (Startseite, Bedienleiste, Speichern), KONZEPT.md (Plan in drei Schritten)
   _entwurf/                       Kartenentwürfe, wird nicht hochgeladen
