@@ -1,4 +1,4 @@
-// Wortverbot: Verbindung (Handy des Spielleiters ist der Server, PeerJS) und Oberfläche. Regeln in logic.js (window.WV).
+// Umschreiben (früher Wortverbot): Verbindung (Handy des Spielleiters ist der Server, PeerJS) und Oberfläche. Regeln in logic.js (window.WV).
 // Die Karte kennt nur der Spielleiter; jeder Mitspieler bekommt mit WV.sicht() seine eigene Fassung des Zustands.
 // In Zeichen-Runden schickt der Zeichner sein ganzes Bild alle 150 ms, der Spielleiter reicht es an alle weiter.
 (function () {
@@ -368,25 +368,31 @@
   }
 
   // Titelbild: Karte mit durchgestrichenen Wörtern, Sanduhr und Summer
-  const TITELBILD = `<svg class="titelbild" viewBox="0 0 320 150" role="img" aria-label="Eine Spielkarte mit durchgestrichenen Wörtern, eine Sanduhr und ein roter Summer">
-    <rect x="2" y="2" width="316" height="146" rx="20" fill="#FFE3A3"/>
-    <g transform="rotate(-6 110 76)"><rect x="56" y="16" width="112" height="124" rx="12" fill="#FFFDF7" stroke="#142B33" stroke-width="2.5"/>
-      <text x="112" y="44" text-anchor="middle" font-family="Unbounded,system-ui,sans-serif" font-weight="800" font-size="15" fill="#142B33">Kaktus</text>
-      <path d="M68 54h88" stroke="#142B33" stroke-width="2"/>
-      <g font-family="Inter,system-ui,sans-serif" font-weight="700" font-size="12" fill="#C6362F" text-anchor="middle">
-        <text x="112" y="72">Stacheln</text><text x="112" y="90">Wüste</text><text x="112" y="108">Pflanze</text><text x="112" y="126">grün</text></g>
-      <path d="M84 68l56 0M92 86l40 0" stroke="#142B33" stroke-width="2.4" stroke-linecap="round"/></g>
-    <g transform="translate(196 34)"><path d="M0 0h40M0 76h40" stroke="#142B33" stroke-width="5" stroke-linecap="round"/>
-      <path d="M4 2c0 22 14 26 14 36S4 52 4 74h32c0-22-14-26-14-36S36 24 36 2z" fill="#BFE3F2" stroke="#142B33" stroke-width="2.5" stroke-linejoin="round"/>
-      <path d="M10 66c4-8 16-8 20 0z M18 40v12" fill="#F2B705" stroke="#F2B705" stroke-width="3" stroke-linecap="round"/></g>
-    <g transform="translate(262 82)"><ellipse cx="22" cy="40" rx="24" ry="8" fill="#142B33"/><rect x="-2" y="26" width="48" height="14" fill="#142B33"/>
-      <ellipse cx="22" cy="26" rx="24" ry="8" fill="#3A4A52"/><path d="M6 24c0-14 32-14 32 0z" fill="#FF5A5F" stroke="#142B33" stroke-width="2.5"/>
-      <path d="M2 4l-8-6M22 -2v-10M42 4l8-6" stroke="#142B33" stroke-width="2.6" stroke-linecap="round"/></g>
+  const TITELBILD = `<svg class="titelbild" viewBox="0 0 320 150" role="img" aria-label="Eine Silbermedaille mit durchgestrichenem Wort und eine Goldmedaille mit Sprechblase">
+    <rect x="2" y="2" width="316" height="146" rx="20" fill="#262D36"/>
+    <g fill="#E9B949"><path d="M268 34l3 8 8 3-8 3-3 8-3-8-8-3 8-3z"/><path d="M286 98l2 5 5 2-5 2-2 5-2-5-5-2 5-2z" opacity=".8"/><path d="M44 30l2 5 5 2-5 2-2 5-2-5-5-2 5-2z" fill="#C3CBD3" opacity=".8"/></g>
+    <g transform="rotate(-9 104 92)">
+      <path d="M82 10h14l14 48h-14z" fill="#7FB2FF" stroke="#14181E" stroke-width="2.4" stroke-linejoin="round"/>
+      <path d="M126 10h-14l-14 48h14z" fill="#5E8ED6" stroke="#14181E" stroke-width="2.4" stroke-linejoin="round"/>
+      <circle cx="104" cy="94" r="36" fill="#C3CBD3" stroke="#14181E" stroke-width="2.6"/>
+      <circle cx="104" cy="94" r="28" fill="#DDE3E8" stroke="#8E98A3" stroke-width="2"/>
+      <rect x="84" y="86" width="40" height="8" rx="4" fill="#8E98A3"/>
+      <rect x="90" y="100" width="28" height="6" rx="3" fill="#B2BBC4"/>
+      <path d="M80 98l48-16" stroke="#E05A4E" stroke-width="4" stroke-linecap="round"/>
+    </g>
+    <g transform="rotate(6 196 88)">
+      <path d="M170 6h18l16 46h-18z" fill="#FF8A3D" stroke="#14181E" stroke-width="2.4" stroke-linejoin="round"/>
+      <path d="M222 6h-18l-16 46h18z" fill="#E86E25" stroke="#14181E" stroke-width="2.4" stroke-linejoin="round"/>
+      <circle cx="196" cy="94" r="44" fill="#E9B949" stroke="#14181E" stroke-width="2.6"/>
+      <circle cx="196" cy="94" r="35" fill="#F4D27A" stroke="#B8862B" stroke-width="2"/>
+      <path d="M176 78h40a6 6 0 0 1 6 6v18a6 6 0 0 1-6 6h-24l-10 8 2-8h-8a6 6 0 0 1-6-6V84a6 6 0 0 1 6-6z" fill="#FFF8E6" stroke="#14181E" stroke-width="2.4" stroke-linejoin="round"/>
+      <path d="M180 93c4-7 8-7 12 0s8 7 12 0 8-7 12 0" fill="none" stroke="#B8862B" stroke-width="3" stroke-linecap="round"/>
+    </g>
   </svg>`;
   const wahlKnoepfe = (id, werte, an, text) => `<div class="wahl" id="${id}">${werte.map(w => `<button data-v="${w}" class="${String(w) === String(an) ? "an" : ""}">${text(w)}</button>`).join("")}</div>`;
   const ARTEN_WAHL = ["nein", "ja"], artenText = w => w === "ja" ? "Mit Zeichnen & Pantomime" : "Nur Erklären";
   function bildschirmStart() {
-    return `<header class="titel">${TITELBILD}<h1>Wortverbot</h1><p class="leise">Zwei Teams. Erklär deinem Team Begriffe, ohne die verbotenen Wörter zu sagen. Das andere Team liest mit und drückt den Summer.</p></header>
+    return `<header class="titel">${TITELBILD}<h1 class="wortmarke"><span class="silber">Reden ist Silber,</span> <span class="gold">Umschreiben ist Gold</span></h1><p class="leise">Zwei Teams. Erklär deinem Team Begriffe, ohne die verbotenen Wörter zu sagen. Das andere Team liest mit und drückt den Summer.</p></header>
       <label class="feld">Dein Name<input id="name" maxlength="20" value="${esc(name)}" autocomplete="nickname" placeholder="z. B. Richard"></label>
       <div class="karte"><h2>Neues Spiel</h2>
         <p class="leise klein">Zeit pro Zug</p>${wahlKnoepfe("wZeit", WV.ZEITEN, 90, w => w + " s")}
@@ -399,7 +405,7 @@
       <a class="link" href="../">Alle Spiele</a>`;
   }
   function bildschirmName() {
-    return `<header class="titel">${TITELBILD}<h1>Wortverbot</h1><p class="leise">Du wurdest in Raum <b>${esc(code)}</b> eingeladen.</p></header>
+    return `<header class="titel">${TITELBILD}<h1 class="wortmarke"><span class="silber">Reden ist Silber,</span> <span class="gold">Umschreiben ist Gold</span></h1><p class="leise">Du wurdest in Raum <b>${esc(code)}</b> eingeladen.</p></header>
       <label class="feld">Dein Name<input id="name" maxlength="20" value="${esc(name)}" autocomplete="nickname" placeholder="z. B. Lena"></label>
       <button class="knopf" id="mitspielen">Mitspielen</button>`;
   }
@@ -416,7 +422,7 @@
     try { if (window.qrcode) { const q = qrcode(0, "M"); q.addData(link()); q.make(); qr = q.createSvgTag({ cellSize: 5, margin: 2, scalable: true }); } } catch (e) {}
     const spalte = t => `<div class="team t${t}"><h2>${teamName(t)} <small>${anz(t)}</small></h2><ul>${WV.mitglieder(S, t).map(p => `<li><button class="person ${online(p) ? "" : "weg"}" data-person="${esc(p)}" ${host || p === PID ? "" : "disabled"}>${esc(sp(p).name)}${p === PID ? " <small>du</small>" : ""}</button></li>`).join("") || `<li class="leise klein">noch niemand</li>`}</ul></div>`;
     const bereit = anz(0) >= 2 && anz(1) >= 2;
-    return `<header class="titel"><p class="etikett">Wortverbot · Raumcode</p><div class="code">${esc(code)}</div></header>
+    return `<header class="titel"><p class="etikett">Umschreiben · Raumcode</p><div class="code">${esc(code)}</div></header>
       ${qr ? `<div class="qr">${qr}</div>` : ""}
       <div class="reihe"><button class="knopf zweit" id="teilen">Link teilen</button><button class="knopf zweit" id="kopieren">Link kopieren</button></div>
       <div class="karte"><div class="teams">${spalte(0)}${spalte(1)}</div>
@@ -517,7 +523,7 @@
       code = c; history.replaceState(null, "", "?raum=" + code + testTeil()); clientStarten();
     };
     if ($("mitspielen")) $("mitspielen").onclick = () => { if (nameAus()) clientStarten(); };
-    if ($("teilen")) $("teilen").onclick = () => { if (navigator.share) navigator.share({ title: "Wortverbot", text: "Spiel mit! Raum " + code, url: link() }).catch(() => {}); else kopieren(); };
+    if ($("teilen")) $("teilen").onclick = () => { if (navigator.share) navigator.share({ title: "Umschreiben", text: "Spiel mit! Raum " + code, url: link() }).catch(() => {}); else kopieren(); };
     if ($("kopieren")) $("kopieren").onclick = kopieren;
     document.querySelectorAll("[data-person]").forEach(b => b.onclick = () => tun({ t: "team", p: b.dataset.person }));
     if ($("mischen")) $("mischen").onclick = () => tun({ t: "mischen" });

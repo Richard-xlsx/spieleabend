@@ -4,15 +4,15 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Wortverbot">
-<meta name="theme-color" content="#132A31">
-<title>Wortverbot</title>
+<meta name="apple-mobile-web-app-title" content="Umschreiben">
+<meta name="theme-color" content="#191E24">
+<title>Umschreiben</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@600;800&family=Inter:wght@400;500;600;700&display=swap">
 <style>
 :root{
-  --bg:#132A31; --flaeche:#1C3A43; --flaeche2:#244852; --text:#F1F7F5; --leise:#9DBAB8; --linie:#2F5A64;
-  --akzent:#FFC94A; --akzent-text:#132A31; --karte-gelb:#FFC94A; --gut:#5BD69A; --rot:#FF5A5F; --t0:#FF8A3D; --t1:#7FB2FF;
+  --bg:#191E24; --flaeche:#232A32; --flaeche2:#2C343E; --text:#F4F1EA; --leise:#A5ADB6; --linie:#3A4450;
+  --akzent:#E9B949; --akzent-text:#191E24; --karte-gelb:#E9B949; --silber:#C3CBD3; --gut:#5BD69A; --rot:#FF5A5F; --t0:#FF8A3D; --t1:#7FB2FF;
   --display:"Unbounded","Segoe UI",system-ui,sans-serif; --fliess:"Inter","Segoe UI",system-ui,sans-serif;
   color-scheme:dark;
 }
@@ -69,7 +69,8 @@ button:focus-visible,input:focus-visible,a:focus-visible{outline:3px solid var(-
 .rang{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
 .rang li{display:flex;align-items:center;gap:12px;background:var(--flaeche);border:1px solid var(--linie);border-radius:14px;padding:12px 14px;font-variant-numeric:tabular-nums}
 .rang .platz{font-family:var(--display);font-weight:800;width:1.5em;color:var(--leise)}
-.rang li:first-child .platz{color:var(--karte-gelb)}
+.rang li:first-child .platz{color:var(--akzent)}
+.rang li:nth-child(2) .platz{color:var(--silber)}
 .rang .n{flex:1;font-weight:600}
 .toast{position:fixed;left:50%;bottom:calc(90px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--text);color:var(--bg);font-weight:600;padding:10px 16px;border-radius:12px;z-index:20;max-width:90vw;text-align:center;box-shadow:0 8px 20px rgba(0,0,0,.4)}
 .toast.gut{background:var(--gut)}
@@ -103,7 +104,7 @@ button:focus-visible,input:focus-visible,a:focus-visible{outline:3px solid var(-
 .ratekarte{text-align:center;padding:30px 16px}
 .ratekarte.t0{border-color:var(--t0)} .ratekarte.t1{border-color:var(--t1)}
 .ratekarte p{margin:0}.ratekarte .gross{font-family:var(--display);font-weight:800;font-size:1.5rem}
-.spielkarte{background:#FFFBEF;color:#132A31;border-radius:18px;padding:18px 16px;box-shadow:0 6px 0 rgba(0,0,0,.3);display:flex;flex-direction:column;align-items:center;gap:10px}
+.spielkarte{background:#FFF8E6;color:#191E24;border-radius:18px;padding:18px 16px;box-shadow:0 6px 0 rgba(0,0,0,.3);display:flex;flex-direction:column;align-items:center;gap:10px}
 .begriff{font-family:var(--display);font-weight:800;font-size:1.9rem;line-height:1.1;margin:0;text-align:center;overflow-wrap:anywhere}
 .tabu{list-style:none;margin:0;padding:12px 0 0;border-top:2px dashed #E7D9B4;width:100%;display:flex;flex-direction:column;align-items:center;gap:4px}
 .tabu li{color:#C6362F;font-weight:700;font-size:1.2rem}
@@ -115,6 +116,10 @@ button:focus-visible,input:focus-visible,a:focus-visible{outline:3px solid var(-
 .kartenliste li.weiter span{color:var(--leise)}
 .korr{appearance:none;display:flex;justify-content:space-between;gap:10px;align-items:baseline;width:100%;background:var(--flaeche2);border:1px solid var(--linie);color:var(--text);border-radius:10px;padding:8px 10px;font:500 1rem var(--fliess);cursor:pointer;text-align:left}
 
+.wortmarke{line-height:1.08}
+.wortmarke span{display:block}
+.wortmarke .silber{font-size:1.05rem;font-weight:600;color:var(--silber)}
+.wortmarke .gold{font-size:clamp(1.2rem,5.9vw,1.95rem);white-space:nowrap;font-weight:800;color:var(--akzent)}
 </style>
 </head>
 <body>
@@ -122,8 +127,8 @@ button:focus-visible,input:focus-visible,a:focus-visible{outline:3px solid var(-
 <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <script src="../netz.js"></script>
-<script src="../abend.js?v=2026-11-19c" data-spiel="wortverbot"></script>
-<script src="logic.js?v=2026-11-17e"></script>
-<script src="app.js?v=2026-11-17e"></script>
+<script src="../abend.js?v=2026-11-19d" data-spiel="wortverbot"></script>
+<script src="logic.js?v=2026-11-19d"></script>
+<script src="app.js?v=2026-11-19d"></script>
 </body>
 </html>

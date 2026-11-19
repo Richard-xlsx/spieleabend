@@ -18,7 +18,7 @@ Aufbau
                                   bilder.js (Tuschezeichnungen für Räume, Gegner, Helden)
   viererkette/                    index.html, viererkette-logic.js (Brett, Gewinnreihe), viererkette.js (Verbindung und Bildschirme)
   kritzelraten/                   „Malalarm“ (Ordner heißt weiter so): index.html, logic.js (Begriffe, Raten, Punkte), app.js (Verbindung, Malfläche, Bildschirme)
-  wortverbot/                     index.html, logic.js (Karten, Teams, Züge, Punkte), app.js (Verbindung, Karten, Zeichnen, Töne)
+  wortverbot/                     „Umschreiben“ (Ordner heißt weiter so): index.html, logic.js (Karten, Teams, Züge, Punkte), app.js (Verbindung, Karten, Zeichnen, Töne)
   gleisgenossen/                  index.html, logic.js (Karte, Gleise, Zug, Preise), welt.js (3D-Welt mit Three.js),
                                   app.js (Startseite, Bedienleiste, Speichern), KONZEPT.md (Plan in drei Schritten)
   _entwurf/                       Kartenentwürfe, wird nicht hochgeladen
@@ -70,7 +70,9 @@ Malalarm (früher Kritzelraten; ab 2 Spielern, am besten ab 4)
   Den Begriff kennt nur das Handy des Spielleiters; jeder bekommt eine eigene Fassung des Zustands ohne Lösung (KR.sicht).
   Das Bild geht Strich für Strich live an alle („ab Strich n diese Striche“), höchstens 4000 Punkte wie bei Stille Post.
   Übernimmt jemand die Spielleitung, wird der laufende Zug ohne Auflösung beendet (der neue Spielleiter kennt den Begriff nicht).
-Wortverbot (ab 4 Spielern in zwei Teams, Füchse und Eulen)
+Umschreiben (früher Wortverbot; ab 4 Spielern in zwei Teams, Füchse und Eulen)
+  Schriftzug im Spiel: „Reden ist Silber, Umschreiben ist Gold“; überall sonst nur „Umschreiben“. Design: Graphit mit Gold
+  als Akzent und Silber als zweiter Farbe, Titelbild Silbermedaille (durchgestrichenes Wort) und Goldmedaille (Sprechblase).
   Neue Mitspieler kommen ins kleinere Team; in der Lobby schiebt der Spielleiter per Tipp um oder lost aus, jeder kann sich
   selbst umsetzen. Jedes Team braucht mindestens zwei. Die Teams sind abwechselnd dran; im Team wird reihum erklärt (wer nicht
   da ist, wird übersprungen). Zeit 60, 90 oder 120 s; jeder ist 1× oder 2× dran. „Mit Zeichnen & Pantomime“ wechselt je Runde
