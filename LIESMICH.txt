@@ -23,6 +23,7 @@ Aufbau
                                   Fahrphysik, Neigen zum Lenken, Übungsgegner, Mehrspieler). Testlink: …/kart/
                                   Zusammen fahren: jedes Handy rechnet sein Kart selbst und schickt 15×/s seinen Stand an den Spielleiter,
                                   der rechnet die Übungsgegner und verteilt alles. Zum Testen: ?auto (Kart fährt selbst), ?runden=1
+  wuerfel/                        „Würfelpoker“: index.html, wuerfel-logic.js (Würfeln, Zettel, Punkte), wuerfel.js (Verbindung und Bildschirme)
   gleisgenossen/                  index.html, logic.js (Karte, Gleise, Zug, Preise), welt.js (3D-Welt mit Three.js),
                                   app.js (Startseite, Bedienleiste, Speichern), KONZEPT.md (Plan in drei Schritten)
   _entwurf/                       Kartenentwürfe, wird nicht hochgeladen
@@ -128,6 +129,14 @@ Vier gelingt (früher Viererkette; 2 bis 3 Spieler; vom 14.11.2026)
   Spalte antippen zeigt den Stein darüber, nochmal antippen oder „Einwerfen“ wirft ihn ein (kein versehentlicher Zug).
   Siege werden gezählt, jede Runde beginnt der Nächste. Wer als Vierter oder später kommt, schaut zu. Spielleiter kann
   nicht verbundene Spieler auslassen; die Spielleitung lässt sich wie bei den anderen Spielen übernehmen.
+
+Würfelpoker (vom 20.11.2026; 1 bis 8 Spieler, weitere schauen zu)
+  Design: dunkelroter Filz wie ein Würfeltisch, elfenbeinfarbene Würfel, Gold für festgehaltene Würfel und den aktiven Spieler.
+  Wer dran ist, würfelt bis zu dreimal; Würfel antippen hält sie fest. Dann ein freies Feld wählen (antippen, eintragen, notfalls 0).
+  Oben Einser bis Sechser, ab 63 Punkten oben +35 Bonus. Unten Dreierpasch und Viererpasch (Summe), Full House 25,
+  Kleine Straße 30, Große Straße 40, Fünf gleiche 50, Chance (Summe). Nach 13 Runden gewinnt die höchste Summe.
+  Gewürfelt wird auf dem Handy des Spielleiters. Ist der Spieler am Zug nicht verbunden, darf der Spielleiter für ihn würfeln
+  oder ihn aus der Partie nehmen.
 
 Dungeons & Disappointments (früher Verlies der Helden; 2 bis 6 Spieler; Stufe 1 und Ausbau mit Händler und 6 Rollen vom 13.11.2026, Kampfbühne, Karte, Talentbaum,
 Gegner-Eigenschaften, drei Ebenen und Schwierigkeitsstufen vom 14.11.2026)

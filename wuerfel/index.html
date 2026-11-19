@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Würfelpoker">
+<meta name="theme-color" content="#2A0F18">
+<title>Würfelpoker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@600;800&family=Inter:wght@400;500;600;700&display=swap">
+<style>
+/* Würfelpoker: dunkelroter Filz wie auf dem Würfeltisch, elfenbeinfarbene Würfel, Gold für Markierungen */
+:root{
+  --bg:#2A0F18; --flaeche:#3B1724; --flaeche2:#4A1E2E; --text:#FFF4E6; --leise:#D9AEB6; --linie:#62293A;
+  --akzent:#F2C14E; --akzent-text:#2A0F18; --gelb:#F2C14E; --gut:#6FD39A; --rot:#E2453A; --elfenbein:#FFF8EC;
+  --display:"Unbounded","Segoe UI",system-ui,sans-serif; --fliess:"Inter","Segoe UI",system-ui,sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--bg);color:var(--text);font:16px/1.45 var(--fliess);-webkit-text-size-adjust:100%}
+body{padding:max(12px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) max(16px,env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left))}
+#app{max-width:520px;margin:0 auto;display:flex;flex-direction:column;gap:12px}
+h1,h2{font-family:var(--display);margin:0;letter-spacing:-.01em;text-wrap:balance}
+h1{font-size:1.9rem;line-height:1.1;font-weight:800}
+h2{font-size:1.05rem;font-weight:600}
+.titel{display:flex;flex-direction:column;gap:6px;padding-top:6px}
+.leise{color:var(--leise);margin:0}
+.mitte{text-align:center}
+.etikett{font-size:.72rem;text-transform:uppercase;letter-spacing:.1em;color:var(--leise);font-weight:600;margin:0}
+.karte-box{background:var(--flaeche);border:1px solid var(--linie);border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:12px}
+.feld{display:flex;flex-direction:column;gap:6px;font-size:.85rem;color:var(--leise);font-weight:500}
+.feld input{font:500 1.05rem var(--fliess);color:var(--text);background:var(--flaeche2);border:1px solid var(--linie);border-radius:12px;padding:13px 14px;width:100%;outline:none}
+.feld input:focus{border-color:var(--akzent)}
+.knopf{appearance:none;border:0;border-radius:14px;padding:14px 16px;font:700 1rem var(--fliess);background:var(--akzent);color:var(--akzent-text);width:100%;cursor:pointer}
+.knopf.zweit{background:transparent;color:var(--text);border:1px solid var(--linie)}
+.knopf:disabled{opacity:.4;cursor:default}
+button:focus-visible,input:focus-visible,a:focus-visible{outline:3px solid var(--gelb);outline-offset:2px}
+.reihe{display:flex;gap:10px}
+.wahl{display:flex;gap:8px}
+.wahl button,button.klein{appearance:none;border:1px solid var(--linie);background:var(--flaeche2);color:var(--text);border-radius:999px;padding:8px 14px;font:600 .9rem var(--fliess);cursor:pointer}
+.wahl button{flex:1}
+.wahl button.an{background:var(--text);color:var(--bg);border-color:var(--text)}
+.schalter{display:flex;align-items:center;gap:10px;font-weight:600}
+.schalter input{width:20px;height:20px;accent-color:var(--akzent)}
+.link{background:none;border:0;color:var(--leise);text-decoration:underline;font:inherit;cursor:pointer;padding:8px;align-self:center}
+.code{font-family:var(--display);font-weight:800;font-size:3.4rem;letter-spacing:.12em;line-height:1}
+.qr{background:#fff;border-radius:16px;padding:10px;width:200px;max-width:60%;align-self:center}
+.qr svg{display:block;width:100%;height:auto}
+.spieler{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.spieler li{display:flex;align-items:center;gap:10px;font-weight:600}
+.spieler small{color:var(--leise);font-weight:500}
+.punkt{width:10px;height:10px;border-radius:50%;background:var(--linie);display:inline-block}
+.punkt.an{background:var(--gut)}
+.regeln{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px;font-size:.92rem;color:var(--leise)}
+.regeln b{color:var(--text)}
+.status{position:sticky;top:0;z-index:5;background:var(--gelb);color:var(--bg);border-radius:12px;padding:10px 12px;font-weight:600;font-size:.9rem;display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.status button.klein{background:var(--bg);color:var(--text);border-color:var(--bg)}
+.zug{margin:4px 0 0;text-align:center;font-weight:600;color:var(--leise)}
+.zug.du{color:var(--gelb)}
+.unten{position:sticky;bottom:0;padding-block:10px calc(4px + env(safe-area-inset-bottom));background:linear-gradient(transparent,var(--bg) 30%);display:flex;flex-direction:column;gap:8px;z-index:3}
+.toast{position:fixed;left:50%;bottom:calc(90px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--text);color:var(--bg);font-weight:600;padding:10px 16px;border-radius:12px;z-index:20;max-width:90vw;text-align:center;box-shadow:0 8px 20px rgba(0,0,0,.4)}
+.klein{font-size:.88rem}
+.titelbild{display:block;width:100%;height:auto;max-width:360px;align-self:center;margin:4px 0 8px}
+.tb-fall{animation:tb-fall 2.8s infinite cubic-bezier(.5,0,.75,1)}
+@keyframes tb-fall{0%,20%{transform:translateY(0);opacity:1}55%,85%{transform:translateY(-6px);opacity:1}100%{opacity:1}}
+
+.titelbild{display:block;width:100%;height:auto;max-width:380px;align-self:center;margin:4px 0 8px}
+.letzter{margin:0;text-align:center;font-size:.9rem;color:var(--leise)}
+.letzter b{color:var(--gelb)}
+.wuerfelfeld{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;padding:14px 10px 6px;border-radius:20px;
+  background:radial-gradient(ellipse at 50% 30%,#5A1F31,#3B1724 70%);border:1px solid var(--linie);box-shadow:inset 0 3px 12px rgba(0,0,0,.35)}
+.wuerfel{appearance:none;background:none;border:0;padding:0;display:flex;flex-direction:column;align-items:center;gap:4px;color:var(--gelb);font:700 .7rem var(--fliess);cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+.wuerfel:disabled{cursor:default}
+.wuerfel small{height:1em;letter-spacing:.06em;text-transform:uppercase}
+.wbild{width:100%;max-width:64px;height:auto;display:block;transition:transform .15s}
+.w-k{fill:var(--elfenbein)} .w-r{fill:none;stroke:#1A0910;stroke-width:4} .w-a{fill:#2A0F18} .w-f{fill:#C9A9B0;font:800 44px var(--display)}
+.wuerfel.gehalten .wbild{transform:translateY(-6px)}
+.wuerfel.gehalten .w-r{stroke:var(--gelb);stroke-width:8}
+.wuerfel.gehalten .w-k{fill:#FFF0C9}
+.wuerfelfeld.meins .wuerfel:not(:disabled) .wbild{filter:drop-shadow(0 4px 0 rgba(0,0,0,.35))}
+.wuerfel.rollt .wbild{animation:rollen .6s calc(var(--i) * 60ms) both cubic-bezier(.3,.7,.4,1)}
+@keyframes rollen{0%{transform:translateY(-34px) rotate(-200deg) scale(.7);opacity:0}60%{transform:translateY(3px) rotate(12deg) scale(1.04);opacity:1}100%{transform:none}}
+.zettelrahmen{overflow-x:auto;border-radius:16px;border:1px solid var(--linie);background:var(--elfenbein);-webkit-overflow-scrolling:touch}
+.zettel{border-collapse:collapse;width:100%;color:#2A0F18;font-size:.9rem;font-variant-numeric:tabular-nums}
+.zettel th,.zettel td{border-bottom:1px solid #EAD9C4;padding:5px 4px;text-align:center;height:36px}
+.zettel td{border-left:1px solid #EAD9C4;min-width:40px;font-weight:700}
+.zettel thead th{font:700 .72rem var(--fliess);color:#6E4A52;padding:7px 4px;max-width:66px}
+.zettel thead th span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.zettel thead th.dran{background:var(--gelb);color:#2A0F18}
+.zettel th.kat,.zettel tbody th{text-align:left;font-weight:700;padding-left:10px;white-space:nowrap}
+.zettel th.kat small,.zettel tbody th small{display:block;font-weight:500;font-size:.66rem;color:#8C6A70;white-space:normal;line-height:1.15;max-width:130px}
+.zettel td.ich{background:rgba(242,193,78,.12)}
+.zettel td.null{color:#B49AA0}
+.zettel td.neu{background:#FFE29A;animation:blink 1.2s 2}
+@keyframes blink{50%{background:#FFF8EC}}
+.zettel tr.summe th,.zettel tr.summe td{background:#F3E6D3;height:30px;font-size:.85rem}
+.zettel tr.bonus td small{color:#8C6A70;font-weight:600}
+.zettel tr.gesamt th,.zettel tr.gesamt td{background:#2A0F18;color:var(--gelb);font-size:1rem;height:38px;border-bottom:0}
+.zettel td.frei{padding:3px}
+.vorschlag{appearance:none;width:100%;min-height:30px;border:2px dashed #C9A35A;background:#FFFBEF;border-radius:9px;font:800 .95rem var(--fliess);color:#8A5A00;cursor:pointer;touch-action:manipulation}
+.vorschlag.nix{color:#B49AA0;border-color:#E2CFC0}
+.vorschlag.an{background:var(--gelb);border:2px solid #2A0F18;color:#2A0F18;box-shadow:0 0 0 3px rgba(242,193,78,.35)}
+.rang{margin:0;padding-left:22px;display:flex;flex-direction:column;gap:6px}
+.rang li{font-weight:600}
+.rang li span{display:inline-block;min-width:45%}
+.rang li b{font:800 1.1rem var(--display);margin-right:8px}
+.rang li small{color:var(--leise)}
+.rang li.sieg b{color:var(--gelb)}
+details summary{cursor:pointer;font-weight:700}
+.link.inline{padding:0;display:inline;font-size:inherit}
+@media (prefers-reduced-motion:reduce){.wuerfel.rollt .wbild,.zettel td.neu{animation:none}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+<script src="../netz.js?v=2026-11-20a"></script>
+<script src="../abend.js?v=2026-11-20a" data-spiel="wuerfel"></script>
+<script src="wuerfel-logic.js?v=2026-11-20a"></script>
+<script src="wuerfel.js?v=2026-11-20a"></script>
+</body>
+</html>
