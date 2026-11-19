@@ -6,7 +6,8 @@
   const app = document.getElementById("app");
   const PREFIX = "fmwwv-";
   const ZEICHEN = "ABCDEFGHJKLMNPRSTUVWXYZ23456789";
-  const FARBEN = ["#16161D", "#E23B2E", "#2F6FDE", "#2E9B4F", "#F2B705", "#8B5A2B", "#FFFFFF"];
+  const FARBEN = ["#16161D", "#E23B2E", "#2F6FDE", "#2E9B4F", "#F2B705", "#8B5A2B", "#FFFFFF"];   // alte Farbnummern
+  const farbWert = f => typeof f === "string" ? f : (FARBEN[f] || FARBEN[0]);
   const DICKE = { 1: 5, 2: 12, 3: 28 };
   const PEER_OPT = window.SPIELEABEND_PEER ? window.SPIELEABEND_PEER() : { debug: 0 };   // TURN-Server siehe ../netz.js
   const params = new URLSearchParams(location.search);
@@ -25,7 +26,7 @@
   const conns = new Map();
   let tickTimer = null, retryTimer = null, token = 0, versuch = 0, letzteSig = "", speicherTimer = null;
   let B = { k: 0, striche: [] };      // Bild der aktuellen Karte (nur in Zeichen-Runden)
-  let malFarbe = 0, malDicke = 2, schmutzig = false, toastTimer = null, getippt = -1;
+  let malFarbe = MALHILFE.STANDARD, malDicke = 2, schmutzig = false, toastTimer = null, getippt = -1;
 
   const hostId = ep => PREFIX + code + "-" + ep;
   const link = () => location.origin + location.pathname + "?raum=" + code;
@@ -253,7 +254,7 @@
     ctx.lineCap = "round"; ctx.lineJoin = "round";
     const sx = w / 1000, sy = h / 750;
     for (const s of striche || []) {
-      ctx.strokeStyle = FARBEN[s.f] || FARBEN[0]; ctx.fillStyle = ctx.strokeStyle; ctx.lineWidth = (DICKE[s.d] || 5) * sx;
+      ctx.strokeStyle = farbWert(s.f); ctx.fillStyle = ctx.strokeStyle; ctx.lineWidth = (DICKE[s.d] || 5) * sx;
       const n = s.p.length / 2;
       if (n === 1) { ctx.beginPath(); ctx.arc(s.p[0] * sx, s.p[1] * sy, ctx.lineWidth / 2, 0, 7); ctx.fill(); continue; }
       ctx.beginPath(); ctx.moveTo(s.p[0] * sx, s.p[1] * sy);
@@ -270,7 +271,8 @@
   }
   function bildZeichnen() {
     const box = document.getElementById("bild"); if (!box) return;
-    let cv = box.querySelector("canvas"); if (!cv) cv = leinwand(box);
+    let cv = box.querySelector("canvas");
+    if (!cv) { cv = leinwand(box); MALHILFE.zoom(box, cv, { key: "wv-bild-" + B.nr, neu: bildZeichnen }); }
     zeichne(cv.getContext("2d"), cv.width, cv.height, B.striche);
   }
   let zeichenflaecheNeu = () => {};
@@ -281,28 +283,32 @@
     const neu = zeichenflaecheNeu = () => zeichne(ctx, cv.width, cv.height, B.striche);
     const pos = ev => { const r = cv.getBoundingClientRect(); return [Math.round((ev.clientX - r.left) / r.width * 1000), Math.round((ev.clientY - r.top) / r.height * 750)]; };
     neu();
-    box.addEventListener("gesturestart", ev => ev.preventDefault());
+    const zm = MALHILFE.zoom(box, cv, { key: "wv-mal-" + S.nr, malen: true, neu, abbrechen: () => {
+      if (!aktuell) return;
+      if (aktuell.p.length <= 16 && B.striche[B.striche.length - 1] === aktuell) B.striche.pop();
+      aktuell = null; schmutzig = true; neu();
+    } });
     cv.addEventListener("pointerdown", ev => {
       ev.preventDefault();
-      if (aktuell || !ichZeichne()) return;
+      if (zm.gesperrt() || aktuell || !ichZeichne()) return;
       if (punkte() >= WV.MAX_PUNKTE) { toast("Das Bild ist voll. Rückgängig macht wieder Platz."); return; }
       try { cv.setPointerCapture(ev.pointerId); } catch (e) {}
       aktuell = { f: malFarbe, d: malDicke, p: pos(ev), id: ev.pointerId }; B.striche.push(aktuell); neu(); schmutzig = true;
     });
     cv.addEventListener("pointermove", ev => {
-      if (!aktuell || ev.pointerId !== aktuell.id) return; ev.preventDefault();
+      if (!aktuell || ev.pointerId !== aktuell.id || zm.gesperrt()) return; ev.preventDefault();
       const [x, y] = pos(ev), n = aktuell.p.length;
-      if (Math.hypot(x - aktuell.p[n - 2], y - aktuell.p[n - 1]) < 4) return;
+      if (Math.hypot(x - aktuell.p[n - 2], y - aktuell.p[n - 1]) < 4 / zm.z) return;
       if (punkte() >= WV.MAX_PUNKTE) return;
       aktuell.p.push(Math.max(0, Math.min(1000, x)), Math.max(0, Math.min(750, y)));
       const sx = cv.width / 1000, sy = cv.height / 750;
-      ctx.strokeStyle = FARBEN[aktuell.f]; ctx.lineWidth = DICKE[aktuell.d] * sx; ctx.lineCap = "round"; ctx.lineJoin = "round";
+      ctx.strokeStyle = farbWert(aktuell.f); ctx.lineWidth = DICKE[aktuell.d] * sx; ctx.lineCap = "round"; ctx.lineJoin = "round";
       ctx.beginPath(); ctx.moveTo(aktuell.p[n - 2] * sx, aktuell.p[n - 1] * sy); ctx.lineTo(aktuell.p[n] * sx, aktuell.p[n + 1] * sy); ctx.stroke();
       schmutzig = true;
     });
     const ende = ev => { if (aktuell && ev.pointerId === aktuell.id) { delete aktuell.id; aktuell = null; schmutzig = true; } };
     cv.addEventListener("pointerup", ende); cv.addEventListener("pointercancel", ende); cv.addEventListener("pointerleave", ende);
-    document.querySelectorAll("[data-farbe]").forEach(b => b.onclick = () => { malFarbe = +b.dataset.farbe; document.querySelectorAll("[data-farbe]").forEach(x => x.classList.toggle("an", x === b)); });
+    MALHILFE.farbenBinden(f => { malFarbe = f; });
     document.querySelectorAll("[data-dicke]").forEach(b => b.onclick = () => { malDicke = +b.dataset.dicke; document.querySelectorAll("[data-dicke]").forEach(x => x.classList.toggle("an", x === b)); });
     const z = document.getElementById("rueckgaengig");
     if (z) z.onclick = () => { if (aktuell) return; B.striche.pop(); schmutzig = true; neu(); };
@@ -474,8 +480,9 @@
       const knoepfe = `<div class="reihe"><button class="knopf zweit" data-karte="weiter">Überspringen</button><button class="knopf gut" data-karte="richtig">Richtig ✓</button></div>`;
       if (S.art === "zeichnen") return `${kopf}${kartenAnzeige(v.karte, S.art)}
         <div class="malbox" id="malbox"></div>
-        <div class="werkzeug">${FARBEN.map((f, i) => `<button class="farbe ${malFarbe === i ? "an" : ""}" data-farbe="${i}" style="background:${f}" aria-label="${i === FARBEN.length - 1 ? "Radiergummi" : "Farbe " + (i + 1)}">${i === FARBEN.length - 1 ? "⌫" : ""}</button>`).join("")}
-          ${[1, 2, 3].map(d => `<button class="klein ${d === malDicke ? "an" : ""}" data-dicke="${d}">${["Fein", "Mittel", "Dick"][d - 1]}</button>`).join("")}
+        <p class="leise klein">Mit zwei Fingern heranzoomen und verschieben.</p>
+        ${MALHILFE.farbKnoepfe(malFarbe)}
+        <div class="werkzeug">          ${[1, 2, 3].map(d => `<button class="klein ${d === malDicke ? "an" : ""}" data-dicke="${d}">${["Fein", "Mittel", "Dick"][d - 1]}</button>`).join("")}
           <button class="klein" id="rueckgaengig">Rückgängig</button><button class="klein" id="loeschen">Leeren</button></div>
         <div class="unten">${knoepfe}</div>${liste}${hostLeiste}`;
       return `${kopf}${kartenAnzeige(v.karte, S.art)}<div class="unten">${knoepfe}</div>${liste}${hostLeiste}`;

@@ -314,14 +314,14 @@
     return v;
   }
 
-  // Bild bereinigen (Punkte 0..1000 × 0..750, Farbe 0..9, Dicke 1..3)
+  // Bild bereinigen (Punkte 0..1000 × 0..750, Farbe 0..9 oder #RRGGBB, Dicke 1..3)
   function striche(liste) {
     const aus = []; let punkte = 0;
     for (const s of (liste || []).slice(0, 600)) {
       const p = (s.p || []).slice(0, 2 * (MAX_PUNKTE - punkte)).map(v => Math.max(0, Math.min(1000, Math.round(+v || 0))));
       if (p.length < 2) continue;
       punkte += p.length / 2;
-      aus.push({ f: Math.max(0, Math.min(9, s.f | 0)), d: Math.max(1, Math.min(3, s.d | 0 || 1)), p });
+      aus.push({ f: typeof s.f === "string" && /^#[0-9a-f]{6}$/i.test(s.f) ? s.f.toUpperCase() : Math.max(0, Math.min(9, s.f | 0)), d: Math.max(1, Math.min(3, s.d | 0 || 1)), p });
       if (punkte >= MAX_PUNKTE) break;
     }
     return aus;

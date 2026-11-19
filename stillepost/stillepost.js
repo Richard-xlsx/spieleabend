@@ -6,15 +6,9 @@
   const ZEICHEN = "ABCDEFGHJKLMNPRSTUVWXYZ23456789";
   const FARBEN = ["#16161D", "#E23B2E", "#2F6FDE", "#2E9B4F", "#F2B705", "#8B5A2B", "#E86FB0", "#FFFFFF"];
   const DICKE = { 1: 5, 2: 12, 3: 28 };
-  // Weitere Farben in der aufklappbaren Palette (Striche speichern dann den Farbcode statt der Nummer)
-  const PALETTE = ["#7A1F1F", "#B22222", "#FF6B5B", "#FFB3A7", "#C2410C", "#F97316", "#FDBA74", "#FFE8C2",
-    "#A16207", "#FACC15", "#FEF08A", "#3F6212", "#65A30D", "#A3E635", "#BBF7D0", "#0F766E",
-    "#14B8A6", "#99F6E4", "#1E3A8A", "#0EA5E9", "#7DD3FC", "#4C1D95", "#8B5CF6", "#C4B5FD",
-    "#9D174D", "#DB2777", "#F9A8D4", "#5C3A1E", "#D2B48C", "#FDDCC4", "#E8B48A", "#C68642",
-    "#8D5524", "#374151", "#6B7280", "#9CA3AF", "#D1D5DB", "#F3F4F6"];
   const farbWert = f => typeof f === "string" ? f : (FARBEN[f] || FARBEN[0]);
   // Malzustand, der ein Neuzeichnen der Seite übersteht
-  let malFarbe = 0, malDicke = 2, eigeneFarbe = null, paletteOffen = false, ansicht = { key: "", z: 1, x: 0, y: 0 };
+  let malFarbe = MALHILFE.STANDARD, malDicke = 2, ansicht = { key: "", z: 1, x: 0, y: 0 };
   const VORSCHLAEGE = ["Ein Pinguin verschläft seine eigene Hochzeit", "Oma gewinnt ein Rap-Battle", "Ein Hai macht Yoga am Strand",
     "Der Döner fliegt ins All", "Zwei Tauben streiten sich um ein Croissant", "Ein Einhorn steht im Stau",
     "Mein Mitbewohner kocht Nudeln in der Kaffeemaschine", "Ein Vampir beim Zahnarzt", "Ein Hund macht die Steuererklärung",
@@ -242,8 +236,9 @@
     cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); cv.style.width = w + "px"; cv.style.height = h + "px";
     return cv;
   }
-  function bildAnzeigen(box, striche, animieren) {
+  function bildAnzeigen(box, striche, animieren, key) {
     const cv = leinwand(box), ctx = cv.getContext("2d");
+    MALHILFE.zoom(box, cv, { key: "sp-" + (S ? S.spielNr : 0) + "-" + (key || ""), neu: () => zeichne(ctx, cv.width, cv.height, striche) });
     const gesamt = (striche || []).reduce((a, s) => a + s.p.length / 2, 0);
     if (!animieren || !gesamt || matchMedia("(prefers-reduced-motion: reduce)").matches) { zeichne(ctx, cv.width, cv.height, striche); return; }
     const t0 = performance.now(), dauer = Math.min(3500, 800 + gesamt * 3);
@@ -320,17 +315,7 @@
     cv.addEventListener("pointerup", ende); cv.addEventListener("pointercancel", ende);
     cv.addEventListener("pointerleave", ev => { if (!aktuell || ev.pointerId === aktuell.id) ende(ev); });
     const voll = () => { const h = document.getElementById("voll"); if (h) h.hidden = false; };
-    // Farben: Grundfarben, aufklappbare Palette und freie Farbwahl
-    const farbeWaehlen = f => {
-      malFarbe = f;
-      if (typeof f === "string") { eigeneFarbe = f; const e = document.getElementById("eigene"); if (e) { e.hidden = false; e.style.background = f; e.dataset.farbe = f; } }
-      document.querySelectorAll("[data-farbe]").forEach(x => x.classList.toggle("an", x.dataset.farbe === String(f)));
-    };
-    document.querySelectorAll("[data-farbe]").forEach(b => b.onclick = () => farbeWaehlen(/^#/.test(b.dataset.farbe) ? b.dataset.farbe : +b.dataset.farbe));
-    const pt = document.getElementById("palettetaste"), pl = document.getElementById("palette");
-    if (pt && pl) pt.onclick = () => { paletteOffen = !paletteOffen; pl.hidden = !paletteOffen; pt.setAttribute("aria-expanded", paletteOffen); };
-    const frei = document.getElementById("freiefarbe");
-    if (frei) frei.oninput = () => farbeWaehlen(frei.value.toUpperCase());
+    MALHILFE.farbenBinden(f => { malFarbe = f; });
     document.querySelectorAll("[data-dicke]").forEach(b => b.onclick = () => { malDicke = +b.dataset.dicke; document.querySelectorAll("[data-dicke]").forEach(x => x.classList.toggle("an", x === b)); });
     const z = document.getElementById("rueckgaengig"); if (z) z.onclick = () => { entwurf.striche.pop(); entwurfSpeichern(); neu(); aktualisiere(); };
     const l = document.getElementById("loeschen");
@@ -455,12 +440,7 @@
       h += `<div class="karte"><p class="etikett">Male das</p>${!vorher ? `<p class="leise" id="vorlage-fehlt">Lädt …</p>` : vorher.leer ? `<h2>Hier fehlt etwas. Mal, was du willst!</h2>` : `<h2 class="zitat">„${esc(vorher.text)}“</h2>`}</div>
         <div class="malbox" id="malbox"></div>
         <p class="leise klein zoomhinweis">Mit zwei Fingern heranzoomen und verschieben. <button class="klein" id="zoomzurueck" hidden>Ganzes Bild</button></p>
-        <div class="werkzeug">${FARBEN.map((f, i) => `<button class="farbe ${malFarbe === i ? "an" : ""}" data-farbe="${i}" style="background:${f}" aria-label="${i === FARBEN.length - 1 ? "Radiergummi" : "Farbe " + (i + 1)}">${i === FARBEN.length - 1 ? "⌫" : ""}</button>`).join("")}
-          <button class="farbe ${typeof malFarbe === "string" ? "an" : ""}" id="eigene" ${eigeneFarbe ? `data-farbe="${eigeneFarbe}" style="background:${eigeneFarbe}"` : "hidden"} aria-label="Zuletzt gewählte Palettenfarbe"></button>
-          <button class="farbe palettetaste" id="palettetaste" aria-expanded="${paletteOffen}" aria-controls="palette" aria-label="Mehr Farben">+</button></div>
-        <div class="palette" id="palette" ${paletteOffen ? "" : "hidden"}>
-          <div class="palettenraster">${PALETTE.map(f => `<button class="farbe ${malFarbe === f ? "an" : ""}" data-farbe="${f}" style="background:${f}" aria-label="Farbe ${f}"></button>`).join("")}</div>
-          <label class="freiefarbe">Eigene Farbe mischen <input type="color" id="freiefarbe" value="${eigeneFarbe || "#3366CC"}"></label></div>
+        ${MALHILFE.farbKnoepfe(malFarbe)}
         <div class="werkzeug">${[1, 2, 3].map(d => `<button class="klein ${d === malDicke ? "an" : ""}" data-dicke="${d}">${["Fein", "Mittel", "Dick"][d - 1]}</button>`).join("")}
           <button class="klein" id="rueckgaengig">Rückgängig</button><button class="klein" id="loeschen">Alles löschen</button></div>
         <p class="leise klein" id="voll" hidden>Das Bild ist voll. Rückgängig macht wieder Platz.</p>`;
@@ -527,9 +507,9 @@
     if ($("vorschlag")) $("vorschlag").onclick = () => { const v = VORSCHLAEGE[Math.floor(Math.random() * VORSCHLAEGE.length)]; $("text").value = v; entwurf.text = v; entwurfSpeichern(); aktualisiere(); };
     if ($("abgeben")) $("abgeben").onclick = abgeben;
     if ($("malbox")) malen($("malbox"));
-    if ($("vorlagebild") && S) { const a = meineAufgabe(), v = a && a.vorher && K[a.vorher]; if (v && !v.leer) bildAnzeigen($("vorlagebild"), v.striche, false); }
+    if ($("vorlagebild") && S) { const a = meineAufgabe(), v = a && a.vorher && K[a.vorher]; if (v && !v.leer) bildAnzeigen($("vorlagebild"), v.striche, false, a.vorher); }
     const neuster = S && S.phase === "show" ? P.key(S.show.kette, S.show.eintrag) : null;
-    document.querySelectorAll("[data-bild]").forEach(b => { const e = K[b.dataset.bild]; if (e) bildAnzeigen(b, e.striche, b.dataset.bild === neuster); });
+    document.querySelectorAll("[data-bild]").forEach(b => { const e = K[b.dataset.bild]; if (e) bildAnzeigen(b, e.striche, b.dataset.bild === neuster, b.dataset.bild); });
     document.querySelectorAll("[data-herz]").forEach(b => b.onclick = () => tun({ t: "herz", key: b.dataset.herz }));
     if (S && S.phase === "show") { const l = document.querySelectorAll(".eintrag"); if (l.length) l[l.length - 1].scrollIntoView({ block: "nearest", behavior: "smooth" }); }
   }

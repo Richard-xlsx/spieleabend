@@ -87,6 +87,12 @@ Umschreiben (früher Wortverbot; ab 4 Spielern in zwei Teams, Füchse und Eulen)
   Töne: Summer bei „Erwischt“, Klingeln bei „Richtig“, Ticken in den letzten 5 s, Gong am Ende des Zugs (erst nach dem ersten Tipp).
   Ist der Erklärer 6 s weg, kommt der Nächste aus seinem Team dran; während des Zugs endet der Zug nach 15 s ohne ihn.
   Übernimmt jemand die Spielleitung, endet der laufende Zug (die Karte kannte nur der alte Spielleiter).
+Malhilfen (malhilfe.js, von Pinselpost, Malalarm und Umschreiben geladen)
+  Feste Farbleiste mit 13 Farben nach Farbkreis (Gelb, Orange, Rot, Rosa, Lila, Blau, Hellblau, Grün, Hellgrün, Braun,
+  Beige, Grau, Schwarz) und Radiergummi; Striche speichern den Farbcode (#RRGGBB), alte Striche mit Farbnummer gehen weiter.
+  Zoomen mit zwei Fingern auf jeder Mal- und Bildfläche (bis 4×), vergrößerte Bilder lassen sich mit einem Finger verschieben,
+  „Ganzes Bild“ setzt zurück. Die Ansicht bleibt je Bild erhalten, auch wenn neue Striche ankommen.
+
 Mau-Mau (2 bis 8 Spieler)
   Eigenes Blatt im Holzschnitt-Stil (maumau/holzschnitt.js + figuren2.js): Zahlenkarten als Medaille mit Symbolkranz,
   Ass mit Strahlenkranz, König/Dame/Bube gezeichnet, Rückseite schwarz. 32 Karten, ab 6 Spielern zwei Blätter. Jeder bekommt 5.

@@ -27,7 +27,7 @@
   let tickTimer = null, retryTimer = null, token = 0, versuch = 0, letzteSig = "", speicherTimer = null;
   let B = { nr: 0, striche: [] };     // Bild des aktuellen Zugs
   let G = [];                          // fertige Bilder dieses Spiels (für die Galerie am Ende)
-  let malFarbe = 0, malDicke = 2, gesendet = 0, schmutzig = false, toastText = "", toastArt = "", toastTimer = null;
+  let malFarbe = MALHILFE.STANDARD, malDicke = 2, gesendet = 0, schmutzig = false, toastText = "", toastArt = "", toastTimer = null;
 
   const hostId = ep => PREFIX + code + "-" + ep;
   const link = () => location.origin + location.pathname + "?raum=" + code;
@@ -267,7 +267,8 @@
   }
   function bildZeichnen() {
     const box = document.getElementById("bild"); if (!box) return;
-    let cv = box.querySelector("canvas"); if (!cv) cv = leinwand(box);
+    let cv = box.querySelector("canvas");
+    if (!cv) { cv = leinwand(box); MALHILFE.zoom(box, cv, { key: "kr-bild-" + B.nr, neu: bildZeichnen }); }
     zeichne(cv.getContext("2d"), cv.width, cv.height, B.striche);
   }
   function malen(box) {
@@ -278,18 +279,22 @@
     const neu = () => zeichne(ctx, cv.width, cv.height, B.striche);
     const pos = ev => { const r = cv.getBoundingClientRect(); return [Math.round((ev.clientX - r.left) / r.width * 1000), Math.round((ev.clientY - r.top) / r.height * 750)]; };
     neu();
-    box.addEventListener("gesturestart", ev => ev.preventDefault());
+    const zm = MALHILFE.zoom(box, cv, { key: "kr-mal-" + S.nr, malen: true, neu, abbrechen: () => {
+      if (!aktuell) return;
+      if (aktuell.p.length <= 16 && B.striche[B.striche.length - 1] === aktuell) B.striche.pop();
+      aktuell = null; schmutzig = true; neu();
+    } });
     cv.addEventListener("pointerdown", ev => {
       ev.preventDefault();
-      if (aktuell || !ichMale()) return;
+      if (zm.gesperrt() || aktuell || !ichMale()) return;
       if (punkte() >= KR.MAX_PUNKTE) { toast("Das Bild ist voll. Rückgängig macht wieder Platz."); return; }
       try { cv.setPointerCapture(ev.pointerId); } catch (e) {}
       aktuell = { f: malFarbe, d: malDicke, p: pos(ev), id: ev.pointerId }; B.striche.push(aktuell); neu(); schmutzig = true;
     });
     cv.addEventListener("pointermove", ev => {
-      if (!aktuell || ev.pointerId !== aktuell.id) return; ev.preventDefault();
+      if (!aktuell || ev.pointerId !== aktuell.id || zm.gesperrt()) return; ev.preventDefault();
       const [x, y] = pos(ev), n = aktuell.p.length;
-      if (Math.hypot(x - aktuell.p[n - 2], y - aktuell.p[n - 1]) < 4) return;
+      if (Math.hypot(x - aktuell.p[n - 2], y - aktuell.p[n - 1]) < 4 / zm.z) return;
       if (punkte() >= KR.MAX_PUNKTE) return;
       aktuell.p.push(Math.max(0, Math.min(1000, x)), Math.max(0, Math.min(750, y)));
       const sx = cv.width / 1000, sy = cv.height / 750;
@@ -300,8 +305,7 @@
     const ende = ev => { if (aktuell && ev.pointerId === aktuell.id) { delete aktuell.id; aktuell = null; schmutzig = true; } };
     cv.addEventListener("pointerup", ende); cv.addEventListener("pointercancel", ende);
     cv.addEventListener("pointerleave", ende);
-    const farbeWaehlen = f => { malFarbe = f; document.querySelectorAll("[data-farbe]").forEach(x => x.classList.toggle("an", +x.dataset.farbe === f)); };
-    document.querySelectorAll("[data-farbe]").forEach(b => b.onclick = () => farbeWaehlen(+b.dataset.farbe));
+    MALHILFE.farbenBinden(f => { malFarbe = f; });
     document.querySelectorAll("[data-dicke]").forEach(b => b.onclick = () => { malDicke = +b.dataset.dicke; document.querySelectorAll("[data-dicke]").forEach(x => x.classList.toggle("an", x === b)); });
     const z = document.getElementById("rueckgaengig");
     if (z) z.onclick = () => { if (aktuell) return; B.striche.pop(); gesendet = Math.min(gesendet, B.striche.length); schmutzig = true; neu(); };
@@ -433,7 +437,8 @@
     const v = ansicht();
     if (v.maler === PID) return `<div class="spielkopf"><div><p class="etikett">Male</p><div class="malwort">${esc(v.wort)}</div></div><div class="wecker" id="wecker">${WECKER}<span class="zeit" id="zeit"></span></div></div>
       <div class="malbox" id="malbox"></div>
-      <div class="werkzeug">${FARBEN.map((f, i) => `<button class="farbe ${malFarbe === i ? "an" : ""}" data-farbe="${i}" style="background:${f}" aria-label="${i === FARBEN.length - 1 ? "Radiergummi" : "Farbe " + (i + 1)}">${i === FARBEN.length - 1 ? "⌫" : ""}</button>`).join("")}</div>
+      <p class="leise klein">Mit zwei Fingern heranzoomen und verschieben.</p>
+      ${MALHILFE.farbKnoepfe(malFarbe)}
       <div class="werkzeug">${[1, 2, 3].map(d => `<button class="klein ${d === malDicke ? "an" : ""}" data-dicke="${d}">${["Fein", "Mittel", "Dick"][d - 1]}</button>`).join("")}
         <button class="klein" id="rueckgaengig">Rückgängig</button><button class="klein" id="loeschen">Alles löschen</button></div>
       <p class="leise klein">Keine Buchstaben oder Zahlen malen, das wäre geschummelt.</p>
