@@ -1,4 +1,4 @@
-// Stille Post mit Bildern: Verbindung (Handy des Spielleiters ist der Server, PeerJS) und Oberfläche.
+// Pinselpost (früher Stille Post mit Bildern): Verbindung (Handy des Spielleiters ist der Server, PeerJS) und Oberfläche.
 (function () {
   const P = window.SP;
   const app = document.getElementById("app");
@@ -402,10 +402,10 @@
     app.innerHTML = h;
     binden();
   }
-  // Banner: aus einem Satz wird ein Bild und daraus ein neuer Satz
-  const TITELBILD = '<svg class="titelbild" viewBox="0 0 320 150" role="img" aria-label="Aus dem Satz „Ein Hai macht Yoga“ wird eine Zeichnung und daraus „Delfin turnt?“"><rect x="2" y="2" width="316" height="146" rx="20" fill="#BFE3F2"/><path d="M2 120q40-10 80 0t80 0 80 0 76 0V128a20 20 0 0 1-20 20H22a20 20 0 0 1-20-20z" fill="#A6D3E8"/><path d="M22 18h76a10 10 0 0 1 10 10v24a10 10 0 0 1-10 10H36l-10 10 1-10H22a10 10 0 0 1-10-10v-24a10 10 0 0 1 10-10z" fill="#FFFDF7" stroke="#1C1A33" stroke-width="2.4" stroke-linejoin="round"/><text x="60.0" y="37" text-anchor="middle" font-family="Inter,Segoe UI,system-ui,sans-serif" font-weight="700" font-size="12.5" fill="#1C1A33">Ein Hai</text><text x="60.0" y="52" text-anchor="middle" font-family="Inter,Segoe UI,system-ui,sans-serif" font-weight="700" font-size="12.5" fill="#1C1A33">macht Yoga</text><g transform="rotate(-4 160 82)"><rect x="112" y="34" width="96" height="88" rx="6" fill="#FFFFFF" stroke="#1C1A33" stroke-width="2.4"/><g transform="translate(120 26) scale(1.12)" fill="none" stroke="#1C1A33" stroke-width="2.32" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="62" width="64" height="7" rx="3.5" fill="#F9A8D4"/><path d="M12 60c4-16 18-26 34-24 9 1 16 6 20 13-8 6-20 10-34 11z" fill="#9CC3E6"/><path d="M34 37l5-14 7 15" fill="#9CC3E6"/><path d="M12 60l-8-10M12 60l-6 8"/><path d="M44 52l6-16M50 36l-5 2M50 36l2 5"/><circle cx="57" cy="47" r="1.6" fill="#1C1A33"/><path d="M58 54c-3 2-6 2-8 1"/><path d="M62 18c0 4 4 4 4 0M70 26h5M66 10v-4M74 14l3-3" stroke="#F2B705"/></g><rect x="146" y="28" width="28" height="11" rx="2" fill="#FFD447" opacity=".85" transform="rotate(6 160 33)"/></g><path d="M224 80h76a10 10 0 0 1 10 10v24a10 10 0 0 1-10 10H294l1 10-10-10H224a10 10 0 0 1-10-10v-24a10 10 0 0 1 10-10z" fill="#FFD447" stroke="#1C1A33" stroke-width="2.4" stroke-linejoin="round"/><text x="262.0" y="99" text-anchor="middle" font-family="Inter,Segoe UI,system-ui,sans-serif" font-weight="700" font-size="12.5" fill="#1C1A33">Delfin</text><text x="262.0" y="114" text-anchor="middle" font-family="Inter,Segoe UI,system-ui,sans-serif" font-weight="700" font-size="12.5" fill="#1C1A33">turnt?</text><path d="M66 70Q89.0 66 112 92" fill="none" stroke="#1C1A33" stroke-width="2.4" stroke-linecap="round" stroke-dasharray="1 6"/><path d="M105 86l7 6-8 3" fill="none" stroke="#1C1A33" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M208 66Q230.0 44 252 78" fill="none" stroke="#1C1A33" stroke-width="2.4" stroke-linecap="round" stroke-dasharray="1 6"/><path d="M245 72l7 6-8 3" fill="none" stroke="#1C1A33" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/><text x="292" y="46" font-family="Unbounded,Segoe UI,system-ui,sans-serif" font-weight="800" font-size="22" fill="#FF6B5B" transform="rotate(12 292 40)">?</text></svg>';
+  // Banner: aus „Grillen im Park“ wird ein Bild und daraus „Lagerfeuer mit Freunden“
+  const TITELBILD = '<svg class="titelbild" viewBox="0 0 320 150" role="img" aria-label="Aus dem Satz „Grillen im Park“ wird eine Zeichnung mit Grill, Rauch und Leuten, und daraus wird „Lagerfeuer mit Freunden“"> <defs><pattern id="pp-luftpost" width="16" height="16" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="16" height="16" fill="#F5F0E6"/><rect width="5" height="16" fill="#D9473A"/><rect x="8" width="5" height="16" fill="#2F5DA8"/></pattern></defs> <rect x="2" y="2" width="316" height="146" rx="20" fill="url(#pp-luftpost)"/> <rect x="9" y="9" width="302" height="132" rx="14" fill="#22324F"/> <g fill="none" stroke="#F5F0E6" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M93 76h18M105 70l6 6-6 6"/><path d="M211 76h18M223 70l6 6-6 6"/></g> <g transform="rotate(-5 50 76)"> <rect x="14" y="40" width="74" height="70" rx="4" fill="#FFFBF0" stroke="#14181E" stroke-width="2"/> <rect x="68" y="45" width="15" height="17" fill="#F4C95D" stroke="#14181E" stroke-width="1.4" stroke-dasharray="2 1.2"/> <g font-family="Caveat,cursive" font-weight="700" font-size="18" fill="#2B4FA8"><text x="20" y="80">Grillen</text><text x="20" y="98">im Park</text></g> </g> <g transform="rotate(3 167 76)"> <rect x="121" y="28" width="92" height="94" rx="3" fill="#FFFFFF" stroke="#14181E" stroke-width="2"/> <g fill="none" stroke="#22202A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"> <path d="M126 110q20-3 40 0t42-1" stroke="#6CC497" stroke-width="2.4"/> <path d="M134 108v-22" stroke="#8B5A2B" stroke-width="2.6"/><circle cx="134" cy="76" r="11" fill="#8FD19E"/> <path d="M203 108v-18" stroke="#8B5A2B" stroke-width="2.6"/><circle cx="203" cy="81" r="9" fill="#8FD19E"/> <path d="M152 86q15 18 30 0z" fill="#3A3F48"/> <path d="M150 86h34"/> <path d="M160 96l-5 13M174 96l5 13M167 98v11"/> <path d="M158 85q2-7 5-2q2-8 5-1q3-6 5 1q3-5 5 2" fill="#FF9E3D" stroke="#E0533D" stroke-width="1.6"/> <path d="M163 76q-5-6 0-11t0-12M172 74q5-6 0-11t1-11" stroke="#9AA3AD" stroke-width="1.8"/> <circle cx="143" cy="88" r="3.6" fill="#FFFFFF"/><path d="M143 92v9M143 101l-3 7M143 101l3 7M143 95l6-3M143 95l-4 4"/> <circle cx="192" cy="88" r="3.6" fill="#FFFFFF"/><path d="M192 92v9M192 101l-3 7M192 101l3 7M192 95l-6-4M192 95l4 4"/> </g> </g> <g transform="rotate(4 270 76)"> <rect x="234" y="40" width="74" height="70" rx="4" fill="#FFFBF0" stroke="#14181E" stroke-width="2"/> <rect x="288" y="45" width="15" height="17" fill="#F4C95D" stroke="#14181E" stroke-width="1.4" stroke-dasharray="2 1.2"/> <g font-family="Caveat,cursive" font-weight="700" font-size="16" fill="#C6362F"><text x="239" y="76">Lagerfeuer</text><text x="239" y="91">mit</text><text x="239" y="105">Freunden</text></g> </g> </svg>';
   function bildschirmStart() {
-    return `<header class="titel">${TITELBILD}<h1>Stille Post mit Bildern</h1><p class="leise">Satz, Bild, Satz, Bild … jeder auf seinem Handy. Am Ende seht ihr, was daraus geworden ist.</p></header>
+    return `<header class="titel">${TITELBILD}<h1 class="wortmarke">Pinselpost</h1><p class="leise">Satz, Bild, Satz, Bild … jeder auf seinem Handy. Am Ende seht ihr, was daraus geworden ist.</p></header>
       <label class="feld">Dein Name<input id="name" maxlength="20" value="${esc(name)}" autocomplete="nickname" placeholder="z. B. Richard"></label>
       <div class="karte"><h2>Neues Spiel</h2>
         <div class="wahl" id="wTempo">${["entspannt", "normal", "schnell"].map(t => `<button data-v="${t}" class="${t === "normal" ? "an" : ""}">${tempoText[t]}</button>`).join("")}</div>
@@ -420,7 +420,7 @@
       <a class="link" href="../">Alle Spiele</a>`;
   }
   function bildschirmName() {
-    return `<header class="titel">${TITELBILD}<h1>Stille Post mit Bildern</h1><p class="leise">Du wurdest in Raum <b>${esc(code)}</b> eingeladen.</p></header>
+    return `<header class="titel">${TITELBILD}<h1 class="wortmarke">Pinselpost</h1><p class="leise">Du wurdest in Raum <b>${esc(code)}</b> eingeladen.</p></header>
       <label class="feld">Dein Name<input id="name" maxlength="20" value="${esc(name)}" autocomplete="nickname" placeholder="z. B. Lena"></label>
       <button class="knopf" id="mitspielen">Mitspielen</button>`;
   }
@@ -428,7 +428,7 @@
     const host = rolle === "host", n = S.reihenfolge.filter(p => S.spieler[p] && online(p)).length;
     let qr = "";
     try { if (window.qrcode) { const q = qrcode(0, "M"); q.addData(link()); q.make(); qr = q.createSvgTag({ cellSize: 5, margin: 2, scalable: true }); } } catch (e) {}
-    return `<header class="titel"><p class="etikett">Stille Post · Raumcode</p><div class="code">${esc(code)}</div></header>
+    return `<header class="titel"><p class="etikett">Pinselpost · Raumcode</p><div class="code">${esc(code)}</div></header>
       ${qr ? `<div class="qr">${qr}</div>` : ""}
       <div class="reihe"><button class="knopf zweit" id="teilen">Link teilen</button><button class="knopf zweit" id="kopieren">Link kopieren</button></div>
       <div class="karte"><h2>Im Raum (${n})</h2><ul class="spieler" id="spielerliste"></ul></div>
@@ -513,7 +513,7 @@
       code = c; history.replaceState(null, "", "?raum=" + code + testTeil()); clientStarten();
     };
     if ($("mitspielen")) $("mitspielen").onclick = () => { if (nameAus()) clientStarten(); };
-    if ($("teilen")) $("teilen").onclick = () => { if (navigator.share) navigator.share({ title: "Stille Post mit Bildern", text: "Spiel mit! Raum " + code, url: link() }).catch(() => {}); else kopieren(); };
+    if ($("teilen")) $("teilen").onclick = () => { if (navigator.share) navigator.share({ title: "Pinselpost", text: "Spiel mit! Raum " + code, url: link() }).catch(() => {}); else kopieren(); };
     if ($("kopieren")) $("kopieren").onclick = kopieren;
     const starten = () => tun({ t: "start", teilnehmer: S.reihenfolge.filter(p => S.spieler[p] && online(p)) });
     if ($("start")) $("start").onclick = starten;

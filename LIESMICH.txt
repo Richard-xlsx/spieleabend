@@ -12,7 +12,7 @@ Aufbau
   start.js                        Startseite: Bereich „Gemeinsamer Abend“ (eröffnen, beitreten, Spiel für alle wählen)
   buchstabenbattle/               „Glatt, Strand, Nuss“ (Ordner heißt weiter so, damit alte Links gehen): index.html, logic.js
                                   (Regeln und Punkte), app.js (Verbindung und Bildschirme)
-  stillepost/                     index.html, stillepost-logic.js, stillepost.js
+  stillepost/                     „Pinselpost“ (Ordner heißt weiter so): index.html, stillepost-logic.js, stillepost.js
   maumau/                         index.html, maumau-logic.js, maumau.js, holzschnitt.js, figuren2.js (Karten)
   verlies/                        index.html, verlies-logic.js (Regeln, Kampf, Zufall), verlies.js (Verbindung und Bildschirme),
                                   bilder.js (Tuschezeichnungen für Räume, Gegner, Helden)
@@ -47,7 +47,9 @@ Glatt, Strand, Nuss (früher Buchstabenbattle; ab 2 Spielern)
   Punkte: allein gültig in der Kategorie 20 · einzigartig 10 · gleiche Antwort wie jemand anderes 5 ·
   leer, falscher Anfangsbuchstabe oder abgelehnt 0 · meiste Herzen in einer Kategorie +5. Ohne C, Q, X und Y.
 
-Stille Post mit Bildern (ab 3 Spielern)
+Pinselpost (früher Stille Post mit Bildern; ab 3 Spielern)
+  Design: Nachtblau, Briefmarkenrot, Luftpost-Streifen unter dem Namen. Titelbild: „Grillen im Park“ → Zeichnung →
+  „Lagerfeuer mit Freunden“. Symbol auf der Startseite: Luftpost-Umschlag mit Grill-Briefmarke und Pinsel.
   Jeder schreibt einen Startsatz. Dann wandern die Ketten reihum: der Nächste malt den Satz, der Nächste beschreibt das Bild,
   und so weiter, bis jeder an jeder Kette einmal dran war. Alle arbeiten gleichzeitig.
   Wie oft Bild → Satz (beim Erstellen des Raums): Auto = bis jeder an jeder Kette einmal dran war (wie bisher),

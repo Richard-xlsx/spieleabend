@@ -17,7 +17,7 @@
   const TEST = params.get("test") || "";
   const T = TEST ? "-" + TEST : "";
   const PREFIX = "fmwabend-";
-  const NAMEN = { buchstabenbattle: "Glatt, Strand, Nuss", stillepost: "Stille Post", kritzelraten: "Malalarm", wortverbot: "Umschreiben", maumau: "Mau-Mau", viererkette: "Viererkette", gleisgenossen: "Gleisgenossen", verlies: "Verlies der Helden" };
+  const NAMEN = { buchstabenbattle: "Glatt, Strand, Nuss", stillepost: "Pinselpost", kritzelraten: "Malalarm", wortverbot: "Umschreiben", maumau: "Mau-Mau", viererkette: "Viererkette", gleisgenossen: "Gleisgenossen", verlies: "Verlies der Helden" };
   const ls = {
     get(k) { try { return JSON.parse(localStorage.getItem(k + T)); } catch (e) { return null; } },
     set(k, v) { try { localStorage.setItem(k + T, JSON.stringify(v)); } catch (e) {} },

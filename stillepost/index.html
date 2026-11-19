@@ -4,16 +4,16 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Stille Post">
-<meta name="theme-color" content="#1C1A33">
-<title>Stille Post mit Bildern</title>
+<meta name="apple-mobile-web-app-title" content="Pinselpost">
+<meta name="theme-color" content="#1A2740">
+<title>Pinselpost</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@600;800&family=Inter:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@600;800&family=Caveat:wght@700&family=Inter:wght@400;500;600;700&display=swap">
 <style>
-/* Gleiche Familie wie die anderen Partyspiele: Tintenblau, Korall; dazu weißes Zeichenpapier mit leichtem Schatten */
+/* Pinselpost: Nachtblau wie ein Luftpost-Umschlag bei Nacht, Briefmarkenrot als Akzent, Luftpost-Streifen; weißes Zeichenpapier */
 :root{
-  --bg:#1C1A33; --flaeche:#272447; --flaeche2:#322E5A; --text:#F3F0FF; --leise:#A8A2CC; --linie:#3D3868;
-  --akzent:#FF6B57; --akzent-text:#1C1A33; --karte-gelb:#FFD447; --gut:#5BD69A; --herz:#FF7FB0;
+  --bg:#1A2740; --flaeche:#22324F; --flaeche2:#2B3D5E; --text:#F5F0E6; --leise:#A9B4C8; --linie:#3A4E72;
+  --akzent:#F06A4F; --akzent-text:#1A2740; --karte-gelb:#F4C95D; --luft-rot:#D9473A; --luft-blau:#2F5DA8; --gut:#5BD69A; --herz:#FF7FB0;
   --display:"Unbounded","Segoe UI",system-ui,sans-serif; --fliess:"Inter","Segoe UI",system-ui,sans-serif;
   color-scheme:dark;
 }
@@ -85,6 +85,8 @@ button:focus-visible,input:focus-visible,a:focus-visible{outline:3px solid var(-
 .rang li:first-child .platz{color:var(--karte-gelb)}
 .rang .n{flex:1;font-weight:600}
 .rang b{font-family:var(--display);font-size:1.05rem;color:var(--herz)}
+
+.wortmarke{font-size:2.1rem;display:inline-block;align-self:flex-start;padding-bottom:10px;background:repeating-linear-gradient(-45deg,var(--luft-rot) 0 6px,var(--text) 6px 10px,var(--luft-blau) 10px 16px,var(--text) 16px 20px) bottom/100% 5px no-repeat}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
 </style>
 </head>
@@ -93,8 +95,8 @@ button:focus-visible,input:focus-visible,a:focus-visible{outline:3px solid var(-
 <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <script src="../netz.js"></script>
-<script src="../abend.js?v=2026-11-19d" data-spiel="stillepost"></script>
+<script src="../abend.js?v=2026-11-19e" data-spiel="stillepost"></script>
 <script src="stillepost-logic.js"></script>
-<script src="stillepost.js?v=2026-11-17c"></script>
+<script src="stillepost.js?v=2026-11-19e"></script>
 </body>
 </html>
