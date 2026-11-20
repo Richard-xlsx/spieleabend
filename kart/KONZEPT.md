@@ -117,12 +117,11 @@ Jeder Held sitzt in seinem eigenen Gefährt und hat eine **Heldenkraft**, die zu
 | **Heilerin** | Kräuterkarren | mittel | nach einem Treffer schneller wieder auf Tempo |
 | **Mönch** | Rollkissen: Er sitzt im Schneidersitz auf einem Kissen, das auf einem runden Holzgestell rollt | leicht | beste Beschleunigung, etwas weniger Höchsttempo, lädt die Heldenkraft beim Driften doppelt |
 | **Nekromant** | rollender Sarg | mittel | ausgewogen |
+| **Bardin** | Lautenwagen: der Bauch einer Laute auf Rädern, der Hals ragt nach hinten | mittel | wendig, Gold lädt ihre Heldenkraft doppelt |
+| **Hexe** | Kessel auf Rädern, darin brodelt es grün | schwer | schwer genug für die brüchige Wand, Fledermäuse und Sporen lassen schnell von ihr ab |
 
 Die Werte gehen auf die vier Fahrzeugtypen zurück, die es schon gibt: Höchsttempo, Beschleunigung, Lenkung, Haftung und Gewicht. Jeder Held bekommt eine eigene Mischung davon.
 
-Bardin und Hexe kommen dazu, sobald sie im Verlies eingebaut sind:
-- Bardin: Lautenwagen
-- Hexe: Kessel auf Rädern
 
 ### 4.2 Heldenkräfte
 
@@ -138,8 +137,10 @@ Die **Kraftleiste** füllt sich durch Gold, durch Driften und durch Treffer, die
 | **Heilerin** | **Segen** | Alle Störungen fallen ab. 5 Sekunden lang macht ihr kein Treffer etwas aus, jeder Treffer gibt ihr stattdessen einen Schub. |
 | **Mönch** | **Windschritt** | 2 Sekunden rasend schnell und unberührbar, mit Neigen kann er blitzschnell seitlich ausweichen. |
 | **Nekromant** | **Skelett rufen** | Zwei Knochenkrieger klettern aus dem Sarg und springen auf die Karts direkt hinter ihm. Sie klammern sich fest und bremsen, bis man sie **durch Schütteln des Handys** abwirft. |
-| *Bardin (später)* | *Schlaflied* | *Die Karts vor ihr werden 2 Sekunden schläfrig, mit „Zzz“, und langsamer.* |
-| *Hexe (später)* | *Verwandeln* | *Das Kart vor ihr wird 3 Sekunden zur hüpfenden Kröte, ohne Extras.* |
+| **Bardin** | **Schlaflied** | Die bis zu drei Karts direkt vor ihr (bis 90 m) werden 2 Sekunden schläfrig: „Zzz“ steigt auf, sie fahren langsamer und lenken schwer. |
+| **Hexe** | **Verwandeln** | Das Kart vor ihr wird 3 Sekunden zur hüpfenden Kröte: langsamer, ohne Extras, ohne Heldenkraft, und es nimmt keine Truhen auf. |
+
+Gegen Schlaflied und Verwandeln schützen dieselben Dinge wie gegen die Skelette (Amulett, Segen, Langfinger, Windschritt, Schildwall, Wirbelschlag). Ein Turmschild fängt sie einmal ab. Der Segen der Heilerin weckt und entzaubert.
 
 ### 4.3 Übungsgegner sind Monster
 
@@ -292,7 +293,7 @@ Nach jedem Paket ist das Spiel spielbar, und du kannst es am Handy testen.
 | **5** ✔ | Welt **Spinnengrotte**: Pilzsprung über die Schlucht, Netztunnel, Spinnenkönigin, Absturz mit Fledermäusen | zweite Welt |
 | **6** ✔ | Welt **Glutschlund**: Geysire, sinkende Steine, einstürzende Brücke, Glutdrache, steigende Lava | dritte Welt |
 | **7** ✔ | Feldzug mit Siegerehrung, Rennflüche, Zuschauen, Aufnahme in Spielauswahl und Spieleabend | fertiges Partyspiel |
-| **8** | Flucht aus dem Glutschlund, Schatzjagd, Bardin und Hexe | zusätzliche Modi |
+| **8** | Flucht aus dem Glutschlund, Schatzjagd (Bardin und Hexe fahren schon mit) | zusätzliche Modi |
 
 ---
 

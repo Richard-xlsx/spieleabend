@@ -33,6 +33,8 @@ const HELDEN = {
   heilerin: { name: "Heilerin", gefaehrt: "Kräuterkarren", klasse: "mittel", text: "nach Treffern schnell wieder auf Tempo", maxV: 27, accel: 15, turn: 1.95, grip: 10, drift: 1.4, masse: 1 },
   moench: { name: "Mönch", gefaehrt: "Rollkissen", klasse: "leicht", text: "beste Beschleunigung, driftet stark", maxV: 25.5, accel: 18, turn: 2.25, grip: 9, drift: 1.6, masse: .75 },
   nekromant: { name: "Nekromant", gefaehrt: "rollender Sarg", klasse: "mittel", text: "schnell, aber träge in Kurven", maxV: 28, accel: 13, turn: 1.8, grip: 9.5, drift: 1.35, masse: 1.15 },
+  bardin: { name: "Bardin", gefaehrt: "Lautenwagen", klasse: "mittel", text: "Gold lädt ihre Heldenkraft doppelt", maxV: 26.5, accel: 15.5, turn: 2.05, grip: 10, drift: 1.45, masse: .95 },
+  hexe: { name: "Hexe", gefaehrt: "Kessel auf Rädern", klasse: "schwer", text: "Fledermäuse und Sporen lassen schnell von ihr ab", maxV: 27.5, accel: 12.5, turn: 1.85, grip: 10.5, drift: 1.3, masse: 1.5 },
 };
 // Übungsgegner: Monster aus dem Verlies
 const MONSTER = {
@@ -54,6 +56,8 @@ const KRAEFTE = {
   heilerin: { name: "Segen", text: "alle Störungen fallen ab, 5 Sekunden lang gibt jeder Treffer Schub statt Dreher" },
   moench: { name: "Windschritt", text: "2 Sekunden rasend schnell und unberührbar, weicht blitzschnell seitlich aus" },
   nekromant: { name: "Skelett rufen", text: "zwei Knochenkrieger springen auf die Karts hinter ihm und bremsen sie" },
+  bardin: { name: "Schlaflied", text: "die drei Karts vor ihr werden 2 Sekunden schläfrig: langsam und schwer zu lenken" },
+  hexe: { name: "Verwandeln", text: "das Kart vor ihr wird 3 Sekunden zur hüpfenden Kröte, langsam und ohne Extras" },
 };
 const heldOder = t => HELDEN[t] ? t : "kaempfer";
 // kleines Bild für Listen: Heldenwappen aus dem Verlies, bei Monstern ein Emoji
@@ -1100,6 +1104,51 @@ const MODELLE = {
     wimpel(g, f, -.5, 1.0, -1.05, 1.3);
     return g;
   },
+  bardin(f) {        // Lautenwagen: der Bauch einer Laute auf Rädern, der Hals ragt nach hinten
+    const g = neu();
+    const bauch = teil(g, zyl(.78, .78, .42, 22), "#C9853A", 0, .72, .15); bauch.scale.z = 1.45;
+    const decke = teil(g, zyl(.7, .7, .04, 22), "#E2B06A", 0, .95, .15); decke.scale.z = 1.4;
+    teil(g, zyl(.2, .2, .05, 14), "#2A1A10", 0, .97, .55);
+    teil(g, box(.36, .2, 1.5), "#6B4A2E", 0, .9, -1.3);
+    teil(g, box(.42, .22, .5), "#4A3426", 0, 1.0, -2.1, -.45);
+    for (const s of [-1, 1]) for (const z of [-1.95, -2.2]) teil(g, zyl(.04, .04, .22, 6), "#F3E6CC", s * .25, 1.1, z, 0, 0, Math.PI / 2);
+    for (const x of [-.12, -.04, .04, .12]) teil(g, box(.015, .015, 2.4), "#F3E6CC", x, 1.0, -.55);
+    teil(g, box(.5, .06, .1), "#3A2A1A", 0, .99, 1.05);
+    for (const x of [-.74, .74]) for (const z of [-.55, .85]) rad(g, x, z, .36, "#5A3A22", "#C9853A");
+    // Bardin
+    teil(g, zyl(.32, .48, .85, 12), "#2F7F8A", 0, 1.38, .05);
+    teil(g, box(.68, .08, .1), "#E2B06A", 0, 1.2, -.25);
+    for (const s of [-1, 1]) teil(g, kapsel(.11, .45), "#2F7F8A", s * .38, 1.48, .35, 1.2);
+    teil(g, kugel(.25), HAUT, 0, 2.0, .18);
+    teil(g, kugel(.27), "#B8461E", 0, 2.04, .05).scale.set(1, .9, 1);
+    const hut = teil(g, zyl(.42, .42, .1, 16), "#2F7F8A", .04, 2.24, .12, .12, 0, -.15);
+    teil(g, kapsel(.05, .55), "#E23B2E", -.28, 2.48, -.08, -.5, 0, .5);
+    hut.userData.k = 1;
+    wimpel(g, f, .6, 1.0, -.7, 1.3);
+    return g;
+  },
+  hexe(f) {          // Kessel auf Rädern, darin brodelt es grün
+    const g = neu();
+    teil(g, zyl(.95, .62, 1.0, 18), "#2A2430", 0, .95, .1);
+    teil(g, new THREE.TorusGeometry(.95, .08, 8, 22), "#3E3646", 0, 1.45, .1, Math.PI / 2);
+    teil(g, zyl(.88, .88, .04, 18), "", 0, 1.38, .1, 0, 0, 0, GLUT("#8BD14A"));
+    for (const [x, z, r] of [[.35, .45, .14], [-.3, .3, .1], [.1, -.1, .12], [-.45, -.25, .08]]) teil(g, kugel(r, 8), "", x, 1.44, z, 0, 0, 0, GLUT("#B9F07A"));
+    for (const a of [0, 2.1, 4.2]) teil(g, zyl(.07, .05, .5, 6), "#2A2430", Math.sin(a) * .5, .35, .1 + Math.cos(a) * .5);
+    for (const x of [-.82, .82]) for (const z of [-.6, .75]) rad(g, x, z, .38, "#2E1C46", "#8BD14A");
+    teil(g, zyl(.05, .05, 2.4, 6), "#6B4A2E", .7, 1.3, -.5, .9);
+    teil(g, kegel(.22, .55, 8), "#C9A46A", .7, .55, -1.45, -.68 - Math.PI / 2);
+    // Hexe
+    teil(g, zyl(.3, .46, .8, 12), "#4A2E6E", 0, 1.75, -.15);
+    for (const s of [-1, 1]) teil(g, kapsel(.1, .42), "#4A2E6E", s * .36, 1.85, .2, 1.2);
+    teil(g, kugel(.24), "#9BC98A", 0, 2.32, -.08);
+    teil(g, kegel(.1, .22, 6), "#9BC98A", 0, 2.28, .2, Math.PI / 2);
+    teil(g, kugel(.27), "#2A1A10", 0, 2.3, -.24);
+    teil(g, zyl(.55, .55, .05, 18), "#3A2458", 0, 2.5, -.1);
+    teil(g, kegel(.3, 1.0, 12), "#4A2E6E", 0, 3.0, -.22, -.3);
+    teil(g, box(.62, .08, .06), "#8BD14A", 0, 2.56, -.1);
+    wimpel(g, f, -.75, 1.1, -.6, 1.3);
+    return g;
+  },
   // ----- Monster -----
   goblin() {         // Goblin im Fass
     const g = neu();
@@ -1202,6 +1251,29 @@ function backen(g) {
 const KART_MAT = new THREE.MeshLambertMaterial({ vertexColors: true });
 
 // ---------- Kart ----------
+// „Z“ für schläfrige Karts (Schlaflied)
+const zzzMat = (() => {
+  const cv = document.createElement("canvas"); cv.width = cv.height = 64; const x = cv.getContext("2d");
+  x.font = "900 54px sans-serif"; x.textAlign = "center"; x.textBaseline = "middle"; x.lineWidth = 8; x.strokeStyle = "#1C1A33"; x.strokeText("Z", 32, 34); x.fillStyle = "#BFD8FF"; x.fillText("Z", 32, 34);
+  const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace;
+  return new THREE.SpriteMaterial({ map: t, transparent: true, depthWrite: false });
+})();
+// Kröte (Verwandeln): ersetzt das Kart samt Fahrer
+function kroetenModell(farbe) {
+  const g = new THREE.Group();
+  teil(g, kugel(1.0, 14), "#5E9B3A", 0, .75, 0).scale.set(1.15, .7, 1.25);
+  teil(g, kugel(.8, 12), "#C9D98A", 0, .62, .25).scale.set(1, .55, 1);
+  for (const s of [-1, 1]) {
+    teil(g, kugel(.3, 10), "#5E9B3A", s * .48, 1.35, .6);
+    teil(g, kugel(.2, 8), "#F5E27A", s * .5, 1.45, .78);
+    teil(g, kugel(.1, 6), "#16161D", s * .5, 1.48, .95);
+    teil(g, kapsel(.2, .7), "#4E8A30", s * .95, .35, -.35, 1.3, 0, 0);
+    teil(g, box(.5, .08, .4), "#4E8A30", s * .7, .06, .85);
+  }
+  teil(g, box(.7, .05, .06), "#2E4A1E", 0, .72, 1.2);
+  teil(g, zyl(.04, .04, .9, 6), "#4A3426", -.6, 1.4, -.6); teil(g, box(.04, .32, .46), farbe, -.6, 1.7, -.85);
+  return g;
+}
 const funkenGeo = new THREE.SphereGeometry(.13, 6, 4);
 class Kart {
   constructor(typ, name, istIch, eigeneFarbe) {
@@ -1242,6 +1314,8 @@ class Kart {
     this.skelM = [-.7, .7].map(x => { const s = new THREE.Group(); teil(s, kugel(.26, 10), "#EDE4D0", 0, .62, 0); teil(s, kugel(.06, 6), "#1B1620", -.09, .66, .22); teil(s, kugel(.06, 6), "#1B1620", .09, .66, .22);
       teil(s, box(.36, .42, .2), "#E2D8C2", 0, .18, 0); teil(s, box(.5, .08, .08), "#E2D8C2", 0, .3, .1); for (const a of [-1, 1]) teil(s, zyl(.04, .04, .55, 5), "#E2D8C2", a * .28, .38, .2, -1.2, 0, a * .4);
       s.position.set(x, 1.05, -1.25); s.visible = false; this.g.add(s); return s; });
+    this.zzzM = new THREE.Group(); for (let i = 0; i < 3; i++) this.zzzM.add(new THREE.Sprite(zzzMat)); this.zzzM.visible = false; this.g.add(this.zzzM);
+    this.kroeteM = kroetenModell(this.farbe); this.kroeteM.visible = false; this.g.add(this.kroeteM);
     sc.add(this.g);
   }
   setzen(i, d) {
@@ -1254,6 +1328,7 @@ class Kart {
     this.schonzeit = this.netz = this.bremse = this.fleder = this.sporen = this.erholung = this.holper = 0;
     this.absturz = null; this.wurzel = 0; this.riss = null; this.pfad = null; this.geysirUhr = 0;
     this.kraft = 0; this.gold = 0; this.wirbel = this.wall = this.unsicht = this.wind = this.segen = this.eis = this.glatt = this.skelette = this.skelettUhr = 0; this.klauVor = null; this.wirbelGetroffen = null;
+    this.schlaf = this.kroete = 0;
   }
   suchen() {                                     // nächster Streckenpunkt über die ganze Runde
     let best = Infinity, bi = 0;
@@ -1266,6 +1341,7 @@ class Kart {
     this.schild = !!(fx & 1); this.amulett = fx & 2 ? 1 : 0; this.netz = fx & 4 ? 1 : 0; this.fleder = fx & 8 ? 1 : 0; this.schonzeit = fx & 16 ? 1 : 0;
     this.wirbel = fx & 64 ? 1 : 0; this.wall = fx & 128 ? 1 : 0; this.unsicht = fx & 256 ? 1 : 0; this.eis = fx & 512 ? 1 : 0; this.segen = fx & 1024 ? 1 : 0; this.wind = fx & 2048 ? 1 : 0;
     this.skelette = (fx & 4096 ? 1 : 0) + (fx & 8192 ? 1 : 0); this.abst = !!(fx & 16384); this.dreher = fx & 32768 ? 1 : 0;
+    this.schlaf = fx & 65536 ? 1 : 0; this.kroete = fx & 131072 ? 1 : 0;
     const erst = !this.nz;
     this.nz = { x, y, z, yaw, v, t: performance.now() };
     this.s = s; this.drift = drift; this.boost = boost || fx & 32 ? .2 : 0; this.ladung = ladung; this.netzProg = prog;
@@ -1287,7 +1363,8 @@ class Kart {
     const r2 = v => Math.round(v * 100) / 100;
     const fx = (this.schild ? 1 : 0) | (this.amulett > 0 ? 2 : 0) | (this.netz > 0 ? 4 : 0) | (this.fleder > 0 ? 8 : 0) | (this.schonzeit > 0 && !(this.dreher > 0) ? 16 : 0) | (this.haken ? 32 : 0)
       | (this.wirbel > 0 ? 64 : 0) | (this.wall > 0 ? 128 : 0) | (this.unsicht > 0 ? 256 : 0) | (this.eis > 0 ? 512 : 0) | (this.segen > 0 ? 1024 : 0) | (this.wind > 0 ? 2048 : 0)
-      | (this.skelette > 0 ? 4096 : 0) | (this.skelette > 1 ? 8192 : 0) | (this.absturz ? 16384 : 0) | (this.dreher > 0 ? 32768 : 0);
+      | (this.skelette > 0 ? 4096 : 0) | (this.skelette > 1 ? 8192 : 0) | (this.absturz ? 16384 : 0) | (this.dreher > 0 ? 32768 : 0)
+      | (this.schlaf > 0 ? 65536 : 0) | (this.kroete > 0 ? 131072 : 0);
     return [r2(this.x), r2(this.y), r2(this.z), r2(this.yaw), r2(this.v), r2(this.s), this.drift, this.boost > 0 ? 1 : 0, this.prog, r2(this.ladung), fx];
   }
   naechster() {
@@ -1308,6 +1385,8 @@ class Kart {
     if (this.holper > 0) maxV *= .5;
     if (this.skelette > 0) maxV *= 1 - .14 * this.skelette;
     if (this.wurzel > 0) maxV *= .78;
+    if (this.schlaf > 0) maxV *= .6;
+    if (this.kroete > 0) maxV *= .7;
     maxV *= 1 + this.gold * .006;                                   // jedes Goldstück macht etwas schneller
     if (this.boost > 0) maxV = st.maxV * 1.4;
     if (this.wind > 0) maxV = st.maxV * 1.5;
@@ -1317,7 +1396,7 @@ class Kart {
     if (this.eis > 0) this.v *= Math.max(0, 1 - .45 * dt);         // eingefroren: schlittert ohne Antrieb
     else if (!this.luft) this.v += Math.max(-30 * dt, Math.min(st.accel * dt * schub, maxV - this.v));
     // Lenken (für Tasten geglättet); im Netz lenkt es sich schwer, im Eisblock gar nicht
-    const lenk = this.eis > 0 ? 0 : ein.lenk * (this.netz > 0 ? .3 : 1);
+    const lenk = this.eis > 0 ? 0 : ein.lenk * (this.netz > 0 ? .3 : 1) * (this.schlaf > 0 ? .45 : 1);
     this.s += (lenk - this.s) * Math.min(1, dt * (ein.direkt ? 30 : 9));
     // Drift
     if (!this.drift && ein.drift && Math.abs(this.s) > .25 && this.v > 14 && !this.luft && !(this.eis > 0)) { this.drift = Math.sign(this.s); this.ladung = 0; }
@@ -1395,6 +1474,10 @@ class Kart {
     this.segenM.visible = this.segen > 0; if (this.segenM.visible) this.segenM.rotation.y = t * 2;
     this.windM.visible = this.wind > 0; if (this.windM.visible) this.windM.children.forEach((f, i) => f.scale.z = .6 + Math.random() * .8);
     this.skelM.forEach((s, i) => { s.visible = this.skelette > i; if (s.visible) s.rotation.z = Math.sin(t * 14 + i * 2) * .3; });
+    this.zzzM.visible = this.schlaf > 0;
+    if (this.zzzM.visible) this.zzzM.children.forEach((z, i) => { const p = (t * .8 + i / 3) % 1; z.position.set(.4 + p * .9 + Math.sin(t * 3 + i) * .15, 2.4 + p * 1.8, 0); z.scale.setScalar(.5 + p * .5); z.material.opacity = 1; });
+    this.kroeteM.visible = this.kroete > 0;
+    if (this.kroete > 0) { this.koerper.visible = false; this.kroeteM.position.y = Math.abs(Math.sin(t * 7)) * .6; this.kroeteM.rotation.x = -Math.cos(t * 7) * .12; }
     geist(this, this.unsicht > 0 ? (this.ich ? .35 : .08) : 0);
     if (this.seil) this.seil.visible = false;
     if (this.haken) {
@@ -1470,7 +1553,7 @@ function goldReihe(i0, mitte, phase) {
 }
 function goldNehmen(k, mz) {
   mz.weg = 8; mz.m.visible = false;
-  k.gold = Math.min(10, (k.gold || 0) + 1); kraftLaden(k, fluch === "gold" ? .1 : .05);
+  k.gold = Math.min(10, (k.gold || 0) + 1); kraftLaden(k, (fluch === "gold" ? .1 : .05) * (k.typ === "bardin" ? 2 : 1));
   if (k.ich) { const g = $("gold"); g.classList.remove("neu"); void g.offsetWidth; g.classList.add("neu"); }
 }
 function neuMischen(b) { b.mimik = Math.random() < (fluch === "mimik" ? 1 / 3 : 1 / 8); b.g.visible = !b.mimik; b.mg.visible = b.mimik; }
@@ -1537,7 +1620,7 @@ function truheNehmen(k, b) {
     if (k.ich) { melden("Ein Mimik! 😬 Extra weg"); extraAnzeigen(); }
     return;
   }
-  if (k.item || k.walze > 0) return;
+  if (k.item || k.walze > 0 || k.kroete > 0) return;
   const art = extraZiehen(k);
   k.item = { art, n: EXTRAS[art].n || 1 }; k.walze = k.bot ? .8 : 1.1;
   if (k.ich) extraAnzeigen(true);
@@ -1593,7 +1676,7 @@ function anwenden(e) {
 function wirkung(k, e) {
   if (e.art === "treffer") treffen(k, "treffer");
   else if (e.art === "bremse") { k.bremse = 1.2; if (k.ich) melden("Eingehakt! 🪝"); }
-  else if (e.art === "fleder") { if (k.amulett > 0) return; k.fleder = 3; if (k.ich) melden("Fledermäuse! 🦇", 1); }
+  else if (e.art === "fleder") { if (k.amulett > 0) return; k.fleder = k.typ === "hexe" ? 1.4 : 3; if (k.ich) melden("Fledermäuse! 🦇", 1); }
   else if (e.art === "tausch") { versetzen(k, wrap(e.idx | 0), +e.d || 0, +e.prog || k.prog); if (k.ich) melden("Platz getauscht! 📜"); }
   else if (e.art === "lohn") kraftLaden(k, .2);
   else if (e.art === "klau") {                                     // der Dieb hat mich überholt
@@ -1608,6 +1691,15 @@ function wirkung(k, e) {
     if (k.fertig != null || k.amulett > 0 || k.segen > 0 || k.unsicht > 0 || k.wind > 0 || k.wall > 0 || k.wirbel > 0) return;
     k.skelette = Math.min(2, k.skelette + 1); k.skelettUhr = k.bot ? 2.5 : 5;
     if (k.ich) { melden(steuerung === "neigen" ? "Skelett an Bord! Schütteln! 💀" : "Skelett an Bord! 💀", 1.6); summen(90); }
+  }
+  else if (e.art === "schlaf" || e.art === "kroete") {             // Schlaflied der Bardin, Verwandeln der Hexe
+    if (k.fertig != null || k.amulett > 0 || k.segen > 0 || k.unsicht > 0 || k.wind > 0 || k.wall > 0 || k.wirbel > 0) return;
+    if (k.schild) { k.schild = false; if (k.ich) melden("Schild hält! 🛡️"); return; }
+    if (e.art === "schlaf") { k.schlaf = 2; k.drift = 0; k.ladung = 0; if (k.ich) { melden("Ein Schlaflied … Zzz 💤", 1.6); summen(60); } }
+    else {
+      k.kroete = 3; k.drift = 0; k.ladung = 0; k.boost = 0; k.haken = null; puff(k.x, k.y + 1.2, k.z, "#8BD14A");
+      if (k.ich) { melden("Quak! Du bist eine Kröte 🐸", 1.8); summen(140); }
+    }
   }
 }
 function beute(k, it) {
@@ -1650,7 +1742,7 @@ function treffen(k, art) {
     return "weg";
   }
   if (art === "sporen") {
-    k.sporen = 2.2; k.v *= .75; k.schonzeit = 1;
+    k.sporen = k.typ === "hexe" ? 1 : 2.2; k.v *= .75; k.schonzeit = 1;
     if (k.ich) { melden("Sporen! Wischen!", 1.4); summen(60); }
     return "weg";
   }
@@ -1690,6 +1782,7 @@ function teleport(k) {
 // Extra einsetzen. wunsch: "vorn", "hinten" oder leer (Angriffe nach vorn, Fallen nach hinten)
 function extraNutzen(k, wunsch) {
   if (phase !== "rennen" || !k.item || k.walze > 0 || k.fertig != null || k.dreher > 0 || k.eis > 0 || k.absturz) return false;
+  if (k.kroete > 0) { if (k.ich) melden("Kröten haben keine Hände 🐸", .9); return false; }
   const art = k.item.art, E = EXTRAS[art];
   const hinten = wunsch ? wunsch === "hinten" : !!E.falle, rf = hinten ? -1 : 1;
   if (--k.item.n <= 0) k.item = null;
@@ -1815,6 +1908,8 @@ function objektWeg(id, knall) {
 }
 // kurzer Knall (nur Optik)
 const puffs = [];
+// Noten der Bardin: kleine bunte Wölkchen über dem Lautenwagen
+function noten(k) { for (const [dx, dy, c] of [[-.8, 2.4, "#FFD447"], [.7, 2.9, "#2F7F8A"], [0, 3.4, "#E86FB0"]]) puff(k.x + dx, k.y + dy, k.z, c); }
 function puff(x, y, z, farbe) {
   const m = new THREE.Mesh(kugel(1, 10), new THREE.MeshBasicMaterial({ color: farbe, transparent: true, opacity: .7, depthWrite: false }));
   m.position.set(x, y, z); sc.add(m); puffs.push({ m, t: 0 });
@@ -1966,12 +2061,12 @@ function hakenLenken(k, dt) {
 
 // Tempo-Einflüsse der Extras in einem Fahrschritt
 function extraTimer(k, dt) {
-  for (const t of ["schonzeit", "netz", "bremse", "fleder", "sporen", "amulett", "erholung", "holper", "walze", "wirbel", "wall", "unsicht", "wind", "segen", "eis", "glatt", "wurzel"]) if (k[t] > 0) k[t] = Math.max(0, k[t] - dt);
+  for (const t of ["schonzeit", "netz", "bremse", "fleder", "sporen", "amulett", "erholung", "holper", "walze", "wirbel", "wall", "unsicht", "wind", "segen", "eis", "glatt", "wurzel", "schlaf", "kroete"]) if (k[t] > 0) k[t] = Math.max(0, k[t] - dt);
 }
 
 // ----- Heldenkräfte -----
 function kraftNutzen(k) {
-  if (phase !== "rennen" || k.kraft < 1 || k.fertig != null || k.lore || k.flug || k.pfad || k.absturz || k.eis > 0 || (k.dreher > 0 && k.typ !== "heilerin")) return false;
+  if (phase !== "rennen" || k.kraft < 1 || k.fertig != null || k.lore || k.flug || k.pfad || k.absturz || k.eis > 0 || k.kroete > 0 || (k.dreher > 0 && k.typ !== "heilerin")) return false;
   const sag = (t, d) => { if (k.ich) melden(t, d); };
   const vor = n => karts.filter(o => o !== k && o.fertig == null && o.g.visible && !(o.unsicht > 0) && o.prog > k.prog && (o.prog - k.prog) * SCHRITT < 250).sort((a, b) => a.prog - b.prog).slice(0, n);
   const wurf = (art, ziel, d) => ereignis({ a: "wurf", id: neueId(), art, von: k.id, p: k.idx + 3 / SCHRITT, d: d ?? k.d, rf: 1, ziel: ziel ? ziel.id : null, y: k.y, kraft: true });
@@ -1986,7 +2081,7 @@ function kraftNutzen(k) {
     }
     case "magierin": { const z = vor(1)[0]; wurf("eis", z); sag(z ? "Eislanze auf " + z.name + "! 🧊" : "Eislanze! 🧊"); break; }
     case "heilerin":
-      k.netz = k.bremse = k.fleder = k.sporen = k.holper = k.glatt = k.skelette = k.dreher = 0; k.haken = null;
+      k.netz = k.bremse = k.fleder = k.sporen = k.holper = k.glatt = k.skelette = k.dreher = k.schlaf = k.kroete = 0; k.haken = null;
       k.segen = 5; sag("Segen! ✨"); break;
     case "moench": k.wind = 2; k.drift = 0; sag("Windschritt! 💨"); break;
     case "nekromant": {
@@ -1994,6 +2089,18 @@ function kraftNutzen(k) {
       if (!z.length) { sag("Niemand hinter dir für die Skelette", 1.2); return false; }
       for (const o of z) ereignis({ a: "wirkung", ziel: o.id, art: "skelett" });
       sag(z.length > 1 ? "Skelette auf " + z[0].name + " und " + z[1].name + "! 💀" : "Skelett auf " + z[0].name + "! 💀", 1.4); break;
+    }
+    case "bardin": {
+      const z = vor(3).filter(o => (o.prog - k.prog) * SCHRITT < 90);
+      if (!z.length) { sag("Niemand vor dir hört dein Schlaflied", 1.2); return false; }
+      for (const o of z) ereignis({ a: "wirkung", ziel: o.id, art: "schlaf" });
+      noten(k); sag("Schlaflied! 🎵 " + z.map(o => o.name).join(", ") + " gähnen", 1.4); break;
+    }
+    case "hexe": {
+      const z = vor(1)[0];
+      if (!z) { sag("Niemand vor dir zum Verwandeln", 1.2); return false; }
+      ereignis({ a: "wirkung", ziel: z.id, art: "kroete" });
+      sag("Verwandeln! " + z.name + " wird zur Kröte 🐸", 1.4); break;
     }
     default: return false;
   }
