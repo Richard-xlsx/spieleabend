@@ -53,7 +53,7 @@ Der Ausgleich richtet sich nach dem **Platz unter den Menschen**. Mit 5 Freunden
 | 4 | **Schnelle Rettung** | hintere Hälfte | Die Fledermäuse holen einen nach einem Absturz in 1,2 statt 2 Sekunden zurück. |
 | 5 | **Aufhol-Truhen** | Letzter, Vorletzter | Keine Fallen mehr in der Truhe, die nützen hinten nichts. Dafür gibt es zwei neue Extras, die nur hier vorkommen (siehe 2.2). |
 | 6 | **Krone für den Führenden** | Platz 1 | Er trägt eine kleine Krone. Die Endgegner suchen sich ihn doppelt so oft als Ziel aus. Wer ihn mit einem Extra trifft, bekommt 3 Gold. |
-| 7 | **Abstand anzeigen** | alle | Unter dem Platz steht der Abstand zum Vordermann, zum Beispiel „▲ 1,8 s“. Man sieht also, dass es sich lohnt dranzubleiben. |
+| 7 | ~~Abstand anzeigen~~ | – | gestrichen (Entscheidung 20.11.2026) |
 | 8 | **Finale** | die Letzten zwei | Zu Beginn der letzten Runde wird ihre erste Truhe golden und gibt sicher ein starkes Extra. |
 
 ### 2.2 Zwei neue Aufhol-Extras
@@ -69,13 +69,12 @@ In der Lobby wählt der Spielleiter den **Ausgleich: Aus, Sanft oder Stark**. St
 
 | Maßnahme | Sanft | Stark |
 |---|---|---|
-| 1 Mimik verschont | nur den Letzten | hintere Hälfte |
+| 1 Mimik verschont | hintere Hälfte | hintere Hälfte |
 | 2 Rückenwind | Letzter +3 % | Letzter +4 %, Vorletzter +2 % |
 | 3 Treffer milder | nur Goldschutz | Goldschutz und kürzerer Dreher |
 | 4 schnelle Rettung | ja | ja |
 | 5 Aufhol-Truhen | keine Fallen | keine Fallen und die zwei neuen Extras |
 | 6 Krone | ja | ja |
-| 7 Abstand | ja | ja |
 | 8 Finale | nein | ja |
 
 ### 2.4 Prüfen per Simulation
@@ -255,10 +254,29 @@ Für das Spiel zu fünft ist das zweitrangig.
 
 ---
 
-## 7. Offene Fragen
+## 7. Entscheidungen (20.11.2026)
 
-1. **Ausgleich:** Standard „Sanft“, und den Rückenwind sichtbar machen (🍃)? Oder soll er unsichtbar wirken?
-2. **Mimik:** Soll er nur den Letzten verschonen oder die ganze hintere Hälfte?
-3. **Rundenlänge:** Passen 45 bis 55 Sekunden pro Runde, also etwa 2:30 pro Rennen?
-4. **Reihenfolge:** zuerst Paket 9 (Ausgleich) und dann die Strecken?
-5. **Die große Reise:** als eigener Modus gewünscht?
+1. **Ausgleich:** Standard ist „Sanft“. Der Rückenwind ist dezent sichtbar (🍃 neben dem Platz).
+2. **Mimik:** verschont die ganze hintere Hälfte, bei 5 Menschen also die letzten 2. Das gilt schon bei „Sanft“.
+3. **Rundenlänge:** 45 bis 55 Sekunden pro Runde passen.
+4. **Reihenfolge:** zuerst Paket 9 (Ausgleich), dann die Strecken.
+5. **Abstand zum Vordermann:** wird nicht angezeigt.
+6. **Die große Reise:** noch offen.
+
+## 8. Stand der Umsetzung
+
+**Paket 9 ist umgesetzt** (siehe `spiel.js`, Abschnitt „Ausgleich zu fünft“):
+
+| Maßnahme | Sanft | Stark |
+|---|---|---|
+| Mimik hat Mitleid (hintere Hälfte) | ✔ | ✔ |
+| Rückenwind (mehr als 2 s hinter dem Vordermann) | Letzter +3 % | Letzter +4 % und +10 % Beschleunigung, Vorletzter +2 % |
+| Kein Goldverlust bei Treffern (hintere Hälfte) | ✔ | ✔ |
+| Kürzerer Dreher (0,6 s) | – | ✔ |
+| Schnelle Rettung nach Absturz (1,2 s) | ✔ | ✔ |
+| Keine Fallen in Truhen (hintere Hälfte) | ✔ | ✔ |
+| Fledermausflug 🌙 und Rachegeist 👻 | – | ✔ |
+| Krone 👑 für den führenden Menschen (Endgegner zielen öfter auf ihn, Treffer bringt 3 Gold) | ✔ | ✔ |
+| Goldene Truhe in der letzten Runde (hintere Hälfte) | – | ✔ |
+
+Die Monster haben weiter ihr eigenes Gummiband. Es wirkt nur noch auf Monster, nicht auf Menschen.

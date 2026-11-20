@@ -1259,6 +1259,14 @@ const zzzMat = (() => {
   return new THREE.SpriteMaterial({ map: t, transparent: true, depthWrite: false });
 })();
 // Kröte (Verwandeln): ersetzt das Kart samt Fahrer
+// Krone über dem führenden Menschen (Ausgleich)
+function kronenModell() {
+  const g = new THREE.Group();
+  teil(g, zyl(.42, .38, .32, 12), "#F2B705", 0, 0, 0);
+  for (let i = 0; i < 5; i++) { const w = i / 5 * Math.PI * 2; teil(g, kegel(.11, .32, 4), "#F2B705", Math.sin(w) * .4, .3, Math.cos(w) * .4); teil(g, kugel(.06, 6), i % 2 ? "#E23B2E" : "#2F6FDE", Math.sin(w) * .41, .02, Math.cos(w) * .41); }
+  g.traverse(o => { if (o.isMesh) o.material = new THREE.MeshBasicMaterial({ color: o.material.color }); });
+  return g;
+}
 function kroetenModell(farbe) {
   const g = new THREE.Group();
   teil(g, kugel(1.0, 14), "#5E9B3A", 0, .75, 0).scale.set(1.15, .7, 1.25);
@@ -1316,6 +1324,7 @@ class Kart {
       s.position.set(x, 1.05, -1.25); s.visible = false; this.g.add(s); return s; });
     this.zzzM = new THREE.Group(); for (let i = 0; i < 3; i++) this.zzzM.add(new THREE.Sprite(zzzMat)); this.zzzM.visible = false; this.g.add(this.zzzM);
     this.kroeteM = kroetenModell(this.farbe); this.kroeteM.visible = false; this.g.add(this.kroeteM);
+    this.kroneM = kronenModell(); this.kroneM.visible = false; this.g.add(this.kroneM);
     sc.add(this.g);
   }
   setzen(i, d) {
@@ -1328,7 +1337,7 @@ class Kart {
     this.schonzeit = this.netz = this.bremse = this.fleder = this.sporen = this.erholung = this.holper = 0;
     this.absturz = null; this.wurzel = 0; this.riss = null; this.pfad = null; this.geysirUhr = 0;
     this.kraft = 0; this.gold = 0; this.wirbel = this.wall = this.unsicht = this.wind = this.segen = this.eis = this.glatt = this.skelette = this.skelettUhr = 0; this.klauVor = null; this.wirbelGetroffen = null;
-    this.schlaf = this.kroete = 0;
+    this.schlaf = this.kroete = this.fluegel = 0; this.rw = this.rwA = 1; this.krone = false; this.goldtruhe = false;
   }
   suchen() {                                     // nächster Streckenpunkt über die ganze Runde
     let best = Infinity, bi = 0;
@@ -1341,7 +1350,7 @@ class Kart {
     this.schild = !!(fx & 1); this.amulett = fx & 2 ? 1 : 0; this.netz = fx & 4 ? 1 : 0; this.fleder = fx & 8 ? 1 : 0; this.schonzeit = fx & 16 ? 1 : 0;
     this.wirbel = fx & 64 ? 1 : 0; this.wall = fx & 128 ? 1 : 0; this.unsicht = fx & 256 ? 1 : 0; this.eis = fx & 512 ? 1 : 0; this.segen = fx & 1024 ? 1 : 0; this.wind = fx & 2048 ? 1 : 0;
     this.skelette = (fx & 4096 ? 1 : 0) + (fx & 8192 ? 1 : 0); this.abst = !!(fx & 16384); this.dreher = fx & 32768 ? 1 : 0;
-    this.schlaf = fx & 65536 ? 1 : 0; this.kroete = fx & 131072 ? 1 : 0;
+    this.schlaf = fx & 65536 ? 1 : 0; this.kroete = fx & 131072 ? 1 : 0; this.fluegel = fx & 262144 ? 1 : 0;
     const erst = !this.nz;
     this.nz = { x, y, z, yaw, v, t: performance.now() };
     this.s = s; this.drift = drift; this.boost = boost || fx & 32 ? .2 : 0; this.ladung = ladung; this.netzProg = prog;
@@ -1364,7 +1373,7 @@ class Kart {
     const fx = (this.schild ? 1 : 0) | (this.amulett > 0 ? 2 : 0) | (this.netz > 0 ? 4 : 0) | (this.fleder > 0 ? 8 : 0) | (this.schonzeit > 0 && !(this.dreher > 0) ? 16 : 0) | (this.haken ? 32 : 0)
       | (this.wirbel > 0 ? 64 : 0) | (this.wall > 0 ? 128 : 0) | (this.unsicht > 0 ? 256 : 0) | (this.eis > 0 ? 512 : 0) | (this.segen > 0 ? 1024 : 0) | (this.wind > 0 ? 2048 : 0)
       | (this.skelette > 0 ? 4096 : 0) | (this.skelette > 1 ? 8192 : 0) | (this.absturz ? 16384 : 0) | (this.dreher > 0 ? 32768 : 0)
-      | (this.schlaf > 0 ? 65536 : 0) | (this.kroete > 0 ? 131072 : 0);
+      | (this.schlaf > 0 ? 65536 : 0) | (this.kroete > 0 ? 131072 : 0) | (this.fluegel > 0 ? 262144 : 0);
     return [r2(this.x), r2(this.y), r2(this.z), r2(this.yaw), r2(this.v), r2(this.s), this.drift, this.boost > 0 ? 1 : 0, this.prog, r2(this.ladung), fx];
   }
   naechster() {
@@ -1388,11 +1397,13 @@ class Kart {
     if (this.schlaf > 0) maxV *= .6;
     if (this.kroete > 0) maxV *= .7;
     maxV *= 1 + this.gold * .006;                                   // jedes Goldstück macht etwas schneller
+    maxV *= this.rw || 1;                                           // Rückenwind (Ausgleich)
     if (this.boost > 0) maxV = st.maxV * 1.4;
     if (this.wind > 0) maxV = st.maxV * 1.5;
     if (this.haken) maxV = st.maxV * 1.55;
+    if (this.fluegel > 0) maxV = st.maxV * 1.6;
     if (ein.gas === false) maxV = 0; else if (this.dreher > 0) maxV = Math.min(maxV, st.maxV * .35);
-    const schub = this.boost > 0 || this.haken || this.wind > 0 ? 3 : this.erholung > 0 && !(this.dreher > 0) ? 2.2 : 1;
+    const schub = this.boost > 0 || this.haken || this.wind > 0 || this.fluegel > 0 ? 3 : (this.rwA || 1) * ( this.erholung > 0 && !(this.dreher > 0) ? 2.2 : 1);
     if (this.eis > 0) this.v *= Math.max(0, 1 - .45 * dt);         // eingefroren: schlittert ohne Antrieb
     else if (!this.luft) this.v += Math.max(-30 * dt, Math.min(st.accel * dt * schub, maxV - this.v));
     // Lenken (für Tasten geglättet); im Netz lenkt es sich schwer, im Eisblock gar nicht
@@ -1462,7 +1473,9 @@ class Kart {
     this.schildM.visible = !!this.schild;
     this.aura.visible = this.amulett > 0; if (this.aura.visible) this.aura.material.opacity = .2 + Math.sin(t * 10) * .08;
     this.netzM.visible = this.netz > 0; if (this.netzM.visible) this.netzM.rotation.y = Math.sin(t * 9) * .2;
-    this.flederM.visible = this.fleder > 0 || !!this.absturz || !!this.abst;
+    this.flederM.visible = this.fleder > 0 || !!this.absturz || !!this.abst || this.fluegel > 0;
+    if (this.fluegel > 0) this.koerper.position.y += 1 + Math.sin(t * 6) * .2;
+    this.kroneM.visible = !!this.krone && !(this.kroete > 0); if (this.kroneM.visible) { this.kroneM.rotation.y = t * 1.5; this.kroneM.position.y = 2.75 + Math.sin(t * 3) * .08; }
     if (this.flederM.visible) this.flederM.children.forEach((f, i) => { const w = t * 5 + i * 2.1; f.position.set(Math.sin(w) * 1.2, 2.3 + Math.sin(t * 9 + i) * .25, Math.cos(w) * 1.2 + .6); f.rotation.y = w + Math.PI / 2; f.children[1].rotation.x = f.children[2].rotation.x = Math.sin(t * 30 + i) * .6; });
     this.koerper.visible = !(this.schonzeit > 0 && !(this.dreher > 0) && Math.floor(t * 12) % 2 === 0);
     // Dreher: genau zwei ganze Umdrehungen des Modells, danach schaut es wieder nach vorn
@@ -1597,8 +1610,46 @@ const EXTRAS = {
   schild:    { name: "Turmschild", bild: "🛡️", w: [3, 1, 0] },
   amulett:   { name: "Segensamulett", bild: "📿", w: [0, 1, 2] },
   fleder:    { name: "Fledermausschwarm", bild: "🦇", w: [0, 1, 2] },
-  beben:     { name: "Beben", bild: "🪨", w: [0, 0, 2] }
+  beben:     { name: "Beben", bild: "🪨", w: [0, 0, 2] },
+  // Aufhol-Extras: nur hinten beim Ausgleich „Stark“
+  fluegel:   { name: "Fledermausflug", bild: "🌙", aufhol: true, w: [0, 0, 0] },
+  rachegeist:{ name: "Rachegeist", bild: "👻", aufhol: true, w: [0, 0, 0] }
 };
+// ---------- Ausgleich zu fünft ----------
+// Gilt nach dem Platz unter den Menschen. „hinten“ ist die hintere Hälfte (bei 5 Menschen die letzten 2).
+// Jedes Handy entscheidet für sein eigenes Kart; die Krone rechnet jedes Handy selbst aus den Positionen.
+let ausgleich = "sanft";
+function menschLage(k) {
+  const m = karts.filter(o => !o.bot), n = m.length;
+  if (k.bot || n < 2) return { n, platz: 1, vorn: null };
+  const pk = platzVon(k);
+  let platz = 1, vorn = null, vp = -1;
+  for (const o of m) { if (o === k) continue; const po = platzVon(o); if (po < pk) { platz++; if (po > vp) { vp = po; vorn = o; } } }
+  return { n, platz, vorn };
+}
+const ausgleichAn = () => ausgleich === "sanft" || ausgleich === "stark";
+function hinten(k) { if (!ausgleichAn()) return false; const L = menschLage(k); return L.n >= 2 && L.platz > L.n - Math.floor(L.n / 2); }
+// Rückenwind: der Letzte (bei „Stark“ auch der Vorletzte), solange er mehr als 2 Sekunden hinter seinem Vordermann liegt
+function rueckenwind(k) {
+  k.rw = 1; k.rwA = 1;
+  if (!ausgleichAn() || k.bot || k.fertig != null || phase !== "rennen") return;
+  const L = menschLage(k); if (L.n < 2 || L.platz < L.n - (ausgleich === "stark" ? 1 : 0)) return;
+  const o = L.vorn, sek = !o || o.fertig != null ? 99 : (o.prog - k.prog) / S * LAENGE / TYPEN[k.typ].maxV;
+  if (sek < 2) return;
+  const letzter = L.platz === L.n;
+  k.rw = ausgleich === "stark" ? (letzter ? 1.04 : 1.02) : 1.03;
+  k.rwA = ausgleich === "stark" && letzter ? 1.1 : 1;
+}
+// Krone: der führende Mensch, solange er fährt
+function kroneSetzen() {
+  for (const k of karts) k.krone = false;
+  if (!ausgleichAn() || phase !== "rennen") return;
+  const m = karts.filter(o => !o.bot && o.fertig == null && o.g.visible); if (karts.filter(o => !o.bot).length < 2 || !m.length) return;
+  m.reduce((a, b) => platzVon(b) < platzVon(a) ? b : a).krone = true;
+}
+// Endgegner wählen ihre Ziele zufällig, den Träger der Krone doppelt so oft
+const zielMischen = l => l.map(o => [o, Math.random() ** (o.krone ? .5 : 1)]).sort((a, b) => b[1] - a[1]).map(e => e[0]);
+const STARKE_EXTRAS = ["dreifach", "teleport", "amulett", "fleder", "beben", "fluegel", "rachegeist"];
 const TEST_EXTRA = new URLSearchParams(location.search).get("extra");    // Test: ?extra=feuerball gibt immer dieses Extra
 const klemmen = (v, a, b) => Math.max(a, Math.min(b, v));
 let wackeln = 0;                                                        // Kamera wackelt (Beben, Treffer)
@@ -1607,13 +1658,29 @@ function extraZiehen(k) {
   if (TEST_EXTRA && EXTRAS[TEST_EXTRA]) return TEST_EXTRA;
   const n = karts.length, p = n > 1 ? (platzVon(k) - 1) / (n - 1) : .5;
   const stufe = p < .34 ? 0 : p < .67 ? 1 : 2;
-  const alle = Object.entries(EXTRAS), w = e => e.w[stufe] * (fluch === "fallen" && e.falle ? 2.5 : 1);
+  const auf = hinten(k), stark = auf && ausgleich === "stark";
+  const alle = Object.entries(EXTRAS), w = e => auf && e.falle ? 0 : e.aufhol ? (stark ? 2 : 0) : e.w[stufe] * (fluch === "fallen" && e.falle ? 2.5 : 1);
   let summe = 0; for (const [, e] of alle) summe += w(e);
   let x = Math.random() * summe; for (const [a, e] of alle) { x -= w(e); if (x < 0) return a; }
   return "flink";
 }
 function truheNehmen(k, b) {
   b.weg = 3.5; b.g.visible = b.mg.visible = false;
+  if (k.goldtruhe && !k.item && !(k.walze > 0) && !(k.kroete > 0)) {   // Finale: die erste Truhe der letzten Runde ist golden
+    k.goldtruhe = false;
+    const art = STARKE_EXTRAS[Math.floor(Math.random() * STARKE_EXTRAS.length)];
+    k.item = { art, n: EXTRAS[art].n || 1 }; k.walze = 1.1;
+    if (k.ich) { melden("Goldene Truhe! ✨", 1.2); extraAnzeigen(true); }
+    return;
+  }
+  if (b.mimik && hinten(k)) {                      // der Mimik hat Mitleid mit denen hinten
+    if (k.ich) melden("Der Mimik hat Mitleid … hier 🥺", 1.4);
+    if (k.item || k.walze > 0 || k.kroete > 0) return;
+    const art = extraZiehen(k);
+    k.item = { art, n: EXTRAS[art].n || 1 }; k.walze = k.bot ? .8 : 1.1;
+    if (k.ich) extraAnzeigen(true);
+    return;
+  }
   if (b.mimik) {                                   // gebissen: Kart dreht sich, Extra weg
     k.item = null; k.walze = 0;
     treffen(k, "mimik");
@@ -1678,7 +1745,14 @@ function wirkung(k, e) {
   else if (e.art === "bremse") { k.bremse = 1.2; if (k.ich) melden("Eingehakt! 🪝"); }
   else if (e.art === "fleder") { if (k.amulett > 0) return; k.fleder = k.typ === "hexe" ? 1.4 : 3; if (k.ich) melden("Fledermäuse! 🦇", 1); }
   else if (e.art === "tausch") { versetzen(k, wrap(e.idx | 0), +e.d || 0, +e.prog || k.prog); if (k.ich) melden("Platz getauscht! 📜"); }
-  else if (e.art === "lohn") kraftLaden(k, .2);
+  else if (e.art === "lohn") lohnNehmen(k, Math.max(0, Math.min(3, e.gold | 0)));
+  else if (e.art === "rachegeist") {                               // hält den Führenden fest wie ein Netz
+    if (k.fertig != null || k.amulett > 0 || k.segen > 0 || k.unsicht > 0 || k.wind > 0 || k.wall > 0 || k.wirbel > 0 || k.fluegel > 0) return;
+    if (k.schild) { k.schild = false; if (k.ich) melden("Schild hält den Geist ab! 🛡️"); return; }
+    k.netz = 1.5; k.v *= .35; k.drift = 0; k.ladung = 0; k.boost = 0; k.haken = null; k.schonzeit = Math.max(k.schonzeit, 1.7);
+    puff(k.x, k.y + 1.5, k.z, "#CFE8FF");
+    if (k.ich) { melden(steuerung === "neigen" ? "Ein Rachegeist hält dich fest! Schütteln! 👻" : "Ein Rachegeist hält dich fest! 👻", 1.6); summen(120); }
+  }
   else if (e.art === "klau") {                                     // der Dieb hat mich überholt
     if (!k.item || k.walze > 0) return;
     const it = k.item; k.item = null;
@@ -1718,12 +1792,18 @@ function kraftLaden(k, x) {
 function lohn(vonId, opfer) {
   if (!vonId || vonId === opfer.id) return;
   const k = karts.find(o => o.id === vonId); if (!k) return;
-  if (!k.remote) kraftLaden(k, .2); else ereignis({ a: "wirkung", ziel: k.id, art: "lohn" });
+  const gold = opfer.krone ? 3 : 0;                 // wer die Krone trifft, bekommt 3 Gold
+  if (!k.remote) lohnNehmen(k, gold); else ereignis({ a: "wirkung", ziel: k.id, art: "lohn", gold });
+}
+function lohnNehmen(k, gold) {
+  kraftLaden(k, .2);
+  if (gold > 0) { k.gold = Math.min(10, (k.gold || 0) + gold); if (k.ich) { melden(`Die Krone getroffen! +${gold} Gold 👑`, 1.4); puff(k.x, k.y + 1.5, k.z, "#F2B705"); } }
 }
 
 // Treffer auf ein selbst gefahrenes Kart. Rückgabe: "durch" (wirkt nicht, Geschoss fliegt weiter) oder "weg" (Geschoss verbraucht)
 function treffen(k, art) {
   if (k.fertig != null || k.absturz) return "durch";
+  if (k.fluegel > 0) return art === "mimik" ? "durch" : "weg";
   if ((k.unsicht > 0 || k.wind > 0) && art !== "mimik") return "durch";        // Langfinger, Windschritt: nicht zu treffen
   if ((k.wirbel > 0 || k.wall > 0) && art !== "mimik") return "weg";          // Wirbelschlag, Schildwall: prallt ab
   if (k.segen > 0 && art !== "mimik") { k.boost = Math.max(k.boost, .8); if (k.ich) melden("Gesegnet! Schub statt Treffer ✨", 1); return "weg"; }
@@ -1746,9 +1826,10 @@ function treffen(k, art) {
     if (k.ich) { melden("Sporen! Wischen!", 1.4); summen(60); }
     return "weg";
   }
-  k.dreher = k.dreherDauer = k.typ === "paladin" ? .5 : .95; k.mhFest = k.mh; k.yaw = k.mh; k.v *= .5; k.drift = 0; k.ladung = 0; k.boost = 0; k.haken = null;
+  const mild = hinten(k);
+  k.dreher = k.dreherDauer = k.typ === "paladin" ? .5 : mild && ausgleich === "stark" ? .6 : .95; k.mhFest = k.mh; k.yaw = k.mh; k.v *= .5; k.drift = 0; k.ladung = 0; k.boost = 0; k.haken = null;
   k.schonzeit = k.dreher + 2; if (k.typ === "heilerin") k.erholung = k.dreher + 1.5;
-  if (art !== "mimik" && k.gold > 0) { k.gold = Math.max(0, k.gold - 2); if (k.ich) puff(k.x, k.y + 1.5, k.z, "#F2B705"); }
+  if (art !== "mimik" && k.gold > 0 && !mild) { k.gold = Math.max(0, k.gold - 2); if (k.ich) puff(k.x, k.y + 1.5, k.z, "#F2B705"); }
   if (k.ich) { summen(180); wackeln = Math.max(wackeln, .35); }
   return "weg";
 }
@@ -1805,6 +1886,12 @@ function extraNutzen(k, wunsch) {
     ereignis({ a: "falle", id: neueId(), art, von: k.id, idx, d, flug: !hinten });
   }
   else if (art === "schild") { k.schild = true; sag("Turmschild! 🛡️"); }
+  else if (art === "fluegel") { k.fluegel = 4; k.drift = 0; k.ladung = 0; k.dreher = 0; k.netz = k.bremse = k.sporen = k.schlaf = 0; k.skelette = 0; sag("Fledermausflug! 🦇🦇🦇"); }
+  else if (art === "rachegeist") {
+    const z = karts.filter(o => o !== k && o.fertig == null && o.g.visible).sort((a, b) => b.prog - a.prog)[0];
+    if (z) ereignis({ a: "wirkung", ziel: z.id, art: "rachegeist" });
+    sag(z ? `Rachegeist auf ${z.name}! 👻` : "Der Geist findet niemanden.");
+  }
   else if (art === "amulett") { k.amulett = 5; sag("Segensamulett! 📿"); }
   else if (art === "fleder") {
     const ziele = karts.filter(o => o !== k && o.fertig == null && o.g.visible).sort((a, b) => b.prog - a.prog).slice(0, 3);
@@ -2061,7 +2148,7 @@ function hakenLenken(k, dt) {
 
 // Tempo-Einflüsse der Extras in einem Fahrschritt
 function extraTimer(k, dt) {
-  for (const t of ["schonzeit", "netz", "bremse", "fleder", "sporen", "amulett", "erholung", "holper", "walze", "wirbel", "wall", "unsicht", "wind", "segen", "eis", "glatt", "wurzel", "schlaf", "kroete"]) if (k[t] > 0) k[t] = Math.max(0, k[t] - dt);
+  for (const t of ["schonzeit", "netz", "bremse", "fleder", "sporen", "amulett", "erholung", "holper", "walze", "wirbel", "wall", "unsicht", "wind", "segen", "eis", "glatt", "wurzel", "schlaf", "kroete", "fluegel"]) if (k[t] > 0) k[t] = Math.max(0, k[t] - dt);
 }
 
 // ----- Heldenkräfte -----
@@ -2402,14 +2489,14 @@ function flugSchritt(k, dt) {
 
 // Absturz in die Schlucht: fallen, dann tragen Fledermäuse das Kart zurück auf die Fahrbahn (etwa 2 Sekunden)
 function absturz(k, zurueck) {
-  if (k.absturz) return;
+  if (k.absturz || k.fluegel > 0) return;
   const zi = zurueck ?? wrap(k.idx - meter(3));
-  k.absturz = { t: 0, vx: Math.sin(k.mh) * k.v * .4, vz: Math.cos(k.mh) * k.v * .4, zi, prog: k.prog - vorab(k.idx, zi), y0: k.y };
+  k.absturz = { t: 0, vx: Math.sin(k.mh) * k.v * .4, vz: Math.cos(k.mh) * k.v * .4, zi, prog: k.prog - vorab(k.idx, zi), y0: k.y, tempo: hinten(k) ? 2 / 1.2 : 1 };
   k.drift = 0; k.ladung = 0; k.boost = 0; k.haken = null; k.v = 0; k.dreher = 0; k.luft = true;
   if (k.ich) { melden(welt === "glut" ? "In die Lava! 🔥 Fledermäuse holen dich" : "Abgestürzt! Fledermäuse holen dich 🦇", 1.8); summen(150); wackeln = Math.max(wackeln, .4); }
 }
 function absturzSchritt(k, dt) {
-  const A = k.absturz; A.t += dt;
+  const A = k.absturz; A.t += dt * (A.tempo || 1);
   const q = punkt(A.zi, 0);
   if (A.t < .7) { k.x += A.vx * dt; k.z += A.vz * dt; k.y = A.y0 - A.t * A.t * 22; }
   else {
@@ -2514,7 +2601,7 @@ function koenigLenken(dt) {
     // Spinnenkönigin: seilt sich vor zwei Fahrern ab, in Runde 3 öfter
     const wild = karts.some(k => k.runden.length >= 2 && k.fertig == null);
     koenigTakt = wild ? 7 + Math.random() * 3 : 11 + Math.random() * 5;
-    const ziele = karts.filter(o => o.fertig == null && o.g.visible).sort(() => Math.random() - .5).slice(0, wild ? 3 : 2);
+    const ziele = zielMischen(karts.filter(o => o.fertig == null && o.g.visible)).slice(0, wild ? 3 : 2);
     const stellen = ziele.map(o => [wrap(Math.round(o.idx + (34 + Math.random() * 10) / SCHRITT)), Math.round(((Math.random() - .5) * (BR - 4)) * 10) / 10]);
     if (stellen.length) ereignis({ a: "faden", id: neueId(), stellen });
     return;
@@ -2523,7 +2610,7 @@ function koenigLenken(dt) {
     // Glutdrache: überfliegt die Strecke vor einem Fahrer (in Runde 3 vor zweien) und brennt eine Feuerspur über die halbe Fahrbahn
     const wild = karts.some(k => k.runden.length >= 2 && k.fertig == null);
     koenigTakt = wild ? 8 + Math.random() * 3 : 12 + Math.random() * 4;
-    const ziele = karts.filter(o => o.fertig == null && o.g.visible).sort(() => Math.random() - .5).slice(0, wild ? 2 : 1);
+    const ziele = zielMischen(karts.filter(o => o.fertig == null && o.g.visible)).slice(0, wild ? 2 : 1);
     const spuren = ziele.map(o => { const sd = Math.random() < .5 ? 1 : -1, d0 = sd * (BR / 2 - 1); return [wrap(Math.round(o.idx + (42 + Math.random() * 12) / SCHRITT)), d0, Math.round((d0 - sd * (BR / 2 + Math.random() * 2)) * 10) / 10]; });
     if (spuren.length) ereignis({ a: "glut", id: neueId(), spuren });
     return;
@@ -2728,7 +2815,7 @@ function botEingabe(k, dt) {
   // Gummiband: weit hinter dem führenden Menschen etwas schneller, weit vorne etwas langsamer
   const mensch = Math.max(...karts.filter(o => !o.bot).map(o => o.prog));
   const abstand = (mensch - k.prog) / S * LAENGE;
-  k.st = { ...TYPEN[k.typ], maxV: TYPEN[k.typ].maxV * k.tempo * (abstand > 40 ? 1.08 : abstand < -60 ? .93 : 1) };
+  k.st = { ...TYPEN[k.typ], maxV: TYPEN[k.typ].maxV * k.tempo * (!k.bot ? 1 : abstand > 40 ? 1.08 : abstand < -60 ? .93 : 1) };
   let lenk = -diff * 2.2;
   if (fs != null) lenk += klemmen((k.spur - k.d) * .3, -.8, .8);   // aktiv in die verlangte Spur
   if (k.fleder > 0) lenk += Math.sin(uhr * 7 + k.tempo * 50) * .9;      // Fledermäuse vor den Augen
@@ -2755,8 +2842,8 @@ function stossen() {
       if (!B.remote) { B.x += dx / d * ueber * Math.min(1, fB); B.z += dz / d * ueber * Math.min(1, fB); }
       // Wer das Segensamulett trägt, wirft andere beim Rammen herum (entschieden vom Handy des Gerammten)
       if (phase === "rennen") {
-        if (!A.remote && (B.amulett > 0 || B.wall > 0) && !(A.amulett > 0)) treffen(A, "treffer");
-        if (!B.remote && (A.amulett > 0 || A.wall > 0) && !(B.amulett > 0)) treffen(B, "treffer");
+        if (!A.remote && (B.amulett > 0 || B.wall > 0 || B.fluegel > 0) && !(A.amulett > 0)) treffen(A, "treffer");
+        if (!B.remote && (A.amulett > 0 || A.wall > 0 || A.fluegel > 0) && !(B.amulett > 0)) treffen(B, "treffer");
       }
     }
   }
@@ -2776,15 +2863,17 @@ function update(dt) {
   ein.lenk = lenkWert();
   const rennt = phase === "rennen";
   if (rennt) uhr += dt;
+  kroneSetzen();
   for (const k of karts) {
     if (k.remote) { k.folgen(dt); continue; }
-    extraTimer(k, dt);
+    extraTimer(k, dt); rueckenwind(k);
     let e = !rennt ? { lenk: k.ich ? ein.lenk : 0, gas: false, drift: false, direkt: true }
       : k.fertig != null ? (k.ich ? { lenk: botEingabe(k, dt).lenk, drift: false, direkt: true } : botEingabe(k, dt))
         : k.ich && !AUTO && !k.aufgegeben ? ein : botEingabe(k, dt);
     if (rennt && k.haken) e = hakenLenken(k, dt) || e;
-    if (rennt && k.fertig == null && (k.bot || (k.ich && AUTO))) botExtra(k, dt);
-    if (rennt && k.ich && AUTO && k.kraft >= 1) kraftNutzen(k);
+    if (rennt && k.fluegel > 0 && k.fertig == null) { const st = k.st, b = botEingabe(k, dt); k.st = st; e = { lenk: b.lenk, drift: false, direkt: true }; }
+    if (rennt && k.fertig == null && (!k.ich || AUTO)) botExtra(k, dt);              // Monster (und im Test selbstfahrende Menschen)
+    if (rennt && (k.ich ? AUTO : !k.bot) && k.kraft >= 1) kraftNutzen(k);
     if (rennt) kraftSchritt(k, dt);
     if (k.fertig != null && k.ich) k.st = { ...TYPEN[k.typ], maxV: TYPEN[k.typ].maxV * .6 };
     if (k.absturz) absturzSchritt(k, dt);
@@ -2797,7 +2886,11 @@ function update(dt) {
     if (rennt && runde > k.runden.length && k.fertig == null && k.prog > 0) {
       k.runden.push(uhr - k.rundeStart); k.rundeStart = uhr;
       if (k.runden.length >= RUNDEN) { k.fertig = uhr; imZiel(k.id, uhr); if (k.ich) zielEinlauf(); }
-      else if (k.ich) melden(k.runden.length === RUNDEN - 1 ? "Letzte Runde!" : `Runde ${k.runden.length + 1}`);
+      else {
+        const finale = k.runden.length === RUNDEN - 1 && ausgleich === "stark" && hinten(k);   // Finale: goldene Truhe für die hintere Hälfte
+        if (finale) k.goldtruhe = true;
+        if (k.ich) melden(k.runden.length === RUNDEN - 1 ? (finale ? "Letzte Runde! Deine nächste Truhe ist golden ✨" : "Letzte Runde!") : `Runde ${k.runden.length + 1}`, finale ? 2 : 1.4);
+      }
     }
     // Kisten
     if (rennt && k.fertig == null) for (const b of kisten) if (!b.weg && Math.hypot(b.x - k.x, b.z - k.z) < 1.8 && k.y < 2.5) truheNehmen(k, b);
@@ -2877,7 +2970,7 @@ function hud(dt) {
     const c = $("punkte").children[n]; c.setAttribute("cx", mx(k.x).toFixed(1)); c.setAttribute("cy", mz(k.z).toFixed(1));
     c.style.display = k.g.visible && !(k.unsicht > 0 && !k.ich) ? "" : "none";
     if (k.tag) {
-      v3.set(k.x, k.y + 2.8, k.z).project(cam);
+      v3.set(k.x, k.y + (k.krone ? 3.6 : 2.8), k.z).project(cam);
       const sichtbar = k.g.visible && !(k.unsicht > 0) && v3.z < 1 && Math.abs(v3.x) < 1.1 && Math.abs(v3.y) < 1.1 && Math.hypot(k.x - fokusKart().x, k.z - fokusKart().z) < 120 && k !== fokusKart();
       k.tag.style.display = sichtbar ? "" : "none";
       if (sichtbar) { k.tag.style.left = (v3.x + 1) / 2 * innerWidth + "px"; k.tag.style.top = (1 - v3.y) / 2 * innerHeight + "px"; }
@@ -2891,7 +2984,7 @@ function hud(dt) {
   $("gold").innerHTML = `<i></i>${ich.gold}`;
   $("uhr").textContent = zeitText(ich.fertig ?? uhr);
   $("runde").textContent = `Runde ${Math.min(RUNDEN, Math.max(1, ich.runden.length + 1))}/${RUNDEN}`;
-  $("platz").innerHTML = karts.length > 1 ? `${platzVon(ich)}<small>. Platz</small>` : `<small>Testfahrt</small>`;
+  $("platz").innerHTML = karts.length > 1 ? `${ich.krone ? "👑" : ""}${platzVon(ich)}<small>. Platz${ich.rw > 1 ? " 🍃" : ""}</small>` : `<small>Testfahrt</small>`;
 }
 
 let zielInfo = null;
@@ -2956,6 +3049,14 @@ function zielZeigen() {
 // ---------- Feldzug: drei Rennen (Kerker, Grotte, Glutschlund), Punkte nach Platz, Flüche, Siegerehrung ----------
 const FZ_WELTEN = ["kerker", "grotte", "glut"], FZ_PUNKTE = [10, 8, 6, 5, 4, 3, 2, 1];
 let wahlModus = lager.lesen("kart:modus") === "feldzug" ? "feldzug" : "rennen";
+let wahlAusgleich = ["aus", "sanft", "stark"].includes(lager.lesen("kart:ausgleich")) ? lager.lesen("kart:ausgleich") : "sanft";
+const AUSGLEICH = { aus: "Aus", sanft: "Sanft", stark: "Stark" };
+const AUSGLEICH_TEXT = {
+  aus: "Alle fahren unter gleichen Bedingungen.",
+  sanft: "Hinten beißt kein Mimik, der Letzte hat leichten Rückenwind, der Erste trägt die Krone.",
+  stark: "Wie Sanft, dazu Aufhol-Extras, mildere Treffer und eine goldene Truhe in der letzten Runde."
+};
+function ausgleichWahl() { return Object.entries(AUSGLEICH).map(([m, t]) => `<button class="wahl ${wahlAusgleich === m ? "an" : ""}" data-ausgl="${m}">${t}</button>`).join(""); }
 let fz = null, fluchTimer = null;      // fz: { nr, punkte, leute, letzte, waehler, angebot } – der Spielleiter (oder allein) rechnet, alle anderen bekommen eine Kopie
 const fzNeu = () => ({ nr: 0, punkte: {}, leute: {}, letzte: {} });
 function fzPlan(f) { const p = planWuerfeln(FZ_WELTEN[fz.nr] || "kerker"); if (f) p.f = f; return p; }
@@ -3157,7 +3258,7 @@ function lobbyListe() {
 function lobbySenden() {
   if (modus !== "host") return;
   ss.set("kart:host", { code, gegner: wahlGegner });
-  anAlle({ t: "lobby", spieler: lobbyListe(), gegner: wahlGegner, welt: wahlWelt, modus: wahlModus, phase: lobbyPhase, nr: rennNr });
+  anAlle({ t: "lobby", spieler: lobbyListe(), gegner: wahlGegner, welt: wahlWelt, modus: wahlModus, ausgleich: wahlAusgleich, phase: lobbyPhase, nr: rennNr });
   if (phase === "menue") menue("lobby");
 }
 
@@ -3218,7 +3319,8 @@ function rennenStarten(gleich, fzP) {
   // Spieler in zufälliger Reihenfolge hinter die Übungsgegner
   menschen.sort(() => Math.random() - .5).forEach((e, n) => raster.push({ id: e.pid, name: e.name, typ: e.typ, farbe: SPIELERFARBEN[n % SPIELERFARBEN.length] }));
   lobbySenden();
-  anAlle({ t: "start", nr: rennNr, raster, plan: p, fz });
+  ausgleich = wahlAusgleich;
+  anAlle({ t: "start", nr: rennNr, raster, plan: p, fz, ausgleich });
   countdownStarten(raster, p);
 }
 
@@ -3246,10 +3348,10 @@ function verbinde() {
 function vomHost(m) {
   if (!m) return;
   if (m.t === "lobby") {
-    lobby = m; wahlGegner = m.gegner; if (m.welt) wahlWelt = m.welt; if (m.modus) wahlModus = m.modus;
+    lobby = m; wahlGegner = m.gegner; if (m.welt) wahlWelt = m.welt; if (m.modus) wahlModus = m.modus; if (AUSGLEICH[m.ausgleich]) wahlAusgleich = m.ausgleich;
     if (m.phase === "lobby" && (phase === "ziel" || phase === "menue" || phase === "ehrung" || phase === "fluch")) { fz = null; phase = "menue"; menue("lobby"); }
     else if (phase === "menue") menue("lobby");
-  } else if (m.t === "start") { rennNr = m.nr; fz = m.fz || null; countdownStarten(m.raster, m.plan); }
+  } else if (m.t === "start") { rennNr = m.nr; fz = m.fz || null; ausgleich = AUSGLEICH[m.ausgleich] ? m.ausgleich : "sanft"; countdownStarten(m.raster, m.plan); }
   else if (m.t === "fz" && m.fz) { fz = m.fz; if (fz.ende) ehrungZeigen(); else if (fz.wahl) fluchWahlZeigen(); }
   else if (m.t === "lauf" && m.nr === rennNr) {
     for (const [id, a] of m.k) { if (id === PID) continue; const k = karts.find(o => o.id === id); if (k && k.remote) k.netzZustand(a); }
@@ -3333,6 +3435,7 @@ function menue(a) {
         <div class="zeile"><b>Lenken</b>${lenkWahl()}</div>
         ${host ? `<div class="zeile"><b>Modus</b>${modusWahl()}</div>` : `<p class="leise">Modus: ${wahlModus === "feldzug" ? "Feldzug (3 Rennen)" : "ein Rennen"}</p>`}
         ${weltZeile(host)}
+        ${host ? `<div class="zeile"><b>Ausgleich</b>${ausgleichWahl()}</div><p class="leise">${AUSGLEICH_TEXT[wahlAusgleich]}</p>` : `<p class="leise">Ausgleich: ${AUSGLEICH[wahlAusgleich]}. ${AUSGLEICH_TEXT[wahlAusgleich]}</p>`}
         ${host ? `<div class="zeile"><b>Monster</b>${[0, 1, 2, 3, 4, 5].map(n => `<button class="wahl ${wahlGegner === n ? "an" : ""}" data-geg="${n}">${n}</button>`).join("")}</div>` : `<p class="leise">Monster als Gegner: ${wahlGegner}</p>`}
         ${host ? `<button class="los" id="rennstart">${wahlModus === "feldzug" ? "Feldzug starten" : "Rennen starten"}</button>` : `<p class="warte">${lobby && lobby.phase === "rennen" ? "Ein Rennen läuft gerade. Beim nächsten bist du dabei." : `Warte, bis ${esc(hostName())} das Rennen startet …`}</p>`}
         <button class="zurueck knopflos" id="verlassen" style="align-self:flex-start">${host ? "Raum schließen" : "Raum verlassen"}</button>
@@ -3362,6 +3465,7 @@ function menueBinden() {
   });
   document.querySelectorAll("[data-geg]").forEach(b => b.onclick = () => { nameMerken(); wahlGegner = +b.dataset.geg; lager.schreiben("kart:gegner", wahlGegner); if (modus === "host") lobbySenden(); else menue(ansicht); });
   const klick = (id, f) => { if ($(id)) $(id).onclick = f; };
+  document.querySelectorAll("[data-ausgl]").forEach(b => b.onclick = () => { nameMerken(); wahlAusgleich = b.dataset.ausgl; lager.schreiben("kart:ausgleich", wahlAusgleich); if (modus === "host") lobbySenden(); else menue(ansicht); });
   document.querySelectorAll("[data-modus]").forEach(b => b.onclick = () => { nameMerken(); wahlModus = b.dataset.modus; lager.schreiben("kart:modus", wahlModus); if (modus === "host") lobbySenden(); else menue(ansicht); });
   klick("allein", async () => { if (!nameAus()) return; await sensorErlauben(); if (wahlModus === "feldzug") { modus = "allein"; feldzugStarten(); } else alleinStarten(); });
   klick("zumAbend", () => ABEND.zurueck());
@@ -3437,4 +3541,4 @@ else if (code) menue("einladung");
 else menue("start");
 requestAnimationFrame(loop);
 window.KART = { get phase() { return phase; }, get ich() { return ich; }, karts: () => karts, ein, S, get LAENGE() { return LAENGE; }, get liste() { return liste; }, get modus() { return modus; },
-  sim(sek) { for (let t = 0; t < sek; t += 1 / 60) { update(1 / 60); } }, aufbauen: rennenAufbauen, cam, sc, r, THREE, streckeBauen, planWuerfeln, planCode, get plan() { return plan; }, get strecke() { return { abschnitte, gabeln, loren, troll, pendel, pfosten, rattenStellen, koenig, rampen, pilzSprung, tropfen, schluchten, haengebruecken, welt, geysire, geysirSprung, pfade, spalten, lavaHoch }; }, SCHLUCHT, absturz, PX, PZ, set uhr(v) { uhr = v; }, objekte, extraNutzen, kisten, treffen, versetzen, anwenden, ereignis, schritte(sek) { for (let t = 0; t < sek; t += 1 / 30) { update(1 / 30); karts.forEach(k => k.zeigen(performance.now())); hud(1 / 30); } }, neigung: () => neigung, lenkWert, kraftNutzen, muenzen, wirkung, set steuerung(v) { steuerung = v; }, get fz() { return fz; }, fzWeiter, fluchGewaehlt, ehrungZeigen, zuschauen, get zuschauer() { return zuschauer; }, get fluch() { return fluch; } };
+  sim(sek) { for (let t = 0; t < sek; t += 1 / 60) { update(1 / 60); } }, aufbauen: rennenAufbauen, cam, sc, r, THREE, streckeBauen, planWuerfeln, planCode, get plan() { return plan; }, get strecke() { return { abschnitte, gabeln, loren, troll, pendel, pfosten, rattenStellen, koenig, rampen, pilzSprung, tropfen, schluchten, haengebruecken, welt, geysire, geysirSprung, pfade, spalten, lavaHoch }; }, SCHLUCHT, absturz, PX, PZ, set uhr(v) { uhr = v; }, objekte, extraNutzen, kisten, treffen, versetzen, anwenden, ereignis, schritte(sek) { for (let t = 0; t < sek; t += 1 / 30) { update(1 / 30); karts.forEach(k => k.zeigen(performance.now())); hud(1 / 30); } }, neigung: () => neigung, lenkWert, kraftNutzen, muenzen, wirkung, set steuerung(v) { steuerung = v; }, get fz() { return fz; }, fzWeiter, fluchGewaehlt, ehrungZeigen, zuschauen, get zuschauer() { return zuschauer; }, get fluch() { return fluch; }, get ausgleich() { return ausgleich; }, set ausgleich(v) { ausgleich = v; }, menschLage, hinten, platzVon, truheNehmen, get liste() { return liste; } };
