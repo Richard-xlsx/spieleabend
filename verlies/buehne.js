@@ -49,8 +49,34 @@
     nekromant: `${schatten(30)}<path d="M-24 -78q-14 40-14 78h76q0-38-14-78z" ${F("#2E2A3A")}/><path d="M-36 -6q36 9 72 0" ${L(2.5, "#7BE3A0")}/><path d="M0 -72v66M-18 -64q-6 28-8 56M18 -64q6 28 8 56" ${L(2, "#1C1A26")}/><path d="M-36 -2l6-6 6 5 6-6 6 5 6-6 6 5 6-6 6 5 6-6 6 5 6-6" ${L(2, "#1C1A26")}/>
       <path d="M-30 -46q30 6 60 0" ${L(4.5, "#1C1A26")}/><circle cx="0" cy="-44" r="4" ${F("#EDE4D0", 1.5)}/><path d="M-7 -66l7-9 7 9-7 9z M0 -75v18" ${L(1.6, "#7BE3A0")} opacity=".7"/>
       <path d="M-22 -80q-4-38 22-44 26 6 22 44-22 8-44 0z" ${F("#3D3650")}/><path d="M-8 -112q8-8 16 0" ${L(2, "#1C1A26")}/>${G("M-14 -102q2-12 12-15", 2.5, .22)}
-      <g class="waffe"><path d="M32 -4v-116" ${L(5, "#4A3426")}/><circle cx="32" cy="-128" r="20" fill="url(#vl-heil)" opacity=".55"/><circle cx="32" cy="-128" r="9" ${F("#EDE4D0", 2.5)}/><circle cx="29" cy="-129" r="2" fill="${T}"/><circle cx="35" cy="-129" r="2" fill="${T}"/></g>`
+      <g class="waffe"><path d="M32 -4v-116" ${L(5, "#4A3426")}/><circle cx="32" cy="-128" r="20" fill="url(#vl-heil)" opacity=".55"/><circle cx="32" cy="-128" r="9" ${F("#EDE4D0", 2.5)}/><circle cx="29" cy="-129" r="2" fill="${T}"/><circle cx="35" cy="-129" r="2" fill="${T}"/></g>`,
+    bardin: `${schatten(30)}<path d="M-12 0v-24h9v24zM3 0v-24h9v24z" ${F("#5A3A22")}/>
+      <path d="M-24 -80q-12 34-14 64h76q-2-30-14-64z" ${F("#2F7F8A")}/><path d="M-38 -16q38 9 76 0" ${L(3, "#E8C24A")}/><path d="M-6 -76q-4 28-4 58M12 -74q6 26 6 56" ${L(1.6, "#1F5A62")}/><path d="M-29 -46q29 6 58 0" ${L(4.5, "#6B4A2E")}/><rect x="-5" y="-49" width="10" height="8" rx="2" ${F("#E8C24A", 2)}/>
+      <path d="M-22 -80q22-10 44 0" ${F("#7A2E4A")}/><path d="M2 -90q8 22-2 40" ${L(7, "#8C3A1E")}/><path d="M2 -90q8 22-2 40" ${L(2, "#B8611E")} opacity=".6"/>
+      <circle cx="0" cy="-96" r="14" ${F("#B8541E")}/>${G("M-8 -104q3-5 9-6", 2.5, .4)}<ellipse cx="3" cy="-106" rx="18" ry="7" ${F("#7A2E4A")}/><path d="M14 -110q22-14 26-36-16 8-28 32z" ${F("#F3E6CC", 2)}/><path d="M16 -112q10-12 20-26" ${L(1.2, "#C9B8A0")}/>
+      <g class="waffe"><path d="M30 -58l-12 -50" ${L(5, "#6B4A2E")}/><path d="M17 -110l-5-6" ${L(4.5, "#4A3426")}/><ellipse cx="34" cy="-42" rx="14" ry="18" ${F("#C9853A")}/><circle cx="34" cy="-46" r="4.5" fill="${T}"/><path d="M31 -28l-10-76M37 -28l-12-76" ${L(.8, "#F3E6CC")}/>${G("M26 -54q2-8 8-10", 2, .45)}</g>`,
+    hexe: `${schatten(30)}<path d="M-22 -78q-14 40-16 78h76q-2-38-16-78z" ${F("#4A2E6E")}/><path d="M-38 0l8-7 6 6 8-7 6 6 8-7 6 6 8-7 6 6 8-7 6 6 8-7 6 6" ${L(2, "#2E1C46")}/><path d="M-8 -72q-6 30-10 66M10 -72q6 30 10 66" ${L(1.6, "#2E1C46")}/>
+      <path d="M-29 -44q29 6 58 0" ${L(4.5, "#2E1C46")}/><path d="M12 -44h8v9q-4 4-8 0z" ${F("#8BD14A", 2)}/><path d="M-22 -46h7v8q-3.5 3-7 0z" ${F("#C77DFF", 2)}/>
+      <path d="M-17 -96q-8 24-3 40h40q5-16-3-40z" ${F("#1C1A26")}/><circle cx="0" cy="-96" r="13" ${F("#1C1A26")}/>
+      <ellipse cx="0" cy="-104" rx="30" ry="7" ${F("#3A2458")}/><path d="M-15 -107q4-30 18-44 9-6 15 5-9-3-13 5-3 14 9 34z" ${F("#4A2E6E")}/><path d="M-14 -111q14 5 28 0" ${L(3, "#8BD14A")}/>${G("M-9 -114q4-20 12-30", 2, .3)}
+      <g class="waffe"><path d="M-34 -4q-4-60 2-118" ${L(5, "#4A3426")}/><path d="M-32 -122q-8-4-9 6" ${L(4, "#4A3426")}/><circle cx="-31" cy="-128" r="18" fill="url(#vl-heil)" opacity=".6"/><circle cx="-31" cy="-128" r="7" ${F("#B9F07A", 2.5)}/></g>`
   };
+  // Kröte (Verwandeln der Hexe) und die Zeichen an Gegnern: Hexmale, Schlaf
+  const KROETE = { h: 50, svg: `${schatten(38)}<path d="M-36 -4q-12 2-16-8M36 -4q12 2 16-8" ${L(6, "#4A7A30")}/><path d="M-34 -4q-6-30 34-34 40 4 34 34z" ${F("#5E9A3E")}/>
+      <path d="M-20 -5q20-18 40 0z" ${F("#C9E08A", 2)}/><circle cx="-15" cy="-36" r="9" ${F("#5E9A3E")}/><circle cx="15" cy="-36" r="9" ${F("#5E9A3E")}/>
+      <circle cx="-15" cy="-37" r="4.5" fill="#FFD447" stroke="${T}" stroke-width="1.5"/><circle cx="15" cy="-37" r="4.5" fill="#FFD447" stroke="${T}" stroke-width="1.5"/><path d="M-15 -40v6M15 -40v6" ${L(2)}/>
+      <path d="M-18 -22q18 9 36 0" ${L(2.5)}/><circle cx="-24" cy="-16" r="2.5" fill="#3E6E28"/><circle cx="22" cy="-12" r="2" fill="#3E6E28"/><circle cx="6" cy="-30" r="2" fill="#3E6E28"/>${G("M-24 -24q4-8 12-10", 2.5, .4)}` };
+  function zeichenSvg(g) {
+    const h = g.kroete > 0 ? KROETE.h : GEG[g.art] ? GEG[g.art].h : 80;
+    let s = "";
+    const n = g.hexmal || 0;
+    for (let i = 0; i < n; i++) { const x = (i - (n - 1) / 2) * 16; s += `<g class="vl-hexmal ${["", "b", "c"][i % 3]}"><circle cx="${x}" cy="${-h * .5}" r="7" fill="#2E1C46" opacity=".55"/><path d="M${x} ${-h * .5 - 5}l4.5 8h-9zM${x} ${-h * .5 + 5}v-3" fill="none" stroke="#E9C8FF" stroke-width="2.5" stroke-linejoin="round"/></g>`; }
+    if (g.schlaf > 0) s += [0, 1, 2].map(i => `<text class="vl-zzz ${["", "b", "c"][i]}" x="${h * .3 + 6 + i * 9}" y="${-h * .72 - i * 11}" font-family="Unbounded,system-ui" font-weight="800" font-size="${12 + i * 4}" fill="#BFE8FF" stroke="${T}" stroke-width="3" paint-order="stroke">z</text>`).join("");
+    return s;
+  }
+  // Noten über der Bardin in der Farbe des Lieds
+  const LIEDFARBE = { heldenlied: "#FFD447", liedrast: "#7BE3A0", kriegsballade: "#FF6B57" };
+  const notenSvg = h => (h.lieder || []).map((l, j) => [0, 1, 2].map(i => `<text class="vl-note ${["", "b", "c"][i]}" x="${-30 + i * 22 + j * 8}" y="${-150 - (i % 2) * 8 - j * 14}" font-size="18" font-weight="800" fill="${LIEDFARBE[l] || "#FFD447"}" stroke="${T}" stroke-width="3" paint-order="stroke">${i % 2 ? "♫" : "♪"}</text>`).join("")).join("");
   // Diener des Nekromanten (von hinten, wie die Helden; stehen ein Stück vor ihm)
   const KNOCHEN = "#EDE4D0", knochen = (d, w) => `<path d="${d}" ${L(w + 3)}/><path d="${d}" ${L(w, KNOCHEN)}/>`;
   const DIENERFIG = {
@@ -67,7 +93,7 @@
       <circle cx="-4" cy="-68" r="2.2" fill="#2C6648"/><circle cx="4" cy="-68" r="2.2" fill="#2C6648"/>` }
   };
   // Waffenspitze (für Strahlen und Geschosse), relativ zum Fuß
-  const SPITZE = { kaempfer: [44, -130], paladin: [50, -132], dieb: [40, -40], waldlaeufer: [-40, -72], magierin: [30, -128], heilerin: [-34, -126], moench: [40, -44], nekromant: [32, -128] };
+  const SPITZE = { kaempfer: [44, -130], paladin: [50, -132], dieb: [40, -40], waldlaeufer: [-40, -72], magierin: [30, -128], heilerin: [-34, -126], moench: [40, -44], nekromant: [32, -128], bardin: [34, -50], hexe: [-31, -128] };
 
   const GEG = {
     ratte: { h: 52, svg: `${schatten(46)}<path d="M-40 -4q4-40 40-40 32 0 40 22l18 6-18 8q-24 8-80 4z" ${F("#8C7A6B")}/><circle cx="34" cy="-22" r="3" fill="#E23B2E"/>
@@ -339,7 +365,7 @@
     let s = hintergrund(daten.ebene || 1);
     for (const g of daten.gegner) {
       const p = pos[g.id], tot = g.hp <= 0;
-      s += `<g class="vl-einheit" id="vl-e-${g.id}" style="transform:translate(${p.x}px,${p.y}px)"><g style="transform:scale(${p.s})"><g class="vl-fig" id="vl-f-${g.id}" ${tot ? 'style="opacity:0"' : ""}><g class="vl-atmen ${g.id.length % 2 ? "b" : ""}">${GEG[g.art] ? GEG[g.art].svg : ""}</g></g></g></g>`;
+      s += `<g class="vl-einheit" id="vl-e-${g.id}" style="transform:translate(${p.x}px,${p.y}px)"><g style="transform:scale(${p.s})"><g class="vl-fig" id="vl-f-${g.id}" ${tot ? 'style="opacity:0"' : ""}><g class="vl-atmen ${g.id.length % 2 ? "b" : ""}">${g.kroete > 0 ? KROETE.svg : GEG[g.art] ? GEG[g.art].svg : ""}</g></g><g id="vl-zc-${g.id}">${zeichenSvg(g)}</g></g></g>`;
     }
     for (const d of diener) {
       const p = pos[d.id]; if (!p) continue;
@@ -347,7 +373,7 @@
     }
     for (const h of daten.helden) {
       const p = pos[h.id], weg = h.hp <= 0;
-      s += `<g class="vl-einheit" id="vl-e-${h.id}" style="transform:translate(${p.x}px,${p.y}px)"><g class="vl-fig" id="vl-f-${h.id}" ${weg ? 'style="transform:rotate(-80deg) translate(10px,10px);opacity:.45"' : ""}><g class="vl-atmen ${p.x > 200 ? "c" : p.x < 200 ? "" : "b"}"><g style="transform:scale(${p.s})">${HELD[h.rolle] || ""}</g></g></g></g>`;
+      s += `<g class="vl-einheit" id="vl-e-${h.id}" style="transform:translate(${p.x}px,${p.y}px)"><g class="vl-fig" id="vl-f-${h.id}" ${weg ? 'style="transform:rotate(-80deg) translate(10px,10px);opacity:.45"' : ""}><g class="vl-atmen ${p.x > 200 ? "c" : p.x < 200 ? "" : "b"}"><g style="transform:scale(${p.s})">${HELD[h.rolle] || ""}<g id="vl-no-${h.id}">${notenSvg(h)}</g></g></g></g></g>`;
     }
     // Plaketten, Absichten, Ziele
     for (const g of daten.gegner) {
@@ -360,7 +386,7 @@
         const wer = id => (daten.helden.find(x => x.id === id) || { name: "?" }).name;
         let txt = a.a === "beben" ? `⟁ ${a.name || "Beben"} → alle` : a.a === "ruf" ? "☠ ruft Verstärkung" : a.a === "flucht" ? "↯ will fliehen!"
           : a.a === "netz" ? `🕸 ${a.kokon ? "Kokon" : "Netz"} → ${wer(a.ziel)}` : a.a === "vernichtung" ? `💀 Vernichtung → ${(a.ziele || []).map(wer).join(", ")}` : a.a === "todesmal" ? `💀 Todesmal → ${(a.ziele || []).map(wer).join(", ")}` : a.a === "mal" ? `☠ Todesmal → ${wer(a.ziel)}`
-          : a.a === "brueten" ? (a.n <= 1 ? "🥚 schlüpft gleich!" : `🥚 schlüpft in ${a.n} Runden`) : a.a === "halten" ? `🕸 hält ${wer(a.ziel)}` : a.a === "ruhe" ? "… sammelt Kraft" : a.a === "schuetzen" ? `🛡 → ${kurzName((daten.gegner.find(x => x.id === a.ziel) || { name: "?" }).name)}`
+          : a.a === "brueten" ? (a.n <= 1 ? "🥚 schlüpft gleich!" : `🥚 schlüpft in ${a.n} Runden`) : a.a === "halten" ? `🕸 hält ${wer(a.ziel)}` : a.a === "ruhe" ? "… sammelt Kraft" : a.a === "kroete" ? "🐸 quakt" : a.a === "schlaf" ? "💤 schläft" : a.a === "schuetzen" ? `🛡 → ${kurzName((daten.gegner.find(x => x.id === a.ziel) || { name: "?" }).name)}`
           : a.a === "angriff" && a.doppelt ? `⚔⚔ → ${wer(a.ziel)}`
           : a.a === "stehlen" ? `✋ Gold → ${(daten.helden.find(x => x.id === a.ziel) || { name: "?" }).name}` : a.a === "heilen" ? `✚ → ${kurzName((daten.gegner.find(x => x.id === a.ziel) || { name: "?" }).name)}` : `⚔ → ${(daten.helden.find(x => x.id === a.ziel) || { name: "?" }).name}`;
         if (a.extra) txt += ` · +${a.extra} Angriff${a.extra > 1 ? "e" : ""}`;
@@ -441,7 +467,7 @@
     // Ausgangslage aufbauen
     let gegner = R.start.gegner.map(g => Object.assign({}, g));
     const heldIds = Object.keys(R.start.helden);
-    const helden = heldIds.map(p => ({ id: p, rolle: info.rolle(p), name: info.name(p), hp: R.start.helden[p].hp, max: R.start.helden[p].max, marken: "" }));
+    const helden = heldIds.map(p => ({ id: p, rolle: info.rolle(p), name: info.name(p), hp: R.start.helden[p].hp, max: R.start.helden[p].max, marken: "", lieder: R.start.helden[p].lieder || [] }));
     let diener = (R.start.diener || []).map(d => Object.assign({}, d));
     const zust = {}; for (const g of gegner) zust[g.id] = g; for (const h of helden) zust[h.id] = h; for (const d of diener) zust[d.id] = d;
     const gehandelt = new Set();   // Gegner, die diese Runde schon dran waren (ihre Ankündigung verschwindet beim Neuzeichnen)
@@ -561,12 +587,23 @@
       }
       await Promise.all(warten);
     }
+    // Hexmale, Kröte, Schlaf und Lieder nachziehen (die Figur wird zur Kröte und zurück)
+    function zeichenSetzen(e) {
+      for (const id in e.zeichen || {}) {
+        const g = zust[id]; if (!g) continue;
+        const [hexmal, kroete, schlaf] = e.zeichen[id], warK = g.kroete > 0;
+        Object.assign(g, { hexmal, kroete, schlaf });
+        const z = $("vl-zc-" + id); if (z) z.innerHTML = zeichenSvg(g);
+        if (warK !== kroete > 0) { const f = $("vl-f-" + id), at = f && f.querySelector(".vl-atmen"); if (at) { at.innerHTML = kroete > 0 ? KROETE.svg : GEG[g.art] ? GEG[g.art].svg : ""; animiere(f, [{ transform: "scale(.4)" }, { transform: "scale(1.1)" }, { transform: "scale(1)" }], 400); } }
+      }
+      for (const id in e.lieder || {}) { const h = zust[id]; if (!h) continue; h.lieder = e.lieder[id]; const n = $("vl-no-" + id); if (n) n.innerHTML = notenSvg(h); }
+    }
     const getroffene = (e, nurGegner) => (e.d || []).filter(([id, d]) => d < 0 && (nurGegner ? !istHeld(id) && !istDiener(id) : true)).map(x => x[0]);
 
     // ---------- Heldenaktionen ----------
     const HFX = {
       nah: ["schlag", "vernichten", "dolch", "gift", "taschendieb", "hammer", "faust", "hundert", "drachenfaust", "herausforderung"],
-      geschoss: ["funken", "pfeil", "eis", "markieren", "schattenblitz"],
+      geschoss: ["funken", "pfeil", "eis", "markieren", "schattenblitz", "spottvers", "schattenpfeil", "lebensraub", "blutzoll", "verdorren", "lebensernte"],
       salve: ["doppel", "hagel"], strahl: ["stab"],
       heil: ["heilen", "handauflegen", "kraeuter", "trank"],
       gruppe: ["segen", "laeutern", "wiedergeburt"],
@@ -593,7 +630,48 @@
       wildnis: "hagel", sternenfall: "meteor", gnade: "wiedergeburt", lebensquell: "wiedergeburt",
       bebenfaust: "wirbel", fauststurm: "wirbel", windschritt: "arkan", leergeist: "arkan", wirbelwind: "fels", nirwana: "fels",
       innereruhe: "heilen", chigabe: "heilen", lotusbluete: "wiedergeburt",
-      geisterhand: "heilen", geisterzug: "wiedergeburt", elementarsturm: "arkan", totentanz: "hagel" };
+      geisterhand: "heilen", geisterzug: "wiedergeburt", elementarsturm: "arkan", totentanz: "hagel",
+      aufmuntern: "heilen", heiltrunk: "heilen", hexentrank: "arkan", lebensband: "beschuetzen", heldenhymne: "segen", letztervers: "wiedergeburt", liedTick: "laeutern" };
+    // Bardin und Hexe: Lieder, Schlaf, Flächenzauber, Kröten
+    const LIEDFARBE_B = { heldenlied: "#FFD447", liedrast: "#7BE3A0", kriegsballade: "#FF6B57" };
+    const lebendeGegner = e => gegner.filter(g => g.hp > 0 || getroffene(e, true).includes(g.id)).map(g => g.id);
+    async function ueberAlle(e, farbe, sfxName) {
+      sfx(sfxName || "gift"); blitz(farbe, .22);
+      for (const id of lebendeGegner(e)) { const m = M(id); partikel(m.x, m.y, farbe, 12, 60, 50, 700); glut(m.x, m.y, "vl-heil", 50, 600); }
+      await warte(450); if ((e.d || []).some(([, d]) => d < 0)) sfx("treffer"); await folgen(e, "#F3E6FF");
+    }
+    async function noten(p, farbe, ziele) {
+      const q = M(p); sfx("segen");
+      for (let i = 0; i < 6; i++) { const t = elt("text", { x: q.x - 30 + i * 12, y: q.y - 40, "font-size": 20, "font-weight": 800, fill: farbe, stroke: T, "stroke-width": 3, "paint-order": "stroke" }); t.textContent = i % 2 ? "♫" : "♪"; fx().appendChild(t);
+        animiere(t, [{ transform: "translateY(0)", opacity: 0 }, { opacity: 1, offset: .3 }, { transform: `translate(${(i - 2.5) * 6}px,-60px)`, opacity: 0 }], 900, { delay: i * 70 * tempo }).then(() => t.remove()); }
+      const fl = (ziele || []).filter(id => pos[id]).map(id => flug(q, M(id), `<text x="-7" y="7" font-size="22" font-weight="800" fill="${farbe}" stroke="${T}" stroke-width="3" paint-order="stroke">♪</text>`, 600, 40, false, farbe));
+      await animiere($("vl-f-" + p), [{ transform: "translateY(0)" }, { transform: "translateY(-6px) rotate(-4deg)" }, { transform: "translateY(0)" }], 600);
+      await Promise.all(fl);
+    }
+    async function bardHexAktion(e) {
+      const p = e.von, a = e.a, gz = Object.keys(e.zeichen || {});
+      if (LIEDFARBE_B[a] && e.phase === 1) { await noten(p, LIEDFARBE_B[a]); await folgen(e); return true; }
+      if (LIEDFARBE_B[a] && e.phase === 2) { await heldAktion(Object.assign({}, e, { a: "spottvers", ziel: getroffene(e, true)[0] })); return true; }
+      if (a === "schlaflied" || a === "abendlied") { await noten(p, "#BFE8FF", gz.length ? gz : lebendeGegner(e)); await folgen(e); return true; }
+      if (a === "sirenengesang") { await noten(p, "#FF9AD5", lebendeGegner(e)); await folgen(e); return true; }
+      if (a === "misston" || a === "schlachtgesang") {
+        const q = M(p); sfx(a === "misston" ? "knall" : "ruf");
+        for (let i = 0; i < 3; i++) { const r = elt("circle", { cx: q.x, cy: q.y, r: 220, fill: "none", stroke: a === "misston" ? "#FF9AD5" : "#FF6B57", "stroke-width": 5, class: "vl-mitte" }); fx().appendChild(r); animiere(r, [{ transform: "scale(.05)", opacity: .9 }, { transform: "scale(1)", opacity: 0 }], 650, { delay: i * 120 * tempo }).then(() => r.remove()); }
+        bebenBild(a === "misston" ? 5 : 7); await warte(500); sfx("treffer"); await folgen(e); return true;
+      }
+      if (a === "verwandeln" || a === "kroetenregen") {
+        await heben(p); sfx("ruf");
+        const l = gz.filter(id => e.zeichen[id][1] > 0);
+        for (const id of (l.length ? l : [e.ziel]).filter(id => pos[id])) { const m = M(id); partikel(m.x, m.y, "#8BD14A", 22, 60, 40, 700); glut(m.x, m.y, "vl-heil", 70, 600); }
+        await warte(350); senken(p); await folgen(e); return true;
+      }
+      if (a === "fluchwelle" || a === "verwuenschung") { await heben(p); await ueberAlle(e, "#C77DFF", "gift"); senken(p); return true; }
+      if (a === "saeure") { await heben(p); await ueberAlle(e, "#B9F07A", "gift"); senken(p); return true; }
+      if (a === "blutmond") { await heben(p); await ueberAlle(e, "#E23B2E", "ruf"); senken(p); return true; }
+      if (a === "hexenkessel" || a === "kesselTick") { await ueberAlle(e, "#8BD14A", "feuer"); return true; }
+      if (a === "fluchsprung") { const von = e.von2 && pos[e.von2] ? M(e.von2) : M(p); if (e.ziel && pos[e.ziel]) { sfx("gift"); await flug(von, M(e.ziel), `<circle r="10" fill="#C77DFF" opacity=".6"/><circle r="4" fill="#F3E6FF"/>`, 500, 40, false, "#C77DFF"); } await folgen(e); return true; }
+      return false;
+    }
     // Nekromant: Diener rufen, Golem wachsen lassen, Splitter und Seelen bersten lassen
     async function nekroAktion(e) {
       const p = e.von, a = e.a, golem = diener.find(d => d.herr === p && d.art === "golem" && d.hp > 0);
@@ -630,6 +708,7 @@
     }
     async function heldAktion(e0) {
       if (await nekroAktion(e0)) return;
+      if (await bardHexAktion(e0)) return;
       if (e0.a === "frost" || e0.a === "winter" || e0.a === "zeitstillstand") { await frostwelle(e0); return; }
       if (e0.a === "befreien" || e0.a === "frei") { await wackeln(e0.von); await wort(e0.von, "frei!", "#F3F0FF"); return; }
       if (e0.a === "zappeln") { await wackeln(e0.von); await wort(e0.von, "im Kokon", "#F3F0FF"); return; }
@@ -650,14 +729,24 @@
           markieren: `<path d="M-24 0h40" ${L(3, "#D9CDB6")}/><path d="M16 0l-8-5v10z" fill="#FFD447" stroke="${T}" stroke-width="1.5"/>`,
           funken: `<circle r="16" fill="url(#vl-glut)"/><circle r="5" fill="#FFF3B0" stroke="${T}" stroke-width="1.5"/>`,
           eis: `<path d="M-24 0 L0 -7 L28 0 L0 7z" fill="#BFE8FF" stroke="${T}" stroke-width="2.5"/><path d="M-18 0h40" stroke="#fff" stroke-width="2"/>`,
-          schattenblitz: `<circle r="15" fill="#7BE3A0" opacity=".35"/><circle r="8" fill="#2E2A3A" stroke="#7BE3A0" stroke-width="2.5"/>`
+          schattenblitz: `<circle r="15" fill="#7BE3A0" opacity=".35"/><circle r="8" fill="#2E2A3A" stroke="#7BE3A0" stroke-width="2.5"/>`,
+          spottvers: `<text x="-8" y="8" font-size="24" font-weight="800" fill="#FFD447" stroke="${T}" stroke-width="3" paint-order="stroke">♪</text>`,
+          schattenpfeil: `<circle r="14" fill="#C77DFF" opacity=".3"/><path d="M-16 0L4 -6L16 0L4 6z" fill="#4A2E6E" stroke="#D9A6FF" stroke-width="2.5"/>`,
+          lebensraub: `<circle r="15" fill="#E23B2E" opacity=".3"/><circle r="8" fill="#7A1E2E" stroke="#FF8FA0" stroke-width="2.5"/>`,
+          blutzoll: `<circle r="20" fill="#E23B2E" opacity=".35"/><circle r="11" fill="#9E1B2E" stroke="${T}" stroke-width="2.5"/>`,
+          verdorren: `<circle r="20" fill="#C77DFF" opacity=".35"/><circle r="10" fill="#2E1C46" stroke="#D9A6FF" stroke-width="3"/>`,
+          lebensernte: `<circle r="22" fill="#8BD14A" opacity=".3"/><path d="M-12 6q12-22 24 0" fill="none" stroke="#E8F7D0" stroke-width="4" stroke-linecap="round"/>`
         };
-        sfx(a === "eis" ? "eis" : a === "funken" ? "feuer" : a === "schattenblitz" ? "gift" : "schuss");
-        await flug(spitze(), M(ziel), formen[a], a === "funken" || a === "schattenblitz" ? 420 : 340, a === "funken" ? 30 : a === "schattenblitz" ? 20 : 8, true, a === "eis" ? "#DFF4FF" : a === "funken" ? "#FF9A3C" : a === "schattenblitz" ? "#7BE3A0" : null);
+        const SPUR = { eis: "#DFF4FF", funken: "#FF9A3C", schattenblitz: "#7BE3A0", spottvers: "#FFD447", schattenpfeil: "#C77DFF", lebensraub: "#FF6B7A", blutzoll: "#E23B2E", verdorren: "#C77DFF", lebensernte: "#8BD14A" };
+        sfx(a === "eis" ? "eis" : a === "funken" ? "feuer" : ["schattenblitz", "schattenpfeil", "verdorren"].includes(a) ? "gift" : a === "spottvers" ? "segen" : a === "lebensraub" || a === "blutzoll" || a === "lebensernte" ? "ruf" : "schuss");
+        const langsam = ["funken", "schattenblitz", "spottvers", "schattenpfeil", "lebensraub", "blutzoll", "verdorren", "lebensernte"].includes(a);
+        await flug(spitze(), M(ziel), formen[a], langsam ? 420 : 340, a === "funken" ? 30 : langsam ? 20 : 8, a !== "spottvers", SPUR[a] || null);
         senken(p); sfx("treffer");
         if (a === "eis") { const m = M(ziel); partikel(m.x, m.y + 20, "#DFF4FF", 14, 70, 20, 700); blitz("#BFE8FF", .2); }
+        if (a === "verdorren" || a === "blutzoll") { const m = M(ziel); partikel(m.x, m.y, a === "verdorren" ? "#C77DFF" : "#E23B2E", 18, 70, 40, 700); bebenBild(4); }
+        if (a === "lebensraub" || a === "lebensernte") { const m = M(ziel); flug(m, M(p), `<circle r="9" fill="${a === "lebensraub" ? "#FF6B7A" : "#8BD14A"}" opacity=".7"/>`, 500, 30, false, a === "lebensraub" ? "#FF6B7A" : "#8BD14A"); }
         if (a === "markieren") { const m = M(ziel); const r = elt("circle", { cx: m.x, cy: m.y, r: 26, fill: "none", stroke: "#FFD447", "stroke-width": 3, class: "vl-mitte" }); fx().appendChild(r); animiere(r, [{ transform: "scale(1.6)", opacity: 0 }, { transform: "scale(1)", opacity: 1, offset: .5 }, { transform: "scale(.9)", opacity: 0 }], 800).then(() => r.remove()); }
-        await folgen(e, a === "eis" ? "#BFE8FF" : a === "funken" ? "#FFB547" : a === "schattenblitz" ? "#B6F0C8" : "#FFFFFF");
+        await folgen(e, a === "eis" ? "#BFE8FF" : a === "funken" ? "#FFB547" : a === "schattenblitz" ? "#B6F0C8" : SPUR[a] ? "#F3E6FF" : "#FFFFFF");
       } else if (typ === "salve") {
         await heben(p);
         const n = a === "hagel" ? 4 : 2, liste = ziele.length ? ziele : gegner.filter(g => g.hp > 0).map(g => g.id);
@@ -756,6 +845,9 @@
       if (e.a === "unterbrochen") { blitz("#FFD447", .14); await animiere($("vl-f-" + g), [{ transform: "translateX(0)" }, { transform: "translateX(-4px)" }, { transform: "translateX(4px)" }, { transform: "translateX(0)" }], 300); await wort(g, "unterbrochen!", "#FFD447"); return; }
       if (e.a === "starr") { blitz("#BFE8FF", .12); await animiere($("vl-f-" + g), [{ transform: "translateX(0)" }, { transform: "translateX(-3px)" }, { transform: "translateX(3px)" }, { transform: "translateX(0)" }], 300); await wort(g, "erstarrt", "#BFE8FF"); return; }
       if (e.a === "keinziel") { await wackeln(g); await wort(g, "?", "#F3F0FF"); return; }
+      if (e.a === "kroete") { await animiere($("vl-f-" + g), [{ transform: "translateY(0)" }, { transform: "translateY(-16px)" }, { transform: "translateY(0)" }, { transform: "translateY(-8px)" }, { transform: "translateY(0)" }], 600); await wort(g, "quak!", "#C9E08A"); return; }
+      if (e.a === "schlaf") { await wort(g, "Zzz", "#BFE8FF"); return; }
+      if (e.a === "sirene" && e.ziel && pos[e.ziel]) { await vorstossen(g, e.ziel, .6); sfx("hieb"); await bogenSchnitt(e.ziel, "#FF9AD5"); sfx("treffer"); await folgen(e); await zurueck(g); return; }
       if (e.a === "flucht") {
         // huscht seitlich davon, ohne Schadenszahl
         const z = zust[g]; if (z) z.hp = 0;
@@ -860,6 +952,7 @@
         else if (istDiener(e.von)) await dienerAktion(e);
         else { await gegnerAktion(e); gehandelt.add(e.von); }
         if ((e.weg && e.weg.length) && !["skelettruf", "golemruf", "irrlichtruf", "armee", "titan"].includes(e.a)) await dienerWechsel(e);
+        if (e.zeichen || e.lieder) zeichenSetzen(e);
       } catch (x) { if (window.console) console.error(x); }
       await warte(260);
     }

@@ -22,7 +22,7 @@
     eingang: `<path d="M-9 9V-2a9 9 0 0 1 18 0v11z" ${F("#B9AD99")}/><path d="M-4 9V-5M0 9V-8M4 9V-5" ${L(1.5)}/>`,
     boss: `<path d="M-12 7l-2-14 7 6 7-10 7 10 7-6-2 14z" ${F("#E8C24A")}/><circle cx="0" cy="-1" r="2.2" fill="${R}"/>`
   };
-  const FARBE = { kaempfer: "#B83A2A", paladin: "#C99A2E", dieb: "#3A2E26", waldlaeufer: "#3E7A55", magierin: "#5B3A6E", heilerin: "#2F7FA8", moench: "#D9792A", nekromant: "#4E8F6A" };
+  const FARBE = { kaempfer: "#B83A2A", paladin: "#C99A2E", dieb: "#3A2E26", waldlaeufer: "#3E7A55", magierin: "#5B3A6E", heilerin: "#2F7FA8", moench: "#D9792A", nekromant: "#4E8F6A", bardin: "#2F7F8A", hexe: "#6E3E9E" };
 
   // Punkt auf der Kurve zwischen zwei Räumen
   const kurve = (a, b) => `M${a.x} ${a.y}C${a.x} ${a.y + DY * 0.5} ${b.x} ${b.y - DY * 0.5} ${b.x} ${b.y}`;

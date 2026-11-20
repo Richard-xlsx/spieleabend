@@ -43,6 +43,8 @@
     waldlaeufer: `<path d="M74 16q44 44 0 92" ${L(5)}/><path d="M74 16v92" ${L(1.5)}/><path d="M66 62h70" ${L(3)}/><path d="M136 62l-12-8M136 62l-12 8" ${L(3)}/><path d="M66 62l-8-6M66 62l-8 6" ${L(3, "#3E7A55")}/>`,
     moench: `<path d="M80 108V84h40v24" ${F("#B8461E")}/><rect x="68" y="28" width="64" height="58" rx="16" ${F("#E08A2E")}/><path d="M84 30v24M100 30v24M116 30v24" ${L(3)}/><path d="M70 66q-14-2-12-16 2-10 16-8" ${F("#E08A2E")}/>`,
     nekromant: `<path d="M100 112V56" ${L(5, "#4A3426")}/><circle cx="100" cy="40" r="30" fill="#7BE3A0" opacity=".3"/><path d="M80 40q0-24 20-24t20 24q0 10-8 14v8H88v-8q-8-4-8-14z" ${F("#EDE4D0")}/><circle cx="92" cy="40" r="5" fill="${T}"/><circle cx="108" cy="40" r="5" fill="${T}"/><path d="M94 58v-6M100 58v-6M106 58v-6" ${L(2)}/>`,
+    bardin: `<path d="M118 92l-30-64" ${L(6, "#6B4A2E")}/><path d="M84 22l-6-8" ${L(5, "#4A3426")}/><ellipse cx="122" cy="88" rx="22" ry="26" ${F("#C9853A")}/><circle cx="120" cy="84" r="6" fill="${T}"/><path d="M112 108l-26-80M120 110l-28-82" ${L(1.2, "#F3E6CC")}/><path d="M56 50l6 10M50 66h10M60 40q4 4 2 10" ${L(3, "#2F7F8A")}/><text x="40" y="44" font-size="30" font-weight="800" fill="#FFD447" stroke="${T}" stroke-width="3" paint-order="stroke">♪</text>`,
+    hexe: `<ellipse cx="100" cy="92" rx="52" ry="12" ${F("#3A2458")}/><path d="M66 90q8-46 30-70 14-10 24 6-14-4-18 8-4 22 30 56z" ${F("#4A2E6E")}/><path d="M68 80q32 10 64 0" ${L(5, "#8BD14A")}/><circle cx="150" cy="38" r="9" ${F("#B9F07A")}/><path d="M146 24l4-8M156 28l6-6" ${L(3, "#B9F07A")}/>`,
     paladin: `<path d="M82 108l8-60h20l8 60z" ${F("#8A6A44")}/><rect x="64" y="20" width="72" height="34" rx="6" ${F("#C9CCD6")}/><path d="M100 26v22M90 37h20" ${L(5, "#C99A2E")}/>`
   };
 

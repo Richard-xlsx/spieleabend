@@ -7,7 +7,7 @@ const fs = require('fs'), vm = require('vm'); const ctx = { window: {}, console 
 vm.runInContext(fs.readFileSync(LOGIK, 'utf8'), ctx); const V = ctx.window.VL;
 let runden = 0, fehler = 0, arten = {}, ohneZiel = 0;
 for (let seed = 1; seed <= 400; seed++) {
-  const R = ['kaempfer', 'dieb', 'heilerin', 'magierin', 'waldlaeufer', 'paladin', 'moench', 'nekromant'].sort(() => Math.random() - .5).slice(0, 2 + seed % 5);   // 2 bis 6 Helden
+  const R = ['kaempfer', 'dieb', 'heilerin', 'magierin', 'waldlaeufer', 'paladin', 'moench', 'nekromant', 'bardin', 'hexe'].sort(() => Math.random() - .5).slice(0, 2 + seed % 5);   // 2 bis 6 Helden
   let S = V.neu('X', 'p0', 'A', seed * 977); const P = R.map((_, i) => 'p' + i);
   for (let i = 1; i < R.length; i++) S = V.aktion(S, P[i], { t: 'join', name: 'S' + i });
   P.forEach((p, i) => S = V.aktion(S, p, { t: 'rolle', rolle: R[i] }));

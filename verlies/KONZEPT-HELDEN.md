@@ -341,3 +341,41 @@ Die drei Äste rufen drei verschiedene Diener: Skelette für Schaden, den Golem 
 - Alle drei Äste sind gleich stark: zu dritt Totenruf 78 %, Steinbund 78 %, Geisterbund 80 %.
 - Prüfung aller aufgezeichneten Runden: 0 Fehler.
 - Browser-Test mit drei Handys (Nekromant, Kämpfer, Heilerin): keine Fehler, gleicher Stand auf allen.
+
+## 9. Hexe und Bardin umgesetzt (20.11.2026)
+
+**Hexe:**
+- **Hexmale** stehen am Namensschild („Hexmal ●●○“) und als violette Zeichen an der Figur. Jedes Hexmal: 1 Schaden weniger, auch bei Flächenangriffen. Der Vernichtungsschlag bleibt gleich, er geht nach den Höchstleben des Helden.
+- **Kröte:** Die Figur wird zur Kröte. Sie greift nicht an, nimmt +3 Schaden pro Treffer und hat keine Eigenschaften. Bei einem Endgegner wirkt Verwandeln gar nicht.
+- **Eigenschaften abschalten** (Kröte, Große Verwünschung): Panzer, steht hinten, fliegend, Rudel, Anführer, Regeneration, Zorn, Wechselhaut, Seelenband, Wächter, eisig, vampirisch, Gift und Brand, Stille, Wundbrand, Zeitfresser und explosiv schweigen.
+  - Verwünschte normale Gegner und Elite greifen nur noch einfach an.
+  - Endgegner behalten ihre großen Züge.
+- **Wahl-Knoten:** Auf Stufe 2 und 4 gibt es je eine Wahl.
+  - Fluchkunst: „Verwandeln 1 Runde früher“ oder „Fluchwelle 1 Runde früher“.
+  - Kessel: Säurephiole oder Heiltrunk, danach „Ätzende Säure“ oder „Heiltrunk +4“.
+  - Blutmagie: „+6 Höchstleben“ oder „Blutzoll kostet nur 3“.
+- **Seelenhunger** (Seelenfresserin): Jeder Gegner, den die Hexe selbst besiegt, heilt sie um 6.
+- **Säure** senkt nur echten Panzer (höchstens um 3).
+
+**Bardin:**
+- **Lieder** kosten einen Zug und spielen weiter. In der Heldenliste steht „♪ Heldenlied“, über der Figur schweben Noten in der Farbe des Lieds.
+  - Ein Lied, das schon spielt, ist grau („Spielt gerade“).
+  - Wird die Bardin bewusstlos, verstummt das Lied.
+  - Das Heldenlied wirkt auf jeden Treffer, auch auf Diener und die Schläge des Mönchs.
+- **Schlaf:** Wer Schaden nimmt, wacht auf, auch durch Gift.
+  - Ein Gegner, der vor seinem Zug geweckt wird, greift an.
+  - Standhafte Gegner verschieben ihren großen Zug wie beim Erstarren.
+  - Fähigkeiten mit Schaden an allen warnen beim Antippen: „⚠ weckt 2 Schlafende“.
+- **Misston** verhindert Verstärkung (auch die der Endgegner) und Heilung durch Gegner. Er macht Schaden und weckt darum Schlafende.
+- **Feilschen** gilt für die ganze Gruppe.
+- **Sirenengesang:** Jeder Gegner schlägt einen anderen. Ein Vernichtungsschlag kommt trotzdem.
+- **Bis zum letzten Vers** schützt auch vor Gift.
+
+**Simulation** (Abenteurer, 3 Ebenen, Dreiergruppen, kluge Bots, 40 Partien je Gruppe, Werte „mit“):
+Bardin 73 %, Hexe 81 %; zum Vergleich: Dieb 70 %, Kämpfer 72 %, Mönch 74 %, Paladin 80 %, Magierin 82 %, Nekromant 85 %, Heilerin 94 %.
+- Äste der Bardin: Erzählerin 84 %, Wiegenlied 69 %, Heldensang 66 %. Ihr eigener Schaden ist klein, sie stärkt die anderen.
+- Äste der Hexe: Kessel 88 %, Fluchkunst 78 %, Blutmagie 76 %.
+
+**Prüfung:**
+- Rundenaufzeichnung mit allen zehn Rollen: 0 Fehler.
+- Browser-Test mit drei Handys (Bardin, Hexe, Heilerin): keine Fehler, gleicher Stand auf allen.

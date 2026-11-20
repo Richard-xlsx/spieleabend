@@ -158,6 +158,11 @@ button:focus-visible,input:focus-visible,a:focus-visible{outline:3px solid var(-
 .vl-atmen{animation:vl-atmen 2.6s infinite ease-in-out}
 .vl-atmen.b{animation-delay:-.9s}.vl-atmen.c{animation-delay:-1.7s}
 @keyframes vl-atmen{50%{transform:translateY(-2px)}}
+.vl-note{animation:vl-note 2.4s infinite ease-in-out}.vl-note.b{animation-delay:-.8s}.vl-note.c{animation-delay:-1.6s}
+@keyframes vl-note{0%{transform:translate(0,6px);opacity:0}25%{opacity:1}100%{transform:translate(6px,-22px);opacity:0}}
+.vl-zzz{animation:vl-zzz 2.2s infinite ease-in-out}.vl-zzz.b{animation-delay:-.7s}.vl-zzz.c{animation-delay:-1.4s}
+@keyframes vl-zzz{0%{transform:translate(0,4px) scale(.7);opacity:0}30%{opacity:1}100%{transform:translate(10px,-18px) scale(1.1);opacity:0}}
+.vl-hexmal{animation:vl-puls 1.8s infinite ease-in-out}
 .vl-ring{animation:vl-puls 1s infinite ease-in-out}
 @keyframes vl-puls{50%{opacity:.35}}
 .laengen{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:6px 0 8px}
@@ -172,7 +177,7 @@ button:focus-visible,input:focus-visible,a:focus-visible{outline:3px solid var(-
 .einstellungen{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
 .einstellungen button{appearance:none;border:1px solid var(--linie);background:var(--flaeche);color:var(--leise);border-radius:999px;padding:6px 12px;font:600 .8rem var(--fliess);cursor:pointer}
 .einstellungen button.an{color:var(--text);border-color:var(--leise)}
-@media (prefers-reduced-motion:reduce){.vl-flamme,.vl-atmen,.vl-ring{animation:none}}
+@media (prefers-reduced-motion:reduce){.vl-flamme,.vl-atmen,.vl-ring,.vl-note,.vl-zzz,.vl-hexmal{animation:none}}
 
 /* Heldenzeilen */
 .heldenliste{display:flex;flex-direction:column;gap:8px}
@@ -247,10 +252,10 @@ button:focus-visible,input:focus-visible,a:focus-visible{outline:3px solid var(-
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <script src="../netz.js?v=2026-11-20a"></script>
 <script src="../abend.js?v=2026-11-20b" data-spiel="verlies"></script>
-<script src="bilder.js?v=2026-11-15e"></script>
-<script src="buehne.js?v=2026-11-15e"></script>
-<script src="karte.js?v=2026-11-15e"></script>
-<script src="verlies-logic.js?v=2026-11-15e"></script>
-<script src="verlies.js?v=2026-11-19m"></script>
+<script src="bilder.js?v=2026-11-20a"></script>
+<script src="buehne.js?v=2026-11-20a"></script>
+<script src="karte.js?v=2026-11-20a"></script>
+<script src="verlies-logic.js?v=2026-11-20a"></script>
+<script src="verlies.js?v=2026-11-20a"></script>
 </body>
 </html>

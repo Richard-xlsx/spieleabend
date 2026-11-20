@@ -290,10 +290,10 @@
   function buehnenDaten(zielModus) {
     const k = S.kampf;
     return {
-      gegner: S.gegner.map(g => ({ id: g.id, art: g.art, name: g.name, hp: g.hp, max: g.max, giftR: g.giftR, markiert: g.markiert, starr: g.starr, zustand: V.zustand(S, g), zusatz: g.zusatz })),
+      gegner: S.gegner.map(g => ({ id: g.id, art: g.art, name: g.name, hp: g.hp, max: g.max, giftR: g.giftR, markiert: g.markiert, starr: g.starr, zustand: V.zustand(S, g), zusatz: g.zusatz, hexmal: g.hexmal || 0, kroete: g.kroete || 0, schlaf: g.schlaf || 0 })),
       helden: S.teilnehmer.map(p => { const x = S.helden[p];
-        const m = [x.gefallen ? "gefallen" : x.hp <= 0 ? "bewusstlos" : k.wahl[p] ? "✓ bereit" : !online(p) ? "nicht verbunden" : "", x.giftR > 0 && x.hp > 0 ? (x.giftArt === "Brand" ? "brennt" : "vergiftet") : "", x.netz && x.hp > 0 ? "im Netz" : "", x.kokon ? "im Kokon" : "", x.stille > 0 && x.hp > 0 ? "verstummt" : "", x.wundbrand > 0 && x.hp > 0 ? "Wundbrand" : "", x.todesmal && x.hp > 0 ? "Todesmal" : "", x.rolle === "moench" && x.hp > 0 ? chiText(x) : "", x.rolle === "nekromant" ? seelenText(x) : "", x.lauer ? "lauert" : "", x.segen ? "gesegnet" : ""].filter(Boolean).join(" · ");
-        return { id: p, rolle: x.rolle, name: sp(p).name, hp: x.hp, max: x.max, marken: m }; }),
+        const m = [x.gefallen ? "gefallen" : x.hp <= 0 ? "bewusstlos" : k.wahl[p] ? "✓ bereit" : !online(p) ? "nicht verbunden" : "", x.giftR > 0 && x.hp > 0 ? (x.giftArt === "Brand" ? "brennt" : "vergiftet") : "", x.netz && x.hp > 0 ? "im Netz" : "", x.kokon ? "im Kokon" : "", x.stille > 0 && x.hp > 0 ? "verstummt" : "", x.wundbrand > 0 && x.hp > 0 ? "Wundbrand" : "", x.todesmal && x.hp > 0 ? "Todesmal" : "", x.rolle === "moench" && x.hp > 0 ? chiText(x) : "", x.rolle === "nekromant" ? seelenText(x) : "", x.hp > 0 && (x.lieder || []).length ? liedText(x) : "", x.hexentrank > 0 && x.hp > 0 ? "Hexentrank" : "", x.lebensbandR > 0 && x.hp > 0 ? "Lebensband" : "", x.lauer ? "lauert" : "", x.segen ? "gesegnet" : ""].filter(Boolean).join(" · ");
+        return { id: p, rolle: x.rolle, name: sp(p).name, hp: x.hp, max: x.max, marken: m, lieder: x.hp > 0 ? x.lieder || [] : [] }; }),
       absicht: k.absicht || {}, ebene: S.ebene || 1,
       diener: (k.diener || []).filter(d => d.hp > 0).map(d => ({ id: d.id, art: d.art, herr: d.herr, name: d.name, hp: d.hp, max: d.max, titan: d.titan > 0 })),
       zielModus: zielModus === "anderer" ? "held" : zielModus,
@@ -395,7 +395,7 @@
     return `<header class="titel"><p class="etikett">Dungeons &amp; Disappointments · Raumcode</p><div class="code">${esc(code)}</div></header>
       ${qr ? `<div class="qr">${qr}</div>` : ""}
       <div class="reihe"><button class="knopf zweit" id="teilen">Link teilen</button><button class="knopf zweit" id="kopieren">Link kopieren</button></div>
-      <div class="karte"><h2>Wähle deine Rolle</h2><p class="leise klein">Acht Rollen, zwei bis sechs gehen hinab. Neue Fähigkeiten lernt jeder im Talentbaum.</p>${rollenKarten()}
+      <div class="karte"><h2>Wähle deine Rolle</h2><p class="leise klein">Zehn Rollen, zwei bis sechs gehen hinab. Neue Fähigkeiten lernt jeder im Talentbaum.</p>${rollenKarten()}
         ${ohneRolle.length ? `<p class="leise klein">Noch ohne Rolle: ${ohneRolle.map(p => esc(sp(p).name)).join(", ")}${leute.length > V.MAX_HELDEN ? ". Wer keine Rolle hat, schaut zu." : ""}</p>` : ""}</div>
       ${laengeHtml(host)}
       ${schwereHtml(host)}
@@ -407,13 +407,14 @@
   }
 
   const chiText = x => "Chi " + "●".repeat(x.chi || 0) + "○".repeat(Math.max(0, V.chiMax(x) - (x.chi || 0)));
+  const liedText = x => (x.lieder || []).map(l => "♪ " + V.LIEDER[l]).join(" · ");
   const seelenText = x => "Seelen " + "●".repeat(x.seelen || 0) + "○".repeat(Math.max(0, V.seelenMax(x) - (x.seelen || 0)));
   // Diener des Nekromanten als kurze Zeile („Knochenkrieger 12/16“)
   const dienerText = p => ((S.kampf && S.kampf.diener) || []).filter(d => d.herr === p && d.hp > 0).map(d => `${d.name} ${d.hp}/${d.max}`).join(", ");
   // eine Zeile je Held; im Kampf mit Zustandsmarken und als Ziel antippbar
   function heldZeile(p, imKampf, ziel) {
     const x = S.helden[p], k = S.kampf;
-    const marken = x.gefallen ? `<span class="marke">gefallen, schaut zu</span>` : imKampf ? [x.hp <= 0 ? `<span class="marke">bewusstlos</span>` : "", x.giftR > 0 && x.hp > 0 ? `<span class="marke gift">${x.giftArt === "Brand" ? "brennt" : "vergiftet"}</span>` : "", x.netz && x.hp > 0 ? `<span class="marke">im Netz</span>` : "", x.kokon ? `<span class="marke">im Kokon</span>` : "", x.stille > 0 && x.hp > 0 ? `<span class="marke">verstummt</span>` : "", x.wundbrand > 0 && x.hp > 0 ? `<span class="marke gift">Wundbrand</span>` : "", x.todesmal && x.hp > 0 ? `<span class="marke gift">Todesmal</span>` : "", x.rolle === "moench" && x.hp > 0 ? `<span class="marke">${chiText(x)}</span>` : "", x.rolle === "nekromant" ? `<span class="marke">${seelenText(x)}</span>` : "", x.rolle === "nekromant" && dienerText(p) ? `<span class="marke ok">${esc(dienerText(p))}</span>` : "",
+    const marken = x.gefallen ? `<span class="marke">gefallen, schaut zu</span>` : imKampf ? [x.hp <= 0 ? `<span class="marke">bewusstlos</span>` : "", x.giftR > 0 && x.hp > 0 ? `<span class="marke gift">${x.giftArt === "Brand" ? "brennt" : "vergiftet"}</span>` : "", x.netz && x.hp > 0 ? `<span class="marke">im Netz</span>` : "", x.kokon ? `<span class="marke">im Kokon</span>` : "", x.stille > 0 && x.hp > 0 ? `<span class="marke">verstummt</span>` : "", x.wundbrand > 0 && x.hp > 0 ? `<span class="marke gift">Wundbrand</span>` : "", x.todesmal && x.hp > 0 ? `<span class="marke gift">Todesmal</span>` : "", x.rolle === "moench" && x.hp > 0 ? `<span class="marke">${chiText(x)}</span>` : "", x.rolle === "nekromant" ? `<span class="marke">${seelenText(x)}</span>` : "", x.rolle === "nekromant" && dienerText(p) ? `<span class="marke ok">${esc(dienerText(p))}</span>` : "", x.hp > 0 && (x.lieder || []).length ? `<span class="marke ok">${esc(liedText(x))}</span>` : "", x.hexentrank > 0 && x.hp > 0 ? `<span class="marke">Hexentrank</span>` : "", x.lebensbandR > 0 && x.hp > 0 ? `<span class="marke">Lebensband</span>` : "",
       x.wunden ? `<span class="marke">${x.wunden === 1 ? "Wunde" : x.wunden + " Wunden"} −${x.wundHp}</span>` : "", x.lauer ? `<span class="marke schatten">lauert</span>` : "", x.segen ? `<span class="marke">gesegnet</span>` : "",
       k && k.wahl[p] ? `<span class="marke ok">bereit</span>` : ""].join("") : (x.relikte || []).map(id => `<span class="marke relikt">${esc(V.RELIKTE[id].name)}</span>`).join("");
     const ast = V.hauptast(x);
@@ -511,7 +512,8 @@
         const ohneZiel = a.ziel === "anderer" && !S.teilnehmer.some(p => p !== PID && S.helden[p].hp > 0);
         const brand = a.id === "trank" && mh.wundbrand > 0, chiFehlt = a.chi && (mh.chi || 0) < V.chiKosten(mh, a);
         const seele = V.seelenRufFrei(mh, a), gesperrt = V.sperre(S, PID, a), wartet = cd && !seele;
-        return `<button class="aktion ${auswahl && auswahl.id === a.id ? "an" : ""}" data-aktion="${a.id}" ${wartet || ohneZiel || brand || chiFehlt || gesperrt ? "disabled" : ""}><b>${a.meister ? "★ " : ""}${esc(a.name)}${a.id === "trank" ? ` (${mh.traenke})` : ""}</b><small>${meister ? "Schon eingesetzt, im nächsten Kampf wieder" : brand ? "Wundbrand: Heilung wirkt gerade nicht" : chiFehlt ? `Braucht ${V.chiKosten(mh, a)} Chi, du hast ${mh.chi || 0}` : gesperrt ? esc(gesperrt) : seele ? `Kostet eine Seele (sonst bereit in ${cd} ${cd === 1 ? "Runde" : "Runden"})` : cd ? `Wieder bereit in ${cd} ${cd === 1 ? "Runde" : "Runden"}` : esc(a.text) + V.aktionZusatz(mh, a)}</small></button>`;
+        const weckt = V.FLAECHE[a.id] ? V.gegnerLebend(S).filter(g => g.schlaf > 0).length : 0;
+        return `<button class="aktion ${auswahl && auswahl.id === a.id ? "an" : ""}" data-aktion="${a.id}" ${wartet || ohneZiel || brand || chiFehlt || gesperrt ? "disabled" : ""}><b>${a.meister ? "★ " : ""}${esc(a.name)}${a.id === "trank" ? ` (${mh.traenke})` : ""}</b><small>${meister ? "Schon eingesetzt, im nächsten Kampf wieder" : brand ? "Wundbrand: Heilung wirkt gerade nicht" : chiFehlt ? `Braucht ${V.chiKosten(mh, a)} Chi, du hast ${mh.chi || 0}` : gesperrt ? esc(gesperrt) : seele ? `Kostet eine Seele (sonst bereit in ${cd} ${cd === 1 ? "Runde" : "Runden"})` : cd ? `Wieder bereit in ${cd} ${cd === 1 ? "Runde" : "Runden"}` : esc(a.text) + V.aktionZusatz(mh, a) + (weckt ? ` · ⚠ weckt ${weckt === 1 ? "einen Schlafenden" : weckt + " Schlafende"}` : "")}</small></button>`;
       }).join("")}</div>
       ${auswahl ? `<button class="link" id="abbrechen">Abbrechen</button>` : ""}`;
     }
@@ -612,7 +614,7 @@
       const gelernt = [];
       h += `<div class="karte"><div class="kopf"><h2>Dein Einkauf</h2><span class="gold">${mh.gold} Gold</span></div>
         <div class="ausruestung"><span class="marke">Waffe +${mh.waffe}</span><span class="marke">Rüstung −${mh.ruestung}</span><span class="marke">${mh.hp}/${mh.max} Leben</span><span class="marke">${mh.traenke} ${mh.traenke === 1 ? "Trank" : "Tränke"}</span>${gelernt.map(n => `<span class="marke schatten">${esc(n)}</span>`).join("")}</div>
-        <div class="waren">${V.angebot(mh).map(w => `<button class="ware ${w.faehigkeit ? "faehigkeit" : ""} ${w.aus ? "aus" : ""}" data-kauf="${w.id}" ${w.aus || w.preis > mh.gold || fertig ? "disabled" : ""}>
+        <div class="waren">${V.angebot(mh, S).map(w => `<button class="ware ${w.faehigkeit ? "faehigkeit" : ""} ${w.aus ? "aus" : ""}" data-kauf="${w.id}" ${w.aus || w.preis > mh.gold || fertig ? "disabled" : ""}>
           <b>${esc(w.name)}</b><span class="preis">${w.aus ? "✓" : w.preis + " G"}</span><small>${esc(w.text)}</small></button>`).join("")}</div>
         ${V.reliktAngebot(S, PID).length ? `<h3>Relikte</h3><div class="waren">${V.reliktAngebot(S, PID).map(w => `<button class="ware relikt-kauf" data-kauf="${w.id}" ${w.aus || w.preis > mh.gold || fertig ? "disabled" : ""}>
           <b>${esc(w.name)}</b><span class="preis">${w.preis} G</span><small>${esc(w.text)}${w.aus ? " (Deine Plätze sind voll.)" : ""}</small></button>`).join("")}</div>` : ""}</div>` + reliktKarte();

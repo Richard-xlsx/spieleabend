@@ -10,7 +10,7 @@ function waehle(S,p,klug){
   const g=V.gegnerLebend(S), tot=S.teilnehmer.find(q=>S.helden[q].hp<=0), schwach=S.teilnehmer.filter(q=>S.helden[q].hp>0&&S.helden[q].hp<S.helden[q].max*0.45);
   const hat=id=>akt.find(a=>a.id===id&&!(id==='trank'&&h.wundbrand>0));
   if(h.hp<h.max*0.35&&hat('trank')) return {a:'trank'};
-  if(tot){ for(const id of ['gnade','lebensquell','auferstehung','erloesung','wiedergeburt','gnadenlicht']) if(hat(id)) return {a:id}; for(const id of ['heilen','handauflegen','kraeuter','chigabe','geisterhand']) if(hat(id)&&!(id==='chigabe'&&tot===p)) return {a:id,ziel:tot}; }
+  if(tot){ for(const id of ['gnade','lebensquell','auferstehung','erloesung','wiedergeburt','gnadenlicht']) if(hat(id)) return {a:id}; for(const id of ['heilen','handauflegen','kraeuter','chigabe','geisterhand','aufmuntern','heiltrunk']) if(hat(id)&&!(id==='chigabe'&&tot===p)) return {a:id,ziel:tot}; }
   // Ankündigungen kontern wie echte Spieler: Spezialzüge (Verstärkung, Beben, Netz) durch Erstarren verhindern,
   // wenn noch niemand anderes dieses Ziel diese Runde erstarren lässt
   const ab=S.kampf.absicht||{}, gew=Object.values(S.kampf.wahl||{});
@@ -57,15 +57,54 @@ function waehle(S,p,klug){
     if(g.length>=2){ if(hat('leichenexplosion')) return {a:'leichenexplosion'}; if(hat('stampfen')) return {a:'stampfen'};
       if(hat('knochensplitter')&&meine[0]&&meine[0].art==='skelett'&&(hat('skelettruf')||meine[0].hp<meine[0].max*0.5)) return {a:'knochensplitter'}; }
   }
+  // Bardin: immer ein Lied laufen lassen, Schlaf auf den Stärksten, Misston gegen Rufer und Heiler
+  const wachG=g.filter(x=>!(x.schlaf>0)), boss=g.some(x=>V.GEGNER[x.art].boss), elite=g.some(x=>V.GEGNER[x.art].elite);
+  if(h.rolle==='bardin'){
+    const l=h.lieder||[], frei=V.liedMax(h)-l.length;
+    if(hat('letztervers')&&(schwach.length>=2||(boss&&schwach.length))) return {a:'letztervers'};
+    if(hat('heldenhymne')&&(boss||elite||g.length>=3)) return {a:'heldenhymne'};
+    if(hat('schlachtgesang')&&g.length>=2) return {a:'schlachtgesang'};
+    if(hat('sirenengesang')&&g.length>=3) return {a:'sirenengesang'};
+    if(hat('abendlied')&&wachG.length>=3&&!boss) return {a:'abendlied'};
+    if(!l.length||frei>0){ for(const id of ['kriegsballade','heldenlied','liedrast']) if(hat(id)&&!(id==='liedrast'&&!schwach.length&&l.length)) return {a:id}; }
+    if(schwach.length&&hat('liedrast')&&!l.includes('liedrast')&&!V.passiv(h,'heldenlied')) return {a:'liedrast'};
+    if(hat('aufmuntern')&&schwach.length) return {a:'aufmuntern',ziel:schwach[0]};
+    if(hat('misston')&&g.some(x=>(ab[x.id]&&ab[x.id].a==='ruf')||(V.GEGNER[x.art].heiler&&g.some(y=>y!==x&&y.hp<y.max*0.6)))&&!g.some(x=>x.schlaf>0)) return {a:'misston'};
+    const schlafZiel=wachG.filter(x=>!V.GEGNER[x.art].boss&&!V.GEGNER[x.art].objekt).sort((a,b)=>b.hp-a.hp)[0];
+    if(hat('schlaflied')&&schlafZiel&&wachG.length>=2) return {a:'schlaflied',ziel:schlafZiel.id};
+  }
+  // Hexe: verhexen, verwandeln, Hexmale aufbrechen, mit Blut zahlen
+  if(h.rolle==='hexe'){
+    if(hat('verwuenschung')&&(boss||elite||g.length>=3)) return {a:'verwuenschung'};
+    if(hat('hexenkessel')&&(boss||g.length>=2)) return {a:'hexenkessel'};
+    if(hat('blutmond')&&(g.length>=2||schwach.length>=2)) return {a:'blutmond'};
+    if(hat('kroetenregen')&&g.filter(x=>!V.GEGNER[x.art].boss).length>=2) return {a:'kroetenregen'};
+    if(hat('lebensernte')&&(boss||schwach.length)) return {a:'lebensernte',ziel:(g.find(x=>V.GEGNER[x.art].boss)||g.slice().sort((a,b)=>b.hp-a.hp)[0]).id};
+    if(hat('heiltrunk')&&schwach.length) return {a:'heiltrunk',ziel:schwach[0]};
+    const bedroht=S.teilnehmer.filter(q=>q!==p&&S.helden[q].hp>0).sort((a,b)=>Object.values(ab).filter(x=>x&&x.ziel===b).length-Object.values(ab).filter(x=>x&&x.ziel===a).length)[0];
+    if(hat('lebensband')&&schwach.some(q=>q!==p)&&h.hp>h.max*0.7) return {a:'lebensband',ziel:schwach.find(q=>q!==p)};
+    if(hat('hexentrank')&&bedroht&&Object.values(ab).filter(x=>x&&x.ziel===bedroht).length>=2) return {a:'hexentrank',ziel:bedroht};
+    const krote=g.filter(x=>!V.GEGNER[x.art].boss&&!V.GEGNER[x.art].objekt&&!(x.kroete>0)).sort((a,b)=>(V.GEGNER[b.art].elite?0:1)*b.hp-(V.GEGNER[a.art].elite?0:1)*a.hp)[0];
+    if(hat('verwandeln')&&krote&&!V.GEGNER[krote.art].elite&&krote.hp>12) return {a:'verwandeln',ziel:krote.id};
+    const voll=g.filter(x=>(x.hexmal||0)>=2).sort((a,b)=>b.hexmal-a.hexmal)[0];
+    if(hat('verdorren')&&voll) return {a:'verdorren',ziel:voll.id};
+    if(hat('fluchwelle')&&g.length>=2&&g.some(x=>(x.hexmal||0)<V.hexmalMax(S,x))) return {a:'fluchwelle'};
+    if(hat('saeure')&&(g.length>=2||g.some(x=>V.GEGNER[x.art].panzer))) return {a:'saeure'};
+    const z=(wachG.length?wachG:g).slice().sort((a,b)=>b.hp-a.hp)[0];
+    if(hat('blutzoll')&&h.hp>h.max*0.6) return {a:'blutzoll',ziel:z.id};
+    if(hat('lebensraub')) return {a:'lebensraub',ziel:z.id};
+    const ohne=(wachG.length?wachG:g).filter(x=>(x.hexmal||0)<V.hexmalMax(S,x)).sort((a,b)=>b.hp-a.hp)[0];
+    if(ohne) return {a:'schattenpfeil',ziel:ohne.id};
+  }
   if(schwach.length>=2) for(const id of ['gnade','lebensquell','ewigschild','erloesung','heiligtum','wall','bollwerk','schlachtruf','gnadenlicht','laeutern','segen','licht','wiedergeburt','frost']) if(hat(id)) return {a:id};
-  if(schwach.length) { for(const id of ['heilen','handauflegen','kraeuter']) if(hat(id)) return {a:id,ziel:schwach[0]};
+  if(schwach.length) { for(const id of ['heilen','handauflegen','kraeuter','aufmuntern','heiltrunk']) if(hat(id)) return {a:id,ziel:schwach[0]};
     if(hat('schild')&&!schwach.includes(p)) return {a:'schild'}; if(hat('fels')) return {a:'fels'};
     if(hat('arkan')) return {a:'arkan',ziel:schwach[0]}; if(hat('obhut')) return {a:'obhut',ziel:schwach[0]}; if(hat('beschuetzen')&&schwach[0]!==p) return {a:'beschuetzen',ziel:schwach[0]}; if(hat('rauch')) return {a:'rauch'}; }
   // großer Zug mit Abbruch-Schwelle: Einzelziel-Schaden drauf, bevor Flächenzauber kommen
   const abb=g.find(x=>ab[x.id]&&ab[x.id].schwelle);
   if(abb){ for(const id of ['sternschuss','gottesurteil','todesstoss','meisterdieb','vernichten','kopfschuss','eis','ranken','gift']) if(hat(id)) return {a:id,ziel:abb.id};
     return {a:V.AKTIONEN[h.rolle][0].id, ziel:abb.id}; }
-  if(g.length>=2) for(const id of ['fauststurm','bebenfaust','sternenfall','feuerweihe','schwarztod','ansturm','zeitstillstand','wildnis','klingensturm','schattentanz','inferno','durchschuss','seuche','winter','sonnenzorn','treibjagd','raserei','wolfsrudel','meteor','giftwolke','hagel','sonnenstrahl','feuerball','wirbel','licht','doppel']) if(hat(id)) return {a:id};
+  if(g.length>=2&&!g.some(x=>x.schlaf>0&&!V.GEGNER[x.art].boss)) for(const id of ['fauststurm','bebenfaust','sternenfall','feuerweihe','schwarztod','ansturm','zeitstillstand','wildnis','klingensturm','schattentanz','inferno','durchschuss','seuche','winter','sonnenzorn','treibjagd','raserei','wolfsrudel','meteor','giftwolke','hagel','sonnenstrahl','feuerball','wirbel','licht','doppel']) if(hat(id)) return {a:id};
   // kluge Spieler: erst Langfinger, Heiler, Beschwörer; steht der Knochenschild, erst die Skelette
   // großer Zug mit Abbruch-Schwelle: alle drauf
   const abbruch=g.find(x=>ab[x.id]&&ab[x.id].schwelle);
@@ -73,11 +112,11 @@ function waehle(S,p,klug){
   const obj=g.find(x=>V.GEGNER[x.art].huelle)||g.find(x=>V.GEGNER[x.art].ei&&x.brut<=1)||g.find(x=>V.GEGNER[x.art].ei);
   if(obj&&!process.env.OHNE_OBJ) return {a:V.AKTIONEN[h.rolle][0].id, ziel:obj.id};
   const prio=abbruch||g.find(x=>V.GEGNER[x.art].langfinger)||g.find(x=>V.GEGNER[x.art].heiler||V.GEGNER[x.art].beschwoerer||V.GEGNER[x.art].schildtraeger)||(g.some(x=>V.knochenschild(S,x))?g.find(x=>!V.GEGNER[x.art].boss):null);
-  const gross=prio||g.slice().sort((a,b)=>b.hp-a.hp)[0];
+  const gross=(prio&&!(prio.schlaf>0)?prio:null)||(wachG.length?wachG:g).slice().sort((a,b)=>b.hp-a.hp)[0];
   if(hat('drachenfaust')&&(h.chi>=4||(V.GEGNER[gross.art].boss&&h.chi>=2))) return {a:'drachenfaust',ziel:gross.id};
   for(const id of ['sternschuss','gottesurteil','todesstoss','meisterdieb','vernichten','kopfschuss','eis','ranken','markieren','gift','kriegsschrei','spott','herausforderung','hundert','taschendieb']) if(hat(id)) { const a=hat(id); return {a:id,ziel:a.ziel==='gegner'?gross.id:null}; }
   if(h.rolle==='dieb'&&hat('verstecken')&&h.hp<h.max*0.5) return {a:'verstecken'};
-  return {a:V.AKTIONEN[h.rolle][0].id, ziel:(prio||g.sort((a,b)=>a.hp-b.hp)[0]).id};
+  return {a:V.AKTIONEN[h.rolle][0].id, ziel:((prio&&!(prio.schlaf>0)?prio:null)||(wachG.length?wachG:g).sort((a,b)=>a.hp-b.hp)[0]).id};
 }
 const FLUECHE=(process.env.FLUECHE||'').split(',').filter(Boolean);
 const LAENGE=+(process.env.EBENEN||2), SCHWERE=+(process.env.SCHWERE||2), GROESSE=+(process.env.GRUPPE||3);
@@ -99,7 +138,7 @@ function punkte(S,klug){
   return S;
 }
 function einkaufen(S,p,klug){
-  for(let n=0;n<10;n++){ const h=S.helden[p]; const ang=V.angebot(h).concat(process.env.OHNE_RELIKTE?[]:V.reliktAngebot(S,p)).filter(w=>!w.aus&&w.preis<=h.gold);
+  for(let n=0;n<10;n++){ const h=S.helden[p]; const ang=V.angebot(h,S).concat(process.env.OHNE_RELIKTE?[]:V.reliktAngebot(S,p)).filter(w=>!w.aus&&w.preis<=h.gold);
     if(!ang.length) break;
     const pr=klug?['verband','waffe','ruestung','r:','leben','trank']:['trank','waffe'];
     let w=null; for(const k of pr){ w=ang.find(x=>x.id.startsWith(k)); if(w) break; } if(!w) break;
@@ -145,7 +184,7 @@ function spiel(seed, rollen, klug){
   if(klug){ for(const p of S.teilnehmer){ STATS.stufe+=S.helden[p].stufe; STATS.gold=(STATS.gold||0)+S.helden[p].gold; STATS.n++; STATS.raenge+=S.helden[p].talente.length; const rs=STATS.rolle=STATS.rolle||{}; const rr=rs[S.helden[p].rolle]=rs[S.helden[p].rolle]||{n:0,s:0,h:0,ko:0}; rr.n++; rr.s+=S.helden[p].stats.schaden; rr.h+=S.helden[p].stats.geheilt; rr.ko+=S.helden[p].stats.umgefallen; const ast=S.helden[p].rolle+'/'+(S.helden[p].__ast||['-'])[0]; const z=STATS.ast[ast]=STATS.ast[ast]||[0,0]; z[0]++; if(S.ergebnis==='sieg')z[1]++;} }
   return {sieg:S.ergebnis==='sieg', lager, goldVorLager:gold/Math.max(1,lager)};
 }
-const R=process.env.ROLLEN?process.env.ROLLEN.split(','):['kaempfer','dieb','heilerin','magierin','waldlaeufer','paladin','moench','nekromant'];
+const R=process.env.ROLLEN?process.env.ROLLEN.split(','):['kaempfer','dieb','heilerin','magierin','waldlaeufer','paladin','moench','nekromant','bardin','hexe'];
 const trios=[]; (function k(ab,l){ if(l.length===GROESSE){trios.push(l);return;} for(let i=ab;i<R.length;i++)k(i+1,l.concat(R[i])); })(0,[]);   // alle Gruppen der gewählten Größe
 const N=+process.argv[2]||300; const zeilen=[];
 for(const t of trios){ let sk=0,ss=0,lg=0,gl=0; for(let i=1;i<=N;i++){ const r=spiel(i*7919+t.join().length,t,true); if(r.sieg)sk++; lg+=r.lager; gl+=r.goldVorLager; if(spiel(i*104729,t,false).sieg)ss++; }
