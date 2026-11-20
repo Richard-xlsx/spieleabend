@@ -288,7 +288,7 @@ Nach jedem Paket ist das Spiel spielbar, und du kannst es am Handy testen.
 | **1** ✔ | Helden als Fahrer (8 Modelle, Gefährte, Fahrwerte), Monster als Übungsgegner, Auswahl mit Heldenwappen, Kerker-Optik auf der bisherigen Strecke | mit Helden durch den Kerker fahren |
 | **2** ✔ | Truhen und alle Extras, Treffer, Schutzzeit, Werfen nach hinten, Mimik-Truhen, Schütteln und Wischen | Rennen mit Extras, auch über mehrere Handys |
 | **3** ✔ | Kerker als Strecke aus Abschnitten mit Varianten: Fallgitter, Druckplatten, Lorenbahn, Troll-Trampolin, brüchige Wand; Knochenkönig mit Beben; Streckenvorschau | erste Dungeon-Strecke, jedes Rennen anders |
-| **4** | Heldenkräfte und Kraftleiste, Gold auf der Strecke | jeder Held spielt sich anders |
+| **4** ✔ | Heldenkräfte und Kraftleiste, Gold auf der Strecke | jeder Held spielt sich anders |
 | **5** | Welt **Spinnengrotte**: Pilzsprung über die Schlucht, Netztunnel, Spinnenkönigin, Absturz mit Fledermäusen | zweite Welt |
 | **6** | Welt **Glutschlund**: Geysire, sinkende Steine, einstürzende Brücke, Glutdrache, steigende Lava | dritte Welt |
 | **7** | Feldzug mit Siegerehrung, Rennflüche, Zuschauen, Aufnahme in Spielauswahl und Spieleabend | fertiges Partyspiel |
@@ -344,3 +344,17 @@ So ist es umgesetzt:
 
 Noch nicht gebaut aus Abschnitt 3: Hebel mit rollenden Fässern, Kronleuchter, Zuschauer am Rand, Händler.
 
+## 13. Stand Paket 4 (20.11.2026)
+
+Eingebaut:
+- **Kraftleiste:** runder Knopf über dem Drift-Knopf mit dem Heldenwappen und einem Ladering. Ist sie voll, leuchtet er golden. Am Computer zündet R (oder Enter) die Kraft.
+- **Laden:** Goldstück 5 %, Driften 2,5 % pro Sekunde (Mönch doppelt), ein gelandeter Treffer mit einem Extra 20 %. Alles wird mit dem Platz gewichtet: vorne mal 0,7, ganz hinten mal 1,6. Ein Rennen gibt so etwa zwei Einsätze.
+- **Gold:** je Abschnitt eine Reihe aus 5 Goldstücken (30 pro Runde), sie kommen nach 8 Sekunden wieder. Jedes Stück macht 0,6 % schneller (höchstens 10). Bei einem Treffer fallen 2 heraus. Anzeige oben rechts unter dem Extra.
+- **Die acht Kräfte** wie in 4.2. Einzelheiten:
+  - Wirbelschlag: 1 Sekunde, Umkreis 4,6 m, wirft auch Geschosse in der Nähe ab
+  - Schildwall: 4 Sekunden, nichts wirkt, wer ihn rammt oder von ihm gerammt wird, dreht sich
+  - Langfinger: 3 Sekunden durchsichtig, kein Zusammenstoß, nicht zu treffen, Name und Kartenpunkt verschwinden. Er klaut nur mit freien Händen, also höchstens ein Extra.
+  - Eislanze: zielt auf das nächste Kart vor ihr (bis 250 m). Es schlittert 1,5 Sekunden ohne Lenken, an der Stelle bleibt 4 Sekunden eine Eisfläche (Magierin schwebt drüber).
+  - Skelett rufen: zwei Karts hinter ihm (bis 120 m) bekommen je ein Skelett, jedes bremst um 14 %. Schütteln wirft eins ab, sonst fällt es nach 5 und 3,5 Sekunden von selbst. Ist niemand hinter ihm, bleibt die Kraft geladen.
+- Monster haben keine Heldenkraft (ihre Eigenheiten kommen später). Monster sammeln Gold, laden aber nichts.
+- Behoben dabei: Monster schnitten vor der brüchigen Wand die Kurve und hingen dann an der Wand fest, wenn kein schweres Kart dabei war. Sie schauen vor Engstellen jetzt kürzer voraus und bekommen beim Abprallen einen Schubs auf die freie Seite.

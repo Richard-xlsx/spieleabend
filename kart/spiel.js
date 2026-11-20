@@ -33,6 +33,17 @@ const MONSTER = {
   pilzling: { name: "Pilzling", emoji: "🍄", farbe: "#D9483B", maxV: 26.5, accel: 16, turn: 2.2, grip: 9.5, drift: 1.55, masse: .8 },
 };
 const TYPEN = { ...HELDEN, ...MONSTER };
+// Heldenkräfte: die Kraftleiste füllt sich durch Gold, Driften und Treffer, die man landet (wer hinten liegt, lädt schneller)
+const KRAEFTE = {
+  kaempfer: { name: "Wirbelschlag", text: "dreht sich eine Sekunde wie ein Kreisel, alles in der Nähe fliegt weg, Geschosse prallen ab" },
+  paladin: { name: "Schildwall", text: "4 Sekunden prallt alles ab, wen er rammt, der fliegt" },
+  dieb: { name: "Langfinger", text: "3 Sekunden unsichtbar, wen er dabei überholt, dem klaut er das Extra" },
+  waldlaeufer: { name: "Pfeilhagel", text: "drei Pfeile auf die drei nächsten Karts vor ihm" },
+  magierin: { name: "Eislanze", text: "das nächste Kart vor ihr friert ein und schlittert, die Stelle bleibt glatt" },
+  heilerin: { name: "Segen", text: "alle Störungen fallen ab, 5 Sekunden lang gibt jeder Treffer Schub statt Dreher" },
+  moench: { name: "Windschritt", text: "2 Sekunden rasend schnell und unberührbar, weicht blitzschnell seitlich aus" },
+  nekromant: { name: "Skelett rufen", text: "zwei Knochenkrieger springen auf die Karts hinter ihm und bremsen sie" },
+};
 const heldOder = t => HELDEN[t] ? t : "kaempfer";
 // kleines Bild für Listen: Heldenwappen aus dem Verlies, bei Monstern ein Emoji
 const icon = t => HELDEN[t] ? (window.VB ? `<span class="wappen">${VB.held(t)}</span>` : "") : MONSTER[t] ? MONSTER[t].emoji : "";
@@ -166,7 +177,7 @@ function bau(i, seite, w, h, d, farbe, schild, gitter) {
 
 // Alles wegräumen, was zur alten Strecke gehörte (geteilte Materialien bleiben)
 function entsorgen(g) {
-  const geteilt = new Set([...matCache.values(), ...glutCache.values(), scheinMat, ROT_RAND]);
+  const geteilt = new Set([...matCache.values(), ...glutCache.values(), scheinMat, ROT_RAND, MUENZ_MAT]);
   g.traverse(o => {
     if (o.geometry) o.geometry.dispose();
     const ms = Array.isArray(o.material) ? o.material : o.material ? [o.material] : [];
@@ -187,7 +198,8 @@ function streckeBauen(p) {
   LAENGE = kurve.getLength(); SCHRITT = LAENGE / S; STRICH = meter(4);
   MAUERW.fill(MAUER); BELAG.fill(0);
   rampen = []; gabeln = []; loren = []; pendel = []; pfosten = []; rattenStellen = []; troll = null; koenig = null; belegt = []; fackeln = [];
-  kisten.length = 0;
+  kisten.length = 0; muenzen.length = 0;
+  muenzGeo = new THREE.CylinderGeometry(.5, .5, .13, 16); muenzGeo.rotateX(Math.PI / 2);
   // Abschnitte: Knoten auf Streckenpunkte abbilden
   const knoten = start.map(k => { const [x, z] = kp[k]; let best = 1e12, bi = 0; for (let i = 0; i < S; i++) { const q = (PX[i] - x) ** 2 + (PZ[i] - z) ** 2; if (q < best) { best = q; bi = i; } } return bi; });
   knoten[0] = 0;
@@ -228,6 +240,9 @@ function streckeBauen(p) {
       }
     }
     for (const u of a.v.truhen || []) truhenReihe(stelle(n, u));
+    // eine Reihe Goldstücke je Abschnitt, nicht direkt an den Truhen
+    let u = .3 + zufall() * .4; if ((a.v.truhen || []).some(t => Math.abs(t - u) < .15)) u = u < .5 ? u + .25 : u - .25;
+    goldReihe(stelle(n, u), (zufall() - .5) * 5, zufall() * 6);
   });
 
   // Fahrbahn
@@ -802,6 +817,22 @@ class Kart {
     this.netzM.position.y = .2; this.netzM.visible = false; this.g.add(this.netzM);
     this.fleder = 0; this.flederM = new THREE.Group(); this.flederM.visible = false; this.g.add(this.flederM);
     for (let i = 0; i < 3; i++) { const f = new THREE.Group(); teil(f, kugel(.14, 6), "#1B1620", 0, 0, 0); teil(f, kegel(.3, .5, 3), "#1B1620", .3, 0, 0, 0, 0, -Math.PI / 2).scale.z = .2; teil(f, kegel(.3, .5, 3), "#1B1620", -.3, 0, 0, 0, 0, Math.PI / 2).scale.z = .2; this.flederM.add(f); }
+    // Heldenkräfte am Kart: Wirbelring, Schildwall, Eisblock, Segensring, Windfahnen, Skelette
+    const hell = (farbe, op) => new THREE.MeshBasicMaterial({ color: farbe, transparent: true, opacity: op, depthWrite: false });
+    this.wirbelM = new THREE.Mesh(new THREE.TorusGeometry(2.6, .14, 6, 28), hell("#F2EDE0", .6)); this.wirbelM.rotation.x = Math.PI / 2; this.wirbelM.position.y = .9; this.wirbelM.visible = false; this.g.add(this.wirbelM);
+    this.wallM = new THREE.Group(); teil(this.wallM, box(3.2, 2, .22), "#D7B44A", 0, 0, 0); teil(this.wallM, box(2.6, 1.5, .26), "#F2EDE0", 0, 0, 0);
+    teil(this.wallM, box(.36, 1.5, .3), "#C9372C", 0, 0, 0); teil(this.wallM, box(2.6, .34, .3), "#C9372C", 0, .2, 0);
+    const wglanz = new THREE.Mesh(new THREE.PlaneGeometry(4.2, 3), hell("#FFE7A0", .25)); wglanz.position.z = .2; this.wallM.add(wglanz);
+    this.wallM.position.set(0, 1.2, 2.3); this.wallM.visible = false; this.g.add(this.wallM);
+    this.eisM = new THREE.Mesh(box(2.7, 2.5, 3.7), new THREE.MeshLambertMaterial({ color: "#BDE8FF", transparent: true, opacity: .55, depthWrite: false })); this.eisM.position.y = 1.15; this.eisM.visible = false; this.g.add(this.eisM);
+    this.segenM = new THREE.Group(); this.segenM.add(new THREE.Mesh(new THREE.TorusGeometry(1.9, .1, 6, 32), hell("#8BF0A0", .8)));
+    this.segenM.add(new THREE.Mesh(new THREE.CylinderGeometry(1.9, 1.9, 2.6, 24, 1, true), hell("#8BF0A0", .14))); this.segenM.children[0].rotation.x = Math.PI / 2; this.segenM.children[1].position.y = 1.3;
+    this.segenM.position.y = .15; this.segenM.visible = false; this.g.add(this.segenM);
+    this.windM = new THREE.Group(); for (const [x, y] of [[-1, .7], [1, .7], [0, 1.9], [-.5, 1.3], [.6, 1.4]]) { const f = new THREE.Mesh(box(.06, .06, 3.2), hell("#FFFFFF", .55)); f.position.set(x, y, -2.6); this.windM.add(f); }
+    this.windM.visible = false; this.g.add(this.windM);
+    this.skelM = [-.7, .7].map(x => { const s = new THREE.Group(); teil(s, kugel(.26, 10), "#EDE4D0", 0, .62, 0); teil(s, kugel(.06, 6), "#1B1620", -.09, .66, .22); teil(s, kugel(.06, 6), "#1B1620", .09, .66, .22);
+      teil(s, box(.36, .42, .2), "#E2D8C2", 0, .18, 0); teil(s, box(.5, .08, .08), "#E2D8C2", 0, .3, .1); for (const a of [-1, 1]) teil(s, zyl(.04, .04, .55, 5), "#E2D8C2", a * .28, .38, .2, -1.2, 0, a * .4);
+      s.position.set(x, 1.05, -1.25); s.visible = false; this.g.add(s); return s; });
     sc.add(this.g);
   }
   setzen(i, d) {
@@ -812,6 +843,7 @@ class Kart {
     this.botTimer = 0; this.spur = d; this.dreher = 0;
     this.walze = 0; this.schild = false; this.amulett = 0; this.haken = null; this.extraUhr = null; this.lore = null; this.flug = null;
     this.schonzeit = this.netz = this.bremse = this.fleder = this.sporen = this.erholung = this.holper = 0;
+    this.kraft = 0; this.gold = 0; this.wirbel = this.wall = this.unsicht = this.wind = this.segen = this.eis = this.glatt = this.skelette = this.skelettUhr = 0; this.klauVor = null; this.wirbelGetroffen = null;
   }
   suchen() {                                     // nächster Streckenpunkt über die ganze Runde
     let best = Infinity, bi = 0;
@@ -822,6 +854,8 @@ class Kart {
   netzZustand(a) {
     const [x, y, z, yaw, v, s, drift, boost, prog, ladung, fx = 0] = a;
     this.schild = !!(fx & 1); this.amulett = fx & 2 ? 1 : 0; this.netz = fx & 4 ? 1 : 0; this.fleder = fx & 8 ? 1 : 0; this.schonzeit = fx & 16 ? 1 : 0;
+    this.wirbel = fx & 64 ? 1 : 0; this.wall = fx & 128 ? 1 : 0; this.unsicht = fx & 256 ? 1 : 0; this.eis = fx & 512 ? 1 : 0; this.segen = fx & 1024 ? 1 : 0; this.wind = fx & 2048 ? 1 : 0;
+    this.skelette = (fx & 4096 ? 1 : 0) + (fx & 8192 ? 1 : 0);
     const erst = !this.nz;
     this.nz = { x, y, z, yaw, v, t: performance.now() };
     this.s = s; this.drift = drift; this.boost = boost || fx & 32 ? .2 : 0; this.ladung = ladung; this.netzProg = prog;
@@ -841,7 +875,9 @@ class Kart {
   }
   zustand() {
     const r2 = v => Math.round(v * 100) / 100;
-    const fx = (this.schild ? 1 : 0) | (this.amulett > 0 ? 2 : 0) | (this.netz > 0 ? 4 : 0) | (this.fleder > 0 ? 8 : 0) | (this.schonzeit > 0 && !(this.dreher > 0) ? 16 : 0) | (this.haken ? 32 : 0);
+    const fx = (this.schild ? 1 : 0) | (this.amulett > 0 ? 2 : 0) | (this.netz > 0 ? 4 : 0) | (this.fleder > 0 ? 8 : 0) | (this.schonzeit > 0 && !(this.dreher > 0) ? 16 : 0) | (this.haken ? 32 : 0)
+      | (this.wirbel > 0 ? 64 : 0) | (this.wall > 0 ? 128 : 0) | (this.unsicht > 0 ? 256 : 0) | (this.eis > 0 ? 512 : 0) | (this.segen > 0 ? 1024 : 0) | (this.wind > 0 ? 2048 : 0)
+      | (this.skelette > 0 ? 4096 : 0) | (this.skelette > 1 ? 8192 : 0);
     return [r2(this.x), r2(this.y), r2(this.z), r2(this.yaw), r2(this.v), r2(this.s), this.drift, this.boost > 0 ? 1 : 0, this.prog, r2(this.ladung), fx];
   }
   naechster() {
@@ -860,31 +896,36 @@ class Kart {
     if (this.netz > 0) maxV *= .7;
     if (this.bremse > 0) maxV *= .55;
     if (this.holper > 0) maxV *= .5;
+    if (this.skelette > 0) maxV *= 1 - .14 * this.skelette;
+    maxV *= 1 + this.gold * .006;                                   // jedes Goldstück macht etwas schneller
     if (this.boost > 0) maxV = st.maxV * 1.4;
+    if (this.wind > 0) maxV = st.maxV * 1.5;
     if (this.haken) maxV = st.maxV * 1.55;
     if (ein.gas === false) maxV = 0; else if (this.dreher > 0) maxV = Math.min(maxV, st.maxV * .35);
-    const schub = this.boost > 0 || this.haken ? 3 : this.erholung > 0 && !(this.dreher > 0) ? 2.2 : 1;
-    if (!this.luft) this.v += Math.max(-30 * dt, Math.min(st.accel * dt * schub, maxV - this.v));
-    // Lenken (für Tasten geglättet); im Netz lenkt es sich schwer
-    const lenk = ein.lenk * (this.netz > 0 ? .3 : 1);
+    const schub = this.boost > 0 || this.haken || this.wind > 0 ? 3 : this.erholung > 0 && !(this.dreher > 0) ? 2.2 : 1;
+    if (this.eis > 0) this.v *= Math.max(0, 1 - .45 * dt);         // eingefroren: schlittert ohne Antrieb
+    else if (!this.luft) this.v += Math.max(-30 * dt, Math.min(st.accel * dt * schub, maxV - this.v));
+    // Lenken (für Tasten geglättet); im Netz lenkt es sich schwer, im Eisblock gar nicht
+    const lenk = this.eis > 0 ? 0 : ein.lenk * (this.netz > 0 ? .3 : 1);
     this.s += (lenk - this.s) * Math.min(1, dt * (ein.direkt ? 30 : 9));
     // Drift
-    if (!this.drift && ein.drift && Math.abs(this.s) > .25 && this.v > 14 && !this.luft) { this.drift = Math.sign(this.s); this.ladung = 0; }
+    if (!this.drift && ein.drift && Math.abs(this.s) > .25 && this.v > 14 && !this.luft && !(this.eis > 0)) { this.drift = Math.sign(this.s); this.ladung = 0; }
     if (this.drift && (!ein.drift || this.v < 9)) {
       if (this.ladung > 1.7) this.boost = Math.max(this.boost, 1.2); else if (this.ladung > .8) this.boost = Math.max(this.boost, .6);
       this.drift = 0; this.ladung = 0;
     }
     let s = this.s, wende = st.turn;
-    if (this.drift) { s = this.drift * .6 + this.s * .5; wende *= st.drift; this.ladung += dt * (.6 + Math.abs(s) * .6); }
+    if (this.drift) { s = this.drift * .6 + this.s * .5; wende *= st.drift; this.ladung += dt * (.6 + Math.abs(s) * .6); if (phase === "rennen") kraftLaden(this, dt * (this.typ === "moench" ? .05 : .025)); }
     let rate = -s * wende * Math.min(1, Math.max(Math.abs(this.v), 3) / 10) * (this.v < -.5 ? -1 : 1) * (this.luft ? .35 : 1);   // auch langsam etwas lenkbar
     if (this.dreher > 0) rate = 9;
     this.yaw += rate * dt;
-    const k = (this.drift ? 2.6 : st.grip) * (nass ? .55 : 1);
+    const k = this.eis > 0 ? .5 : this.wind > 0 ? 16 : (this.drift ? 2.6 : st.grip) * (nass ? .55 : 1) * (this.glatt > 0 ? .3 : 1);
     let diff = this.yaw - this.mh; diff = Math.atan2(Math.sin(diff), Math.cos(diff));
     this.mh += diff * (1 - Math.exp(-k * dt));
     if (this.dreher > 0) this.mh = this.mhFest;
     const alt = { x: this.x, z: this.z, idx: this.idx, prog: this.prog, d: this.d };
     this.x += Math.sin(this.mh) * this.v * dt; this.z += Math.cos(this.mh) * this.v * dt;
+    if (this.wind > 0) { this.x -= Math.cos(this.mh) * this.s * 16 * dt; this.z += Math.sin(this.mh) * this.s * 16 * dt; }   // Windschritt: seitlich ausweichen
     this.naechster();
     streckeStoss(this, alt, dt);
     // Mauer
@@ -921,7 +962,7 @@ class Kart {
       f.visible = !!this.drift && !this.luft;
       if (f.visible) { f.material.color.set(farbe); f.position.set((i % 2 ? .8 : -.8) + (Math.random() - .5) * .4, .12 + Math.random() * .4, -1 - Math.random() * .6); }
     });
-    this.flamme.visible = this.boost > 0 || !!this.haken;
+    this.flamme.visible = this.boost > 0 || !!this.haken || this.wind > 0;
     if (this.flamme.visible) this.flamme.scale.set(1, .7 + Math.random() * .6, 1);
     const t = zeit / 1000;
     this.schildM.visible = !!this.schild;
@@ -930,6 +971,14 @@ class Kart {
     this.flederM.visible = this.fleder > 0;
     if (this.flederM.visible) this.flederM.children.forEach((f, i) => { const w = t * 5 + i * 2.1; f.position.set(Math.sin(w) * 1.2, 2.3 + Math.sin(t * 9 + i) * .25, Math.cos(w) * 1.2 + .6); f.rotation.y = w + Math.PI / 2; f.children[1].rotation.x = f.children[2].rotation.x = Math.sin(t * 30 + i) * .6; });
     this.koerper.visible = !(this.schonzeit > 0 && !(this.dreher > 0) && Math.floor(t * 12) % 2 === 0);
+    this.koerper.rotation.y = this.wirbel > 0 ? t * 26 : 0;
+    this.wirbelM.visible = this.wirbel > 0; if (this.wirbelM.visible) { this.wirbelM.rotation.z = t * 20; this.wirbelM.scale.setScalar(.85 + Math.sin(t * 30) * .12); }
+    this.wallM.visible = this.wall > 0;
+    this.eisM.visible = this.eis > 0;
+    this.segenM.visible = this.segen > 0; if (this.segenM.visible) this.segenM.rotation.y = t * 2;
+    this.windM.visible = this.wind > 0; if (this.windM.visible) this.windM.children.forEach((f, i) => f.scale.z = .6 + Math.random() * .8);
+    this.skelM.forEach((s, i) => { s.visible = this.skelette > i; if (s.visible) s.rotation.z = Math.sin(t * 14 + i * 2) * .3; });
+    geist(this, this.unsicht > 0 ? (this.ich ? .35 : .08) : 0);
     if (this.seil) this.seil.visible = false;
     if (this.haken) {
       const z = karts.find(o => o.id === this.haken.ziel);
@@ -939,6 +988,21 @@ class Kart {
       }
     }
   }
+}
+
+// Unsichtbar (Langfinger): Körper durchsichtig machen, das eigene Kart bleibt schwach zu sehen
+function geist(k, op) {
+  if ((k.geistOp || 0) === op) return;
+  k.geistOp = op;
+  k.koerper.traverse(o => {
+    if (!o.isMesh) return;
+    if (op) {
+      if (!o.userData.orig) o.userData.orig = o.material;
+      if (!o.userData.geist) { o.userData.geist = o.userData.orig.clone(); o.userData.geist.transparent = true; o.userData.geist.depthWrite = false; }
+      o.userData.geist.opacity = op; o.material = o.userData.geist;
+    } else if (o.userData.orig) o.material = o.userData.orig;
+  });
+  k.schatten.material.opacity = op ? .08 : .3;
 }
 
 // ---------- Truhen ----------
@@ -973,9 +1037,32 @@ function truhenReihe(i) {
     neuMischen(b); kisten.push(b);
   }
 }
+// Goldstücke: füllen die Kraftleiste und machen etwas schneller (höchstens 10, bei Treffern fallen 2 heraus)
+const muenzen = [];
+let muenzGeo = null;
+const MUENZ_MAT = new THREE.MeshLambertMaterial({ color: "#F2B705", emissive: "#7A5200" });
+function goldReihe(i0, mitte, phase) {
+  for (let k = 0; k < 5; k++) {
+    const i = wrap(i0 + k * meter(3.2));
+    let d = klemmen(mitte + Math.sin(phase + k * .7) * 2.2, -BR / 2 + 1.2, BR / 2 - 1.2);
+    if (gabeln.some(f => gabelDrin(i, f))) d = (Math.sign(mitte) || 1) * BR / 4;
+    const q = punkt(i, d), m = new THREE.Mesh(muenzGeo, MUENZ_MAT);
+    const y = hoehe(i, d) + 1; m.position.set(q.x, y, q.z); m.castShadow = true; streckeG.add(m);
+    muenzen.push({ m, x: q.x, y, z: q.z, weg: 0 });
+  }
+}
+function goldNehmen(k, mz) {
+  mz.weg = 8; mz.m.visible = false;
+  k.gold = Math.min(10, (k.gold || 0) + 1); kraftLaden(k, .05);
+  if (k.ich) { const g = $("gold"); g.classList.remove("neu"); void g.offsetWidth; g.classList.add("neu"); }
+}
 function neuMischen(b) { b.mimik = Math.random() < 1 / 8; b.g.visible = !b.mimik; b.mg.visible = b.mimik; }
 function truhenZeigen(dt) {
   const dieb = ich && ich.typ === "dieb";
+  for (const mz of muenzen) {
+    if (mz.weg > 0) { mz.weg -= dt; if (mz.weg <= 0) { mz.weg = 0; mz.m.visible = true; } }
+    else mz.m.rotation.y += dt * 3;
+  }
   for (const b of kisten) {
     if (b.weg > 0) { b.weg -= dt; if (b.weg <= 0) { b.weg = 0; neuMischen(b); } }
     const h = b.mimik ? b.mg : b.g;
@@ -1042,7 +1129,7 @@ function truheNehmen(k, b) {
 function naechstesKart(k, rf, weit) {
   let best = null, bd = Infinity;
   for (const o of karts) {
-    if (o === k || o.fertig != null || !o.g.visible) continue;
+    if (o === k || o.fertig != null || !o.g.visible || o.unsicht > 0) continue;
     const dp = (o.prog - k.prog) * rf * SCHRITT;
     if (dp > .5 && dp < weit && dp < bd) { bd = dp; best = o; }
   }
@@ -1072,17 +1159,58 @@ function wirkung(k, e) {
   else if (e.art === "bremse") { k.bremse = 1.2; if (k.ich) melden("Eingehakt! 🪝"); }
   else if (e.art === "fleder") { if (k.amulett > 0) return; k.fleder = 3; if (k.ich) melden("Fledermäuse! 🦇", 1); }
   else if (e.art === "tausch") { versetzen(k, wrap(e.idx | 0), +e.d || 0, +e.prog || k.prog); if (k.ich) melden("Platz getauscht! 📜"); }
+  else if (e.art === "lohn") kraftLaden(k, .2);
+  else if (e.art === "klau") {                                     // der Dieb hat mich überholt
+    if (!k.item || k.walze > 0) return;
+    const it = k.item; k.item = null;
+    if (k.ich) { melden("Der Dieb hat dein Extra geklaut! 🫳", 1.6); extraAnzeigen(); }
+    const d = karts.find(o => o.id === e.von);
+    if (d && !d.remote) beute(d, it); else if (d) ereignis({ a: "wirkung", ziel: d.id, art: "beute", ding: it.art, n: it.n });
+  }
+  else if (e.art === "beute") { if (EXTRAS[e.ding]) beute(k, { art: e.ding, n: Math.max(1, Math.min(3, e.n | 0)) }); }
+  else if (e.art === "skelett") {
+    if (k.fertig != null || k.amulett > 0 || k.segen > 0 || k.unsicht > 0 || k.wind > 0 || k.wall > 0 || k.wirbel > 0) return;
+    k.skelette = Math.min(2, k.skelette + 1); k.skelettUhr = k.bot ? 2.5 : 5;
+    if (k.ich) { melden(steuerung === "neigen" ? "Skelett an Bord! Schütteln! 💀" : "Skelett an Bord! 💀", 1.6); summen(90); }
+  }
+}
+function beute(k, it) {
+  k.item = it; k.walze = 0;                                       // Beute geht vor (sonst wäre das Extra verloren)
+  if (k.ich) { melden("Geklaut: " + EXTRAS[it.art].name + " 🫳", 1.2); extraAnzeigen(true); }
+}
+// Kraftleiste laden; wer hinten liegt, lädt schneller
+function kraftLaden(k, x) {
+  if (k.fertig != null || phase !== "rennen") return;
+  const n = karts.length, p = n > 1 ? (platzVon(k) - 1) / (n - 1) : .5;
+  const vorher = k.kraft;
+  k.kraft = Math.min(1, k.kraft + x * (.7 + p * .9));
+  if (k.ich && vorher < 1 && k.kraft >= 1) melden(KRAEFTE[k.typ] ? KRAEFTE[k.typ].name + " bereit! ⚡" : "Kraft bereit!", 1.2);
+}
+// Wer hat getroffen? Der bekommt Kraft (über das Handy, das ihn fährt)
+function lohn(vonId, opfer) {
+  if (!vonId || vonId === opfer.id) return;
+  const k = karts.find(o => o.id === vonId); if (!k) return;
+  if (!k.remote) kraftLaden(k, .2); else ereignis({ a: "wirkung", ziel: k.id, art: "lohn" });
 }
 
 // Treffer auf ein selbst gefahrenes Kart. Rückgabe: "durch" (wirkt nicht, Geschoss fliegt weiter) oder "weg" (Geschoss verbraucht)
 function treffen(k, art) {
   if (k.fertig != null) return "durch";
+  if ((k.unsicht > 0 || k.wind > 0) && art !== "mimik") return "durch";        // Langfinger, Windschritt: nicht zu treffen
+  if ((k.wirbel > 0 || k.wall > 0) && art !== "mimik") return "weg";          // Wirbelschlag, Schildwall: prallt ab
+  if (k.segen > 0 && art !== "mimik") { k.boost = Math.max(k.boost, .8); if (k.ich) melden("Gesegnet! Schub statt Treffer ✨", 1); return "weg"; }
   if (k.amulett > 0 && art !== "mimik") return "weg";
   if (k.schonzeit > 0 && art !== "mimik") return "durch";
   if (k.schild && art !== "mimik") { k.schild = false; k.schonzeit = .8; if (k.ich) { melden("Schild hält! 🛡️"); summen(40); } return "weg"; }
   if (art === "netz") {
     k.netz = 2.2; k.schonzeit = 2.4; k.v *= .75;
     if (k.ich) { melden(steuerung === "neigen" ? "Im Netz! Handy schütteln!" : "Im Netz!", 1.6); summen(120); }
+    return "weg";
+  }
+  if (art === "eis") {
+    k.eis = 1.5; k.schonzeit = 2.6; k.drift = 0; k.ladung = 0; k.boost = 0; k.haken = null;
+    ereignis({ a: "falle", id: neueId(), art: "glatt", von: k.id, idx: k.idx, d: k.d });
+    if (k.ich) { melden("Eingefroren! 🧊", 1.5); summen(150); wackeln = Math.max(wackeln, .25); }
     return "weg";
   }
   if (art === "sporen") {
@@ -1092,6 +1220,7 @@ function treffen(k, art) {
   }
   k.dreher = k.typ === "paladin" ? .5 : .95; k.mhFest = k.mh; k.v *= .5; k.drift = 0; k.ladung = 0; k.boost = 0; k.haken = null;
   k.schonzeit = k.dreher + 2; if (k.typ === "heilerin") k.erholung = k.dreher + 1.5;
+  if (art !== "mimik" && k.gold > 0) { k.gold = Math.max(0, k.gold - 2); if (k.ich) puff(k.x, k.y + 1.5, k.z, "#F2B705"); }
   if (k.ich) { summen(180); wackeln = Math.max(wackeln, .35); }
   return "weg";
 }
@@ -1124,7 +1253,7 @@ function teleport(k) {
 
 // Extra einsetzen. wunsch: "vorn", "hinten" oder leer (Angriffe nach vorn, Fallen nach hinten)
 function extraNutzen(k, wunsch) {
-  if (phase !== "rennen" || !k.item || k.walze > 0 || k.fertig != null || k.dreher > 0) return false;
+  if (phase !== "rennen" || !k.item || k.walze > 0 || k.fertig != null || k.dreher > 0 || k.eis > 0) return false;
   const art = k.item.art, E = EXTRAS[art];
   const hinten = wunsch ? wunsch === "hinten" : !!E.falle, rf = hinten ? -1 : 1;
   if (--k.item.n <= 0) k.item = null;
@@ -1168,9 +1297,9 @@ function extraNutzen(k, wunsch) {
 // ----- Geschosse und Fallen auf der Strecke -----
 const objekte = new Map();
 const GESCHOSS = {       // Tempo (m/s), Lebensdauer (s)
-  feuerball: { v: 62, leben: 2.6 }, pfeile: { v: 85, leben: 1.6 }, netz: { v: 58, leben: 2 }, axt: { v: 50, leben: 3 }
+  feuerball: { v: 62, leben: 2.6 }, pfeile: { v: 85, leben: 1.6 }, netz: { v: 58, leben: 2 }, axt: { v: 50, leben: 3 }, eis: { v: 80, leben: 3 }
 };
-const FALLE = { schleim: 30, kraehen: 18, kaese: 5.5, pilz: 30, stein: 4.5 };
+const FALLE = { schleim: 30, kraehen: 18, kaese: 5.5, pilz: 30, stein: 4.5, glatt: 4 };
 function objMesh(art) {
   const g = new THREE.Group();
   if (art === "feuerball") {
@@ -1185,6 +1314,12 @@ function objMesh(art) {
     teil(a, box(.42, .5, .07), "#C9CED6", .5, .12, 0);
   } else if (art === "netz") {
     const m = new THREE.Mesh(new THREE.IcosahedronGeometry(.75, 1), new THREE.MeshBasicMaterial({ color: "#F2EDE0", wireframe: true })); g.add(m); g.userData.dreh = m;
+  } else if (art === "eis") {
+    teil(g, kegel(.22, 1.9, 6), null, 0, 0, .2, Math.PI / 2, 0, 0, GLUT("#CFF1FF")); teil(g, kugel(.3, 8), null, 0, 0, -.7, 0, 0, 0, GLUT("#7FD3FF"));
+    const s = new THREE.Mesh(new THREE.PlaneGeometry(2.6, 2.6), scheinMat); s.rotation.x = -Math.PI / 2; s.position.y = -.8; g.add(s);
+  } else if (art === "glatt") {
+    const m = new THREE.Mesh(new THREE.CircleGeometry(3, 20), new THREE.MeshLambertMaterial({ color: "#CDEFFF", transparent: true, opacity: .7, depthWrite: false })); m.rotation.x = -Math.PI / 2; m.position.y = .06; g.add(m);
+    g.userData.glatt = m;
   } else if (art === "schleim") {
     const m = new THREE.Mesh(new THREE.CircleGeometry(1.7, 18), new THREE.MeshLambertMaterial({ color: "#6CC93E", transparent: true, opacity: .85 })); m.rotation.x = -Math.PI / 2; m.position.y = .05; g.add(m);
     for (const [x, z, r] of [[.5, .3, .35], [-.6, -.2, .28], [.1, -.7, .22]]) teil(g, kugel(r, 8), "#8BE05A", x, .02, z).scale.y = .45;
@@ -1213,7 +1348,7 @@ function objektNeu(e) {
   if (objekte.has(e.id)) return;
   if (e.a === "wurf") {
     if (!GESCHOSS[e.art]) return;
-    const o = { id: e.id, art: e.art, von: e.von, wurf: true, p: +e.p || 0, d: +e.d || 0, rf: e.rf === -1 ? -1 : 1, ziel: e.ziel, alter: 0, y: (+e.y || 0) + .9, getroffen: new Set() };
+    const o = { id: e.id, art: e.art, von: e.von, wurf: true, p: +e.p || 0, d: +e.d || 0, rf: e.rf === -1 ? -1 : 1, ziel: e.ziel, alter: 0, y: (+e.y || 0) + .9, getroffen: new Set(), kraft: !!e.kraft };
     o.idx = wrap(Math.round(o.p)); o.x = PX[o.idx] + nX(o.idx) * o.d; o.z = PZ[o.idx] + nZ(o.idx) * o.d;
     o.g = objMesh(e.art); o.g.position.set(o.x, o.y, o.z); objekte.set(o.id, o);
   } else {
@@ -1226,7 +1361,7 @@ function objektNeu(e) {
 function objektWeg(id, knall) {
   const o = objekte.get(id); if (!o) return;
   sc.remove(o.g); objekte.delete(id);
-  if (knall && (o.art === "feuerball" || o.art === "pilz")) puff(o.x, o.y, o.z, o.art === "pilz" ? "#9BE36A" : "#FF8A2A");
+  if (knall && (o.art === "feuerball" || o.art === "pilz" || o.art === "eis")) puff(o.x, o.y, o.z, o.art === "pilz" ? "#9BE36A" : o.art === "eis" ? "#CFF1FF" : "#FF8A2A");
 }
 // kurzer Knall (nur Optik)
 const puffs = [];
@@ -1280,9 +1415,10 @@ function objekteSchritt(dt) {
         if (k.remote || k.fertig != null || o.getroffen.has(k.id)) continue;
         if (k.id === o.von) continue;
         if (Math.hypot(k.x - o.x, k.z - o.z) > (o.art === "netz" ? 1.9 : 1.6) || Math.abs(k.y + .9 - o.y) > 2) continue;
-        const ergebnis = treffen(k, o.art === "netz" ? "netz" : "treffer");
+        const ergebnis = treffen(k, o.art === "netz" ? "netz" : o.art === "eis" ? "eis" : "treffer");
         if (ergebnis === "durch") continue;
         o.getroffen.add(k.id);
+        if (!o.kraft && !(k.wirbel > 0 || k.wall > 0 || k.segen > 0 || k.amulett > 0 || k.schild)) lohn(o.von, k);
         if (o.art !== "axt") { objektWeg(id, true); ereignis({ a: "weg", id }); break; }
       }
       continue;
@@ -1301,6 +1437,7 @@ function objekteSchritt(dt) {
       if (o.alter > FALLE.stein - .6) o.g.userData.stein.position.y = 1 - (o.alter - (FALLE.stein - .6)) * 3;
     }
     if (o.art === "pilz") { const s = 1 + Math.sin(o.alter * 6) * .08; o.g.userData.puls.scale.set(s, .6 * s, s); }
+    if (o.art === "glatt") o.g.userData.glatt.material.opacity = .7 * Math.min(1, (FALLE.glatt - o.alter) / .8);
     if (o.art === "kaese") {
       const zeigt = o.alter > .6;
       o.g.userData.ratten.forEach((r, i) => {
@@ -1314,17 +1451,19 @@ function objekteSchritt(dt) {
       if (k.remote || k.fertig != null || k.luft) continue;
       if (o.art === "schleim") {
         if (k.typ === "magierin" || Math.hypot(k.x - o.x, k.z - o.z) > 1.9) continue;
-        if (treffen(k, "treffer") === "weg") { objektWeg(id); ereignis({ a: "weg", id }); break; }
+        if (treffen(k, "treffer") === "weg") { if (k.dreher > 0) lohn(o.von, k); objektWeg(id); ereignis({ a: "weg", id }); break; }
+      } else if (o.art === "glatt") {
+        if (k.typ !== "magierin" && Math.hypot(k.x - o.x, k.z - o.z) < 3.2) k.glatt = .4;
       } else if (o.art === "kraehen") {
         if (k.typ === "magierin") continue;
         let di = k.idx - o.idx; if (di > S / 2) di -= S; if (di < -S / 2) di += S;
         if (Math.abs(di * SCHRITT) < 1 && Math.abs(k.d - o.d) < BR / 4 && k.amulett <= 0) { if (!(k.holper > 0) && k.ich) { melden("Krähenfüße! 🦶", .8); summen(60); } k.holper = Math.max(k.holper || 0, 1); }
       } else if (o.art === "kaese") {
         if (o.alter < .6) continue;
-        for (let i = 0; i < 6; i++) { const p = rattenPos(o, i); if (Math.hypot(k.x - p.x, k.z - p.z) < 1.4) { treffen(k, "treffer"); break; } }
+        for (let i = 0; i < 6; i++) { const p = rattenPos(o, i); if (Math.hypot(k.x - p.x, k.z - p.z) < 1.4) { if (treffen(k, "treffer") === "weg" && k.dreher > 0) lohn(o.von, k); break; } }
       } else if (o.art === "pilz") {
         if (Math.hypot(k.x - o.x, k.z - o.z) > 3) continue;
-        if (treffen(k, "sporen") === "weg" || k.amulett > 0) { objektWeg(id, true); ereignis({ a: "weg", id }); break; }
+        if (treffen(k, "sporen") === "weg" || k.amulett > 0) { if (k.sporen > 0) lohn(o.von, k); objektWeg(id, true); ereignis({ a: "weg", id }); break; }
       } else if (o.art === "stein") {
         if (Math.hypot(k.x - o.x, k.z - o.z) < 1.7 && o.alter < FALLE.stein - .4) treffen(k, "treffer");
       }
@@ -1351,8 +1490,69 @@ function hakenLenken(k, dt) {
 
 // Tempo-Einflüsse der Extras in einem Fahrschritt
 function extraTimer(k, dt) {
-  for (const t of ["schonzeit", "netz", "bremse", "fleder", "sporen", "amulett", "erholung", "holper", "walze"]) if (k[t] > 0) k[t] = Math.max(0, k[t] - dt);
+  for (const t of ["schonzeit", "netz", "bremse", "fleder", "sporen", "amulett", "erholung", "holper", "walze", "wirbel", "wall", "unsicht", "wind", "segen", "eis", "glatt"]) if (k[t] > 0) k[t] = Math.max(0, k[t] - dt);
 }
+
+// ----- Heldenkräfte -----
+function kraftNutzen(k) {
+  if (phase !== "rennen" || k.kraft < 1 || k.fertig != null || k.lore || k.flug || k.eis > 0 || (k.dreher > 0 && k.typ !== "heilerin")) return false;
+  const sag = (t, d) => { if (k.ich) melden(t, d); };
+  const vor = n => karts.filter(o => o !== k && o.fertig == null && o.g.visible && !(o.unsicht > 0) && o.prog > k.prog && (o.prog - k.prog) * SCHRITT < 250).sort((a, b) => a.prog - b.prog).slice(0, n);
+  const wurf = (art, ziel, d) => ereignis({ a: "wurf", id: neueId(), art, von: k.id, p: k.idx + 3 / SCHRITT, d: d ?? k.d, rf: 1, ziel: ziel ? ziel.id : null, y: k.y, kraft: true });
+  switch (k.typ) {
+    case "kaempfer": k.wirbel = 1; k.wirbelGetroffen = new Set(); sag("Wirbelschlag! 🌀"); break;
+    case "paladin": k.wall = 4; sag("Schildwall! 🛡️"); break;
+    case "dieb": k.unsicht = 3; k.klauVor = new Set(karts.filter(o => o !== k && o.prog > k.prog && o.fertig == null).map(o => o.id)); sag("Langfinger! Unsichtbar 🫥"); break;
+    case "waldlaeufer": {
+      const z = vor(3);
+      for (let n = 0; n < 3; n++) wurf("pfeile", z[n], z[n] ? k.d : k.d + (n - 1) * 3);
+      sag("Pfeilhagel! 🏹"); break;
+    }
+    case "magierin": { const z = vor(1)[0]; wurf("eis", z); sag(z ? "Eislanze auf " + z.name + "! 🧊" : "Eislanze! 🧊"); break; }
+    case "heilerin":
+      k.netz = k.bremse = k.fleder = k.sporen = k.holper = k.glatt = k.skelette = k.dreher = 0; k.haken = null;
+      k.segen = 5; sag("Segen! ✨"); break;
+    case "moench": k.wind = 2; k.drift = 0; sag("Windschritt! 💨"); break;
+    case "nekromant": {
+      const z = karts.filter(o => o !== k && o.fertig == null && o.g.visible && o.prog < k.prog && (k.prog - o.prog) * SCHRITT < 120).sort((a, b) => b.prog - a.prog).slice(0, 2);
+      if (!z.length) { sag("Niemand hinter dir für die Skelette", 1.2); return false; }
+      for (const o of z) ereignis({ a: "wirkung", ziel: o.id, art: "skelett" });
+      sag(z.length > 1 ? "Skelette auf " + z[0].name + " und " + z[1].name + "! 💀" : "Skelett auf " + z[0].name + "! 💀", 1.4); break;
+    }
+    default: return false;
+  }
+  k.kraft = 0;
+  return true;
+}
+// Was eine laufende Kraft in jedem Schritt tut (nur selbst gefahrene Karts)
+function kraftSchritt(k, dt) {
+  if (k.wirbel > 0 && k.wirbelGetroffen) {
+    for (const o of karts) {
+      if (o === k || o.fertig != null || !o.g.visible || k.wirbelGetroffen.has(o.id) || Math.hypot(o.x - k.x, o.z - k.z) > 4.6 || Math.abs(o.y - k.y) > 2) continue;
+      k.wirbelGetroffen.add(o.id);
+      if (o.remote) ereignis({ a: "wirkung", ziel: o.id, art: "treffer" }); else treffen(o, "treffer");
+    }
+    for (const [id, o] of objekte) if (o.wurf && o.von !== k.id && Math.hypot(o.x - k.x, o.z - k.z) < 4.2) { objektWeg(id, true); ereignis({ a: "weg", id }); }
+  }
+  if (k.unsicht > 0 && k.klauVor) {
+    for (const o of karts) if (k.klauVor.has(o.id) && o.prog < k.prog) {
+      k.klauVor.delete(o.id);
+      if (k.item || k.walze > 0 || k.klauWartet > uhr) continue;          // nur mit freien Händen (Beute ist evtl. noch unterwegs)
+      k.klauWartet = uhr + 1;
+      if (o.remote) ereignis({ a: "wirkung", ziel: o.id, art: "klau", von: k.id }); else wirkung(o, { art: "klau", von: k.id });
+    }
+  }
+  if (k.skelette > 0) {
+    k.skelettUhr -= dt;
+    if (k.skelettUhr <= 0) skelettAb(k);
+  }
+}
+function skelettAb(k) {
+  k.skelette = Math.max(0, k.skelette - 1); k.skelettUhr = k.bot ? 2.5 : 3.5;
+  puff(k.x, k.y + 1.4, k.z, "#EDE4D0");
+  if (k.ich) melden(k.skelette ? "Eins weg, noch eins! 💀" : "Skelett abgeworfen! 💀", .9);
+}
+function kraftZuenden() { if (ich && !AUTO && !ich.aufgegeben) kraftNutzen(ich); }
 
 // ----- Anzeige: Extra-Feld mit Walze, Überlagerungen für Fledermäuse und Sporen -----
 const WALZE = Object.values(EXTRAS).map(e => e.bild);
@@ -1374,15 +1574,16 @@ function extraHud(dt) {
   } else if (ich.walzeLief) { ich.walzeLief = false; extraAnzeigen(true); }
   $("fleder").hidden = !(ich.fleder > 0);
   const sp = $("sporen"); sp.hidden = !(ich.sporen > 0); if (ich.sporen > 0) sp.style.opacity = Math.min(1, ich.sporen / 1.2);
-  $("schuettel").hidden = !(ich.netz > 0 && steuerung === "neigen");
+  $("schuettel").hidden = !((ich.netz > 0 || ich.skelette > 0) && steuerung === "neigen");
 }
 
 // Schütteln (Netz) und Wischen (Sporen)
-let letzterRuck = 0;
+let letzterRuck = 0, letzterAbwurf = 0;
 addEventListener("devicemotion", e => {
   const a = e.acceleration; if (!a || a.x == null) return;
   const m = Math.hypot(a.x, a.y, a.z), jetzt = performance.now();
   if (m > 13 && jetzt - letzterRuck > 140) { letzterRuck = jetzt; if (ich && ich.netz > 0) { ich.netz = Math.max(0, ich.netz - .35); summen(20); } }
+  if (m > 15 && ich && ich.skelette > 0 && jetzt - letzterAbwurf > 450) { letzterAbwurf = jetzt; skelettAb(ich); summen(30); }
 });
 let wischStart = null;
 addEventListener("pointerdown", e => { wischStart = { x: e.clientX, y: e.clientY }; });
@@ -1431,6 +1632,7 @@ function streckeStoss(k, alt, dt) {
     }
     if (zu) {
       k.x = alt.x; k.z = alt.z; k.idx = alt.idx; k.prog = alt.prog; k.d = alt.d; k.v = -Math.max(3.5, Math.min(7, Math.abs(k.v) * .35)); k.drift = 0;
+      if (k.bot || AUTO || k.fertig != null) { const q = punkt(k.idx, -seite * BR / 4); k.x = q.x; k.z = q.z; k.d = -seite * BR / 4; k.spur = k.d; }   // Monster nicht festhängen lassen
       if (k.ich) { wackeln = Math.max(wackeln, .3); summen(60); }
     }
   }
@@ -1637,6 +1839,7 @@ addEventListener("keydown", e => {
   if (e.key === " " || e.key === "Shift") { ein.drift = true; e.preventDefault(); }
   if (e.key === "e" || e.key === "E" || e.key === "ArrowUp") extraZuenden(e.key === "ArrowUp" ? "vorn" : undefined);
   if (e.key === "q" || e.key === "Q" || e.key === "ArrowDown") { extraZuenden("hinten"); e.preventDefault(); }
+  if (e.key === "r" || e.key === "R" || e.key === "Enter") kraftZuenden();
   if (e.key === "Escape" || e.key === "p") pause(true);
 });
 addEventListener("keyup", e => {
@@ -1649,6 +1852,7 @@ function halten(el, an, aus) {
   el.addEventListener("pointerdown", runter); el.addEventListener("pointerup", hoch); el.addEventListener("pointercancel", hoch); el.addEventListener("pointerleave", hoch);
 }
 halten($("kdrift"), () => ein.drift = true, () => ein.drift = false);
+halten($("kkraft"), () => kraftZuenden());
 // Extra-Knopf: antippen = Standard (Angriffe nach vorn, Fallen nach hinten), nach unten wischen = nach hinten, nach oben = nach vorn
 {
   const el = $("kextra"); let start = null;
@@ -1689,6 +1893,8 @@ function rennenAufbauen(raster) {
   kisten.forEach(b => { b.weg = 0; neuMischen(b); });
   objekteLeeren(); wackeln = 0;
   liste = []; uhr = 0; rennenVorbei = false; extraAnzeigen();
+  $("kraftbild").innerHTML = ich && window.VB && HELDEN[ich.typ] ? VB.held(ich.typ) : "⚡";
+  $("kkraft").hidden = !ich || !HELDEN[ich.typ];
   kamera(1, true);
 }
 // Übungsgegner: zufällige Monster, jedes nur einmal
@@ -1700,7 +1906,8 @@ function alleinRaster() {
 }
 
 function botEingabe(k, dt) {
-  const vor = Math.round((10 + k.v * .9) / (LAENGE / S));
+  const fs = phase === "rennen" ? streckenSpur(k) : null;          // Spur, die die Strecke verlangt (Gabelung, Wand, Lore, Troll)
+  const vor = Math.round((fs != null ? 5 + k.v * .45 : 10 + k.v * .9) / (LAENGE / S));   // vor Engstellen kürzer vorausschauen, sonst wird die Kurve geschnitten
   const j = wrap(k.idx + vor);
   k.botTimer -= dt;
   if (k.botTimer <= 0) { k.botTimer = 2 + Math.random() * 3; k.spurZiel = (Math.random() - .5) * (BR - 4); }
@@ -1713,7 +1920,6 @@ function botEingabe(k, dt) {
     k.spurZiel = klemmen(o.d > 0 ? o.d - breit - 1.2 : o.d + breit + 1.2, -BR / 2 + 1.5, BR / 2 - 1.5); k.botTimer = Math.max(k.botTimer, 1.2);
     k.spur += (k.spurZiel - k.spur) * Math.min(1, dt * 2.5);
   }
-  const fs = phase === "rennen" ? streckenSpur(k) : null;
   if (fs != null) { k.spurZiel = fs; k.botTimer = Math.max(k.botTimer, .5); k.spur += (fs - k.spur) * Math.min(1, dt * 2.5); }
   k.spur += ((k.spurZiel ?? 0) - k.spur) * Math.min(1, dt * .8);
   const tx = PX[j] + nX(j) * k.spur, tz = PZ[j] + nZ(j) * k.spur;
@@ -1723,6 +1929,7 @@ function botEingabe(k, dt) {
   const abstand = (mensch - k.prog) / S * LAENGE;
   k.st = { ...TYPEN[k.typ], maxV: TYPEN[k.typ].maxV * k.tempo * (abstand > 40 ? 1.08 : abstand < -60 ? .93 : 1) };
   let lenk = -diff * 2.2;
+  if (fs != null) lenk += klemmen((k.spur - k.d) * .18, -.6, .6);   // aktiv in die verlangte Spur
   if (k.fleder > 0) lenk += Math.sin(uhr * 7 + k.tempo * 50) * .9;      // Fledermäuse vor den Augen
   return { lenk: Math.max(-1, Math.min(1, lenk)), drift: false, direkt: true };
 }
@@ -1738,7 +1945,7 @@ function stossen() {
   for (let a = 0; a < karts.length; a++) for (let b = a + 1; b < karts.length; b++) {
     const A = karts[a], B = karts[b];
     if (A.remote && B.remote) continue;
-    if (Math.abs(A.y - B.y) > 1.2 || !A.g.visible || !B.g.visible) continue;
+    if (Math.abs(A.y - B.y) > 1.2 || !A.g.visible || !B.g.visible || A.unsicht > 0 || B.unsicht > 0 || A.wind > 0 || B.wind > 0) continue;
     const dx = B.x - A.x, dz = B.z - A.z, d = Math.hypot(dx, dz);
     if (d < 1.9 && d > .001) {
       const ueber = 1.9 - d, mA = A.st.masse, mB = B.st.masse, sum = mA + mB;
@@ -1746,7 +1953,10 @@ function stossen() {
       if (!A.remote) { A.x -= dx / d * ueber * Math.min(1, fA); A.z -= dz / d * ueber * Math.min(1, fA); }
       if (!B.remote) { B.x += dx / d * ueber * Math.min(1, fB); B.z += dz / d * ueber * Math.min(1, fB); }
       // Wer das Segensamulett trägt, wirft andere beim Rammen herum (entschieden vom Handy des Gerammten)
-      if (phase === "rennen") { if (!A.remote && B.amulett > 0 && !(A.amulett > 0)) treffen(A, "treffer"); if (!B.remote && A.amulett > 0 && !(B.amulett > 0)) treffen(B, "treffer"); }
+      if (phase === "rennen") {
+        if (!A.remote && (B.amulett > 0 || B.wall > 0) && !(A.amulett > 0)) treffen(A, "treffer");
+        if (!B.remote && (A.amulett > 0 || A.wall > 0) && !(B.amulett > 0)) treffen(B, "treffer");
+      }
     }
   }
 }
@@ -1773,6 +1983,8 @@ function update(dt) {
         : k.ich && !AUTO && !k.aufgegeben ? ein : botEingabe(k, dt);
     if (rennt && k.haken) e = hakenLenken(k, dt) || e;
     if (rennt && k.fertig == null && (k.bot || (k.ich && AUTO))) botExtra(k, dt);
+    if (rennt && k.ich && AUTO && k.kraft >= 1) kraftNutzen(k);
+    if (rennt) kraftSchritt(k, dt);
     if (k.fertig != null && k.ich) k.st = { ...TYPEN[k.typ], maxV: TYPEN[k.typ].maxV * .6 };
     if (k.lore) loreSchritt(k, dt, e);
     else if (k.flug) flugSchritt(k, dt);
@@ -1786,6 +1998,7 @@ function update(dt) {
     }
     // Kisten
     if (rennt && k.fertig == null) for (const b of kisten) if (!b.weg && Math.hypot(b.x - k.x, b.z - k.z) < 1.8 && k.y < 2.5) truheNehmen(k, b);
+    if (rennt && k.fertig == null) for (const mz of muenzen) if (!mz.weg && Math.abs(mz.y - 1 - k.y) < 1.6 && (mz.x - k.x) ** 2 + (mz.z - k.z) ** 2 < 2.9) goldNehmen(k, mz);
   }
   stossen();
   if (rennt || phase === "ziel") objekteSchritt(dt);
@@ -1834,10 +2047,10 @@ let hudTakt = 0;
 function hud(dt) {
   karts.forEach((k, n) => {
     const c = $("punkte").children[n]; c.setAttribute("cx", mx(k.x).toFixed(1)); c.setAttribute("cy", mz(k.z).toFixed(1));
-    c.style.display = k.g.visible ? "" : "none";
+    c.style.display = k.g.visible && !(k.unsicht > 0 && !k.ich) ? "" : "none";
     if (k.tag) {
       v3.set(k.x, k.y + 2.8, k.z).project(cam);
-      const sichtbar = k.g.visible && v3.z < 1 && Math.abs(v3.x) < 1.1 && Math.abs(v3.y) < 1.1 && Math.hypot(k.x - ich.x, k.z - ich.z) < 120;
+      const sichtbar = k.g.visible && !(k.unsicht > 0) && v3.z < 1 && Math.abs(v3.x) < 1.1 && Math.abs(v3.y) < 1.1 && Math.hypot(k.x - ich.x, k.z - ich.z) < 120;
       k.tag.style.display = sichtbar ? "" : "none";
       if (sichtbar) { k.tag.style.left = (v3.x + 1) / 2 * innerWidth + "px"; k.tag.style.top = (1 - v3.y) / 2 * innerHeight + "px"; }
     }
@@ -1845,6 +2058,8 @@ function hud(dt) {
   $("lenkrad").style.transform = `rotate(${ein.lenk * 90}deg)`;
   extraHud(dt);
   hudTakt -= dt; if (hudTakt > 0) return; hudTakt = .1;
+  const kk = $("kkraft"); kk.style.setProperty("--k", ich.kraft.toFixed(3)); kk.classList.toggle("voll", ich.kraft >= 1);
+  $("gold").innerHTML = `<i></i>${ich.gold}`;
   $("uhr").textContent = zeitText(ich.fertig ?? uhr);
   $("runde").textContent = `Runde ${Math.min(RUNDEN, Math.max(1, ich.runden.length + 1))}/${RUNDEN}`;
   $("platz").innerHTML = karts.length > 1 ? `${platzVon(ich)}<small>. Platz</small>` : `<small>Testfahrt</small>`;
@@ -2079,7 +2294,7 @@ let ansicht = "start";
 function heldWahl() {
   const h = HELDEN[wahlTyp];
   return `<div class="wahlblock"><b class="etikett">Dein Held</b><div class="helden">${Object.entries(HELDEN).map(([t, f]) => `<button class="held ${t === wahlTyp ? "an" : ""}" data-typ="${t}">${window.VB ? VB.held(t) : ""}<span>${f.name}</span></button>`).join("")}</div>
-    <p class="heldinfo"><b>${h.gefaehrt}</b> · ${h.klasse}: ${h.text}</p></div>`;
+    <p class="heldinfo"><b>${h.gefaehrt}</b> · ${h.klasse}: ${h.text}<br>Heldenkraft <b>${KRAEFTE[wahlTyp].name}</b>: ${KRAEFTE[wahlTyp].text}</p></div>`;
 }
 function lenkWahl() {
   return `<button class="wahl ${steuerung === "neigen" ? "an" : ""}" data-st="neigen">📱 Neigen</button><button class="wahl ${steuerung === "tasten" ? "an" : ""}" data-st="tasten">◀ ▶ Tasten</button>`;
@@ -2101,7 +2316,7 @@ function menue(a) {
           <div class="zeile"><input id="code" maxlength="4" autocapitalize="characters" placeholder="Code" value="${esc(code)}"><button class="los zweit" id="beitreten">Beitreten</button></div></div>
         <div class="box"><b class="titelchen">Allein üben</b><div class="zeile">${[3, 5, 0].map(n => `<button class="wahl ${wahlGegner === n || (n === 3 && wahlGegner && wahlGegner !== 5) ? "an" : ""}" data-geg="${n}">${n ? n + " Monster" : "ohne"}</button>`).join("")}<button class="los zweit" id="allein">Los</button></div></div>
       </div></div>
-      <div class="zeile" style="justify-content:space-between"><a class="zurueck" href="../">‹ Spielauswahl</a><span class="leise">Am Computer: Pfeiltasten, Leertaste = Drift, E = Extra</span></div>`;
+      <div class="zeile" style="justify-content:space-between"><a class="zurueck" href="../">‹ Spielauswahl</a><span class="leise">Am Computer: Pfeiltasten, Leertaste = Drift, E = Extra, R = Heldenkraft</span></div>`;
   } else if (a === "einladung") {
     h = `<div><h1>Kerker-<span>Kart</span></h1><p class="leise">Du wurdest in Raum <b>${esc(code)}</b> eingeladen.</p></div>
       <div class="stapel">
@@ -2216,4 +2431,4 @@ else if (code) menue("einladung");
 else menue("start");
 requestAnimationFrame(loop);
 window.KART = { get phase() { return phase; }, get ich() { return ich; }, karts: () => karts, ein, S, get LAENGE() { return LAENGE; }, get liste() { return liste; }, get modus() { return modus; },
-  sim(sek) { for (let t = 0; t < sek; t += 1 / 60) { update(1 / 60); } }, aufbauen: rennenAufbauen, cam, sc, r, THREE, streckeBauen, planWuerfeln, planCode, get plan() { return plan; }, get strecke() { return { abschnitte, gabeln, loren, troll, pendel, pfosten, rattenStellen, koenig, rampen }; }, PX, PZ, set uhr(v) { uhr = v; }, objekte, extraNutzen, kisten, treffen, versetzen, anwenden, ereignis, schritte(sek) { for (let t = 0; t < sek; t += 1 / 30) { update(1 / 30); karts.forEach(k => k.zeigen(performance.now())); hud(1 / 30); } }, neigung: () => neigung, lenkWert, set steuerung(v) { steuerung = v; } };
+  sim(sek) { for (let t = 0; t < sek; t += 1 / 60) { update(1 / 60); } }, aufbauen: rennenAufbauen, cam, sc, r, THREE, streckeBauen, planWuerfeln, planCode, get plan() { return plan; }, get strecke() { return { abschnitte, gabeln, loren, troll, pendel, pfosten, rattenStellen, koenig, rampen }; }, PX, PZ, set uhr(v) { uhr = v; }, objekte, extraNutzen, kisten, treffen, versetzen, anwenden, ereignis, schritte(sek) { for (let t = 0; t < sek; t += 1 / 30) { update(1 / 30); karts.forEach(k => k.zeigen(performance.now())); hud(1 / 30); } }, neigung: () => neigung, lenkWert, kraftNutzen, muenzen, wirkung, set steuerung(v) { steuerung = v; } };

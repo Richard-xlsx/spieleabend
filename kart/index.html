@@ -51,6 +51,16 @@ canvas{display:block;position:fixed;inset:0;width:100vw;height:100dvh}
 .knopf.an{transform:translateY(3px);box-shadow:0 1px 0 var(--tinte)}
 .k-extra{left:calc(max(12px,env(safe-area-inset-left)) + 118px);bottom:max(14px,env(safe-area-inset-bottom));width:88px;height:88px;background:rgba(226,59,46,.85);color:#fff}
 .k-drift{right:max(18px,env(safe-area-inset-right));bottom:max(14px,env(safe-area-inset-bottom));width:80px;height:80px;background:rgba(242,183,5,.85)}
+.k-kraft{right:calc(max(18px,env(safe-area-inset-right)) + 8px);bottom:calc(max(14px,env(safe-area-inset-bottom)) + 94px);width:64px;height:64px;padding:5px;
+  background:conic-gradient(var(--senf) calc(var(--k,0) * 1turn),rgba(42,26,18,.6) 0)}
+.k-kraft .bild{width:100%;height:100%;border-radius:50%;background:var(--creme);border:2px solid var(--tinte);display:grid;place-items:center;font-size:24px}
+.k-kraft .bild svg{width:34px;height:29px;display:block}
+.k-kraft:not(.voll) .bild{filter:grayscale(.8) brightness(.85)}
+.k-kraft.voll{animation:glimm .5s ease-in-out infinite alternate}
+@keyframes glimm{to{box-shadow:0 4px 0 var(--tinte),0 0 20px 7px rgba(242,183,5,.95)}}
+.gold{right:max(14px,env(safe-area-inset-right));top:82px;background:var(--creme);border:2.5px solid var(--tinte);border-radius:999px;padding:1px 9px 1px 5px;font:800 13px var(--fliess);display:flex;align-items:center;gap:5px;font-variant-numeric:tabular-nums}
+.gold i{width:13px;height:13px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#FFE27A,#F2B705 55%,#B07D00);border:1.5px solid var(--tinte)}
+.gold.neu{animation:hupf .3s}
 .tasten .k-extra{left:auto;right:calc(max(18px,env(safe-area-inset-right)) + 92px);bottom:max(14px,env(safe-area-inset-bottom))}
 .k-links,.k-rechts{bottom:max(14px,env(safe-area-inset-bottom));width:80px;height:80px;background:rgba(255,246,230,.85);font-size:26px}
 .k-links{left:calc(max(12px,env(safe-area-inset-left)) + 118px)} .k-rechts{left:calc(max(12px,env(safe-area-inset-left)) + 208px)}
@@ -123,6 +133,8 @@ input.fehlt{border-color:var(--rot)}
   <svg class="mini" id="mini" viewBox="0 0 104 84"></svg>
   <div class="lenk" id="lenk"><svg width="26" height="26" viewBox="0 0 26 26" id="lenkrad"><circle cx="13" cy="13" r="10.5" fill="none" stroke="#fff" stroke-width="2.6"/><path d="M3 13h20M13 13v10" stroke="#fff" stroke-width="2.6"/></svg><span id="lenktext">Handy neigen zum Lenken</span></div>
   <div class="knopf k-drift" id="kdrift">DRIFT</div>
+  <div class="knopf k-kraft" id="kkraft" aria-label="Heldenkraft"><span class="bild" id="kraftbild"></span></div>
+  <div class="gold" id="gold"><i></i>0</div>
   <div class="knopf k-extra" id="kextra">EXTRA</div>
   <div class="knopf k-links" id="klinks" hidden>◀</div>
   <div class="knopf k-rechts" id="krechts" hidden>▶</div>
@@ -150,6 +162,6 @@ input.fehlt{border-color:var(--rot)}
 <script src="../netz.js?v=2026-11-20a"></script>
 <script src="../verlies/bilder.js?v=2026-11-20b"></script>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"}}</script>
-<script type="module" src="spiel.js?v=2026-11-20e"></script>
+<script type="module" src="spiel.js?v=2026-11-20f"></script>
 </body>
 </html>
