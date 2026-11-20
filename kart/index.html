@@ -37,6 +37,8 @@ canvas{display:block;position:fixed;inset:0;width:100vw;height:100dvh}
 .fleder span:nth-child(3){left:66%;top:12%;animation-duration:1.3s}.fleder span:nth-child(4){left:30%;top:52%;font-size:52px;animation-duration:.9s}
 .fleder span:nth-child(5){left:58%;top:48%;font-size:76px}
 @keyframes flattern{0%{transform:translate(-30px,10px) scaleX(1)}50%{transform:translate(20px,-24px) scaleX(-1)}100%{transform:translate(50px,16px) scaleX(1)}}
+.vorschau{left:50%;top:86px;transform:translateX(-50%);background:var(--creme);border:3px solid var(--tinte);border-radius:16px;box-shadow:0 4px 0 var(--tinte);padding:6px 16px;display:flex;flex-direction:column;align-items:center;white-space:nowrap}
+.vorschau b{font:900 17px var(--display)} .vorschau small{font:700 11px var(--fliess);color:var(--leise);letter-spacing:.06em}
 .sporen{inset:0;background:radial-gradient(circle at 50% 55%,rgba(150,220,90,.55),rgba(90,170,50,.92) 70%);transition:opacity .2s}
 .schuettel{left:50%;top:34%;transform:translateX(-50%);font:900 30px var(--display);color:#fff;-webkit-text-stroke:3px var(--tinte);paint-order:stroke;animation:ruetteln .18s infinite alternate}
 @keyframes ruetteln{from{transform:translateX(-52%) rotate(-3deg)}to{transform:translateX(-48%) rotate(3deg)}}
@@ -116,6 +118,7 @@ input.fehlt{border-color:var(--rot)}
   <div class="fleder" id="fleder" hidden><span>🦇</span><span>🦇</span><span>🦇</span><span>🦇</span><span>🦇</span></div>
   <div class="extra leer" id="extra"></div>
   <div class="schuettel" id="schuettel" hidden>Schütteln!</div>
+  <div class="vorschau" id="vorschau" hidden></div>
   <button class="pause" id="pause" aria-label="Pause">II</button>
   <svg class="mini" id="mini" viewBox="0 0 104 84"></svg>
   <div class="lenk" id="lenk"><svg width="26" height="26" viewBox="0 0 26 26" id="lenkrad"><circle cx="13" cy="13" r="10.5" fill="none" stroke="#fff" stroke-width="2.6"/><path d="M3 13h20M13 13v10" stroke="#fff" stroke-width="2.6"/></svg><span id="lenktext">Handy neigen zum Lenken</span></div>
@@ -147,6 +150,6 @@ input.fehlt{border-color:var(--rot)}
 <script src="../netz.js?v=2026-11-20a"></script>
 <script src="../verlies/bilder.js?v=2026-11-20b"></script>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"}}</script>
-<script type="module" src="spiel.js?v=2026-11-20d"></script>
+<script type="module" src="spiel.js?v=2026-11-20e"></script>
 </body>
 </html>

@@ -1,6 +1,6 @@
 # Kart-Rennen: Konzept für den großen Ausbau
 
-Stand: 20.11.2026. Paket 1 ist gebaut (Helden als Fahrer, Monster als Gegner, Kerker-Optik auf der bisherigen Streckenführung). Alles andere ist noch Plan.
+Stand: 20.11.2026. Pakete 1 bis 3 sind gebaut (Helden und Monster, Extras, Kerker-Strecke aus Abschnitten). Alles andere ist noch Plan.
 
 Arbeitstitel: **„Kerker-Kart“**. „Kario Mart“ fällt weg: Das ist erkennbar der Name von Nintendos Spiel mit vertauschten Buchstaben, und die Seite ist öffentlich im Netz.
 
@@ -287,7 +287,7 @@ Nach jedem Paket ist das Spiel spielbar, und du kannst es am Handy testen.
 |---|---|---|
 | **1** ✔ | Helden als Fahrer (8 Modelle, Gefährte, Fahrwerte), Monster als Übungsgegner, Auswahl mit Heldenwappen, Kerker-Optik auf der bisherigen Strecke | mit Helden durch den Kerker fahren |
 | **2** ✔ | Truhen und alle Extras, Treffer, Schutzzeit, Werfen nach hinten, Mimik-Truhen, Schütteln und Wischen | Rennen mit Extras, auch über mehrere Handys |
-| **3** | Kerker als Strecke aus Abschnitten mit Varianten: Fallgitter, Druckplatten, Lorenbahn, Troll-Trampolin, brüchige Wand; Knochenkönig mit Beben; Streckenvorschau | erste Dungeon-Strecke, jedes Rennen anders |
+| **3** ✔ | Kerker als Strecke aus Abschnitten mit Varianten: Fallgitter, Druckplatten, Lorenbahn, Troll-Trampolin, brüchige Wand; Knochenkönig mit Beben; Streckenvorschau | erste Dungeon-Strecke, jedes Rennen anders |
 | **4** | Heldenkräfte und Kraftleiste, Gold auf der Strecke | jeder Held spielt sich anders |
 | **5** | Welt **Spinnengrotte**: Pilzsprung über die Schlucht, Netztunnel, Spinnenkönigin, Absturz mit Fledermäusen | zweite Welt |
 | **6** | Welt **Glutschlund**: Geysire, sinkende Steine, einstürzende Brücke, Glutdrache, steigende Lava | dritte Welt |
@@ -319,4 +319,28 @@ Noch offen aus Paket 2:
 - der Beutel für zwei Extras
 - Klänge
 - Skelett fällt bei Treffern sichtbar auseinander, Schleim hinterlässt eine Spur, Ork rammt gezielt
+
+## 12. Stand Paket 3 (20.11.2026)
+
+Die Strecke entsteht vor jedem Rennen aus 6 Abschnitten (Varianten in `strecke.js`, 72 Kombinationen, eine Runde 900 bis 1100 m):
+
+| Abschnitt | Varianten |
+|---|---|
+| 1 Start | Wachstube mit langer Gerade · Wachstube mit Fass-Schikane |
+| 2 Zellengang | Fallgitter-Gabelung mit Druckplatten · Lorenbahn-Abkürzung · Folterkammer mit Pendelbeilen |
+| 3 Abstieg | Treppe hinab mit Sprung · Rutsche durch den Abfluss (nass: schneller, aber rutschig) |
+| 4 Thronsaal | Treppe und Knochenkönig (immer) |
+| 5 Gewölbe | Schatzkammer mit brüchiger Wand · Trollhöhle mit Bauch-Sprung · Waffenkammer mit Rüstungen |
+| 6 Heimweg | Burggraben-Brücke (schmal, mit Geländer) · Kanalisation mit Ratten |
+
+So ist es umgesetzt:
+- **Gabelung:** Eine Trennwand teilt die Fahrbahn in zwei Spuren. Etwa alle 11 Sekunden wechselt, welches Gitter unten ist. Wer über die Druckplatte hinter dem offenen Gitter fährt, lässt es hinter sich herunter, und das andere geht auf.
+- **Lorenbahn:** Gleise im Geröll neben der Fahrbahn. Wer auffährt, wird schnell und lenkt nicht mehr. An der Weiche entscheidet Neigen: zur Fahrbahn hin heißt abzweigen. Einer der beiden Wege endet am Prellbock (Totenkopf-Schild davor), welcher, wird pro Rennen gewürfelt.
+- **Troll-Trampolin:** Der Troll schläft im Geröll an der Innenseite der Haarnadelkurve. Sein Bauch schleudert über die Mauer auf den Gang dahinter. Nach etwa 35 Sekunden wacht er immer wieder auf, dann federt er nicht und schwingt seine Keule über die Fahrbahn.
+- **Brüchige Wand:** sperrt die Innenspur. Kämpfer, Paladin und Ork brechen mit Schwung durch, ebenso ein Feuerball. Danach bleibt sie für alle offen. Dahinter liegt Gold, das kurz Schwung gibt.
+- **Knochenkönig:** Sobald jemand in Runde 2 ist, hebt er alle 14 bis 20 Sekunden das Zepter, und vor allen Karts fallen Steine.
+- **Vorschau:** 5 Sekunden Flug über die Strecke mit Abschnittsnamen und Streckencode. Allein überspringt Antippen die Vorschau.
+- **Streckencode:** steht in der Ergebnisliste. Dazu gibt es dort „Gleiche Strecke“ und „Neue Strecke“. Mit `?strecke=KERKER-…` im Link fährt man eine bestimmte Strecke.
+
+Noch nicht gebaut aus Abschnitt 3: Hebel mit rollenden Fässern, Kronleuchter, Zuschauer am Rand, Händler.
 

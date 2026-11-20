@@ -1,6 +1,7 @@
 // Kerker-Kart (Arbeitstitel): Die Helden aus Dungeons & Disappointments fahren durch den Kerker.
 // Lenken durch Neigen des Handys im Querformat (wie ein Lenkrad) oder mit Tasten. Konzept: KONZEPT.md
 import * as THREE from "three";
+import { ABSCHNITTE, planWuerfeln, planCode, planAusCode, kontrollpunkte, rng } from "./strecke.js?v=2026-11-20e";
 
 const $ = id => document.getElementById(id);
 const RUNDEN = +(new URLSearchParams(location.search).get("runden")) || 3;   // ?runden=1 zum Testen
@@ -61,33 +62,37 @@ const boden = new THREE.Mesh(new THREE.PlaneGeometry(900, 900), M("#2E2723"));
 boden.rotation.x = -Math.PI / 2; boden.receiveShadow = true; sc.add(boden);
 
 // ---------- Strecke ----------
-const KP = [[0, 0], [90, -6], [150, -46], [168, -120], [128, -178], [52, -184], [14, -140], [-26, -112], [-84, -136],
-  [-138, -112], [-150, -46], [-110, -4], [-60, 12]];
-const kurve = new THREE.CatmullRomCurve3(KP.map(([x, z]) => new THREE.Vector3(x, 0, z)), true, "catmullrom", .5);
+// Die Strecke wird vor jedem Rennen aus Abschnitten neu gebaut (Varianten in strecke.js). Alles, was zur Strecke gehört,
+// hängt an streckeG und wird beim nächsten Bau weggeräumt. Positionen auf der Strecke: Index i (0 … S-1) und Seitenabstand d.
 const S = 3000;
 const PX = new Float32Array(S), PZ = new Float32Array(S), TX = new Float32Array(S), TZ = new Float32Array(S);
-for (let i = 0; i < S; i++) {
-  const p = kurve.getPointAt(i / S), t = kurve.getTangentAt(i / S);
-  PX[i] = p.x; PZ[i] = p.z; TX[i] = t.x; TZ[i] = t.z;
-}
-const nX = i => -TZ[i], nZ = i => TX[i];      // Normale (seitlich)
+const MAUERW = new Float32Array(S).fill(MAUER);     // Abstand der Mauer je Streckenpunkt (auf der Brücke schmaler)
+const BELAG = new Uint8Array(S);                    // 0 Stein, 1 nass (schneller, aber rutschig)
+const nX = i => -TZ[i], nZ = i => TX[i];            // Normale (seitlich)
 const wrap = i => ((i % S) + S) % S;
-const LAENGE = kurve.getLength();
+const vorab = (i, i0) => wrap(i - i0);              // wie weit liegt i hinter i0, in Fahrtrichtung gezählt
+let LAENGE = 1000, SCHRITT = 1 / 3, STRICH = 12;
+const meter = m => Math.round(m / SCHRITT);
+let plan = null, abschnitte = [], rampen = [], gabeln = [], loren = [], pendel = [], pfosten = [], rattenStellen = [], troll = null, koenig = null;
+let streckeG = null, zufall = Math.random, fackeln = [], flammen = [], belegt = [];
+const hashf = (a, b) => { const x = Math.sin(a * 12.9898 + b * 78.233) * 43758.5453; return x - Math.floor(x); };
 
-// Treppe zum Thronsaal: Rampe zum Springen
-const R0 = Math.round(S * .335), R1 = Math.round(S * .348), RH = 2.1;
 function hoehe(i, d) {
-  if (i >= R0 && i <= R1 && Math.abs(d) < BR / 2 + 1.3) return RH * (i - R0) / (R1 - R0);
+  if (Math.abs(d) > BR / 2 + 1.3) return 0;
+  for (const r of rampen) { const v = vorab(i, r.i0); if (v <= r.n) return r.h * v / r.n; }
   return 0;
 }
+const gabelDrin = (i, f) => { const v = vorab(i, f.i0); return v > 0 && v <= f.n; };
 
-function band(innen, aussen, farbe, y, von = 0, bis = S, hFn) {
+function band(innen, aussen, farbe, y, von = 0, bis = S, hFn, ziel = streckeG) {
   const pos = [], col = [], c = new THREE.Color();
   for (let i = von; i < bis; i++) {
     const a = wrap(i), b = wrap(i + 1);
     const ya = y + (hFn ? hFn(a) : 0), yb = y + (hFn ? hFn(b) : 0);
+    const ia = typeof innen === "function" ? innen(a) : innen, aa = typeof aussen === "function" ? aussen(a) : aussen;
+    const ib = typeof innen === "function" ? innen(b) : innen, ab = typeof aussen === "function" ? aussen(b) : aussen;
     const P = (k, d, yy) => [PX[k] + nX(k) * d, yy, PZ[k] + nZ(k) * d];
-    const q = [P(a, innen, ya), P(a, aussen, ya), P(b, aussen, yb), P(b, innen, yb)];
+    const q = [P(a, ia, ya), P(a, aa, ya), P(b, ab, yb), P(b, ib, yb)];
     pos.push(...q[0], ...q[2], ...q[1], ...q[0], ...q[3], ...q[2]);
     c.set(farbe(i)); for (let k = 0; k < 6; k++) col.push(c.r, c.g, c.b);
   }
@@ -96,33 +101,7 @@ function band(innen, aussen, farbe, y, von = 0, bis = S, hFn) {
   g.setAttribute("color", new THREE.Float32BufferAttribute(col, 3));
   g.computeVertexNormals();
   const m = new THREE.Mesh(g, new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide }));
-  m.receiveShadow = true; sc.add(m); return m;
-}
-const STRICH = Math.round(S * 4 / LAENGE);   // etwa 4 m
-// Fahrbahn aus Steinplatten: drei Reihen, versetzt
-const PLATTE = ["#9A8F82", "#8C8275", "#A39888"];
-for (let j = 0; j < 3; j++) band(-BR / 2 + j * BR / 3, -BR / 2 + (j + 1) * BR / 3, i => PLATTE[(Math.floor(i / (STRICH * .75) + j * .5) + j) % 3], .05);
-band(BR / 2, BR / 2 + 1.3, i => (Math.floor(i / (STRICH * .6)) % 2 ? "#E6D6AE" : "#8E2F22"), .05);
-band(-BR / 2 - 1.3, -BR / 2, i => (Math.floor(i / (STRICH * .6)) % 2 ? "#E6D6AE" : "#8E2F22"), .05);
-band(RAND, MAUER + .2, i => (Math.floor(i / STRICH) % 3 ? "#4E443B" : "#463D35"), .03);
-band(-MAUER - .2, -RAND, i => (Math.floor(i / STRICH) % 3 ? "#4E443B" : "#463D35"), .03);
-// Rampe als Treppe: Stufenstreifen
-band(-BR / 2 - 1.3, BR / 2 + 1.3, i => (Math.floor((i - R0) / 3) % 2 ? "#B5A894" : "#9C907E"), .08, R0, R1, k => hoehe(k, 0));
-{ // Vorderkante der Treppe
-  const k = R1, w = BR + 2.6, g = new THREE.Mesh(new THREE.BoxGeometry(w, RH, .4), M("#7E7466"));
-  g.position.set(PX[k], RH / 2, PZ[k]); g.rotation.y = Math.atan2(TX[k], TZ[k]); sc.add(g);
-  for (const s of [-1, 1]) { // Geländer
-    const gl = new THREE.Mesh(new THREE.BoxGeometry(.25, 1.1, (R1 - R0) * LAENGE / S), M("#4A3F36"));
-    const m = Math.round((R0 + R1) / 2); gl.position.set(PX[m] + nX(m) * s * (BR / 2 + 1.5), RH / 2 + .9, PZ[m] + nZ(m) * s * (BR / 2 + 1.5));
-    gl.rotation.y = Math.atan2(TX[m], TZ[m]); gl.rotation.x = -Math.atan2(RH, (R1 - R0) * LAENGE / S); sc.add(gl);
-  }
-}
-// Start/Ziel-Linie
-for (let k = 0; k < BR; k++) for (let j = 0; j < 2; j++) {
-  const q = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), M((k + j) % 2 ? "#F3E6CC" : "#16161D"));
-  q.rotation.x = -Math.PI / 2; q.rotation.z = Math.atan2(TX[0], TZ[0]);
-  const d = -BR / 2 + .5 + k, f = j - .5;
-  q.position.set(PX[0] + nX(0) * d + TX[0] * f, .1, PZ[0] + nZ(0) * d + TZ[0] * f); sc.add(q);
+  m.receiveShadow = true; ziel.add(m); return m;
 }
 
 function schildMat(text, bg, fg, w = 512, h = 128) {
@@ -149,122 +128,334 @@ function instanzen(geo, mat, liste, schatten = true) {
     o.position.set(x, y, z); o.rotation.set(0, ry, 0); o.scale.setScalar(s); o.updateMatrix(); im.setMatrixAt(i, o.matrix);
     if (farbe) im.setColorAt(i, c.set(farbe));
   });
-  im.count = liste.length; im.castShadow = schatten; im.receiveShadow = true; sc.add(im); return im;
+  im.count = liste.length; im.castShadow = schatten; im.receiveShadow = true; streckeG.add(im); return im;
 }
-
-// ---------- Umgebung: Kerker ----------
-const neben = (t, d) => { const i = wrap(Math.round(t * S)); return { x: PX[i] + nX(i) * d, z: PZ[i] + nZ(i) * d, rot: Math.atan2(TX[i], TZ[i]) }; };
+const punkt = (i, d) => ({ x: PX[i] + nX(i) * d, z: PZ[i] + nZ(i) * d, rot: Math.atan2(TX[i], TZ[i]) });
 function frei(x, z, abstand) {
   for (let i = 0; i < S; i += 6) if ((PX[i] - x) ** 2 + (PZ[i] - z) ** 2 < abstand * abstand) return false;
   return true;
 }
-let seed = 7; const zufall = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
-const belegt = [];
+// Innenseite einer Kurve zwischen zwei Streckenpunkten: +1 oder -1
+function innenSeite(i0, i1) {
+  let sum = 0; const n = vorab(i1, i0);
+  for (let k = 0; k < n; k += 4) { const a = wrap(i0 + k), b = wrap(i0 + k + 4); let d = Math.atan2(TX[b], TZ[b]) - Math.atan2(TX[a], TZ[a]); sum += Math.atan2(Math.sin(d), Math.cos(d)); }
+  return sum < 0 ? 1 : -1;
+}
+
 // Gebäude: Steinblock mit Zinnen, erleuchteten Fenstern und Schild
-function bau(t, seite, w, h, d, farbe, schild) {
-  const abst = MAUER + 3 + d / 2, p = neben(t, seite * abst);
+function bau(i, seite, w, h, d, farbe, schild, gitter) {
+  const p = punkt(i, seite * (MAUER + 3 + d / 2));
   const g = new THREE.Group();
   const k = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), M(farbe)); k.position.y = h / 2; k.castShadow = k.receiveShadow = true; g.add(k);
   const zinne = new THREE.BoxGeometry(1.2, 1.1, 1.2);
-  for (let i = 0; i <= Math.floor(w / 2.4); i++) for (const s of [-1, 1]) { const z = new THREE.Mesh(zinne, M(farbe)); z.position.set(-w / 2 + .6 + i * (w - 1.2) / Math.floor(w / 2.4), h + .55, s * (d / 2 - .6)); g.add(z); }
+  for (let n = 0; n <= Math.floor(w / 2.4); n++) for (const s of [-1, 1]) { const z = new THREE.Mesh(zinne, M(farbe)); z.position.set(-w / 2 + .6 + n * (w - 1.2) / Math.floor(w / 2.4), h + .55, s * (d / 2 - .6)); g.add(z); }
   const fen = GLUT("#FFB45A"), fg = new THREE.PlaneGeometry(1, 1.6);
-  for (let i = 0; i < Math.floor((w - 2) / 4.2); i++) for (let j = 0; j < Math.floor((h - 2) / 4); j++) {
-    for (const s of [-1, 1]) { const f = new THREE.Mesh(fg, fen); f.position.set(-w / 2 + 3 + i * 4.2, 2.6 + j * 4, s * (d / 2 + .02)); if (s < 0) f.rotation.y = Math.PI; g.add(f); }
+  for (let a = 0; a < Math.floor((w - 2) / 4.2); a++) for (let j = 0; j < Math.floor((h - 2) / 4); j++) {
+    for (const s of [-1, 1]) { const f = new THREE.Mesh(fg, fen); f.position.set(-w / 2 + 3 + a * 4.2, 2.6 + j * 4, s * (d / 2 + .02)); if (s < 0) f.rotation.y = Math.PI; g.add(f); }
   }
   if (schild) {
     const sl = schild.length * 1.25 + 2, b = new THREE.Mesh(new THREE.BoxGeometry(sl, 2, .3), schildMat(schild, "#F3E6CC", "#2A2118", 1024, 160));
     b.position.set(0, h + 2.4, 0); g.add(b);
     const b2 = b.clone(); b2.rotation.y = Math.PI; b2.position.z = .01; g.add(b2);
   }
-  g.position.set(p.x, 0, p.z); g.rotation.y = p.rot + Math.PI / 2; sc.add(g);
+  if (gitter) { const st = new THREE.CylinderGeometry(.09, .09, 6, 6); for (let n = 0; n < Math.floor(w * .8); n++) { const b = new THREE.Mesh(st, M("#2A2A30")); b.position.set(-w * .4 + n, 3, seite * (d / 2 + .15)); g.add(b); } }
+  g.position.set(p.x, 0, p.z); g.rotation.y = p.rot + Math.PI / 2; streckeG.add(g);
   belegt.push({ x: p.x, z: p.z, r: Math.hypot(w, d) / 2 + 2 });
   return g;
 }
-bau(.97, 1, 24, 8, 12, "#6E655C", "WACHSTUBE");
-const thronsaal = bau(.34, 1, 40, 14, 16, "#5E564F", "THRONSAAL");
-const zellen = bau(.16, -1, 20, 9, 12, "#655C54", "VERLIES");
-bau(.53, 1, 22, 10, 14, "#6A5F55", "SCHATZKAMMER");
-bau(.73, -1, 16, 9, 22, "#5F5850", "WAFFENKAMMER");
-{ // Gitterstäbe vor den Zellen
-  const st = new THREE.CylinderGeometry(.09, .09, 6, 6);
-  for (let i = 0; i < 16; i++) { const b = new THREE.Mesh(st, M("#2A2A30")); b.position.set(-8 + i, 3, -6.15); zellen.add(b); }
-}
-{ // Gold vor der Schatzkammer
-  const p = neben(.53, MAUER + 2.2), g = new THREE.Mesh(new THREE.ConeGeometry(2.2, 1.4, 10), M("#E8B53A"));
-  g.position.set(p.x, .7, p.z); sc.add(g);
-}
-// Thron des Knochenkönigs neben der Treppe (er schaut nur zu, noch)
-{
-  const p = neben(.348, MAUER + 3.5), g = new THREE.Group();
-  const st = new THREE.Mesh(new THREE.BoxGeometry(3.6, 1.6, 3), M("#3A2E26")); st.position.y = .8; g.add(st);
-  const le = new THREE.Mesh(new THREE.BoxGeometry(3.6, 6, .6), M("#3A2E26")); le.position.set(0, 3.5, -1.3); g.add(le);
-  for (let i = -2; i <= 2; i++) { const z = new THREE.Mesh(new THREE.ConeGeometry(.3, 1.2, 6), M("#3A2E26")); z.position.set(i * .75, 7, -1.3); g.add(z); }
-  const ko = new THREE.Mesh(new THREE.CylinderGeometry(.9, 1.2, 2.2, 10), M("#4A2E5A")); ko.position.set(0, 2.6, -.2); g.add(ko);
-  const sch = new THREE.Mesh(new THREE.SphereGeometry(.8, 14, 10), M("#EDE4D0")); sch.position.set(0, 4.3, -.1); g.add(sch);
-  for (const s of [-1, 1]) { const a = new THREE.Mesh(new THREE.SphereGeometry(.2, 8, 6), GLUT("#7BE3A0")); a.position.set(s * .3, 4.4, .6); g.add(a); }
-  const kr = new THREE.Mesh(new THREE.CylinderGeometry(.75, .6, .6, 8, 1, true), new THREE.MeshLambertMaterial({ color: "#E8C24A", side: THREE.DoubleSide })); kr.position.set(0, 5.1, -.1); g.add(kr);
-  const zep = new THREE.Mesh(new THREE.CylinderGeometry(.08, .08, 3.4), M("#E8C24A")); zep.position.set(1.4, 3.4, .4); zep.rotation.z = -.2; g.add(zep);
-  g.traverse(o => { if (o.isMesh) o.castShadow = true; });
-  g.position.set(p.x, 0, p.z); g.rotation.y = p.rot - Math.PI / 2; sc.add(g);
-}
-{ // Feuerschale in der Mitte
-  const g = new THREE.Group();
-  const s = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 2, 3, 10), M("#5A5048")); s.position.y = 1.5; g.add(s);
-  const sch = new THREE.Mesh(new THREE.CylinderGeometry(5, 3, 1.6, 16), M("#4A3F36")); sch.position.y = 3.6; g.add(sch);
-  for (let i = 0; i < 7; i++) { const f = new THREE.Mesh(new THREE.ConeGeometry(.9, 3 + (i % 3), 6), GLUT(i % 2 ? "#FF9A3C" : "#FFD15A")); f.position.set(Math.sin(i) * 2.2 * (i ? 1 : 0), 5.2, Math.cos(i) * 2.2 * (i ? 1 : 0)); g.add(f); }
-  const sc2 = new THREE.Mesh(new THREE.PlaneGeometry(34, 34), scheinMat); sc2.rotation.x = -Math.PI / 2; sc2.position.y = .12; g.add(sc2);
-  g.position.set(10, 0, -90); sc.add(g); belegt.push({ x: 10, z: -90, r: 12 });
-}
-// Mauer am Rand, Pfeiler mit Fackeln
-const fackeln = [];
-{
-  const steine = [], pfeiler = [], scheine = [], STEIN = ["#6B6158", "#62584F", "#73695F", "#5D544C"];
-  const n = Math.floor(LAENGE / 2.2);
-  for (let j = 0; j < n; j++) {
-    const i = Math.floor(j * S / n);
-    if (i >= R0 - 8 && i <= R1 + 4) continue;
-    for (const s of [-1, 1]) {
-      const d = s * (MAUER + .7), rot = Math.atan2(TX[i], TZ[i]) + Math.PI / 2;
-      steine.push([PX[i] + nX(i) * d, 1.1, PZ[i] + nZ(i) * d, rot, 1, STEIN[Math.floor(zufall() * 4)]]);
-      if (j % 7 === 0) {
-        pfeiler.push([PX[i] + nX(i) * d, 2.4, PZ[i] + nZ(i) * d, rot]);
-        const df = s * (MAUER - .2); fackeln.push([PX[i] + nX(i) * df, 3.9, PZ[i] + nZ(i) * df]);
-        const ds = s * (MAUER - 3); scheine.push([PX[i] + nX(i) * ds, .14, PZ[i] + nZ(i) * ds]);
-      }
-    }
-  }
-  instanzen(new THREE.BoxGeometry(2.4, 2.2, 1.3), new THREE.MeshLambertMaterial({ color: "#ffffff" }), steine);
-  instanzen(new THREE.BoxGeometry(1.6, 4.8, 1.6), M("#574E46"), pfeiler);
-  instanzen(new THREE.CylinderGeometry(.09, .06, .9, 6), M("#4A3426"), fackeln.map(([x, y, z]) => [x, y - .5, z]), false);
-  const sg = new THREE.PlaneGeometry(13, 13); sg.rotateX(-Math.PI / 2);
-  const ims = instanzen(sg, scheinMat, scheine, false); ims.receiveShadow = false;
-}
-// Flammen flackern: jede Fackel hat zwei Flammen, die abwechselnd größer und kleiner werden
-const flammen = [instanzen(new THREE.ConeGeometry(.28, .9, 6), GLUT("#FF8A2A"), fackeln.map(([x, y, z]) => [x, y + .2, z]), false),
-  instanzen(new THREE.ConeGeometry(.16, .6, 6), GLUT("#FFE07A"), fackeln.map(([x, y, z]) => [x, y + .1, z]), false)];
-const flamO = new THREE.Object3D();
-function flackern(t) {
-  flammen.forEach((im, k) => {
-    for (let i = 0; i < fackeln.length; i++) {
-      const [x, y, z] = fackeln[i], f = 1 + Math.sin(t * (9 + k * 4) + i * 1.7) * .18 + Math.sin(t * 23 + i) * .08;
-      flamO.position.set(x, y + (k ? .1 : .2) + (f - 1) * .3, z); flamO.scale.set(1, f, 1); flamO.updateMatrix(); im.setMatrixAt(i, flamO.matrix);
-    }
-    im.instanceMatrix.needsUpdate = true;
+
+// Alles wegräumen, was zur alten Strecke gehörte (geteilte Materialien bleiben)
+function entsorgen(g) {
+  const geteilt = new Set([...matCache.values(), ...glutCache.values(), scheinMat, ROT_RAND]);
+  g.traverse(o => {
+    if (o.geometry) o.geometry.dispose();
+    const ms = Array.isArray(o.material) ? o.material : o.material ? [o.material] : [];
+    for (const m of ms) if (!geteilt.has(m)) { if (m.map) m.map.dispose(); m.dispose(); }
   });
 }
-// Halle: Säulen, die im Dunkeln verschwinden, dazu Fässer und Kisten
-{
+
+function streckeBauen(p) {
+  plan = p; zufall = rng(p.s * 7 + 13);
+  if (streckeG) { sc.remove(streckeG); entsorgen(streckeG); }
+  streckeG = new THREE.Group(); sc.add(streckeG);
+  const { kp, start } = kontrollpunkte(p);
+  const kurve = new THREE.CatmullRomCurve3(kp.map(([x, z]) => new THREE.Vector3(x, 0, z)), true, "catmullrom", .5);
+  for (let i = 0; i < S; i++) {
+    const q = kurve.getPointAt(i / S), t = kurve.getTangentAt(i / S);
+    PX[i] = q.x; PZ[i] = q.z; TX[i] = t.x; TZ[i] = t.z;
+  }
+  LAENGE = kurve.getLength(); SCHRITT = LAENGE / S; STRICH = meter(4);
+  MAUERW.fill(MAUER); BELAG.fill(0);
+  rampen = []; gabeln = []; loren = []; pendel = []; pfosten = []; rattenStellen = []; troll = null; koenig = null; belegt = []; fackeln = [];
+  kisten.length = 0;
+  // Abschnitte: Knoten auf Streckenpunkte abbilden
+  const knoten = start.map(k => { const [x, z] = kp[k]; let best = 1e12, bi = 0; for (let i = 0; i < S; i++) { const q = (PX[i] - x) ** 2 + (PZ[i] - z) ** 2; if (q < best) { best = q; bi = i; } } return bi; });
+  knoten[0] = 0;
+  abschnitte = ABSCHNITTE.map((a, n) => ({ von: knoten[n], bis: knoten[(n + 1) % knoten.length], name: a.varianten[p.v[n]].name, v: a.varianten[p.v[n]] }));
+  const stelle = (n, u) => wrap(Math.round(abschnitte[n].von + vorab(abschnitte[n].bis, abschnitte[n].von) * u));
+  const seiteVon = (s, n, u) => s === "innen" || s === "aussen" ? innenSeite(stelle(n, Math.max(0, u - .2)), stelle(n, Math.min(1, u + .2))) * (s === "innen" ? 1 : -1) : s;
+
+  // Dinge der Abschnitte
+  abschnitte.forEach((a, n) => {
+    for (const d of a.v.dinge) {
+      if (d.art === "haus") bau(stelle(n, d.bei), seiteVon(d.seite, n, d.bei), d.w, d.h, d.d, d.farbe, d.schild, d.gitter);
+      else if (d.art === "rampe") rampen.push({ i0: stelle(n, d.von), n: vorab(stelle(n, d.bis), stelle(n, d.von)), h: d.h, treppe: !!d.treppe });
+      else if (d.art === "nass") { const i0 = stelle(n, d.von), m = vorab(stelle(n, d.bis), i0); for (let k = 0; k <= m; k++) BELAG[wrap(i0 + k)] = 1; a.kanal = d.kanal ? [i0, m] : null; a.nass = [i0, m]; }
+      else if (d.art === "bruecke") { const i0 = stelle(n, d.von), m = vorab(stelle(n, d.bis), i0); for (let k = 0; k <= m; k++) MAUERW[wrap(i0 + k)] = RAND + .6; a.bruecke = [i0, m]; }
+      else if (d.art === "gabel" || d.art === "wand") {
+        const i0 = stelle(n, d.von), f = { art: d.art, nr: gabeln.length, i0, n: vorab(stelle(n, d.bis), i0), torY: { "-1": 6, "1": 6 }, platte: null, offen: false };
+        if (d.art === "wand") f.innen = innenSeite(i0, wrap(i0 + f.n));
+        gabeln.push(f);
+      }
+      else if (d.art === "lore") {
+        const i0 = stelle(n, d.von), s = seiteVon(d.seite, n, (d.von + d.bis) / 2), laenge = vorab(stelle(n, d.bis), i0) * SCHRITT;
+        loren.push({ i0, s, railD: s * (RAND + 3.4), laenge, weiche: laenge * (d.weiche - d.von) / (d.bis - d.von), tot: zufall() < .5 ? "ab" : "gerade" });
+      }
+      else if (d.art === "pendel") d.bei.forEach((u, k) => pendel.push({ i: stelle(n, u), phase: k * 2.1 }));
+      else if (d.art === "faesser" || d.art === "ruestung") for (const [u, dd] of d.stuecke) { const q = punkt(stelle(n, u), dd); pfosten.push({ x: q.x, z: q.z, r: d.art === "faesser" ? .75 : .7, art: d.art, rot: q.rot, i: stelle(n, u), d: dd }); }
+      else if (d.art === "ratten") d.bei.forEach((u, k) => rattenStellen.push({ i: stelle(n, u), phase: k * 3.1 }));
+      else if (d.art === "koenig") koenig = { i: stelle(n, d.bei), s: seiteVon(d.seite, n, d.bei), anim: 0 };
+      else if (d.art === "troll") {
+        const i = stelle(n, d.bei);
+        // Landestelle: der nächste Streckenpunkt jenseits der Mauer, weiter vorn auf der Strecke
+        let best = 1e12, b = -1, s = 1;
+        for (const sg of [-1, 1]) {
+          const q = punkt(i, sg * (MAUER + 8));
+          for (let k = meter(50); k < S / 2; k++) { const j = wrap(i + k), dd = (PX[j] - q.x) ** 2 + (PZ[j] - q.z) ** 2; if (dd < best) { best = dd; b = j; s = sg; } }
+        }
+        const q = punkt(i, s * (MAUER + 8)), ld = klemmen((q.x - PX[b]) * nX(b) + (q.z - PZ[b]) * nZ(b), -BR / 2 + 1.5, BR / 2 - 1.5);
+        troll = { i, s, b, ld, sprung: vorab(b, i) };
+      }
+    }
+    for (const u of a.v.truhen || []) truhenReihe(stelle(n, u));
+  });
+
+  // Fahrbahn
+  const nassFarbe = ["#5E7E80", "#567476", "#66888A"];
+  const PLATTE = ["#9A8F82", "#8C8275", "#A39888"];
+  for (let j = 0; j < 3; j++) band(-BR / 2 + j * BR / 3, -BR / 2 + (j + 1) * BR / 3, i => (BELAG[wrap(i)] ? nassFarbe : PLATTE)[(Math.floor(i / (STRICH * .75) + j * .5) + j) % 3], .05);
+  for (const sg of [-1, 1]) {
+    band(sg * BR / 2, sg * (BR / 2 + 1.3), i => (Math.floor(i / (STRICH * .6)) % 2 ? "#E6D6AE" : "#8E2F22"), .05);
+    band(sg * RAND, i => sg * (MAUERW[i] + .2), i => MAUERW[wrap(i)] < MAUER ? "#1E3A44" : (Math.floor(i / STRICH) % 3 ? "#4E443B" : "#463D35"), .03);
+  }
+  // Wasser unter Brücke und in der Kanalisation
+  for (const a of abschnitte) {
+    if (a.bruecke) for (const sg of [-1, 1]) band(sg * (RAND + .6), sg * (MAUER + 12), i => (Math.floor(i / STRICH) % 2 ? "#1E3A44" : "#22424C"), .02, a.bruecke[0], a.bruecke[0] + a.bruecke[1]);
+    if (a.kanal) for (const sg of [-1, 1]) band(sg * (RAND + .5), sg * (MAUER - 1), i => (Math.floor(i / STRICH) % 2 ? "#2C4A48" : "#33554F"), .06, a.kanal[0], a.kanal[0] + a.kanal[1]);
+  }
+  // Rampen und Treppen
+  for (const r of rampen) {
+    band(-BR / 2 - 1.3, BR / 2 + 1.3, i => (Math.floor(vorab(wrap(i), r.i0) / 3) % 2 ? "#B5A894" : "#9C907E"), .08, r.i0, r.i0 + r.n, k => hoehe(k, 0));
+    const k = wrap(r.i0 + r.n), g = new THREE.Mesh(new THREE.BoxGeometry(BR + 2.6, r.h, .4), M("#7E7466"));
+    g.position.set(PX[k], r.h / 2, PZ[k]); g.rotation.y = Math.atan2(TX[k], TZ[k]); streckeG.add(g);
+    for (const s of [-1, 1]) {
+      const gl = new THREE.Mesh(new THREE.BoxGeometry(.25, 1.1, r.n * SCHRITT), M("#4A3F36"));
+      const m = wrap(r.i0 + Math.round(r.n / 2)); gl.position.set(PX[m] + nX(m) * s * (BR / 2 + 1.5), r.h / 2 + .9, PZ[m] + nZ(m) * s * (BR / 2 + 1.5));
+      gl.rotation.y = Math.atan2(TX[m], TZ[m]); gl.rotation.x = -Math.atan2(r.h, r.n * SCHRITT); streckeG.add(gl);
+    }
+  }
+  // Start/Ziel-Linie
+  for (let k = 0; k < BR; k++) for (let j = 0; j < 2; j++) {
+    const q = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), M((k + j) % 2 ? "#F3E6CC" : "#16161D"));
+    q.rotation.x = -Math.PI / 2; q.rotation.z = Math.atan2(TX[0], TZ[0]);
+    const d = -BR / 2 + .5 + k, f = j - .5;
+    q.position.set(PX[0] + nX(0) * d + TX[0] * f, .1, PZ[0] + nZ(0) * d + TZ[0] * f); streckeG.add(q);
+  }
+
+  // Mauer am Rand, Pfeiler mit Fackeln; auf der Brücke ein Geländer, an der Treppe offen, am Troll eingestürzt
+  {
+    const steine = [], pfeiler = [], scheine = [], gelaender = [], STEIN = ["#6B6158", "#62584F", "#73695F", "#5D544C"];
+    const n = Math.floor(LAENGE / 2.2);
+    for (let j = 0; j < n; j++) {
+      const i = Math.floor(j * S / n);
+      if (rampen.some(r => r.treppe && vorab(i, wrap(r.i0 - 8)) <= r.n + 12)) continue;
+      for (const s of [-1, 1]) {
+        const rot = Math.atan2(TX[i], TZ[i]) + Math.PI / 2;
+        if (MAUERW[i] < MAUER) { const q = punkt(i, s * (MAUERW[i] + .3)); gelaender.push([q.x, .6, q.z, rot]); continue; }
+        if (troll && s === troll.s && Math.abs(((i - troll.i + S / 2) % S + S) % S - S / 2) < meter(8)) { if (j % 2) { const q = punkt(i, s * (MAUER + .7)); steine.push([q.x, .3, q.z, rot + zufall(), .55, STEIN[0]]); } continue; }
+        const d = s * (MAUER + .7);
+        steine.push([PX[i] + nX(i) * d, 1.1, PZ[i] + nZ(i) * d, rot, 1, STEIN[Math.floor(zufall() * 4)]]);
+        if (j % 7 === 0) {
+          pfeiler.push([PX[i] + nX(i) * d, 2.4, PZ[i] + nZ(i) * d, rot]);
+          const df = s * (MAUER - .2); fackeln.push([PX[i] + nX(i) * df, 3.9, PZ[i] + nZ(i) * df]);
+          const ds = s * (MAUER - 3); scheine.push([PX[i] + nX(i) * ds, .14, PZ[i] + nZ(i) * ds]);
+        }
+      }
+    }
+    // Trennwände der Gabelungen
+    for (const f of gabeln) for (let k = 0; k <= f.n; k += meter(2.2)) { const i = wrap(f.i0 + k); steine.push([PX[i], .9, PZ[i], Math.atan2(TX[i], TZ[i]) + Math.PI / 2, .75, STEIN[Math.floor(zufall() * 4)]]); }
+    instanzen(new THREE.BoxGeometry(2.4, 2.2, 1.3), new THREE.MeshLambertMaterial({ color: "#ffffff" }), steine);
+    instanzen(new THREE.BoxGeometry(1.6, 4.8, 1.6), M("#574E46"), pfeiler);
+    instanzen(new THREE.BoxGeometry(2.3, 1.2, .25), M("#4A3426"), gelaender);
+    instanzen(new THREE.CylinderGeometry(.09, .06, .9, 6), M("#4A3426"), fackeln.map(([x, y, z]) => [x, y - .5, z]), false);
+    const sg = new THREE.PlaneGeometry(13, 13); sg.rotateX(-Math.PI / 2);
+    const ims = instanzen(sg, scheinMat, scheine, false); ims.receiveShadow = false;
+  }
+  flammen = [instanzen(new THREE.ConeGeometry(.28, .9, 6), GLUT("#FF8A2A"), fackeln.map(([x, y, z]) => [x, y + .2, z]), false),
+    instanzen(new THREE.ConeGeometry(.16, .6, 6), GLUT("#FFE07A"), fackeln.map(([x, y, z]) => [x, y + .1, z]), false)];
+
+  streckeDingeBauen();
+  hallenDeko();
+  startBogen();
+  minikarte();
+}
+
+// Fallgitter, Druckplatten, brüchige Wand, Lorenbahn, Troll, Pendel, Fässer, Rüstungen, Ratten, Knochenkönig
+function streckeDingeBauen() {
+  for (const f of gabeln) {
+    const breite = MAUER - .7, mitte = (MAUER + .7) / 2;
+    if (f.art === "gabel") {
+      f.tore = {};
+      for (const s of [-1, 1]) {
+        const g = new THREE.Group(), q = punkt(f.i0, s * mitte);
+        for (let x = -breite / 2 + .4; x < breite / 2; x += .9) teil(g, box(.16, 5.4, .16), "#2E2B30", x, 2.7, 0);
+        for (const y of [1, 2.6, 4.2]) teil(g, box(breite, .16, .16), "#2E2B30", 0, y, 0);
+        for (let x = -breite / 2 + .4; x < breite / 2; x += .9) teil(g, kegel(.12, .4, 4), "#2E2B30", x, -.2, 0, Math.PI);
+        g.position.set(q.x, 6, q.z); g.rotation.y = q.rot; streckeG.add(g); f.tore[s] = g;
+        // Druckplatte gleich hinter dem Gitter
+        const pi = wrap(f.i0 + meter(7)), pp = punkt(pi, s * BR / 4), pl = new THREE.Mesh(box(2.6, .12, 2.6), M("#8E7F6A"));
+        pl.position.set(pp.x, .1, pp.z); pl.rotation.y = pp.rot; streckeG.add(pl);
+        const kreuz = new THREE.Mesh(box(1.6, .14, .3), M("#5C4E3E")); kreuz.position.copy(pl.position); kreuz.rotation.y = pp.rot + Math.PI / 4; streckeG.add(kreuz);
+      }
+      // Torbalken über beiden Durchfahrten
+      const q = punkt(f.i0, 0), bo = new THREE.Mesh(box(2 * MAUER + 1.4, 1.2, 1.2), M("#5F564D")); bo.position.set(q.x, 6.6, q.z); bo.rotation.y = q.rot; streckeG.add(bo);
+    } else {
+      // Brüchige Wand auf der Innenseite; dahinter Gold, das Schwung gibt
+      const g = new THREE.Group(), q = punkt(f.i0, f.innen * mitte);
+      for (let r = 0; r < 4; r++) for (let x = -breite / 2 + (r % 2) * .6; x < breite / 2 - .5; x += 1.2) teil(g, box(1.15, .95, .9), (r * 7 + Math.round(x * 3)) % 3 ? "#7A6E62" : "#6A5F55", x + .6, .5 + r, 0);
+      for (const [x, y] of [[-2, 2.2], [1.5, 1.4], [3.2, 3]]) teil(g, box(.12, 1.6, .95), "#2A2420", x, y, 0, 0, 0, .5);
+      g.position.set(q.x, 0, q.z); g.rotation.y = q.rot; streckeG.add(g); f.wandM = g;
+      const gi = wrap(f.i0 + Math.round(f.n / 2)), gp = punkt(gi, f.innen * BR / 4);
+      const gold = new THREE.Group(); teil(gold, new THREE.ConeGeometry(1.6, .9, 10), "#E8B53A", 0, .45, 0);
+      const s2 = new THREE.Mesh(new THREE.PlaneGeometry(7, 7), scheinMat); s2.rotation.x = -Math.PI / 2; s2.position.y = .15; gold.add(s2);
+      gold.position.set(gp.x, 0, gp.z); streckeG.add(gold); f.gold = { i: gi, d: f.innen * BR / 4 };
+      // Schild: nur schwere Karts
+      const sp = punkt(wrap(f.i0 - meter(18)), f.innen * (MAUER - 1.2)), sch = new THREE.Mesh(box(4.2, 1.1, .2), schildMat("NUR SCHWERE", "#F3E6CC", "#8E2F22", 512, 96));
+      sch.position.set(sp.x, 2.8, sp.z); sch.rotation.y = sp.rot + Math.PI; streckeG.add(sch);
+    }
+  }
+  for (const f of loren) {
+    // Gleise: beide Zweige ab der Weiche, Prellbock am toten Zweig, Totenkopf-Schild davor
+    const schienen = [], schwellen = [];
+    for (const zweig of ["gerade", "ab"]) {
+      const bis = zweig === "ab" ? f.weiche + 14 : f.laenge;
+      for (let m = zweig === "ab" ? f.weiche : 0; m < bis; m += 1.2) {
+        const i = wrap(f.i0 + meter(m)), d = lorePfad(f, m, zweig), q = punkt(i, d), rot = q.rot;
+        const d2 = lorePfad(f, m + 1.2, zweig), q2 = punkt(wrap(f.i0 + meter(m + 1.2)), d2), w = Math.atan2(q2.x - q.x, q2.z - q.z);
+        for (const sd of [-.6, .6]) schienen.push([q.x + Math.cos(w) * sd, .12, q.z - Math.sin(w) * sd, w, 1]);
+        if (Math.round(m / 1.2) % 1 === 0) schwellen.push([q.x, .05, q.z, w + Math.PI / 2, 1]);
+        if (f.tot === zweig && m > f.weiche + 9) break;
+      }
+    }
+    instanzen(box(.12, .14, 1.25), M("#8C8F99"), schienen);
+    instanzen(box(.25, .1, 1.9), M("#5A4030"), schwellen);
+    const pm = f.weiche + 9.4, pq = punkt(wrap(f.i0 + meter(pm)), lorePfad(f, pm, f.tot));
+    const pb = new THREE.Group(); teil(pb, box(2, 1.1, .5), "#8E2F22", 0, .8, 0); teil(pb, box(2.2, .3, .7), "#E6D6AE", 0, 1.45, 0);
+    pb.position.set(pq.x, 0, pq.z); pb.rotation.y = pq.rot; streckeG.add(pb);
+    const tq = punkt(wrap(f.i0 + meter(f.weiche - 6)), lorePfad(f, f.weiche - 6, f.tot) + (f.tot === "ab" ? -f.s * 1.5 : f.s * 1.8));
+    const ts = new THREE.Mesh(box(1.3, 1.3, .15), schildMat("☠", "#F3E6CC", "#2A2118", 128, 128)); ts.position.set(tq.x, 2.6, tq.z); ts.rotation.y = tq.rot + Math.PI; streckeG.add(ts);
+    const tp = new THREE.Mesh(zyl(.06, .06, 2), M("#4A3426")); tp.position.set(tq.x, 1, tq.z); streckeG.add(tp);
+    // Auffahrt vom Geröll auf die Gleise
+    const aq = punkt(f.i0, f.railD), au = new THREE.Mesh(box(2.4, .3, 3.5), M("#6B4A2E")); au.position.set(aq.x, .15, aq.z); au.rotation.y = aq.rot; streckeG.add(au);
+    const lq = punkt(wrap(f.i0 - meter(6)), f.s * (MAUER - 1.5)), lo = new THREE.Group();   // abgestellte Lore mit Gold
+    teil(lo, box(1.6, .9, 2.2), "#5A4A3A", 0, .75, 0); teil(lo, box(1.2, .3, 1.8), "#E8B53A", 0, 1.3, 0);
+    lo.position.set(lq.x, 0, lq.z); lo.rotation.y = lq.rot; streckeG.add(lo);
+  }
+  for (const p of pendel) {
+    const q = punkt(p.i, 0), g = new THREE.Group();
+    for (const s of [-1, 1]) teil(g, box(.8, 10, .8), "#4A3F36", s * (RAND + .6), 5, 0);
+    teil(g, box(2 * RAND + 2, .8, .8), "#4A3F36", 0, 10, 0);
+    const arm = new THREE.Group(); arm.position.y = 9.6; g.add(arm);
+    teil(arm, zyl(.08, .08, 7.6, 6), "#3A3A40", 0, -3.8, 0);
+    const blatt = teil(arm, new THREE.CylinderGeometry(1.5, 1.5, .14, 16, 1, false, Math.PI / 2, Math.PI), "#C9CED6", 0, -7.4, 0, Math.PI / 2, 0, 0);
+    g.position.set(q.x, 0, q.z); g.rotation.y = q.rot; streckeG.add(g); p.arm = arm; p.blatt = blatt;
+  }
+  for (const p of pfosten) {
+    const g = new THREE.Group();
+    if (p.art === "faesser") { teil(g, zyl(.7, .7, 1.5, 12), "#7A5434", 0, .75, 0); teil(g, zyl(.73, .73, .12, 12), "#3A3A40", 0, .35, 0); teil(g, zyl(.73, .73, .12, 12), "#3A3A40", 0, 1.15, 0); }
+    else {
+      teil(g, box(.9, .2, .9), "#4A3F36", 0, .1, 0);
+      for (const x of [-.2, .2]) teil(g, zyl(.13, .13, 1, 8), "#9AA3AD", x, .7, 0);
+      teil(g, box(.8, 1, .5), "#AEB6BF", 0, 1.7, 0); teil(g, kugel(.3, 10), "#AEB6BF", 0, 2.45, 0); teil(g, box(.5, .08, .1), "#2A2420", 0, 2.45, .26);
+      teil(g, zyl(.04, .04, 3.2, 6), "#6B4A2E", .55, 1.8, 0); teil(g, kegel(.12, .4, 6), "#C9CED6", .55, 3.5, 0);
+    }
+    g.traverse(o => { if (o.isMesh) o.castShadow = true; }); g.position.set(p.x, 0, p.z); g.rotation.y = p.rot + Math.PI; streckeG.add(g);
+  }
+  for (const r of rattenStellen) {
+    r.g = new THREE.Group(); streckeG.add(r.g); r.ratten = [];
+    for (let i = 0; i < 5; i++) { const g = new THREE.Group(); teil(g, kapsel(.22, .5), "#7D6E62", 0, .25, 0, Math.PI / 2); teil(g, kugel(.16, 8), "#8C7D70", 0, .3, .45); teil(g, zyl(.03, .02, .8, 4), "#E2A3A0", 0, .2, -.7, Math.PI / 2 - .3); g.visible = false; r.g.add(g); r.ratten.push(g); }
+    for (const s of [-1, 1]) { const q = punkt(r.i, s * (RAND + .4)), loch = new THREE.Mesh(new THREE.CircleGeometry(1, 12, 0, Math.PI), M("#141010")); loch.position.set(q.x, .05, q.z); loch.rotation.y = q.rot + (s > 0 ? Math.PI / 2 : -Math.PI / 2); streckeG.add(loch); }
+  }
+  if (troll) {
+    const q = punkt(troll.i, troll.s * (RAND + 2.6)), g = new THREE.Group();
+    const koerper = new THREE.Group(); g.add(koerper);
+    const bauch = teil(koerper, kugel(2.4, 16), "#7C8A5E", 0, .9, 0); bauch.scale.set(1, .62, 1.35);
+    teil(koerper, kugel(1.1, 12), "#8A9868", 0, 1.1, 2.9);
+    for (const x of [-.4, .4]) teil(koerper, kugel(.16, 6), "#1B1620", x, 1.55, 3.85);
+    teil(koerper, kugel(.25, 8), "#9AA676", 0, 1.2, 3.95);
+    for (const x of [-1.4, 1.4]) teil(koerper, kapsel(.45, 1.6), "#7C8A5E", x, .5, -2.6, Math.PI / 2);
+    const keule = new THREE.Group(); keule.position.set(-troll.s * 0, 1, 1); g.add(keule);
+    teil(keule, zyl(.25, .45, 5, 8), "#6B4A2E", 0, 0, 2.6, Math.PI / 2);
+    g.position.set(q.x, 0, q.z); g.rotation.y = q.rot; streckeG.add(g);
+    g.traverse(o => { if (o.isMesh) o.castShadow = true; });
+    troll.g = g; troll.koerper = koerper; troll.keule = keule;
+    const zz = new THREE.Group(); for (let n = 0; n < 3; n++) { const z = new THREE.Mesh(new THREE.PlaneGeometry(.8, .8), new THREE.MeshBasicMaterial({ map: schildMat("Z", "#140F14", "#F3E6CC", 64, 64)[4].map, transparent: true })); z.position.set(n * .5, 3 + n * .8, 3 + n * .3); zz.add(z); }
+    g.add(zz); troll.zz = zz;
+  }
+  if (koenig) {
+    const q = punkt(koenig.i, koenig.s * (MAUER + 3.5)), g = new THREE.Group();
+    const st = new THREE.Mesh(new THREE.BoxGeometry(3.6, 1.6, 3), M("#3A2E26")); st.position.y = .8; g.add(st);
+    const le = new THREE.Mesh(new THREE.BoxGeometry(3.6, 6, .6), M("#3A2E26")); le.position.set(0, 3.5, -1.3); g.add(le);
+    for (let n = -2; n <= 2; n++) { const z = new THREE.Mesh(new THREE.ConeGeometry(.3, 1.2, 6), M("#3A2E26")); z.position.set(n * .75, 7, -1.3); g.add(z); }
+    const ko = new THREE.Mesh(new THREE.CylinderGeometry(.9, 1.2, 2.2, 10), M("#4A2E5A")); ko.position.set(0, 2.6, -.2); g.add(ko);
+    const sch = new THREE.Mesh(new THREE.SphereGeometry(.8, 14, 10), M("#EDE4D0")); sch.position.set(0, 4.3, -.1); g.add(sch);
+    const augMat = new THREE.MeshBasicMaterial({ color: "#7BE3A0" });
+    for (const s of [-1, 1]) { const a = new THREE.Mesh(new THREE.SphereGeometry(.2, 8, 6), augMat); a.position.set(s * .3, 4.4, .6); g.add(a); }
+    const kr = new THREE.Mesh(new THREE.CylinderGeometry(.75, .6, .6, 8, 1, true), new THREE.MeshLambertMaterial({ color: "#E8C24A", side: THREE.DoubleSide })); kr.position.set(0, 5.1, -.1); g.add(kr);
+    const arm = new THREE.Group(); arm.position.set(1.1, 3.2, .2); g.add(arm);
+    const zep = new THREE.Mesh(new THREE.CylinderGeometry(.08, .08, 3.4), M("#E8C24A")); zep.position.set(.3, .2, .2); zep.rotation.z = -.2; arm.add(zep);
+    const kug = new THREE.Mesh(new THREE.SphereGeometry(.3, 10, 8), GLUT("#7BE3A0")); kug.position.set(.62, 1.85, .2); arm.add(kug);
+    g.traverse(o => { if (o.isMesh) o.castShadow = true; });
+    g.position.set(q.x, 0, q.z); g.rotation.y = q.rot - Math.PI / 2 * koenig.s; streckeG.add(g);
+    koenig.g = g; koenig.arm = arm; koenig.augMat = augMat;
+  }
+}
+// Gleisverlauf der Lore: Seitenabstand nach m Metern seit der Auffahrt
+function lorePfad(f, m, zweig) {
+  const ziel = f.s * (BR / 2 - 1.5);
+  if (m < f.weiche) return f.railD;
+  if (zweig === "ab") return f.railD + (ziel - f.railD) * Math.min(1, (m - f.weiche) / 14);
+  const vorEnde = f.laenge - 12;
+  return m < vorEnde ? f.railD : f.railD + (ziel - f.railD) * Math.min(1, (m - vorEnde) / 12);
+}
+
+// Halle drumherum: Säulen, die im Dunkeln verschwinden, Fässer, Kisten, Feuerschale
+function hallenDeko() {
+  let x0 = Infinity, x1 = -Infinity, z0 = Infinity, z1 = -Infinity;
+  for (let i = 0; i < S; i += 10) { x0 = Math.min(x0, PX[i]); x1 = Math.max(x1, PX[i]); z0 = Math.min(z0, PZ[i]); z1 = Math.max(z1, PZ[i]); }
+  // Feuerschale in der Mitte
+  const cx = (x0 + x1) / 2, cz = (z0 + z1) / 2;
+  if (frei(cx, cz, MAUER + 16)) {
+    const g = new THREE.Group();
+    const s = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 2, 3, 10), M("#5A5048")); s.position.y = 1.5; g.add(s);
+    const sch = new THREE.Mesh(new THREE.CylinderGeometry(5, 3, 1.6, 16), M("#4A3F36")); sch.position.y = 3.6; g.add(sch);
+    for (let i = 0; i < 7; i++) { const f = new THREE.Mesh(new THREE.ConeGeometry(.9, 3 + (i % 3), 6), GLUT(i % 2 ? "#FF9A3C" : "#FFD15A")); f.position.set(Math.sin(i) * 2.2 * (i ? 1 : 0), 5.2, Math.cos(i) * 2.2 * (i ? 1 : 0)); g.add(f); }
+    const sc2 = new THREE.Mesh(new THREE.PlaneGeometry(34, 34), scheinMat); sc2.rotation.x = -Math.PI / 2; sc2.position.y = .12; g.add(sc2);
+    g.position.set(cx, 0, cz); streckeG.add(g); belegt.push({ x: cx, z: cz, r: 12 });
+  }
   const saeulen = [], kapitelle = [], faesser = [], kisten_ = [];
-  for (let n = 0; n < 1400 && saeulen.length < 70; n++) {
-    const x = -230 + zufall() * 460, z = -270 + zufall() * 350;
+  const W = x1 - x0 + 160, H = z1 - z0 + 160;
+  for (let n = 0; n < 1500 && saeulen.length < 75; n++) {
+    const x = x0 - 80 + zufall() * W, z = z0 - 80 + zufall() * H;
     if (!frei(x, z, MAUER + 8)) continue;
     if (belegt.some(b => (b.x - x) ** 2 + (b.z - z) ** 2 < (b.r + 4) ** 2)) continue;
     if (saeulen.some(([a, , c]) => (a - x) ** 2 + (c - z) ** 2 < 400)) continue;
     saeulen.push([x, 11, z, zufall() * 3]); kapitelle.push([x, .8, z, zufall() * 3]);
   }
   for (let n = 0; n < 2000 && faesser.length + kisten_.length < 150; n++) {
-    const x = -220 + zufall() * 440, z = -260 + zufall() * 330;
+    const x = x0 - 70 + zufall() * (W - 20), z = z0 - 70 + zufall() * (H - 20);
     if (!frei(x, z, MAUER + 2.5)) continue;
+    if (troll && (x - PX[troll.i]) ** 2 + (z - PZ[troll.i]) ** 2 < 60 ** 2) continue;
     if (belegt.some(b => (b.x - x) ** 2 + (b.z - z) ** 2 < (b.r + 2) ** 2)) continue;
     if (zufall() < .5) faesser.push([x, .8, z, 0, .8 + zufall() * .4]); else kisten_.push([x, .7, z, zufall() * 3, .8 + zufall() * .5]);
   }
@@ -274,17 +465,29 @@ function flackern(t) {
   instanzen(new THREE.BoxGeometry(1.4, 1.4, 1.4), M("#8A6A44"), kisten_);
 }
 // Start: Steinbogen mit Schild und Bannern, Fässer an der Geraden
-{
-  const d = BR / 2 + 2.2;
+function startBogen() {
+  const d = BR / 2 + 2.2, r0 = Math.atan2(TX[0], TZ[0]);
   for (const s of [-1, 1]) {
-    const p = new THREE.Mesh(new THREE.BoxGeometry(1.6, 8, 1.6), M("#6E655C")); p.position.set(PX[0] + nX(0) * d * s, 4, PZ[0] + nZ(0) * d * s); p.castShadow = true; sc.add(p);
+    const p = new THREE.Mesh(new THREE.BoxGeometry(1.6, 8, 1.6), M("#6E655C")); p.position.set(PX[0] + nX(0) * d * s, 4, PZ[0] + nZ(0) * d * s); p.castShadow = true; streckeG.add(p);
     const ban = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 3.4), new THREE.MeshLambertMaterial({ color: "#8E2F22", side: THREE.DoubleSide }));
-    ban.position.set(PX[0] + nX(0) * (d - 1.6) * s, 5.2, PZ[0] + nZ(0) * (d - 1.6) * s); ban.rotation.y = Math.atan2(TX[0], TZ[0]); sc.add(ban);
+    ban.position.set(PX[0] + nX(0) * (d - 1.6) * s, 5.2, PZ[0] + nZ(0) * (d - 1.6) * s); ban.rotation.y = r0; streckeG.add(ban);
   }
-  const bo = new THREE.Mesh(new THREE.BoxGeometry(d * 2 + 1.6, 1.4, 1.4), M("#6E655C")); bo.position.set(PX[0], 8.6, PZ[0]); bo.rotation.y = Math.atan2(TX[0], TZ[0]) + Math.PI / 2; sc.add(bo);
+  const bo = new THREE.Mesh(new THREE.BoxGeometry(d * 2 + 1.6, 1.4, 1.4), M("#6E655C")); bo.position.set(PX[0], 8.6, PZ[0]); bo.rotation.y = r0 + Math.PI / 2; streckeG.add(bo);
   const b = new THREE.Mesh(new THREE.BoxGeometry(d * 2 - 1, 1.5, .4), schildMat("START · ZIEL", "#F3E6CC", "#2A2118", 1024, 96));
-  b.position.set(PX[0], 7.2, PZ[0]); b.rotation.y = Math.atan2(TX[0], TZ[0]) + Math.PI; sc.add(b);
-  for (let i = 0; i < 6; i++) { const p = neben(.015 + i * .011, -(MAUER + 2.4)); const f = new THREE.Mesh(new THREE.CylinderGeometry(.6, .6, 1.3, 10), M("#7A5434")); f.position.set(p.x, .65, p.z); f.castShadow = true; sc.add(f); }
+  b.position.set(PX[0], 7.2, PZ[0]); b.rotation.y = r0 + Math.PI; streckeG.add(b);
+  for (let i = 0; i < 6; i++) { const p = punkt(meter(18 + i * 12), -(MAUER + 2.4)); const f = new THREE.Mesh(new THREE.CylinderGeometry(.6, .6, 1.3, 10), M("#7A5434")); f.position.set(p.x, .65, p.z); f.castShadow = true; streckeG.add(f); }
+}
+
+// Flammen flackern: jede Fackel hat zwei Flammen, die abwechselnd größer und kleiner werden
+const flamO = new THREE.Object3D();
+function flackern(t) {
+  flammen.forEach((im, k) => {
+    for (let i = 0; i < fackeln.length; i++) {
+      const [x, y, z] = fackeln[i], f = 1 + Math.sin(t * (9 + k * 4) + i * 1.7) * .18 + Math.sin(t * 23 + i) * .08;
+      flamO.position.set(x, y + (k ? .1 : .2) + (f - 1) * .3, z); flamO.scale.set(1, f, 1); flamO.updateMatrix(); im.setMatrixAt(i, flamO.matrix);
+    }
+    im.instanceMatrix.needsUpdate = true;
+  });
 }
 
 // ---------- Fahrer-Modelle (Front zeigt nach +z) ----------
@@ -607,7 +810,7 @@ class Kart {
     this.idx = i; this.prog = i > S / 2 ? i - S : i; this.d = d;
     this.boost = 0; this.drift = 0; this.ladung = 0; this.item = null; this.fertig = null; this.runden = []; this.rundeStart = 0;
     this.botTimer = 0; this.spur = d; this.dreher = 0;
-    this.walze = 0; this.schild = false; this.amulett = 0; this.haken = null; this.extraUhr = null;
+    this.walze = 0; this.schild = false; this.amulett = 0; this.haken = null; this.extraUhr = null; this.lore = null; this.flug = null;
     this.schonzeit = this.netz = this.bremse = this.fleder = this.sporen = this.erholung = this.holper = 0;
   }
   suchen() {                                     // nächster Streckenpunkt über die ganze Runde
@@ -650,10 +853,10 @@ class Kart {
   }
   schritt(dt, ein) {
     const st = this.st;
-    const offroad = Math.abs(this.d) > RAND && !this.luft;
+    const offroad = Math.abs(this.d) > RAND && !this.luft, nass = BELAG[this.idx] && !this.luft;
     if (this.boost > 0) this.boost -= dt;
     if (this.dreher > 0) this.dreher -= dt;
-    let maxV = st.maxV * (offroad ? (st.gelaende || .5) : 1);
+    let maxV = st.maxV * (offroad ? (st.gelaende || .5) : nass ? 1.1 : 1);
     if (this.netz > 0) maxV *= .7;
     if (this.bremse > 0) maxV *= .55;
     if (this.holper > 0) maxV *= .5;
@@ -673,20 +876,23 @@ class Kart {
     }
     let s = this.s, wende = st.turn;
     if (this.drift) { s = this.drift * .6 + this.s * .5; wende *= st.drift; this.ladung += dt * (.6 + Math.abs(s) * .6); }
-    let rate = -s * wende * Math.min(1, this.v / 10) * (this.luft ? .35 : 1);
+    let rate = -s * wende * Math.min(1, Math.max(Math.abs(this.v), 3) / 10) * (this.v < -.5 ? -1 : 1) * (this.luft ? .35 : 1);   // auch langsam etwas lenkbar
     if (this.dreher > 0) rate = 9;
     this.yaw += rate * dt;
-    const k = this.drift ? 2.6 : st.grip;
+    const k = (this.drift ? 2.6 : st.grip) * (nass ? .55 : 1);
     let diff = this.yaw - this.mh; diff = Math.atan2(Math.sin(diff), Math.cos(diff));
     this.mh += diff * (1 - Math.exp(-k * dt));
     if (this.dreher > 0) this.mh = this.mhFest;
+    const alt = { x: this.x, z: this.z, idx: this.idx, prog: this.prog, d: this.d };
     this.x += Math.sin(this.mh) * this.v * dt; this.z += Math.cos(this.mh) * this.v * dt;
     this.naechster();
+    streckeStoss(this, alt, dt);
     // Mauer
-    if (Math.abs(this.d) > MAUER) {
-      const zu = Math.abs(this.d) - MAUER, sg = Math.sign(this.d);
-      this.x -= nX(this.idx) * sg * zu; this.z -= nZ(this.idx) * sg * zu; this.d = sg * MAUER;
-      this.v *= Math.max(0, 1 - 3 * dt); this.yaw -= sg * .9 * dt * Math.sign(Math.cos(this.mh - Math.atan2(TX[this.idx], TZ[this.idx])));
+    const mw = MAUERW[this.idx];
+    if (Math.abs(this.d) > mw) {
+      const zu = Math.abs(this.d) - mw, sg = Math.sign(this.d);
+      this.x -= nX(this.idx) * sg * zu; this.z -= nZ(this.idx) * sg * zu; this.d = sg * mw;
+      this.v *= Math.max(0, 1 - 3 * dt); this.yaw += sg * .9 * dt * Math.sign(Math.cos(this.mh - Math.atan2(TX[this.idx], TZ[this.idx])));   // von der Mauer weg drehen
     }
     // Höhe / Sprung
     const g = hoehe(this.idx, this.d);
@@ -758,18 +964,16 @@ function truhe(mimik) {
   backen(g); g.traverse(o => { if (o.isMesh && o.material !== ROT_RAND) o.castShadow = true; });
   g.userData.deckel = deckel; return g;
 }
-function truhenReihe(t) {
-  const i = wrap(Math.round(t * S));
+function truhenReihe(i) {
   for (const d of [-3.4, 0, 3.4]) {
     const x = PX[i] + nX(i) * d, z = PZ[i] + nZ(i) * d;
     const g = truhe(false), mg = truhe(true);
-    for (const h of [g, mg]) { h.position.set(x, 1.1, z); sc.add(h); }
+    for (const h of [g, mg]) { h.position.set(x, 1.1, z); streckeG.add(h); }
     const b = { g, mg, x, z, weg: 0, mimik: false, blinzeln: 2 + Math.random() * 3 };
     neuMischen(b); kisten.push(b);
   }
 }
 function neuMischen(b) { b.mimik = Math.random() < 1 / 8; b.g.visible = !b.mimik; b.mg.visible = b.mimik; }
-[.09, .4, .63, .86].forEach(truhenReihe);
 function truhenZeigen(dt) {
   const dieb = ich && ich.typ === "dieb";
   for (const b of kisten) {
@@ -809,7 +1013,6 @@ const EXTRAS = {
   beben:     { name: "Beben", bild: "🪨", w: [0, 0, 2] }
 };
 const TEST_EXTRA = new URLSearchParams(location.search).get("extra");    // Test: ?extra=feuerball gibt immer dieses Extra
-const SCHRITT = LAENGE / S;                                             // Meter je Streckenpunkt
 const klemmen = (v, a, b) => Math.max(a, Math.min(b, v));
 let wackeln = 0;                                                        // Kamera wackelt (Beben, Treffer)
 
@@ -859,7 +1062,9 @@ function anwenden(e) {
   if (e.a === "wurf" || e.a === "falle") objektNeu(e);
   else if (e.a === "weg") objektWeg(e.id, true);
   else if (e.a === "wirkung") { const k = karts.find(o => o.id === e.ziel); if (k && !k.remote) wirkung(k, e); }
-  else if (e.a === "beben") bebenStarten(e);
+  else if (e.a === "beben") { bebenStarten(e); if (e.von === "koenig" && koenig) { koenig.anim = 1.6; if (ich && ich.fertig == null) melden("Der Knochenkönig zürnt! ⚠", 1.8); } }
+  else if (e.a === "wand") { const f = gabeln[e.n | 0]; if (f && !f.offen) { f.offen = true; if (f.wandM) { f.wandM.visible = false; const q = punkt(f.i0, f.innen * 6); puff(q.x, 2, q.z, "#9A8F82"); } } }
+  else if (e.a === "platte") { const f = gabeln[e.n | 0]; if (f && (e.seite === 1 || e.seite === -1)) f.platte = { seite: e.seite, bis: +e.bis || 0 }; }
 }
 // Wirkung auf ein Kart, das dieses Handy fährt
 function wirkung(k, e) {
@@ -1058,7 +1263,13 @@ function objekteSchritt(dt) {
         o.x += dx / dd * s; o.z += dz / dd * s; o.y += (zielK.y + .9 - o.y) * Math.min(1, dt * 6);
         if (heim && dd < 2) { objektWeg(id); continue; }
       } else {                                         // folgt der Strecke
+        const vorher = o.idx;
         o.p += o.rf * G.v * dt / SCHRITT; o.idx = wrap(Math.round(o.p));
+        if (o.art === "feuerball") for (const f of gabeln) if (f.art === "wand" && !f.offen && Math.sign(o.d) === f.innen && Math.abs(o.d) > .7 && vorab(vorher, f.i0) > S / 2 && vorab(o.idx, f.i0) < meter(6)) {
+          const k = karts.find(x => x.id === o.von);
+          if (k && !k.remote) ereignis({ a: "wand", n: f.nr });
+          o.alter = 99;
+        }
         o.x = PX[o.idx] + nX(o.idx) * o.d; o.z = PZ[o.idx] + nZ(o.idx) * o.d; o.y += (hoehe(o.idx, o.d) + .9 - o.y) * Math.min(1, dt * 8);
       }
       o.g.position.set(o.x, o.y, o.z);
@@ -1194,12 +1405,199 @@ function botExtra(k, dt) {
   extraNutzen(k, wunsch);
 }
 
+// ---------- Strecke im Rennen: Gitter, Wand, Lore, Troll, Pendel, Ratten, Knochenkönig ----------
+// Welche Seite der Gabelung zu ist: wechselt im Takt (für alle gleich), eine Druckplatte schließt die Seite hinter dem, der drüberfährt.
+function torZu(f) {
+  if (f.platte && uhr < f.platte.bis) return f.platte.seite;
+  return hashf(plan.s + f.nr * 7, Math.floor(uhr / 11)) < .5 ? 1 : -1;
+}
+const trollWach = () => !!troll && phase === "rennen" && uhr > 35 && hashf(plan.s + 3, Math.floor(uhr / 6)) < .4;
+
+// Zusammenstöße mit Trennwänden, Gittern, der brüchigen Wand, Fässern und Rüstungen (nur selbst gefahrene Karts)
+function streckeStoss(k, alt, dt) {
+  for (const f of gabeln) {
+    const v = vorab(k.idx, f.i0), va = vorab(alt.idx, f.i0);
+    if (v > 0 && v <= f.n && Math.abs(k.d) < .9) {             // Trennwand in der Mitte
+      const sg = Math.sign(alt.d) || 1, zu = sg * .9 - k.d;
+      k.x += nX(k.idx) * zu; k.z += nZ(k.idx) * zu; k.d = sg * .9; k.v *= Math.max(0, 1 - 2 * dt);
+    }
+    if (!(va > S / 2 && v < meter(5))) continue;                // nur beim Durchfahren des Eingangs
+    const seite = Math.sign(k.d) || 1;
+    let zu = false;
+    if (f.art === "gabel") zu = seite === torZu(f) && f.torY[seite] < 1.6;
+    else if (!f.offen && seite === f.innen) {
+      if (k.st.masse >= 1.5 && k.v > 12) { ereignis({ a: "wand", n: f.nr }); k.v *= .75; if (k.ich) melden("Wand durchbrochen! 💥"); }
+      else { zu = true; if (k.ich && !f.gemeldet) { f.gemeldet = true; melden("Zu leicht! Nur schwere Karts oder ein Feuerball", 2); } }
+    }
+    if (zu) {
+      k.x = alt.x; k.z = alt.z; k.idx = alt.idx; k.prog = alt.prog; k.d = alt.d; k.v = -Math.max(3.5, Math.min(7, Math.abs(k.v) * .35)); k.drift = 0;
+      if (k.ich) { wackeln = Math.max(wackeln, .3); summen(60); }
+    }
+  }
+  for (const p of pfosten) {
+    const dx = k.x - p.x, dz = k.z - p.z, dd = Math.hypot(dx, dz), r = p.r + .9;
+    if (dd < r && dd > .001) { k.x = p.x + dx / dd * r; k.z = p.z + dz / dd * r; k.v *= Math.max(0, 1 - 6 * dt); }
+  }
+}
+
+// Was auf der Strecke passiert, für selbst gefahrene Karts: Platten, Gold, Gleise, Troll, Pendel, Ratten
+function streckeWirkung(k, dt, e) {
+  if (k.fertig != null || k.luft) return;
+  for (const f of gabeln) {
+    const v = vorab(k.idx, f.i0);
+    if (f.art === "gabel" && Math.abs(v - meter(7)) < meter(1.5) && Math.abs(Math.abs(k.d) - BR / 4) < 1.5) {
+      const seite = Math.sign(k.d);
+      if (torZu(f) !== seite && !(f.platte && f.platte.seite === seite && uhr < f.platte.bis)) {
+        ereignis({ a: "platte", n: f.nr, seite, bis: uhr + 4 });
+        if (k.ich) melden("Klack! Gitter hinter dir zu 😈", 1.2);
+      }
+    }
+    const vg = f.gold ? vorab(k.idx, f.gold.i) : 0;
+    if (f.gold && Math.min(vg, S - vg) * SCHRITT < 2 && Math.abs(k.d - f.gold.d) < 2.2 && !(k.goldUhr > uhr)) {
+      k.goldUhr = uhr + 3; k.boost = Math.max(k.boost, .9); if (k.ich) melden("Goldrausch! 💰", 1);
+    }
+  }
+  for (const f of loren) {
+    const m = vorab(k.idx, f.i0) * SCHRITT;
+    if (m < 6 && Math.abs(k.d - f.railD) < 2.2) { k.lore = { f, m, zweig: null }; k.drift = 0; if (k.ich) melden(steuerung === "neigen" ? "Lore! An der Weiche neigen" : "Lore! An der Weiche lenken", 1.6); }
+  }
+  if (troll) {
+    const v = vorab(k.idx, troll.i), nah = Math.min(v, S - v) * SCHRITT, sd = k.d * troll.s;
+    if (!trollWach() && nah < 3.2 && sd > RAND - 1.2 && sd < RAND + 4 && k.v > 8) trollSprung(k);
+    if (trollWach() && nah < 3 && Math.abs(k.d - troll.keuleD) < 1.6) treffen(k, "treffer");
+  }
+  for (const p of pendel) {
+    const v = vorab(k.idx, p.i), nah = Math.min(v, S - v) * SCHRITT;
+    if (nah < 1.3 && Math.abs(k.d - p.d) < 1.4 && p.y < 2.6) treffen(k, "treffer");
+  }
+  for (const r of rattenStellen) if (r.aktiv) for (const q of r.pos) if (Math.hypot(k.x - q.x, k.z - q.z) < 1.3) { treffen(k, "treffer"); break; }
+}
+
+// Lore: man wird schnell und kann nicht lenken; an der Weiche entscheidet Neigen (zur Fahrbahn hin = abzweigen)
+function loreSchritt(k, dt, e) {
+  const L = k.lore, f = L.f;
+  if (L.zweig == null && L.m >= f.weiche - 2) {
+    if (k.bot || AUTO) L.zweig = Math.random() < .75 ? (f.tot === "ab" ? "gerade" : "ab") : f.tot;
+    else L.zweig = e.lenk * f.s < -.25 ? "ab" : "gerade";
+  }
+  k.v += (k.st.maxV * 1.38 - k.v) * Math.min(1, dt * 2.5);
+  L.m += k.v * dt;
+  if (L.zweig === f.tot && L.m >= f.weiche + 9) {               // Prellbock
+    k.lore = null; k.v = 0; k.dreher = .9; k.mhFest = k.mh; k.schonzeit = 2.2; k.drift = 0;
+    if (k.ich) { melden("Prellbock! 💥 Falsche Weiche", 1.6); wackeln = Math.max(wackeln, .6); summen(200); }
+    return;
+  }
+  const ende = L.zweig === "ab" ? f.weiche + 14 : f.laenge;
+  const idx = wrap(f.i0 + meter(L.m)), d = lorePfad(f, L.m, L.zweig || "gerade");
+  let delta = idx - k.idx; if (delta > S / 2) delta -= S; if (delta < -S / 2) delta += S;
+  k.prog += delta; k.idx = idx; k.d = d; k.x = PX[idx] + nX(idx) * d; k.z = PZ[idx] + nZ(idx) * d; k.y = .25;
+  const d2 = lorePfad(f, L.m + 2, L.zweig || "gerade"), i2 = wrap(f.i0 + meter(L.m + 2));
+  k.yaw = k.mh = Math.atan2(PX[i2] + nX(i2) * d2 - k.x, PZ[i2] + nZ(i2) * d2 - k.z); k.s = 0;
+  if (L.m >= ende) { k.lore = null; k.y = 0; k.boost = Math.max(k.boost, .3); }
+}
+
+// Troll-Trampolin: Bauch federt über die Mauer auf den Gang dahinter
+function trollSprung(k) {
+  const t = troll, b = t.b;
+  k.flug = { t: 0, dauer: 1.3, x0: k.x, z0: k.z, y0: k.y, yaw0: k.yaw, prog: k.prog + vorab(b, k.idx), b, d: t.ld };
+  k.drift = 0; if (k.ich) { melden("Boing! 🧌", 1); summen(40); }
+}
+function flugSchritt(k, dt) {
+  const F = k.flug; F.t += dt;
+  const u = Math.min(1, F.t / F.dauer), tx = PX[F.b] + nX(F.b) * F.d, tz = PZ[F.b] + nZ(F.b) * F.d;
+  k.x = F.x0 + (tx - F.x0) * u; k.z = F.z0 + (tz - F.z0) * u; k.y = F.y0 * (1 - u) + 4 * 9 * u * (1 - u);
+  let dy = Math.atan2(TX[F.b], TZ[F.b]) - F.yaw0; dy = Math.atan2(Math.sin(dy), Math.cos(dy));
+  k.yaw = k.mh = F.yaw0 + dy * u; k.luft = true; k.vy = u < .5 ? 5 : -5;
+  if (u >= 1) { k.flug = null; k.idx = F.b; k.prog = F.prog; k.d = F.d; k.y = hoehe(F.b, F.d); k.luft = false; k.vy = 0; k.landung = .25; k.boost = Math.max(k.boost, .4); }
+}
+
+// Bewegte Dinge (auf allen Handys gleich, nach der Rennuhr): Gitter, Pendel, Ratten, Troll, König
+function streckeZeigen(dt) {
+  for (const f of gabeln) {
+    if (f.art === "gabel") for (const s of [-1, 1]) {
+      const ziel = torZu(f) === s ? 0 : 6;
+      f.torY[s] += Math.sign(ziel - f.torY[s]) * Math.min(Math.abs(ziel - f.torY[s]), dt * 14);
+      f.tore[s].position.y = f.torY[s];
+    }
+  }
+  for (const p of pendel) {
+    const w = Math.sin(uhr * 2.1 + p.phase) * .95;
+    p.arm.rotation.z = w; p.d = -Math.sin(w) * 7.6; p.y = 9.6 - Math.cos(w) * 7.6;
+  }
+  for (const r of rattenStellen) {
+    const t = (uhr + r.phase) % 7; r.aktiv = phase === "rennen" && t > 3.5; r.pos = [];
+    r.ratten.forEach((g, n) => {
+      g.visible = r.aktiv; if (!r.aktiv) return;
+      const quer = ((t - 3.5) / 3.5 * 2 - 1) * (RAND + .4) * (n % 2 ? 1 : -1), laengs = (n - 2) * 2;
+      const j = wrap(r.i + meter(laengs) + 0), q = punkt(j, quer + Math.sin(uhr * 9 + n) * .4);
+      g.position.set(q.x, Math.abs(Math.sin(uhr * 16 + n)) * .1, q.z); g.rotation.y = q.rot + (n % 2 ? -Math.PI / 2 : Math.PI / 2);
+      r.pos.push(q);
+    });
+  }
+  if (troll) {
+    const wach = trollWach();
+    troll.koerper.rotation.x += ((wach ? -.9 : 0) - troll.koerper.rotation.x) * Math.min(1, dt * 4);
+    troll.zz.visible = !wach; troll.zz.children.forEach((z, n) => { z.position.y = 3 + n * .8 + Math.sin(uhr * 2 + n) * .2; z.lookAt(cam.position); });
+    const w = wach ? Math.sin(uhr * 2.6) : -1.2;
+    troll.keule.rotation.y = troll.s > 0 ? -Math.PI / 2 - w * 1.1 : Math.PI / 2 + w * 1.1;
+    troll.keule.position.y = wach ? 1.6 : .5;
+    troll.keuleD = troll.s * (RAND + 2.6) - troll.s * (BR * .5) * (1 + Math.sin(uhr * 2.6)) * .9;
+  }
+  if (koenig) {
+    if (koenig.anim > 0) koenig.anim = Math.max(0, koenig.anim - dt);
+    const a = koenig.anim > 0 ? Math.sin(Math.min(1, (1.6 - koenig.anim) * 3) * Math.PI / 2) : 0;
+    koenig.arm.rotation.z = a * 1.4; koenig.augMat.color.set(a > .2 ? "#C6FFD8" : "#7BE3A0");
+  }
+}
+// Knochenkönig: ab Runde 2 lässt er alle 14 bis 20 Sekunden die Erde beben (entscheidet allein der Spielleiter)
+let koenigTakt = 0;
+function koenigLenken(dt) {
+  if (!koenig || modus === "client" || phase !== "rennen") return;
+  if (!karts.some(k => k.runden.length >= 1 && k.fertig == null)) { koenigTakt = 6; return; }
+  koenigTakt -= dt; if (koenigTakt > 0) return;
+  koenigTakt = 14 + Math.random() * 6;
+  const steine = [];
+  for (const o of karts) {
+    if (o.fertig != null || !o.g.visible) continue;
+    for (let n = 0; n < 2; n++) steine.push([wrap(Math.round(o.idx + (30 + n * 13 + Math.random() * 8) / SCHRITT)), Math.round(((Math.random() - .5) * (BR - 2)) * 10) / 10]);
+  }
+  ereignis({ a: "beben", id: neueId(), von: "koenig", steine });
+}
+// Monster nutzen die Strecke: offene Seite der Gabelung, Lore, Troll, schwere brechen durch die Wand
+function streckenSpur(k) {
+  for (const f of gabeln) {
+    if (gabelDrin(k.idx, f)) return Math.sign(k.d || 1) * BR / 4;
+    const vor = vorab(f.i0, k.idx) * SCHRITT;
+    if (vor < 55) {
+      if (f.art === "gabel") return -torZu(f) * BR / 4;
+      return !f.offen && k.st.masse < 1.5 ? -f.innen * BR / 4 : f.innen * BR / 4;
+    }
+  }
+  if (k.loreWahl) for (const f of loren) { const vor = vorab(f.i0, k.idx) * SCHRITT; if (vor > 0 && vor < 45) return f.railD; }
+  if (k.trollWahl && troll && !trollWach()) { const vor = vorab(troll.i, k.idx) * SCHRITT; if (vor > 0 && vor < 40) return troll.s * (RAND + 1.6); }
+  return null;
+}
+
+// Vorschau vor dem Start: Die Kamera fliegt einmal über die Strecke, dazu die Abschnitte
+const VORSCHAU = 5;
+let vorschauZeit = 0;
+function vorschauKamera() {
+  const u = 1 - vorschauZeit / VORSCHAU, i = wrap(Math.round(u * S * .97)), j = wrap(i + meter(70));
+  cam.position.set(PX[i] - TX[i] * 10, 34, PZ[i] - TZ[i] * 10); cam.lookAt(PX[j], 0, PZ[j]);
+  if (cam.fov !== 62) { cam.fov = 62; cam.updateProjectionMatrix(); }
+  sonne.position.set(PX[i] - 30, 60, PZ[i] + 25); sonne.target.position.set(PX[i], 0, PZ[i]);
+  const n = abschnitte.findIndex(a => vorab(i, a.von) < vorab(a.bis, a.von));
+  const v = $("vorschau"); v.hidden = false;
+  v.innerHTML = `<b>${esc(abschnitte[n] ? abschnitte[n].name : "")}</b><small>${planCode(plan)}${modus === "allein" ? " · Tippen überspringt" : ""}</small>`;
+}
+
 // ---------- Minikarte ----------
-let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;
-for (let i = 0; i < S; i++) { minX = Math.min(minX, PX[i]); maxX = Math.max(maxX, PX[i]); minZ = Math.min(minZ, PZ[i]); maxZ = Math.max(maxZ, PZ[i]); }
-const mf = Math.min(88 / (maxX - minX), 68 / (maxZ - minZ));
-const mx = x => 52 + (x - (minX + maxX) / 2) * mf, mz = z => 42 + (z - (minZ + maxZ) / 2) * mf;
-{
+let mx = x => x, mz = z => z;
+function minikarte() {
+  let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;
+  for (let i = 0; i < S; i++) { minX = Math.min(minX, PX[i]); maxX = Math.max(maxX, PX[i]); minZ = Math.min(minZ, PZ[i]); maxZ = Math.max(maxZ, PZ[i]); }
+  const mf = Math.min(88 / (maxX - minX), 68 / (maxZ - minZ));
+  mx = x => 52 + (x - (minX + maxX) / 2) * mf; mz = z => 42 + (z - (minZ + maxZ) / 2) * mf;
   let dd = ""; for (let i = 0; i <= S; i += 30) dd += (i ? "L" : "M") + mx(PX[wrap(i)]).toFixed(1) + " " + mz(PZ[wrap(i)]).toFixed(1);
   $("mini").innerHTML = `<path d="${dd}Z" fill="none" stroke="#5A4A3A" stroke-width="5" stroke-linejoin="round"/><path d="M${mx(PX[0] + nX(0) * 6)} ${mz(PZ[0] + nZ(0) * 6)}L${mx(PX[0] - nX(0) * 6)} ${mz(PZ[0] - nZ(0) * 6)}" stroke="#2A2118" stroke-width="2"/><g id="punkte"></g>`;
 }
@@ -1281,7 +1679,7 @@ function rennenAufbauen(raster) {
   raster.forEach((e, n) => {
     const k = new Kart(e.typ, e.name, e.id === PID, e.farbe);
     k.id = e.id; k.bot = !!e.bot; k.remote = e.id !== PID && !(e.bot && modus !== "client");
-    k.tempo = .9 + (n % 4) * .025;
+    k.tempo = .9 + (n % 4) * .025; k.loreWahl = Math.random() < .45; k.trollWahl = Math.random() < .4;
     const [i, d] = startplatz(n); k.setzen(i, d); k.zeigen(0);
     karts.push(k); if (k.ich) ich = k;
   });
@@ -1315,6 +1713,8 @@ function botEingabe(k, dt) {
     k.spurZiel = klemmen(o.d > 0 ? o.d - breit - 1.2 : o.d + breit + 1.2, -BR / 2 + 1.5, BR / 2 - 1.5); k.botTimer = Math.max(k.botTimer, 1.2);
     k.spur += (k.spurZiel - k.spur) * Math.min(1, dt * 2.5);
   }
+  const fs = phase === "rennen" ? streckenSpur(k) : null;
+  if (fs != null) { k.spurZiel = fs; k.botTimer = Math.max(k.botTimer, .5); k.spur += (fs - k.spur) * Math.min(1, dt * 2.5); }
   k.spur += ((k.spurZiel ?? 0) - k.spur) * Math.min(1, dt * .8);
   const tx = PX[j] + nX(j) * k.spur, tz = PZ[j] + nZ(j) * k.spur;
   let diff = Math.atan2(tx - k.x, tz - k.z) - k.yaw; diff = Math.atan2(Math.sin(diff), Math.cos(diff));
@@ -1352,6 +1752,10 @@ function stossen() {
 }
 
 function update(dt) {
+  if (phase === "vorschau") {
+    vorschauZeit -= dt;
+    if (vorschauZeit <= 0) { phase = "countdown"; countdown = 3; $("vorschau").hidden = true; }
+  }
   if (phase === "countdown") {
     countdown -= dt;
     const g = $("gross"), n = Math.ceil(countdown);
@@ -1370,7 +1774,9 @@ function update(dt) {
     if (rennt && k.haken) e = hakenLenken(k, dt) || e;
     if (rennt && k.fertig == null && (k.bot || (k.ich && AUTO))) botExtra(k, dt);
     if (k.fertig != null && k.ich) k.st = { ...TYPEN[k.typ], maxV: TYPEN[k.typ].maxV * .6 };
-    k.schritt(dt, e);
+    if (k.lore) loreSchritt(k, dt, e);
+    else if (k.flug) flugSchritt(k, dt);
+    else { k.schritt(dt, e); if (rennt) streckeWirkung(k, dt, e); }
     // Runden
     const runde = Math.floor(k.prog / S);
     if (rennt && runde > k.runden.length && k.fertig == null && k.prog > 0) {
@@ -1383,6 +1789,7 @@ function update(dt) {
   }
   stossen();
   if (rennt || phase === "ziel") objekteSchritt(dt);
+  streckeZeigen(dt); koenigLenken(dt);
   truhenZeigen(dt);
   if (wackeln > 0) wackeln = Math.max(0, wackeln - dt);
   if (meldTimer > 0) { meldTimer -= dt; if (meldTimer <= 0) $("meldung").hidden = true; }
@@ -1409,6 +1816,7 @@ function platzVon(k) {
 
 const ziel3 = new THREE.Vector3(), kamPos = new THREE.Vector3(), blick = new THREE.Vector3();
 function kamera(dt, sofort) {
+  if (phase === "vorschau") { vorschauKamera(); kamPos.copy(cam.position); return; }
   const fx = Math.sin(ich.yaw * .5 + ich.mh * .5), fz = Math.cos(ich.yaw * .5 + ich.mh * .5);
   ziel3.set(ich.x - fx * 7.6, ich.y * .6 + 3.5, ich.z - fz * 7.6);
   if (sofort) kamPos.copy(ziel3); else kamPos.lerp(ziel3, 1 - Math.exp(-dt * 7));
@@ -1470,13 +1878,14 @@ function zielZeigen() {
     h += `<table>${fertig.map((e, i) => `<tr><td>${i + 1}.</td><td>${e.id === PID ? "<b>Du</b>" : esc(e.name)}</td><td>${icon(e.typ)}</td><td class="leise">${zeitText(e.zeit)}</td></tr>`).join("")}
       ${rest.map(k => `<tr><td></td><td>${k.ich ? "<b>Du</b>" : esc(k.name)}</td><td>${icon(k.typ)}</td><td class="leise">${liste.some(e => e.id === k.id) ? "aufgegeben" : rennenVorbei ? "–" : "fährt noch …"}</td></tr>`).join("")}</table>`;
   }
-  h += `</div><div class="zeile" style="justify-content:space-between">`;
-  if (modus === "allein") h += `<a class="zurueck" href="../">‹ Spielauswahl</a><span><button class="los zweit" id="zumMenue">Einstellungen</button> <button class="los" id="nochmal">Nochmal</button></span>`;
-  else if (modus === "host") h += `<button class="zurueck knopflos" id="verlassen">Raum schließen</button><span><button class="los zweit" id="zurLobby">Zur Lobby</button> <button class="los" id="nochmal">Nochmal</button></span>`;
+  h += `</div><p class="leise">Strecke ${planCode(plan)}: ${abschnitte.map(a => esc(a.name)).join(" · ")}</p><div class="zeile" style="justify-content:space-between">`;
+  if (modus === "allein") h += `<a class="zurueck" href="../">‹ Spielauswahl</a><span><button class="los zweit" id="zumMenue">Einstellungen</button> <button class="los zweit" id="gleich">Gleiche Strecke</button> <button class="los" id="nochmal">Neue Strecke</button></span>`;
+  else if (modus === "host") h += `<button class="zurueck knopflos" id="verlassen">Raum schließen</button><span><button class="los zweit" id="zurLobby">Zur Lobby</button> <button class="los zweit" id="gleich">Gleiche Strecke</button> <button class="los" id="nochmal">Neue Strecke</button></span>`;
   else h += `<button class="zurueck knopflos" id="verlassen">Raum verlassen</button><span class="leise">${esc(hostName())} startet das nächste Rennen.</span>`;
   h += `</div>`;
   $("zielKasten").innerHTML = h; $("ziel").hidden = false;
   if ($("nochmal")) $("nochmal").onclick = () => modus === "allein" ? alleinStarten() : rennenStarten();
+  if ($("gleich")) $("gleich").onclick = () => modus === "allein" ? alleinStarten(true) : rennenStarten(true);
   if ($("zumMenue")) $("zumMenue").onclick = () => menue("start");
   if ($("zurLobby")) $("zurLobby").onclick = () => { lobbyPhase = "lobby"; lobbySenden(); menue("lobby"); };
   if ($("verlassen")) $("verlassen").onclick = verlassen;
@@ -1499,14 +1908,21 @@ function hudVorbereiten() {
   $("lenk").hidden = t && matchMedia("(pointer:coarse)").matches;
   $("lenktext").textContent = t ? "Pfeiltasten lenken" : "Handy neigen zum Lenken";
 }
-function countdownStarten(raster) {
+// Plan aus dem Netz prüfen (sonst würfeln)
+function planPruefen(p) { return p && planAusCode(planCode({ v: Array.isArray(p.v) ? p.v : [], s: +p.s || 0 })) || planWuerfeln(); }
+function countdownStarten(raster, p) {
   if (!raster.some(e => e.id === PID)) { menue("lobby"); return; }      // bin nicht dabei (zu spät gekommen)
+  streckeBauen(planPruefen(p));
   rennenAufbauen(raster);
   hudVorbereiten(); zielInfo = null;
   $("menue").hidden = true; $("ziel").hidden = true; $("pausiert").hidden = true; $("hud").hidden = false;
-  phase = "countdown"; countdown = 3;
+  phase = "vorschau"; vorschauZeit = VORSCHAU; $("gross").hidden = true;
 }
-function alleinStarten() { modus = "allein"; countdownStarten(alleinRaster()); }
+// gleich = dieselbe Strecke noch einmal, sonst eine neue
+function alleinStarten(gleich) { modus = "allein"; countdownStarten(alleinRaster(), gleich ? plan : startPlan || planWuerfeln()); startPlan = null; }
+let startPlan = planAusCode(new URLSearchParams(location.search).get("strecke"));   // ?strecke=KERKER-… fährt diese Strecke
+// Vorschau: allein mit Antippen überspringen
+addEventListener("pointerdown", () => { if (phase === "vorschau" && modus === "allein") vorschauZeit = Math.min(vorschauZeit, .01); });
 
 // ---------- Verbindung ----------
 const params = new URLSearchParams(location.search);
@@ -1595,15 +2011,16 @@ function ergebnisSenden() {
   anAlle({ t: "ergebnis", nr: rennNr, liste, vorbei: rennenVorbei });
   zielZeigen();
 }
-function rennenStarten() {
+function rennenStarten(gleich) {
   if (modus !== "host") return;
+  const p = gleich && plan ? plan : startPlan || planWuerfeln(); startPlan = null;
   rennNr++; lobbyPhase = "rennen";
   const menschen = lobbyListe().filter(e => e.online), raster = monsterRaster(wahlGegner);
   // Spieler in zufälliger Reihenfolge hinter die Übungsgegner
   menschen.sort(() => Math.random() - .5).forEach((e, n) => raster.push({ id: e.pid, name: e.name, typ: e.typ, farbe: SPIELERFARBEN[n % SPIELERFARBEN.length] }));
   lobbySenden();
-  anAlle({ t: "start", nr: rennNr, raster });
-  countdownStarten(raster);
+  anAlle({ t: "start", nr: rennNr, raster, plan: p });
+  countdownStarten(raster, p);
 }
 
 function clientStarten() {
@@ -1633,7 +2050,7 @@ function vomHost(m) {
     lobby = m; wahlGegner = m.gegner;
     if (m.phase === "lobby" && (phase === "ziel" || phase === "menue")) { phase = "menue"; menue("lobby"); }
     else if (phase === "menue") menue("lobby");
-  } else if (m.t === "start") { rennNr = m.nr; countdownStarten(m.raster); }
+  } else if (m.t === "start") { rennNr = m.nr; countdownStarten(m.raster, m.plan); }
   else if (m.t === "lauf" && m.nr === rennNr) {
     for (const [id, a] of m.k) { if (id === PID) continue; const k = karts.find(o => o.id === id); if (k && k.remote) k.netzZustand(a); }
   } else if (m.t === "ev" && m.nr === rennNr && m.e && m.e.q !== PID) anwenden(m.e);
@@ -1790,6 +2207,7 @@ function loop(jetzt) {
 }
 
 // ---------- Start ----------
+streckeBauen(startPlan || planWuerfeln());
 rennenAufbauen(alleinRaster());
 const gespeichert = ss.get("kart:host");
 if (typeof Peer === "undefined") { menue("start"); netzStatus("Die Verbindungsbibliothek fehlt: zusammen fahren geht gerade nicht."); }
@@ -1797,5 +2215,5 @@ else if (code && gespeichert && gespeichert.code === code) { wahlGegner = gespei
 else if (code) menue("einladung");
 else menue("start");
 requestAnimationFrame(loop);
-window.KART = { get phase() { return phase; }, get ich() { return ich; }, karts: () => karts, ein, S, LAENGE, get liste() { return liste; }, get modus() { return modus; },
-  sim(sek) { for (let t = 0; t < sek; t += 1 / 60) { update(1 / 60); } }, aufbauen: rennenAufbauen, cam, sc, r, THREE, objekte, extraNutzen, kisten, treffen, versetzen, anwenden, schritte(sek) { for (let t = 0; t < sek; t += 1 / 30) { update(1 / 30); karts.forEach(k => k.zeigen(performance.now())); hud(1 / 30); } }, neigung: () => neigung, lenkWert, set steuerung(v) { steuerung = v; } };
+window.KART = { get phase() { return phase; }, get ich() { return ich; }, karts: () => karts, ein, S, get LAENGE() { return LAENGE; }, get liste() { return liste; }, get modus() { return modus; },
+  sim(sek) { for (let t = 0; t < sek; t += 1 / 60) { update(1 / 60); } }, aufbauen: rennenAufbauen, cam, sc, r, THREE, streckeBauen, planWuerfeln, planCode, get plan() { return plan; }, get strecke() { return { abschnitte, gabeln, loren, troll, pendel, pfosten, rattenStellen, koenig, rampen }; }, PX, PZ, set uhr(v) { uhr = v; }, objekte, extraNutzen, kisten, treffen, versetzen, anwenden, ereignis, schritte(sek) { for (let t = 0; t < sek; t += 1 / 30) { update(1 / 30); karts.forEach(k => k.zeigen(performance.now())); hud(1 / 30); } }, neigung: () => neigung, lenkWert, set steuerung(v) { steuerung = v; } };

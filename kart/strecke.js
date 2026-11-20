@@ -1,0 +1,79 @@
+// Kerker-Kart: Strecken aus Abschnitten.
+// Ein Rundkurs besteht aus 6 Abschnitten. Jeder Abschnitt hat feste Anfangs- und Endpunkte (Knoten) und 1 bis 3 Varianten.
+// Vor jedem Rennen wird gewürfelt, welche Variante drankommt. Alle Handys bauen aus demselben Streckencode dieselbe Strecke.
+//
+// Eine Variante besteht aus Zwischenpunkten (x, z) und Dingen, die an Stellen des Abschnitts stehen.
+// Stellen sind Anteile u von 0 (Anfang des Abschnitts) bis 1 (Ende). Seiten: +1 / -1 quer zur Fahrtrichtung,
+// "innen" heißt: zur Innenseite der Kurve (wird beim Bauen ausgerechnet).
+
+export const KNOTEN = [[0, 0], [150, -8], [196, -150], [92, -236], [-64, -226], [-170, -112]];
+
+export const ABSCHNITTE = [
+  { name: "Start", varianten: [
+    { name: "Wachstube, lange Gerade", punkte: [[75, -4]],
+      dinge: [{ art: "haus", bei: .45, seite: 1, w: 24, h: 8, d: 12, farbe: "#6E655C", schild: "WACHSTUBE" }], truhen: [.75] },
+    { name: "Wachstube mit Fass-Schikane", punkte: [[46, -1], [76, -9], [108, 1]],
+      dinge: [{ art: "haus", bei: .3, seite: 1, w: 24, h: 8, d: 12, farbe: "#6E655C", schild: "WACHSTUBE" },
+        { art: "faesser", stuecke: [[.42, 3.5], [.45, 2.2], [.62, -3.6], [.65, -2.2], [.8, 3.4]] }], truhen: [.92] }
+  ] },
+  { name: "Zellengang", varianten: [
+    { name: "Zellengang mit Fallgitter-Gabelung", punkte: [[192, -38], [206, -96]],
+      dinge: [{ art: "haus", bei: .5, seite: 1, w: 20, h: 9, d: 12, farbe: "#655C54", schild: "VERLIES", gitter: true },
+        { art: "gabel", von: .3, bis: .72 }], truhen: [.12] },
+    { name: "Lorenbahn-Abkürzung", punkte: [[188, -34], [214, -84], [210, -122]],
+      dinge: [{ art: "lore", seite: "innen", von: .12, weiche: .5, bis: .86 }], truhen: [.92] },
+    { name: "Folterkammer mit Pendelbeilen", punkte: [[178, -40], [206, -78], [200, -118]],
+      dinge: [{ art: "haus", bei: .55, seite: "aussen", w: 18, h: 8, d: 12, farbe: "#5B514A", schild: "FOLTERKAMMER" },
+        { art: "pendel", bei: [.38, .5, .62] }], truhen: [.15] }
+  ] },
+  { name: "Abstieg", varianten: [
+    { name: "Treppe hinab mit Sprung", punkte: [[182, -204], [138, -236]],
+      dinge: [{ art: "rampe", von: .2, bis: .28, h: 2.4 }], truhen: [.6] },
+    { name: "Rutsche durch den Abfluss", punkte: [[206, -206], [164, -250], [124, -246]],
+      dinge: [{ art: "nass", von: .12, bis: .88 }], truhen: [.95] }
+  ] },
+  { name: "Thronsaal", varianten: [
+    { name: "Thronsaal des Knochenkönigs", punkte: [[14, -244]],
+      dinge: [{ art: "rampe", von: .38, bis: .45, h: 2.1, treppe: true }, { art: "koenig", bei: .47, seite: "aussen" },
+        { art: "haus", bei: .62, seite: "aussen", w: 40, h: 14, d: 16, farbe: "#5E564F", schild: "THRONSAAL" }], truhen: [.85] }
+  ] },
+  { name: "Gewölbe", varianten: [
+    { name: "Schatzkammer mit brüchiger Wand", punkte: [[-118, -226], [-160, -196]],
+      dinge: [{ art: "wand", von: .25, bis: .62 }, { art: "haus", bei: .48, seite: "aussen", w: 22, h: 10, d: 14, farbe: "#6A5F55", schild: "SCHATZKAMMER" }], truhen: [.85] },
+    { name: "Trollhöhle mit Bauch-Sprung", punkte: [[-150, -236], [-196, -220], [-190, -184], [-128, -182], [-112, -150]],
+      dinge: [{ art: "troll", bei: .16 }], truhen: [.66] },
+    { name: "Waffenkammer mit Rüstungen", punkte: [[-112, -232], [-156, -204]],
+      dinge: [{ art: "haus", bei: .5, seite: "aussen", w: 16, h: 9, d: 22, farbe: "#5F5850", schild: "WAFFENKAMMER" },
+        { art: "ruestung", stuecke: [[.3, 2.6], [.42, -3.2], [.55, .4], [.68, 3.4], [.78, -2.4]] }], truhen: [.12] }
+  ] },
+  { name: "Heimweg", varianten: [
+    { name: "Burggraben-Brücke", punkte: [[-150, -44], [-86, -2]],
+      dinge: [{ art: "bruecke", von: .3, bis: .62 }], truhen: [.82] },
+    { name: "Kanalisation mit Ratten", punkte: [[-182, -52], [-128, -8], [-64, 6]],
+      dinge: [{ art: "nass", von: .15, bis: .7, kanal: true }, { art: "ratten", bei: [.3, .55] }], truhen: [.85] }
+  ] }
+];
+
+// Zufall mit Startwert (für alle Handys gleich)
+export function rng(seed) { let s = (seed >>> 0) % 2147483646 + 1; return () => (s = (s * 16807) % 2147483647) / 2147483647; }
+
+// Plan: welche Variante je Abschnitt plus Startwert für Kleinkram (Deko, Mimiks, Gitter-Takt)
+export function planWuerfeln(zufall = Math.random) {
+  return { v: ABSCHNITTE.map(a => Math.floor(zufall() * a.varianten.length)), s: Math.floor(zufall() * 65536) };
+}
+// Streckencode wie KERKER-1203-7F3A: Ziffern = Varianten, dahinter der Startwert
+export function planCode(p) { return "KERKER-" + p.v.join("") + "-" + p.s.toString(16).toUpperCase().padStart(4, "0"); }
+export function planAusCode(c) {
+  const m = /^KERKER-(\d{6})-([0-9A-F]{1,4})$/i.exec(String(c || "").trim());
+  if (!m) return null;
+  const v = [...m[1]].map(Number);
+  if (v.some((x, i) => x >= ABSCHNITTE[i].varianten.length)) return null;
+  return { v, s: parseInt(m[2], 16) };
+}
+// Kontrollpunkte des Rundkurses und je Abschnitt der Index des ersten Punktes
+const MASS = .85;      // alle Punkte werden so verkleinert (eine Runde dauert dann etwa 40 Sekunden)
+export function kontrollpunkte(p) {
+  const kp = [], start = [];
+  ABSCHNITTE.forEach((a, i) => { start.push(kp.length); kp.push(KNOTEN[i]); kp.push(...a.varianten[p.v[i]].punkte); });
+  return { kp: kp.map(([x, z]) => [x * MASS, z * MASS]), start };
+}

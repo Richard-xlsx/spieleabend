@@ -19,8 +19,9 @@ Aufbau
   viererkette/                    „Vier gelingt“ (Ordner heißt weiter so): index.html, viererkette-logic.js (Brett, Gewinnreihe), viererkette.js (Verbindung und Bildschirme)
   kritzelraten/                   „Malalarm“ (Ordner heißt weiter so): index.html, logic.js (Begriffe, Raten, Punkte), app.js (Verbindung, Malfläche, Bildschirme)
   wortverbot/                     „Umschreiben“ (Ordner heißt weiter so): index.html, logic.js (Karten, Teams, Züge, Punkte), app.js (Verbindung, Karten, Zeichnen, Töne)
-  kart/                           „Kerker-Kart“ (Arbeitstitel, Testversion, nicht in der Spielauswahl): index.html, spiel.js (3D-Kerker,
-                                  Helden aus dem Verlies als Fahrer, Monster als Übungsgegner, Fahrphysik, Neigen zum Lenken, Mehrspieler),
+  kart/                           „Kerker-Kart“ (Arbeitstitel, Testversion, auf der Startseite außerhalb des Abends): index.html, spiel.js (3D-Kerker,
+                                  Helden aus dem Verlies als Fahrer, Monster als Übungsgegner, Extras, Fahrphysik, Neigen zum Lenken, Mehrspieler),
+                                  strecke.js (Abschnitte und Varianten, Streckencode; die Strecke wird vor jedem Rennen neu gebaut),
                                   KONZEPT.md (Ausbauplan in Paketen). Heldenwappen kommen aus verlies/bilder.js. Testlink: …/kart/
                                   Zusammen fahren: jedes Handy rechnet sein Kart selbst und schickt 15×/s seinen Stand an den Spielleiter,
                                   der rechnet die Monster und verteilt alles. Zum Testen: ?auto (Kart fährt selbst), ?runden=1
