@@ -50,7 +50,11 @@ const KERKER = [
     { name: "Burggraben-Brücke", punkte: [[-150, -44], [-86, -2]],
       dinge: [{ art: "bruecke", von: .3, bis: .62 }], truhen: [.82] },
     { name: "Kanalisation mit Ratten", punkte: [[-182, -52], [-128, -8], [-64, 6]],
-      dinge: [{ art: "nass", von: .15, bis: .7, kanal: true }, { art: "ratten", bei: [.3, .55] }], truhen: [.85] }
+      dinge: [{ art: "nass", von: .15, bis: .7, kanal: true }, { art: "ratten", bei: [.3, .55] }], truhen: [.85] },
+    { name: "Gleitflug über den Burggraben", punkte: [[-156, -56], [-104, -6]],
+      dinge: [{ art: "rampe", von: .2, bis: .27, h: 2.6 }, { art: "gleit", von: .27, bis: .47 }], truhen: [.85] },
+    { name: "Gefluteter Burggraben", punkte: [[-176, -60], [-120, -12], [-60, 4]],
+      dinge: [{ art: "wasser", von: .12, bis: .8, strudel: [[.38, 2.6], [.62, -2.8]] }], truhen: [.9] }
   ] }
 ];
 
@@ -67,13 +71,17 @@ const GROTTE = [
     { name: "Schluchtkante", punkte: [[205, -10], [228, -50]],
       dinge: [{ art: "schlucht", von: .15, bis: .85, seite: "aussen" }], truhen: [.1] },
     { name: "Pilzsprung über die Schlucht", punkte: [[205, 22], [265, 22], [292, -8], [268, -42], [232, -50]],
-      dinge: [{ art: "schlucht", von: .08, bis: .78, seite: "innen" }, { art: "pilzsprung", bei: .17 }], truhen: [.88] }
+      dinge: [{ art: "schlucht", von: .08, bis: .78, seite: "innen" }, { art: "pilzsprung", bei: .17 }], truhen: [.88] },
+    { name: "Gleitflug über die große Schlucht", punkte: [[208, -6], [230, -48]],
+      dinge: [{ art: "rampe", von: .2, bis: .27, h: 2.6 }, { art: "gleit", von: .27, bis: .5 }], truhen: [.9] }
   ] },
   { name: "Tiefe", varianten: [
     { name: "Netztunnel", punkte: [[248, -150], [230, -200]],
       dinge: [{ art: "tunnel", von: .22, bis: .7 }], truhen: [.9] },
     { name: "Ufer am Höhlensee", punkte: [[262, -142], [240, -210]],
-      dinge: [{ art: "nass", von: .12, bis: .88, see: true }], truhen: [.95] }
+      dinge: [{ art: "nass", von: .12, bis: .88, see: true }], truhen: [.95] },
+    { name: "Durch den Höhlensee", punkte: [[256, -146], [236, -206]],
+      dinge: [{ art: "wasser", von: .1, bis: .85, strudel: [[.35, -2.6], [.55, 2.8], [.72, -1]] }], truhen: [.95] }
   ] },
   { name: "Nest", varianten: [
     { name: "Nest der Spinnenkönigin", punkte: [[110, -252]],
@@ -106,7 +114,9 @@ const GLUT = [
     { name: "Uferweg am Lavasee", punkte: [[200, -18], [228, -58]],
       dinge: [{ art: "lava", von: .15, bis: .85, seite: "aussen" }], truhen: [.1] },
     { name: "Geysirsprung über den Lavasee", punkte: [[200, 20], [262, 22], [292, -10], [270, -48], [236, -60]],
-      dinge: [{ art: "lava", von: .08, bis: .8, seite: "innen" }, { art: "geysirsprung", bei: .19 }], truhen: [.9] }
+      dinge: [{ art: "lava", von: .08, bis: .8, seite: "innen" }, { art: "geysirsprung", bei: .19 }], truhen: [.9] },
+    { name: "Gleitflug über den Lavasee", punkte: [[204, -12], [232, -56]],
+      dinge: [{ art: "rampe", von: .14, bis: .21, h: 2.6 }, { art: "gleit", von: .21, bis: .55, aufwind: [[.3, -3.5], [.4, 3.5], [.48, 0]] }], truhen: [.9] }
   ] },
   { name: "Glutfelder", varianten: [
     { name: "Geysirfeld", punkte: [[244, -160], [218, -215]],

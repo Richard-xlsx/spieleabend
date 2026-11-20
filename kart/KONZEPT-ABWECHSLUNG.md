@@ -300,3 +300,13 @@ Die Monster haben weiter ihr eigenes Gummiband. Es wirkt nur noch auf Monster, n
 - **Rundenzahl** wählt der Spielleiter in der Lobby: 2, 3 oder 4 (Standard 3).
 - Noch nicht umgesetzt: Gabelungen, die sich im Rennen ändern (Runde 2 öffnet einen Weg, Runde 3 stürzt einer ein). Das passt zu Paket 13 (Ereignisse).
 
+**Paket 12 ist umgesetzt** (siehe `spiel.js`, Abschnitt „Gleiten und Wasser“):
+
+- **Gleitstellen** als neue Varianten: Kerker „Gleitflug über den Burggraben“ (Heimweg), Grotte „Gleitflug über die große Schlucht“, Glutschlund „Gleitflug über den Lavasee“. Eine Schanze, dahinter ein Loch über die ganze Breite.
+- Nach dem Absprung klappen **Fledermausschwingen** auf. Man sinkt langsam und lenkt voll, mit dem Drift-Knopf geht es im Sturzflug schneller hinunter. Wer noch Höhe hat, gleitet über die Landestelle hinaus weiter und ist dabei etwas schneller als am Boden. Beim Landen gibt es kurz Schwung.
+- **Aufwindsäulen** im Glutschlund (drei über dem Lavasee) tragen nach oben. Die Magierin sinkt langsamer.
+- Wer zu langsam ist und ins Loch fällt, wird von den Fledermäusen auf die andere Seite getragen. Das kostet gut 2 Sekunden.
+- **Wasser** als neue Varianten: Kerker „Gefluteter Burggraben“, Grotte „Durch den Höhlensee“. Schwimmfässer klappen unter dem Kart heraus, es schaukelt, lenkt träger und rutscht mehr. In der Mitte trägt die Strömung (schneller), am Rand ist es langsamer. Schaumpfeile zeigen die Richtung.
+- **Strudel** drehen und bremsen, wer hineinfährt. Monster weichen ihnen aus. Die Magierin schwebt übers Wasser ohne Nachteil.
+- Noch nicht umgesetzt: zwei Landestellen beim Gleiten, Wasserfall-Abfahrt, treibende Lavaschollen im Glutschlund, Gabelung „Kanal oder Hof“.
+

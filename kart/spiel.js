@@ -1,7 +1,7 @@
 // Kerker-Kart (Arbeitstitel): Die Helden aus Dungeons & Disappointments fahren durch den Kerker.
 // Lenken durch Neigen des Handys im Querformat (wie ein Lenkrad) oder mit Tasten. Konzept: KONZEPT.md
 import * as THREE from "three";
-import { WELTEN, planWuerfeln, planCode, planAusCode, kontrollpunkte, rng } from "./strecke.js?v=2026-11-20m";
+import { WELTEN, planWuerfeln, planCode, planAusCode, kontrollpunkte, rng } from "./strecke.js?v=2026-11-20n";
 
 const $ = id => document.getElementById(id);
 const TEST_RUNDEN = +(new URLSearchParams(location.search).get("runden")) || 0;   // ?runden=1 zum Testen
@@ -102,6 +102,10 @@ let runen = [];                                     // Schubrunen auf der Fahrba
 // Echte Gabelungen: zwei getrennte Wege. Je Streckenpunkt die Mitte des linken (-1) und rechten (+1) Weges, quer zur Mittellinie.
 const WEG = new Uint8Array(S), WEG_L = new Float32Array(S), WEG_R = new Float32Array(S), WEG_LANG = new Int8Array(S);
 let wege = [];
+// Gleitstellen: Loch in der Strecke (kein Boden), davor eine Schanze; Gleiten erlaubt von der Schanze bis kurz nach dem Loch
+const LOCH = new Uint8Array(S), GLEIT = new Uint8Array(S), LOCH_ZIEL = new Int16Array(S);
+let gleitstellen = [], aufwinde = [], strudel = [];
+const BOOT = 2;                                     // BELAG: Wasser, das Kart schwimmt
 const WEG_RAND = BR / 2 + 2.5;                      // von der Wegmitte bis zur Mauer
 const wegMitte = (i, s) => s < 0 ? WEG_L[i] : WEG_R[i];
 const wegSeite = (i, d) => Math.abs(d - WEG_L[i]) < Math.abs(d - WEG_R[i]) ? -1 : 1;
@@ -247,7 +251,7 @@ function bau(i, seite, w, h, d, farbe, schild, gitter, quer) {
 
 // Alles wegräumen, was zur alten Strecke gehörte (geteilte Materialien bleiben)
 function entsorgen(g) {
-  const geteilt = new Set([...matCache.values(), ...glutCache.values(), scheinMat, scheinGruen, netzMat, ROT_RAND, MUENZ_MAT, lavaMat, dampfMat, fluegelMat]);
+  const geteilt = new Set([...matCache.values(), ...glutCache.values(), scheinMat, scheinGruen, netzMat, ROT_RAND, MUENZ_MAT, lavaMat, dampfMat, fluegelMat, schwingenMat, aufwindMat, pfeilMat, strudelMat, runenMat]);
   g.traverse(o => {
     if (o.geometry) o.geometry.dispose();
     const ms = Array.isArray(o.material) ? o.material : o.material ? [o.material] : [];
@@ -273,6 +277,7 @@ function streckeBauen(p) {
   }
   LAENGE = kurve.getLength(); SCHRITT = LAENGE / S; STRICH = meter(4);
   MAUERW.fill(MAUER); BELAG.fill(0); SCHLUCHT.fill(0); HOCH.fill(0); NEIG.fill(0); STEIG.fill(0); runen = []; WEG.fill(0); WEG_L.fill(0); WEG_R.fill(0); WEG_LANG.fill(0); wege = [];
+  LOCH.fill(0); GLEIT.fill(0); gleitstellen = []; aufwinde = []; strudel = [];
   rampen = []; gabeln = []; loren = []; pendel = []; pfosten = []; rattenStellen = []; troll = null; koenig = null; belegt = []; fackeln = [];
   pilzSprung = null; tropfen = []; schluchten = []; haengebruecken = [];
   geysire = []; geysirSprung = null; pfade = []; spalten = []; lavaHoch = false; flutBaender = [];
@@ -348,6 +353,17 @@ function streckeBauen(p) {
         const i0 = stelle(n, d.von), s = seiteVon(d.seite, n, (d.von + d.bis) / 2), laenge = vorab(stelle(n, d.bis), i0) * SCHRITT;
         loren.push({ i0, s, railD: s * (RAND + 3.4), laenge, weiche: laenge * (d.weiche - d.von) / (d.bis - d.von), tot: zufall() < .5 ? "ab" : "gerade" });
       }
+      else if (d.art === "gleit") {
+        const i0 = stelle(n, d.von), m = vorab(stelle(n, d.bis), i0), ende = wrap(i0 + m + meter(3));
+        for (let k = 0; k <= m; k++) { LOCH[wrap(i0 + k)] = 1; LOCH_ZIEL[wrap(i0 + k)] = ende; }
+        for (let k = -meter(3); k <= m + meter(30); k++) GLEIT[wrap(i0 + k)] = 1;
+        gleitstellen.push({ i0, m, ende });
+        for (const [u, dd] of d.aufwind || []) { const i = stelle(n, u), q = punkt(i, dd); aufwinde.push({ i, d: dd, x: q.x, z: q.z }); }
+      }
+      else if (d.art === "wasser") {
+        const i0 = stelle(n, d.von), m = vorab(stelle(n, d.bis), i0); for (let k = 0; k <= m; k++) BELAG[wrap(i0 + k)] = BOOT; a.nass = [i0, m]; a.wasser = [i0, m];
+        for (const [u, dd] of d.strudel || []) { const i = stelle(n, u), q = punkt(i, dd); strudel.push({ i, d: dd, x: q.x, z: q.z }); }
+      }
       else if (d.art === "weggabel") wegAnlegen(stelle(n, d.von), vorab(stelle(n, d.bis), stelle(n, d.von)), d);
       else if (d.art === "pendel") d.bei.forEach((u, k) => pendel.push({ i: stelle(n, u), phase: k * 2.1 }));
       else if (d.art === "faesser" || d.art === "ruestung" || d.art === "tropfstein" || d.art === "kristall" || d.art === "obsidian") for (const [u, dd] of d.stuecke) { const q = punkt(stelle(n, u), dd); pfosten.push({ x: q.x, z: q.z, r: d.art === "faesser" ? .75 : d.art === "ruestung" ? .7 : .85, art: d.art, rot: q.rot, i: stelle(n, u), d: dd }); }
@@ -375,13 +391,14 @@ function streckeBauen(p) {
   // Fahrbahn
   const nassFarbe = TH.nass, PLATTE = TH.platte;
   ausserhalbWege((von, bis) => {
-    for (let j = 0; j < 3; j++) band(-BR / 2 + j * BR / 3, -BR / 2 + (j + 1) * BR / 3, i => (BELAG[wrap(i)] ? nassFarbe : PLATTE)[(Math.floor(i / (STRICH * .75) + j * .5) + j) % 3], .05, von, bis);
+    for (let j = 0; j < 3; j++) band(-BR / 2 + j * BR / 3, -BR / 2 + (j + 1) * BR / 3, i => BELAG[wrap(i)] === BOOT ? TH.wasser[(Math.floor(i / STRICH) + (j === 1 ? 1 : 0)) % 2] : (BELAG[wrap(i)] ? nassFarbe : PLATTE)[(Math.floor(i / (STRICH * .75) + j * .5) + j) % 3], .05, von, bis);
     for (const sg of [-1, 1]) {
       band(sg * BR / 2, sg * (BR / 2 + 1.3), i => (Math.floor(i / (STRICH * .6)) % 2 ? TH.kante[0] : TH.kante[1]), .05, von, bis);
       band(sg * RAND, i => sg * (MAUERW[i] + .2), i => MAUERW[wrap(i)] < MAUER ? (welt === "glut" ? "#9A3412" : "#1E3A44") : (Math.floor(i / STRICH) % 3 ? TH.geroell[0] : TH.geroell[1]), .03, von, bis);
     }
   });
   wegeBauen();
+  gleitWasserBauen();
   // Wasser unter Brücke und in der Kanalisation
   for (const a of abschnitte) {
     if (a.bruecke) for (const sg of [-1, 1]) {
@@ -437,7 +454,7 @@ function streckeBauen(p) {
     for (let j = 0; j < n; j++) {
       const i = Math.floor(j * S / n);
       if (rampen.some(r => r.treppe && vorab(i, wrap(r.i0 - 8)) <= r.n + 12)) continue;
-      if (WEG[i]) continue;
+      if (WEG[i] || LOCH[i]) continue;
       for (const s of [-1, 1]) {
         const rot = Math.atan2(TX[i], TZ[i]) + Math.PI / 2;
         if (SCHLUCHT[i] === s || SCHLUCHT[i] === 2) continue;
@@ -537,6 +554,7 @@ function huegelBauen() {
   if (koenig) sperr(koenig.i, 0, meter(45));
   for (const a of abschnitte) for (const z of [a.bruecke, a.nass, a.kanal]) if (z) sperr(z[0], z[1]);
   for (const W of wege) sperr(W.i0, W.n, meter(20));
+  for (const g of gleitstellen) sperr(g.i0, g.m + meter(30), meter(30));
   for (let i = 0; i < S; i += 3) {                 // wo die Strecke nah an sich selbst vorbeiführt
     if (flach[i]) continue;
     for (const sg of [-1, 1]) { const q = punkt(i, sg * RANDW); if (nahPunkt(q.x, q.z, RANDW + 8, i, meter(60)) >= 0) { sperr(i, 3, meter(6)); break; } }
@@ -723,9 +741,69 @@ function wegeBauen() {
 }
 // Fahrbahn-Bänder nur außerhalb der Gabelungen bauen
 function ausserhalbWege(fn) {
-  if (!wege.length) { fn(0, S); return; }
-  const l = wege.slice().sort((a, b) => a.i0 - b.i0);
+  const l = [...wege, ...gleitstellen.map(g => ({ i0: g.i0, n: g.m }))].sort((a, b) => a.i0 - b.i0);
+  if (!l.length) { fn(0, S); return; }
   for (let n = 0; n < l.length; n++) { const a = l[n].i0 + l[n].n, b = n + 1 < l.length ? l[n + 1].i0 : l[0].i0 + S; if (b > a) fn(a, b); }
+}
+
+// ---------- Gleiten und Wasser ----------
+const schwingenMat = new THREE.MeshLambertMaterial({ color: "#2A1E2E", side: THREE.DoubleSide });
+function schwinge(x) {
+  const geo = new THREE.BufferGeometry(), p = [];
+  const pk = [[0, 0, .6], [x * 1.2, .25, .3], [x * 2.3, .45, .1], [x * 3.3, .6, -.2], [x * 2.6, .1, -.9], [x * 1.9, .2, -.6], [x * 1.3, 0, -1.1], [x * .6, .1, -.7], [0, 0, -.9]];
+  for (let n = 1; n < pk.length - 1; n++) p.push(...pk[0], ...pk[n], ...pk[n + 1]);
+  geo.setAttribute("position", new THREE.Float32BufferAttribute(p, 3)); geo.computeVertexNormals();
+  const m = new THREE.Mesh(geo, schwingenMat); return m;
+}
+const aufwindMat = new THREE.MeshBasicMaterial({ color: "#FFB070", transparent: true, opacity: .16, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
+const pfeilMat = (() => {
+  const cv = document.createElement("canvas"); cv.width = cv.height = 64; const x = cv.getContext("2d");
+  x.strokeStyle = "rgba(235,250,255,.75)"; x.lineWidth = 8; x.lineCap = "round"; x.lineJoin = "round";
+  x.beginPath(); x.moveTo(14, 44); x.lineTo(32, 22); x.lineTo(50, 44); x.stroke();
+  return new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(cv), transparent: true, depthWrite: false });
+})();
+const strudelMat = (() => {
+  const cv = document.createElement("canvas"); cv.width = cv.height = 128; const x = cv.getContext("2d");
+  x.strokeStyle = "rgba(220,245,255,.8)"; x.lineWidth = 5;
+  for (let a = 0; a < 3; a++) { x.beginPath(); for (let t = 0; t < 60; t++) { const r = 6 + t, w = t * .12 + a * 2.1; x.lineTo(64 + Math.cos(w) * r, 64 + Math.sin(w) * r); } x.stroke(); }
+  return new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(cv), transparent: true, depthWrite: false });
+})();
+let strudelM = [], aufwindM = [];
+function gleitWasserBauen() {
+  // Loch: Abgrund (Grotte), Burggraben (Kerker) oder Lava (Glutschlund) über die ganze Breite
+  for (const g of gleitstellen) {
+    const von = g.i0, bis = g.i0 + g.m;
+    if (welt === "glut") lavaBand(-MAUER - 30, MAUER + 30, .04, von, bis);
+    else band(-MAUER - 30, MAUER + 30, i => welt === "kerker" ? TH.wasser[Math.floor(i / STRICH) % 2] : (Math.floor(i / STRICH) % 2 ? "#040807" : "#060C0A"), .04, von, bis);
+    // Felskanten an beiden Enden
+    for (const [i, s] of [[von, 1], [wrap(bis), -1]]) {
+      const q = punkt(i, 0), k = new THREE.Mesh(new THREE.BoxGeometry(2 * MAUER + 3, .8, 1.2), M(TH.stein[1]));
+      k.position.set(q.x - TX[i] * s * .6, -.3, q.z - TZ[i] * s * .6); k.rotation.y = q.rot; streckeG.add(k);
+    }
+  }
+  aufwindM = aufwinde.map(A => {
+    const g = new THREE.Group();
+    for (const r of [3.6, 2.4]) { const c = new THREE.Mesh(new THREE.CylinderGeometry(r, r * .8, 18, 16, 1, true), aufwindMat); c.position.y = 7; g.add(c); }
+    g.position.set(A.x, 0, A.z); streckeG.add(g); return g;
+  });
+  // Wasser: Schaumpfeile zeigen die Strömung, Strudel drehen sich
+  const pf = [];
+  for (const a of abschnitte) if (a.wasser) for (let k = meter(6); k < a.wasser[1]; k += meter(9)) { const i = wrap(a.wasser[0] + k), q = punkt(i, 0); pf.push([q.x, .08, q.z, q.rot]); }
+  if (pf.length) { const g = new THREE.PlaneGeometry(2.6, 2.6); g.rotateX(-Math.PI / 2); g.rotateY(Math.PI); instanzen(g, pfeilMat, pf, false).receiveShadow = false; }
+  strudelM = strudel.map(W => { const m = new THREE.Mesh(new THREE.CircleGeometry(3.6, 24), strudelMat); m.rotation.x = -Math.PI / 2; m.position.set(W.x, .1, W.z); streckeG.add(m); return m; });
+}
+function gleitWasserZeigen(dt) {
+  for (const m of strudelM) m.rotation.z += dt * 3;
+  aufwindM.forEach((g, n) => { g.children.forEach((c, j) => c.rotation.y += dt * (j ? -2 : 1.4)); g.children[0].material.opacity = .14 + Math.sin(uhr * 3 + n) * .04; });
+}
+// Strudel (nur für selbst gefahrene Karts)
+function strudelPruefen(k, dt) {
+  if (k.luft || BELAG[k.idx] !== BOOT || k.typ === "magierin") return;
+  for (const W of strudel) {
+    const q = (W.x - k.x) ** 2 + (W.z - k.z) ** 2; if (q > 14) continue;
+    k.yaw += 2.8 * dt; k.v *= Math.max(0, 1 - .9 * dt);
+    if (k.ich && !(k.strudelUhr > uhr)) { melden("Strudel! 🌀", .9); k.strudelUhr = uhr + 2; }
+  }
 }
 
 // Fallgitter, Druckplatten, brüchige Wand, Lorenbahn, Troll, Pendel, Fässer, Rüstungen, Ratten, Knochenkönig
@@ -1599,6 +1677,8 @@ class Kart {
     this.zzzM = new THREE.Group(); for (let i = 0; i < 3; i++) this.zzzM.add(new THREE.Sprite(zzzMat)); this.zzzM.visible = false; this.g.add(this.zzzM);
     this.kroeteM = kroetenModell(this.farbe); this.kroeteM.visible = false; this.g.add(this.kroeteM);
     this.kroneM = kronenModell(); this.kroneM.visible = false; this.g.add(this.kroneM);
+    this.schwingenM = new THREE.Group(); this.schwingenM.add(schwinge(1), schwinge(-1)); this.schwingenM.position.set(0, 2.5, -.2); this.schwingenM.visible = false; this.g.add(this.schwingenM);
+    this.faesserM = new THREE.Group(); for (const x of [-1.15, 1.15]) teil(this.faesserM, zyl(.42, .42, 2.6, 10), "#7A5434", x, .15, 0, Math.PI / 2); this.faesserM.visible = false; this.g.add(this.faesserM);
     sc.add(this.g);
   }
   setzen(i, d) {
@@ -1611,7 +1691,7 @@ class Kart {
     this.schonzeit = this.netz = this.bremse = this.fleder = this.sporen = this.erholung = this.holper = 0;
     this.absturz = null; this.wurzel = 0; this.riss = null; this.pfad = null; this.geysirUhr = 0;
     this.kraft = 0; this.gold = 0; this.wirbel = this.wall = this.unsicht = this.wind = this.segen = this.eis = this.glatt = this.skelette = this.skelettUhr = 0; this.klauVor = null; this.wirbelGetroffen = null;
-    this.schlaf = this.kroete = this.fluegel = 0; this.rw = this.rwA = 1; this.krone = false; this.goldtruhe = false;
+    this.schlaf = this.kroete = this.fluegel = 0; this.rw = this.rwA = 1; this.krone = false; this.goldtruhe = false; this.gleit = 0;
   }
   suchen() {                                     // nächster Streckenpunkt über die ganze Runde
     let best = Infinity, bi = 0;
@@ -1624,7 +1704,7 @@ class Kart {
     this.schild = !!(fx & 1); this.amulett = fx & 2 ? 1 : 0; this.netz = fx & 4 ? 1 : 0; this.fleder = fx & 8 ? 1 : 0; this.schonzeit = fx & 16 ? 1 : 0;
     this.wirbel = fx & 64 ? 1 : 0; this.wall = fx & 128 ? 1 : 0; this.unsicht = fx & 256 ? 1 : 0; this.eis = fx & 512 ? 1 : 0; this.segen = fx & 1024 ? 1 : 0; this.wind = fx & 2048 ? 1 : 0;
     this.skelette = (fx & 4096 ? 1 : 0) + (fx & 8192 ? 1 : 0); this.abst = !!(fx & 16384); this.dreher = fx & 32768 ? 1 : 0;
-    this.schlaf = fx & 65536 ? 1 : 0; this.kroete = fx & 131072 ? 1 : 0; this.fluegel = fx & 262144 ? 1 : 0;
+    this.schlaf = fx & 65536 ? 1 : 0; this.kroete = fx & 131072 ? 1 : 0; this.fluegel = fx & 262144 ? 1 : 0; this.gleit = fx & 524288 ? 1 : 0;
     const erst = !this.nz;
     this.nz = { x, y, z, yaw, v, t: performance.now() };
     this.s = s; this.drift = drift; this.boost = boost || fx & 32 ? .2 : 0; this.ladung = ladung; this.netzProg = prog;
@@ -1647,7 +1727,7 @@ class Kart {
     const fx = (this.schild ? 1 : 0) | (this.amulett > 0 ? 2 : 0) | (this.netz > 0 ? 4 : 0) | (this.fleder > 0 ? 8 : 0) | (this.schonzeit > 0 && !(this.dreher > 0) ? 16 : 0) | (this.haken ? 32 : 0)
       | (this.wirbel > 0 ? 64 : 0) | (this.wall > 0 ? 128 : 0) | (this.unsicht > 0 ? 256 : 0) | (this.eis > 0 ? 512 : 0) | (this.segen > 0 ? 1024 : 0) | (this.wind > 0 ? 2048 : 0)
       | (this.skelette > 0 ? 4096 : 0) | (this.skelette > 1 ? 8192 : 0) | (this.absturz ? 16384 : 0) | (this.dreher > 0 ? 32768 : 0)
-      | (this.schlaf > 0 ? 65536 : 0) | (this.kroete > 0 ? 131072 : 0) | (this.fluegel > 0 ? 262144 : 0);
+      | (this.schlaf > 0 ? 65536 : 0) | (this.kroete > 0 ? 131072 : 0) | (this.fluegel > 0 ? 262144 : 0) | (this.gleit ? 524288 : 0);
     return [r2(this.x), r2(this.y), r2(this.z), r2(this.yaw), r2(this.v), r2(this.s), this.drift, this.boost > 0 ? 1 : 0, this.prog, r2(this.ladung), fx];
   }
   naechster() {
@@ -1659,10 +1739,11 @@ class Kart {
   }
   schritt(dt, ein) {
     const st = this.st;
-    const offroad = Math.abs(wegQuer(this.idx, this.d)) > RAND && !this.luft, nass = BELAG[this.idx] && !this.luft;
+    const offroad = Math.abs(wegQuer(this.idx, this.d)) > RAND && !this.luft, nass = BELAG[this.idx] === 1 && !this.luft;
+    const boot = BELAG[this.idx] === BOOT && !this.luft && this.typ !== "magierin";   // schwimmt: Mitte schnell (Strömung), Rand langsam
     if (this.boost > 0) this.boost -= dt;
     if (this.dreher > 0) this.dreher -= dt;
-    let maxV = st.maxV * (offroad ? (st.gelaende || .5) : nass ? 1.1 : 1);
+    let maxV = st.maxV * (offroad ? (st.gelaende || .5) : nass ? 1.1 : boot ? .84 + .28 * Math.max(0, 1 - Math.abs(this.d) / (BR / 2)) : 1);
     if (this.netz > 0) maxV *= .7;
     if (this.bremse > 0) maxV *= .55;
     if (this.holper > 0) maxV *= .5;
@@ -1693,12 +1774,12 @@ class Kart {
       if (this.ladung > 1.7) this.boost = Math.max(this.boost, 1.2); else if (this.ladung > .8) this.boost = Math.max(this.boost, .6);
       this.drift = 0; this.ladung = 0;
     }
-    let s = this.s, wende = st.turn * (this.luft ? 1 : 1 + Math.abs(NEIG[this.idx]) * 2.5);    // Steilkurve: lenkt sich leichter
+    let s = this.s, wende = st.turn * (this.luft ? 1 : 1 + Math.abs(NEIG[this.idx]) * 2.5) * (boot ? .85 : 1);    // Steilkurve: lenkt sich leichter
     if (this.drift) { s = this.drift * .6 + this.s * .5; wende *= st.drift; this.ladung += dt * (.6 + Math.abs(s) * .6); if (phase === "rennen") kraftLaden(this, dt * (this.typ === "moench" ? .05 : .025)); }
-    let rate = -s * wende * Math.min(1, Math.max(Math.abs(this.v), 3) / 10) * (this.v < -.5 ? -1 : 1) * (this.luft ? .35 : 1);   // auch langsam etwas lenkbar
+    let rate = -s * wende * Math.min(1, Math.max(Math.abs(this.v), 3) / 10) * (this.v < -.5 ? -1 : 1) * (this.luft && !this.gleit ? .35 : 1);   // auch langsam etwas lenkbar
     if (this.dreher > 0) rate = 0;                 // beim Dreher dreht sich nur das Modell (zeigen), Fahrtrichtung und Blick bleiben
     this.yaw += rate * dt;
-    const k = this.eis > 0 ? .5 : this.wind > 0 ? 16 : (this.drift ? 2.6 : st.grip) * (1 + Math.abs(NEIG[this.idx]) * 4) * (nass ? .55 : 1) * (this.glatt > 0 ? .3 : 1) * (fluch === "glatteis" ? .4 : 1);
+    const k = this.eis > 0 ? .5 : this.wind > 0 ? 16 : (this.drift ? 2.6 : st.grip) * (1 + Math.abs(NEIG[this.idx]) * 4) * (nass ? .55 : boot ? .5 : 1) * (this.glatt > 0 ? .3 : 1) * (fluch === "glatteis" ? .4 : 1);
     let diff = this.yaw - this.mh; diff = Math.atan2(Math.sin(diff), Math.cos(diff));
     this.mh += diff * (1 - Math.exp(-k * dt));
     if (this.dreher > 0) this.mh = this.mhFest;
@@ -1720,14 +1801,23 @@ class Kart {
       this.v *= Math.max(0, 1 - 3 * dt); this.yaw += sg * .9 * dt * Math.sign(Math.cos(this.mh - Math.atan2(TX[this.idx], TZ[this.idx])));   // von der Mauer weg drehen
     }
     // Höhe / Sprung
-    const g = hoehe(this.idx, this.d);
+    const loch = LOCH[this.idx] && !(this.fluegel > 0), g = loch ? -60 : hoehe(this.idx, this.d);
     if (!this.luft) {
       if (g >= this.y - .05) { this.vy = (g - this.y) / Math.max(dt, .001); this.y = g; }
       else { this.luft = true; this.vy = Math.min(this.vy, 12); }
     }
     if (this.luft) {
-      this.vy -= 32 * dt; this.y += this.vy * dt;
-      if (this.y <= g) { this.y = g; this.luft = false; this.vy = 0; this.landung = .25; }
+      if (!this.gleit && GLEIT[this.idx] && this.vy < 2 && phase === "rennen") { this.gleit = 1; if (this.ich) { melden("Fledermausschwingen! 🦇 Lenken!", 1.1); summen(40); } }
+      if (this.gleit) {                            // Gleiten: langsam sinken, Drift-Knopf = Sturzflug, Aufwind trägt nach oben
+        const sink = (ein.drift ? 7.5 : 2.4) * (this.typ === "magierin" ? .78 : 1);
+        this.vy = Math.max(this.vy - 32 * dt, -sink);
+        for (const A of aufwinde) if ((A.x - this.x) ** 2 + (A.z - this.z) ** 2 < 14) this.vy = Math.min(this.vy + 34 * dt, 4.5);
+        this.v += (st.maxV * (ein.drift ? 1.35 : 1.2) - this.v) * Math.min(1, dt * .8);
+        if (!GLEIT[this.idx] && !loch) this.gleit = 0;
+      } else this.vy -= 32 * dt;
+      this.y += this.vy * dt;
+      if (this.y <= g) { this.y = g; this.luft = false; this.vy = 0; this.landung = .25; if (this.gleit) { this.gleit = 0; this.boost = Math.max(this.boost, .4); } }
+      else if (loch && this.y < -4 && phase === "rennen") { this.gleit = 0; absturz(this, LOCH_ZIEL[this.idx]); }
     }
     if (this.landung > 0) this.landung -= dt;
   }
@@ -1755,6 +1845,11 @@ class Kart {
     this.netzM.visible = this.netz > 0; if (this.netzM.visible) this.netzM.rotation.y = Math.sin(t * 9) * .2;
     this.flederM.visible = this.fleder > 0 || !!this.absturz || !!this.abst || this.fluegel > 0;
     if (this.fluegel > 0) this.koerper.position.y += 1 + Math.sin(t * 6) * .2;
+    this.schwingenM.visible = !!this.gleit;
+    if (this.gleit) this.schwingenM.children.forEach((w, n) => w.rotation.z = (n ? -1 : 1) * Math.sin(t * 7) * .18);
+    const schwimmt = BELAG[this.idx] === BOOT && !this.luft && this.typ !== "magierin" && !this.absturz;
+    this.faesserM.visible = schwimmt;
+    if (schwimmt) { this.koerper.position.y += .35 + Math.sin(t * 3.1 + this.x * .3) * .12; this.koerper.rotation.z += Math.sin(t * 2.2 + this.z * .2) * .07; this.koerper.rotation.x += Math.sin(t * 1.7 + this.x * .2) * .04; }
     this.kroneM.visible = !!this.krone && !(this.kroete > 0); if (this.kroneM.visible) { this.kroneM.rotation.y = t * 1.5; this.kroneM.position.y = 2.75 + Math.sin(t * 3) * .08; }
     if (this.flederM.visible) this.flederM.children.forEach((f, i) => { const w = t * 5 + i * 2.1; f.position.set(Math.sin(w) * 1.2, 2.3 + Math.sin(t * 9 + i) * .25, Math.cos(w) * 1.2 + .6); f.rotation.y = w + Math.PI / 2; f.children[1].rotation.x = f.children[2].rotation.x = Math.sin(t * 30 + i) * .6; });
     this.koerper.visible = !(this.schonzeit > 0 && !(this.dreher > 0) && Math.floor(t * 12) % 2 === 0);
@@ -2774,9 +2869,10 @@ function flugSchritt(k, dt) {
 function absturz(k, zurueck) {
   if (k.absturz || k.fluegel > 0) return;
   const zi = zurueck ?? wrap(k.idx - meter(3));
-  k.absturz = { t: 0, vx: Math.sin(k.mh) * k.v * .4, vz: Math.cos(k.mh) * k.v * .4, zi, prog: k.prog - vorab(k.idx, zi), y0: k.y, tempo: hinten(k) ? 2 / 1.2 : 1 };
+  let zur = vorab(k.idx, zi); if (zur > S / 2) zur -= S;                      // Ziel kann auch vorn liegen (nach einem Loch)
+  k.absturz = { t: 0, vx: Math.sin(k.mh) * k.v * .4, vz: Math.cos(k.mh) * k.v * .4, zi, prog: k.prog - zur, y0: k.y, tempo: hinten(k) ? 2 / 1.2 : 1 };
   k.drift = 0; k.ladung = 0; k.boost = 0; k.haken = null; k.v = 0; k.dreher = 0; k.luft = true;
-  if (k.ich) { melden(welt === "glut" ? "In die Lava! 🔥 Fledermäuse holen dich" : "Abgestürzt! Fledermäuse holen dich 🦇", 1.8); summen(150); wackeln = Math.max(wackeln, .4); }
+  if (k.ich) { melden(welt === "glut" ? "In die Lava! 🔥 Fledermäuse holen dich" : LOCH[k.idx] && welt === "kerker" ? "Platsch! In den Burggraben 🦇" : "Abgestürzt! Fledermäuse holen dich 🦇", 1.8); summen(150); wackeln = Math.max(wackeln, .4); }
 }
 function absturzSchritt(k, dt) {
   const A = k.absturz; A.t += dt * (A.tempo || 1);
@@ -3087,7 +3183,7 @@ function botEingabe(k, dt) {
     k.spurZiel = klemmen(od > 0 ? od - breit - 1.2 : od + breit + 1.2, -BR / 2 + 1.5, BR / 2 - 1.5); k.botTimer = Math.max(k.botTimer, 1.2);
     k.spur += (k.spurZiel - k.spur) * Math.min(1, dt * 2.5);
   }
-  if (k.typ !== "pilzling" && phase === "rennen") for (const g of geysire) {      // Geysiren auf der Fahrbahn ausweichen
+  if (k.typ !== "pilzling" && phase === "rennen") for (const g of [...geysire, ...strudel]) {      // Geysiren auf der Fahrbahn ausweichen
     const m = vorab(g.i, k.idx) * SCHRITT;
     if (m < 3 || m > 28 || Math.abs(g.d - k.spur) > 2.6) continue;
     k.spurZiel = klemmen(g.d > 0 ? g.d - 3.9 : g.d + 3.9, -BR / 2 + 1.5, BR / 2 - 1.5); k.botTimer = Math.max(k.botTimer, 1.2);
@@ -3185,11 +3281,12 @@ function update(dt) {
     // Kisten
     if (rennt && k.fertig == null) for (const b of kisten) if (!b.weg && Math.hypot(b.x - k.x, b.z - k.z) < 1.8 && k.y - (b.h || 0) < 2.5) truheNehmen(k, b);
     if (rennt && k.fertig == null && runen.length) runenPruefen(k);
+    if (rennt && strudel.length) strudelPruefen(k, dt);
     if (rennt && k.fertig == null) for (const mz of muenzen) if (!mz.weg && Math.abs(mz.y - 1 - k.y) < 1.6 && (mz.x - k.x) ** 2 + (mz.z - k.z) ** 2 < 2.9) goldNehmen(k, mz);
   }
   stossen();
   if (rennt || phase === "ziel") objekteSchritt(dt);
-  streckeZeigen(dt); koenigLenken(dt);
+  streckeZeigen(dt); koenigLenken(dt); gleitWasserZeigen(dt);
   truhenZeigen(dt);
   if (wackeln > 0) wackeln = Math.max(0, wackeln - dt);
   if (meldTimer > 0) { meldTimer -= dt; if (meldTimer <= 0) $("meldung").hidden = true; }
@@ -3838,4 +3935,4 @@ else if (code) menue("einladung");
 else menue("start");
 requestAnimationFrame(loop);
 window.KART = { get phase() { return phase; }, get ich() { return ich; }, karts: () => karts, ein, S, get LAENGE() { return LAENGE; }, get liste() { return liste; }, get modus() { return modus; },
-  sim(sek) { for (let t = 0; t < sek; t += 1 / 60) { update(1 / 60); } }, aufbauen: rennenAufbauen, cam, sc, r, THREE, streckeBauen, planWuerfeln, planCode, get plan() { return plan; }, get strecke() { return { wege, abschnitte, gabeln, loren, troll, pendel, pfosten, rattenStellen, koenig, rampen, pilzSprung, tropfen, schluchten, haengebruecken, welt, geysire, geysirSprung, pfade, spalten, lavaHoch }; }, SCHLUCHT, absturz, PX, PZ, set uhr(v) { uhr = v; }, objekte, extraNutzen, kisten, treffen, versetzen, anwenden, ereignis, schritte(sek) { for (let t = 0; t < sek; t += 1 / 30) { update(1 / 30); karts.forEach(k => k.zeigen(performance.now())); hud(1 / 30); } }, neigung: () => neigung, lenkWert, kraftNutzen, muenzen, wirkung, set steuerung(v) { steuerung = v; }, get fz() { return fz; }, fzWeiter, fluchGewaehlt, ehrungZeigen, zuschauen, get zuschauer() { return zuschauer; }, get fluch() { return fluch; }, get ausgleich() { return ausgleich; }, set ausgleich(v) { ausgleich = v; }, menschLage, hinten, platzVon, truheNehmen, get liste() { return liste; }, set testKamera(v) { testKamera = v; }, HOCH, NEIG, STEIG, WEG, WEG_L, WEG_R, get runen() { return runen; }, hoehe, hoeheAn };
+  sim(sek) { for (let t = 0; t < sek; t += 1 / 60) { update(1 / 60); } }, aufbauen: rennenAufbauen, cam, sc, r, THREE, streckeBauen, planWuerfeln, planCode, get plan() { return plan; }, get strecke() { return { wege, abschnitte, gabeln, loren, troll, pendel, pfosten, rattenStellen, koenig, rampen, pilzSprung, tropfen, schluchten, haengebruecken, welt, geysire, geysirSprung, pfade, spalten, lavaHoch }; }, SCHLUCHT, absturz, PX, PZ, set uhr(v) { uhr = v; }, objekte, extraNutzen, kisten, treffen, versetzen, anwenden, ereignis, schritte(sek) { for (let t = 0; t < sek; t += 1 / 30) { update(1 / 30); karts.forEach(k => k.zeigen(performance.now())); hud(1 / 30); } }, neigung: () => neigung, lenkWert, kraftNutzen, muenzen, wirkung, set steuerung(v) { steuerung = v; }, get fz() { return fz; }, fzWeiter, fluchGewaehlt, ehrungZeigen, zuschauen, get zuschauer() { return zuschauer; }, get fluch() { return fluch; }, get ausgleich() { return ausgleich; }, set ausgleich(v) { ausgleich = v; }, menschLage, hinten, platzVon, truheNehmen, get liste() { return liste; }, set testKamera(v) { testKamera = v; }, HOCH, NEIG, STEIG, WEG, WEG_L, WEG_R, LOCH, GLEIT, BELAG, get gleitstellen() { return gleitstellen; }, get aufwinde() { return aufwinde; }, get strudel() { return strudel; }, get runen() { return runen; }, hoehe, hoeheAn };
