@@ -332,3 +332,12 @@ Die Monster haben weiter ihr eigenes Gummiband. Es wirkt nur noch auf Monster, n
 - **Klänge** (im Handy erzeugt, im Menü während des Rennens abschaltbar): Ansage, je Extra ein eigener Ton, Gelächter des Mimiks, „Hach“ des mitleidigen Mimiks, Brüllen der Endgegner, Gold, Treffer, Klatschen, Klappern.
 - Zum Testen: `?ereignis=horde` (oder goldregen, dunkel, haendler, fieber, geist) erzwingt das Ereignis gleich in Runde 1.
 - Noch nicht umgesetzt: „Steigendes Wasser“ und ein Einsturz als Zufallsereignis (der Einsturz kommt stattdessen fest in der letzten Runde).
+
+**Paket 14, Teil 1: Brücken über die eigene Strecke** (siehe `strecke.js`, „schleife“, und `spiel.js`, Abschnitt „Brücken über die eigene Strecke“):
+
+- Je Welt eine neue Variante mit einer **Schleife**: Kerker „Gewölbeschleife mit Kellerbrücke“, Grotte „Wurzelschleife mit Steinbrücke“, Glutschlund „Schlundschleife mit Obsidianbrücke“.
+- Die Strecke biegt zur Seite ab, dreht eine Schleife und fährt danach im rechten Winkel **über sich selbst hinweg**. Beim ersten Mal fährt man unten durch, beim zweiten Mal auf der Brücke darüber.
+- Die Brücke ist 6,6 m hoch: 55 m Auffahrt, 32 m oben, 42 m Abfahrt. Sie hat eine steinerne Brüstung mit Laternen und ist etwas schmaler. Darunter steht eine Viaduktwand, die über der unteren Strecke offen ist.
+- Karts, Fallen, Truhen und Gold unten und oben stören sich nicht. Zusammenstöße, Fallen und Truhen zählen nur auf derselben Höhe.
+- Eine Runde mit Schleife dauert für Bots etwa 60 Sekunden.
+- Zum Testen: `?strecke=KERKER-00000030-1234`, `?strecke=GROTTE-00000020-1234`, `?strecke=GLUT-00000020-1234`.

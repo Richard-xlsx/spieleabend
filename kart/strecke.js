@@ -6,6 +6,14 @@
 // Stellen sind Anteile u von 0 (Anfang des Abschnitts) bis 1 (Ende). Seiten: +1 / -1 quer zur Fahrtrichtung,
 // "innen" heißt: zur Innenseite der Kurve (wird beim Bauen ausgerechnet).
 
+// Schleife mit Brücke: Die Strecke dreht eine Schleife zur Seite (seite +1/-1) und fährt danach auf einer Brücke
+// über sich selbst hinweg, im rechten Winkel. Die Form ist eine Alpha-Kurve zwischen den Knoten P und Q.
+function schleife(name, P, Q, seite, dinge = [], truhen = [.04], K = 62) {
+  const dx = Q[0] - P[0], dz = Q[1] - P[1], l = Math.hypot(dx, dz), ux = dx / l, uz = dz / l, px = -uz * seite, pz = ux * seite;
+  const punkte = [-1.1, -.8, -.45, 0, .45, .8, 1.1].map(t => { const a = K * (t ** 3 - t), q = K * (1 - t * t); return [Math.round(P[0] + dx / 2 + ux * a + px * q), Math.round(P[1] + dz / 2 + uz * a + pz * q)]; });
+  return { name, punkte, truhen, dinge: [{ art: "ueberfuehrung" }, ...dinge] };
+}
+
 const KERKER_KNOTEN = [[0, 0], [150, -8], [196, -150], [92, -236], [-64, -226], [-170, -112]];
 
 const KERKER = [
@@ -44,7 +52,8 @@ const KERKER = [
       dinge: [{ art: "troll", bei: .16 }], truhen: [.66] },
     { name: "Waffenkammer mit Rüstungen", punkte: [[-112, -232], [-156, -204]],
       dinge: [{ art: "haus", bei: .5, seite: "aussen", w: 16, h: 9, d: 22, farbe: "#5F5850", schild: "WAFFENKAMMER" },
-        { art: "ruestung", stuecke: [[.3, 2.6], [.42, -3.2], [.55, .4], [.68, 3.4], [.78, -2.4]] }], truhen: [.12] }
+        { art: "ruestung", stuecke: [[.3, 2.6], [.42, -3.2], [.55, .4], [.68, 3.4], [.78, -2.4]] }], truhen: [.12] },
+    schleife("Gewölbeschleife mit Kellerbrücke", KERKER_KNOTEN[4], KERKER_KNOTEN[5], 1)
   ] },
   { name: "Heimweg", varianten: [
     { name: "Burggraben-Brücke", punkte: [[-150, -44], [-86, -2]],
@@ -91,7 +100,8 @@ const GROTTE = [
     { name: "Eierkammer", punkte: [[-30, -240], [-80, -205]],
       dinge: [{ art: "spinnen", bei: [.35, .6] }, { art: "eier", bei: .48, seite: "aussen" }], truhen: [.85] },
     { name: "Hängebrücke über die Schlucht", punkte: [[-40, -246], [-85, -200]],
-      dinge: [{ art: "haengebruecke", von: .3, bis: .66 }], truhen: [.86] }
+      dinge: [{ art: "haengebruecke", von: .3, bis: .66 }], truhen: [.86] },
+    schleife("Wurzelschleife mit Steinbrücke", GROTTE_KNOTEN[4], GROTTE_KNOTEN[5], 1)
   ] },
   { name: "Heimweg", varianten: [
     { name: "Kristallhöhle", punkte: [[-105, -75], [-60, -20]],
@@ -132,7 +142,8 @@ const GLUT = [
     { name: "Einstürzende Brücke", punkte: [[-15, -258], [-24, -278], [-42, -294], [-64, -294], [-78, -278], [-74, -260], [-90, -232]],
       dinge: [{ art: "lava", von: .09, bis: .56, seite: "innen" }, { art: "einsturz", bei: .1 }], truhen: [.8] },
     { name: "Schlackehalde", punkte: [[-50, -240], [-98, -200]],
-      dinge: [{ art: "obsidian", stuecke: [[.3, 3.2], [.42, -3], [.55, .3], [.68, 3.3], [.78, -2.6]] }], truhen: [.12] }
+      dinge: [{ art: "obsidian", stuecke: [[.3, 3.2], [.42, -3], [.55, .3], [.68, 3.3], [.78, -2.6]] }], truhen: [.12] },
+    schleife("Schlundschleife mit Obsidianbrücke", GLUT_KNOTEN[4], GLUT_KNOTEN[5], 1)
   ] },
   { name: "Heimweg", varianten: [
     { name: "Kettenbrücke über die Glut", punkte: [[-140, -60], [-80, -5]],

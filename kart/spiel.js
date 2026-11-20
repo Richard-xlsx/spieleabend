@@ -1,7 +1,7 @@
 // Kerker-Kart (Arbeitstitel): Die Helden aus Dungeons & Disappointments fahren durch den Kerker.
 // Lenken durch Neigen des Handys im Querformat (wie ein Lenkrad) oder mit Tasten. Konzept: KONZEPT.md
 import * as THREE from "three";
-import { WELTEN, planWuerfeln, planCode, planAusCode, kontrollpunkte, rng } from "./strecke.js?v=2026-11-20n";
+import { WELTEN, planWuerfeln, planCode, planAusCode, kontrollpunkte, rng } from "./strecke.js?v=2026-11-20p";
 
 const $ = id => document.getElementById(id);
 const TEST_RUNDEN = +(new URLSearchParams(location.search).get("runden")) || 0;   // ?runden=1 zum Testen
@@ -277,7 +277,7 @@ function streckeBauen(p) {
   }
   LAENGE = kurve.getLength(); SCHRITT = LAENGE / S; STRICH = meter(4);
   MAUERW.fill(MAUER); BELAG.fill(0); SCHLUCHT.fill(0); HOCH.fill(0); NEIG.fill(0); STEIG.fill(0); runen = []; WEG.fill(0); WEG_L.fill(0); WEG_R.fill(0); WEG_LANG.fill(0); wege = [];
-  LOCH.fill(0); GLEIT.fill(0); gleitstellen = []; aufwinde = []; strudel = [];
+  LOCH.fill(0); GLEIT.fill(0); UEBER.fill(0); ueberfuehrungen = []; gleitstellen = []; aufwinde = []; strudel = [];
   rampen = []; gabeln = []; loren = []; pendel = []; pfosten = []; rattenStellen = []; troll = null; koenig = null; belegt = []; fackeln = [];
   pilzSprung = null; tropfen = []; schluchten = []; haengebruecken = [];
   geysire = []; geysirSprung = null; pfade = []; spalten = []; lavaHoch = false; flutBaender = [];
@@ -364,6 +364,7 @@ function streckeBauen(p) {
         const i0 = stelle(n, d.von), m = vorab(stelle(n, d.bis), i0); for (let k = 0; k <= m; k++) BELAG[wrap(i0 + k)] = BOOT; a.nass = [i0, m]; a.wasser = [i0, m];
         for (const [u, dd] of d.strudel || []) { const i = stelle(n, u), q = punkt(i, dd); strudel.push({ i, d: dd, x: q.x, z: q.z }); }
       }
+      else if (d.art === "ueberfuehrung") ueberfuehrungAnlegen(a.von, a.bis);
       else if (d.art === "weggabel") wegAnlegen(stelle(n, d.von), vorab(stelle(n, d.bis), stelle(n, d.von)), d);
       else if (d.art === "pendel") d.bei.forEach((u, k) => pendel.push({ i: stelle(n, u), phase: k * 2.1 }));
       else if (d.art === "faesser" || d.art === "ruestung" || d.art === "tropfstein" || d.art === "kristall" || d.art === "obsidian") for (const [u, dd] of d.stuecke) { const q = punkt(stelle(n, u), dd); pfosten.push({ x: q.x, z: q.z, r: d.art === "faesser" ? .75 : d.art === "ruestung" ? .7 : .85, art: d.art, rot: q.rot, i: stelle(n, u), d: dd }); }
@@ -454,7 +455,7 @@ function streckeBauen(p) {
     for (let j = 0; j < n; j++) {
       const i = Math.floor(j * S / n);
       if (rampen.some(r => r.treppe && vorab(i, wrap(r.i0 - 8)) <= r.n + 12)) continue;
-      if (WEG[i] || LOCH[i]) continue;
+      if (WEG[i] || LOCH[i] || UEBER[i]) continue;
       for (const s of [-1, 1]) {
         const rot = Math.atan2(TX[i], TZ[i]) + Math.PI / 2;
         if (SCHLUCHT[i] === s || SCHLUCHT[i] === 2) continue;
@@ -495,6 +496,7 @@ function streckeBauen(p) {
   startBogen();
   minikarte();
   huegelBauen();
+  ueberfuehrungBauen();
   sperrenBauen();
   ereignisDingeBauen();
 }
@@ -510,7 +512,7 @@ const hgKey = (cx, cz) => cx * 4096 + cz;
 function hgBauen() {
   let x0 = 1e9, z0 = 1e9; for (let i = 0; i < S; i++) { x0 = Math.min(x0, PX[i]); z0 = Math.min(z0, PZ[i]); }
   hgX0 = x0 - 80; hgZ0 = z0 - 80; hgGitter = new Map();
-  for (let i = 0; i < S; i++) { const k = hgKey(Math.floor((PX[i] - hgX0) / HG), Math.floor((PZ[i] - hgZ0) / HG)); if (!hgGitter.has(k)) hgGitter.set(k, []); hgGitter.get(k).push(i); }
+  for (let i = 0; i < S; i++) { if (UEBER[i]) continue; const k = hgKey(Math.floor((PX[i] - hgX0) / HG), Math.floor((PZ[i] - hgZ0) / HG)); if (!hgGitter.has(k)) hgGitter.set(k, []); hgGitter.get(k).push(i); }
 }
 // Nächster Streckenpunkt im Umkreis r (oder -1); mit fern: nur Punkte, die auf der Strecke weiter als fern Punkte von i0 weg sind
 function nahPunkt(x, z, r, i0 = -1, fern = 0) {
@@ -557,6 +559,7 @@ function huegelBauen() {
   for (const a of abschnitte) for (const z of [a.bruecke, a.nass, a.kanal]) if (z) sperr(z[0], z[1]);
   for (const W of wege) sperr(W.i0, W.n, meter(20));
   for (const g of gleitstellen) sperr(g.i0, g.m + meter(30), meter(30));
+  for (const U of ueberfuehrungen) { sperr(U.i0, U.n, meter(25)); sperr(U.unten, 0, meter(60)); }
   for (let i = 0; i < S; i += 3) {                 // wo die Strecke nah an sich selbst vorbeiführt
     if (flach[i]) continue;
     for (const sg of [-1, 1]) { const q = punkt(i, sg * RANDW); if (nahPunkt(q.x, q.z, RANDW + 8, i, meter(60)) >= 0) { sperr(i, 3, meter(6)); break; } }
@@ -744,7 +747,7 @@ function wegeBauen() {
 }
 // Fahrbahn-Bänder nur außerhalb der Gabelungen bauen
 function ausserhalbWege(fn) {
-  const l = [...wege, ...gleitstellen.map(g => ({ i0: g.i0, n: g.m }))].sort((a, b) => a.i0 - b.i0);
+  const l = [...wege, ...gleitstellen.map(g => ({ i0: g.i0, n: g.m })), ...ueberfuehrungen.map(u => ({ i0: u.i0, n: u.n }))].sort((a, b) => a.i0 - b.i0);
   if (!l.length) { fn(0, S); return; }
   for (let n = 0; n < l.length; n++) { const a = l[n].i0 + l[n].n, b = n + 1 < l.length ? l[n + 1].i0 : l[0].i0 + S; if (b > a) fn(a, b); }
 }
@@ -1698,7 +1701,7 @@ class Kart {
   }
   suchen() {                                     // nächster Streckenpunkt über die ganze Runde
     let best = Infinity, bi = 0;
-    for (let i = 0; i < S; i += 3) { const q = (this.x - PX[i]) ** 2 + (this.z - PZ[i]) ** 2; if (q < best) { best = q; bi = i; } }
+    for (let i = 0; i < S; i += 3) { const q = (this.x - PX[i]) ** 2 + (this.z - PZ[i]) ** 2 + ((this.y || 0) - HOCH[i]) ** 2 * 4; if (q < best) { best = q; bi = i; } }
     this.idx = bi; this.naechster();
   }
   // Zustand eines anderen Handys übernehmen; dazwischen wird weitergerechnet und weich nachgeführt
@@ -1924,7 +1927,7 @@ function truhenReihe(i, mitte = 0) {
     const x = PX[i] + nX(i) * d, z = PZ[i] + nZ(i) * d;
     const g = truhe(false), mg = truhe(true);
     for (const h of [g, mg]) { h.position.set(x, 1.1, z); streckeG.add(h); }
-    const b = { g, mg, x, z, weg: 0, mimik: false, blinzeln: 2 + Math.random() * 3 };
+    const b = { g, mg, x, z, weg: 0, mimik: false, blinzeln: 2 + Math.random() * 3, i, d };
     neuMischen(b); kisten.push(b);
   }
 }
@@ -1940,7 +1943,7 @@ function goldReihe(i0, mitte, phase) {
     if (WEG[i]) d = wegMitte(i, WEG_LANG[i]) + klemmen(d, -BR / 2 + 1.2, BR / 2 - 1.2);
     const q = punkt(i, d), m = new THREE.Mesh(muenzGeo, MUENZ_MAT);
     const y = hoehe(i, d) + 1; m.position.set(q.x, y, q.z); m.castShadow = true; streckeG.add(m);
-    muenzen.push({ m, x: q.x, y, z: q.z, weg: 0 });
+    muenzen.push({ m, x: q.x, y, z: q.z, weg: 0, i, d });
   }
 }
 function goldNehmen(k, mz) {
@@ -2467,7 +2470,7 @@ function objekteSchritt(dt) {
       o.g.visible = o.alter > o.fall; if (!o.g.visible) continue;
       const aus = Math.min(1, (FALLE.feuer - o.alter) / .8);
       o.g.userData.fl.forEach((f, n) => f.scale.set(aus, aus * (.75 + Math.sin(o.alter * 17 + n * 2) * .25), aus));
-      for (const k of karts) if (!k.remote && k.fertig == null && !k.luft && aus > .5 && Math.hypot(k.x - o.x, k.z - o.z) < 1.7) {
+      for (const k of karts) if (!k.remote && k.fertig == null && !k.luft && aus > .5 && Math.hypot(k.x - o.x, k.z - o.z) < 1.7 && Math.abs(k.y - o.y) < 3) {
         if (treffen(k, "treffer") === "weg" && k.dreher > 0 && k.ich) melden("Verbrannt! 🔥", 1.1);
       }
       continue;
@@ -2491,7 +2494,7 @@ function objekteSchritt(dt) {
     }
     if (o.flug > o.alter) continue;
     for (const k of karts) {
-      if (k.remote || k.fertig != null || k.luft) continue;
+      if (k.remote || k.fertig != null || k.luft || Math.abs(k.y - o.y) > 3) continue;
       if (o.art === "schleim") {
         if (k.typ === "magierin" || Math.hypot(k.x - o.x, k.z - o.z) > 1.9) continue;
         if (treffen(k, "treffer") === "weg") { if (k.dreher > 0) lohn(o.von, k); objektWeg(id); ereignis({ a: "weg", id }); break; }
@@ -3127,6 +3130,74 @@ halten($("krechts"), () => tasten.r = true, () => tasten.r = false);
 document.addEventListener("gesturestart", e => e.preventDefault());
 document.addEventListener("contextmenu", e => e.preventDefault());
 
+// ---------- Brücken über die eigene Strecke ----------
+// Eine Schleife kreuzt die Strecke: Beim ersten Mal fährt man unten durch, beim zweiten Mal auf einer Brücke darüber.
+// Der obere Teil (UEBER) fehlt im Höhengitter, damit beim Anheben alles unten bleibt. Er bekommt seine Höhe und seine Bauten erst nach den Hügeln.
+const UEBER = new Uint8Array(S), BRUECKE_H = 6.6, RAMPE_AUF = 55, RAMPE_AB = 42, OBEN = 16;
+let ueberfuehrungen = [];
+function ueberfuehrungAnlegen(von, bis) {
+  const n = vorab(bis, von); let best = 1e9, a = -1, b = -1;
+  for (let k = 0; k < n; k += 2) for (let m = k + meter(80); m < n; m += 2) {
+    const i = wrap(von + k), j = wrap(von + m), q = (PX[i] - PX[j]) ** 2 + (PZ[i] - PZ[j]) ** 2;
+    if (q < best) { best = q; a = i; b = j; }
+  }
+  if (a < 0 || best > 36) return;
+  const i0 = wrap(b - meter(OBEN + RAMPE_AUF + 2)), len = meter(2 * OBEN + RAMPE_AUF + RAMPE_AB + 4);
+  for (let k = 0; k <= len; k++) { const j = wrap(i0 + k); UEBER[j] = 1; MAUERW[j] = RAND + .6; }
+  ueberfuehrungen.push({ unten: a, oben: b, i0, n: len });
+}
+// Höhe der Brücke, v = Meter vor (-) oder hinter (+) der Kreuzung
+const brueckeProfil = v => v < -OBEN - RAMPE_AUF || v > OBEN + RAMPE_AB ? 0 : v < -OBEN ? BRUECKE_H * glatt((v + OBEN + RAMPE_AUF) / RAMPE_AUF) : v <= OBEN ? BRUECKE_H : BRUECKE_H * (1 - glatt((v - OBEN) / RAMPE_AB));
+// senkrechte Fläche entlang der Strecke (Brückenkante, Viaduktwand)
+function seitenWand(d, y0, y1, farbe, von, bis, offen) {
+  const pos = [], col = [], c = new THREE.Color();
+  for (let i = von; i < bis; i++) {
+    const a = wrap(i), b = wrap(i + 1);
+    if (offen && (offen(a) || offen(b))) continue;
+    const A0 = y0(a), A1 = y1(a), B0 = y0(b), B1 = y1(b); if (A1 - A0 < .05 && B1 - B0 < .05) continue;
+    const P = (k, y) => [PX[k] + nX(k) * d, y, PZ[k] + nZ(k) * d];
+    pos.push(...P(a, A0), ...P(b, B0), ...P(b, B1), ...P(a, A0), ...P(b, B1), ...P(a, A1));
+    c.set(farbe(i)); for (let k = 0; k < 6; k++) col.push(c.r, c.g, c.b);
+  }
+  if (!pos.length) return;
+  const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute("color", new THREE.Float32BufferAttribute(col, 3)); g.computeVertexNormals();
+  const m = new THREE.Mesh(g, new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide })); m.castShadow = true; m.receiveShadow = true; streckeG.add(m);
+}
+function ueberfuehrungBauen() {
+  const STEIN = TH.stein, bruest = [], laternen = [];
+  for (const U of ueberfuehrungen) {
+    const mitte = vorab(U.oben, U.i0);
+    for (let k = 0; k <= U.n; k++) { const j = wrap(U.i0 + k); HOCH[j] = brueckeProfil((k - mitte) * SCHRITT); NEIG[j] = 0; }
+    const s6 = meter(6);
+    for (let k = -s6; k <= U.n + s6; k++) { const i = wrap(U.i0 + k); STEIG[i] = (HOCH[wrap(i + s6)] - HOCH[wrap(i - s6)]) / (2 * s6 * SCHRITT); }
+    const von = U.i0, bis = U.i0 + U.n, H = i => HOCH[wrap(i)], RB = RAND + 1.2;
+    for (let j = 0; j < 3; j++) band(-BR / 2 + j * BR / 3, -BR / 2 + (j + 1) * BR / 3, i => TH.platte[(Math.floor(i / (STRICH * .75) + j * .5) + j) % 3], .05, von, bis, H);
+    for (const sg of [-1, 1]) {
+      band(sg * BR / 2, sg * (BR / 2 + 1.3), i => (Math.floor(i / (STRICH * .6)) % 2 ? TH.kante[0] : TH.kante[1]), .05, von, bis, H);
+      band(sg * RAND, sg * RB, i => (Math.floor(i / STRICH) % 3 ? TH.geroell[0] : TH.geroell[1]), .04, von, bis, H);
+      // Kante der Brückenplatte und darunter die Viaduktwand; über der unteren Strecke bleibt sie offen
+      const unten = i => { const q = punkt(i, sg * RB); return nahPunkt(q.x, q.z, MAUER + 1.5, i, meter(60)) >= 0; };
+      const farbe = i => STEIN[Math.floor(i / meter(2.2)) % 4];
+      seitenWand(sg * RB, i => Math.max(0, HOCH[i] - 1), i => HOCH[i] + .04, farbe, von, bis);
+      seitenWand(sg * RB, () => 0, i => Math.max(0, HOCH[i] - 1), farbe, von, bis, unten);
+      for (let k = 0; k <= U.n; k += meter(2.2)) {
+        const i = wrap(U.i0 + k), q = punkt(i, sg * (RAND + .9));
+        bruest.push([q.x, HOCH[i] + .55, q.z, q.rot + Math.PI / 2, 1, STEIN[Math.floor(zufall() * 4)]]);
+        if (k % meter(17.6) < meter(2.2) && HOCH[i] > 2) laternen.push([q.x, HOCH[i] + 1.9, q.z]);
+      }
+    }
+    band(-RB, RB, i => STEIN[Math.floor(i / meter(2.2)) % 4], -1, von, bis, H);           // Unterseite
+    // Gold und Truhen, die auf der Brücke liegen, auf die Brücke heben
+    for (const mz of muenzen) if (mz.i != null && UEBER[mz.i]) { mz.y = hoehe(mz.i, mz.d) + 1; mz.m.position.y = mz.y; }
+    for (const b of kisten) if (b.i != null && UEBER[b.i]) b.h = hoehe(b.i, b.d);
+  }
+  if (bruest.length) instanzen(new THREE.BoxGeometry(2.2, 1.1, .6), new THREE.MeshLambertMaterial({ color: "#ffffff" }), bruest);
+  if (laternen.length) {
+    instanzen(new THREE.CylinderGeometry(.1, .1, 1.6, 6), M("#3A3A40"), laternen.map(([x, y, z]) => [x, y - .6, z]), false);
+    instanzen(new THREE.SphereGeometry(.28, 8, 6), GLUT(welt === "grotte" ? "#A6FFDA" : "#FFB347"), laternen.map(([x, y, z]) => [x, y + .3, z]), false);
+  }
+}
+
 // ---------- Ereignisse im Rennen ----------
 // Zufallsereignis (einmal je Rennen, Runde 2 oder 3), Runde für Runde (Gitter öffnet sich, Weg stürzt ein),
 // Händlerstand, Hebel mit Fässern, Kronleuchter, Leben am Rand und Klänge.
@@ -3199,7 +3270,7 @@ function ruhigeStelle(laenge, abstand = 60, versuche = 40, deko = false) {
   for (let n = 0; n < versuche; n++) {
     const i = Math.floor(zufall() * S);
     let ok = vorab(i, 0) > meter(70) && vorab(0, i) > meter(40);
-    for (let k = -r; ok && k <= r; k += 2) { const j = wrap(i + k); if ((!deko && SPERR[j]) || WEG[j] || LOCH[j] || GLEIT[j] || SCHLUCHT[j] || BELAG[j] || MAUERW[j] < MAUER) ok = false; }
+    for (let k = -r; ok && k <= r; k += 2) { const j = wrap(i + k); if ((!deko && SPERR[j]) || UEBER[j] || WEG[j] || LOCH[j] || GLEIT[j] || SCHLUCHT[j] || BELAG[j] || MAUERW[j] < MAUER) ok = false; }
     if (ok) ok = !DING_GEPLANT.some(j => Math.abs(((i - j + S / 2) % S + S) % S - S / 2) * SCHRITT < abstand);
     if (ok && !deko) ok = ![...kisten, ...muenzen].some(b => (b.x - PX[i]) ** 2 + (b.z - PZ[i]) ** 2 < 10 * 10);
     if (ok && !deko) ok = !runen.some(u => (u.x - PX[i]) ** 2 + (u.z - PZ[i]) ** 2 < 10 * 10);
@@ -3607,7 +3678,7 @@ function ereignisseLenken() {
     // wo es passiert: vor dem Führenden, für die Horde an einer freien Stelle
     const vor = { horde: 150, haendler: 70, geist: 230, goldregen: 30 }[e.art] || 0;
     let i = wrap(F.idx + meter(vor));
-    if (e.art === "horde") for (let n = 0; n < 200 && (WEG[i] || LOCH[i] || GLEIT[i] || SCHLUCHT[i] || BELAG[i] === BOOT || MAUERW[i] < MAUER); n++) i = wrap(i + meter(4));
+    if (e.art === "horde") for (let n = 0; n < 200 && (UEBER[i] || WEG[i] || LOCH[i] || GLEIT[i] || SCHLUCHT[i] || BELAG[i] === BOOT || MAUERW[i] < MAUER); n++) i = wrap(i + meter(4));
     e.idx = i; ereignis(e);
   }
 }
@@ -3886,7 +3957,7 @@ function update(dt) {
       }
     }
     // Kisten
-    if (rennt && k.fertig == null) for (const b of kisten) if (!b.weg && Math.hypot(b.x - k.x, b.z - k.z) < 1.8 && k.y - (b.h || 0) < 2.5) truheNehmen(k, b);
+    if (rennt && k.fertig == null) for (const b of kisten) if (!b.weg && Math.hypot(b.x - k.x, b.z - k.z) < 1.8 && Math.abs(k.y - (b.h || 0)) < 2.5) truheNehmen(k, b);
     if (rennt && k.fertig == null && runen.length) runenPruefen(k);
     if (rennt && strudel.length) strudelPruefen(k, dt);
     if (rennt && k.fertig == null) { if (staende.length) standPruefen(k); if (hebel.length) hebelPruefen(k); }
@@ -4546,4 +4617,4 @@ else menue("start");
 requestAnimationFrame(loop);
 window.KART = { get phase() { return phase; }, get ich() { return ich; }, karts: () => karts, ein, S, get LAENGE() { return LAENGE; }, get liste() { return liste; }, get modus() { return modus; },
   sim(sek) { for (let t = 0; t < sek; t += 1 / 60) { update(1 / 60); } }, aufbauen: rennenAufbauen, cam, sc, r, THREE, streckeBauen, planWuerfeln, planCode, get plan() { return plan; }, get strecke() { return { wege, abschnitte, gabeln, loren, troll, pendel, pfosten, rattenStellen, koenig, rampen, pilzSprung, tropfen, schluchten, haengebruecken, welt, geysire, geysirSprung, pfade, spalten, lavaHoch }; }, SCHLUCHT, absturz, PX, PZ, set uhr(v) { uhr = v; }, objekte, extraNutzen, kisten, treffen, versetzen, anwenden, ereignis, schritte(sek) { for (let t = 0; t < sek; t += 1 / 30) { update(1 / 30); karts.forEach(k => k.zeigen(performance.now())); hud(1 / 30); } }, neigung: () => neigung, lenkWert, kraftNutzen, muenzen, wirkung, set steuerung(v) { steuerung = v; }, get fz() { return fz; }, fzWeiter, fluchGewaehlt, ehrungZeigen, zuschauen, get zuschauer() { return zuschauer; }, get fluch() { return fluch; }, get ausgleich() { return ausgleich; }, set ausgleich(v) { ausgleich = v; }, menschLage, hinten, platzVon, truheNehmen, get liste() { return liste; }, set testKamera(v) { testKamera = v; }, HOCH, NEIG, STEIG, WEG, WEG_L, WEG_R, LOCH, GLEIT, BELAG, get gleitstellen() { return gleitstellen; }, get aufwinde() { return aufwinde; }, get strudel() { return strudel; }, get runen() { return runen; }, hoehe, hoeheAn,
-  get zf() { return zf; }, get zfPlan() { return zfPlan; }, get staende() { return staende; }, get hebel() { return hebel; }, get leuchter() { return leuchter; }, get publikum() { return publikum; }, get skelettRand() { return skelettRand; }, get fledRand() { return fledRand; }, get faesserRoll() { return faesserRoll; }, get wege() { return wege; }, get tonAn() { return tonAn; }, zufallStart, sperreSetzen, leuchterFall, hebelZiehen, set RUNDEN(v) { RUNDEN = v; } };
+  get zf() { return zf; }, get zfPlan() { return zfPlan; }, get staende() { return staende; }, get hebel() { return hebel; }, get leuchter() { return leuchter; }, get publikum() { return publikum; }, get skelettRand() { return skelettRand; }, get fledRand() { return fledRand; }, get faesserRoll() { return faesserRoll; }, get wege() { return wege; }, get tonAn() { return tonAn; }, zufallStart, sperreSetzen, leuchterFall, hebelZiehen, set RUNDEN(v) { RUNDEN = v; }, get ueberfuehrungen() { return ueberfuehrungen; }, UEBER };
