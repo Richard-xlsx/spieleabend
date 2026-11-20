@@ -1,7 +1,7 @@
 // Kerker-Kart (Arbeitstitel): Die Helden aus Dungeons & Disappointments fahren durch den Kerker.
 // Lenken durch Neigen des Handys im Querformat (wie ein Lenkrad) oder mit Tasten. Konzept: KONZEPT.md
 import * as THREE from "three";
-import { WELTEN, planWuerfeln, planCode, planAusCode, kontrollpunkte, rng } from "./strecke.js?v=2026-11-20p";
+import { WELTEN, planWuerfeln, planCode, planAusCode, kontrollpunkte, rng } from "./strecke.js?v=2026-11-20q";
 
 const $ = id => document.getElementById(id);
 const TEST_RUNDEN = +(new URLSearchParams(location.search).get("runden")) || 0;   // ?runden=1 zum Testen
@@ -3262,6 +3262,135 @@ function klang(name, arg) { if (!tonAn) return; try { KLAENGE[name](arg); } catc
 for (const t of ["pointerdown", "keydown"]) addEventListener(t, () => { if (tonAn) audio(); }, { passive: true });
 function tonKnopf() { const b = $("tonknopf"); if (b) b.textContent = tonAn ? "🔊 Ton an" : "🔇 Ton aus"; }
 
+// ----- Musik: je Welt ein eigenes Stück, im Handy erzeugt -----
+// 16 Takte: 8 Takte Melodie (A), 8 Takte Arpeggio (B). Je Takt 16 Schritte (Sechzehntel).
+// Melodie: Zeichen = Stufe der Tonleiter (0 = Grundton, 7 = Oktave, a b c d e darüber), „-“ hält, „.“ Pause.
+// Bass: r Grundton, o Oktave, f Quinte. Schlagzeug: x schlägt.
+const TONLEITER = { moll: [0, 2, 3, 5, 7, 8, 10], dorisch: [0, 2, 3, 5, 7, 9, 10], phrygisch: [0, 1, 3, 5, 7, 8, 10] };
+const STUECKE = {
+  kerker: {   // Verfolgungsjagd durchs Verlies: d-Moll, treibend
+    bpm: 138, grund: 146.83, leiter: "moll", akkorde: [0, 5, 2, 6], lead: "square", leadFilter: 2600, leadLaut: .045, echo: .22,
+    melodie: ["4.4.7-6-7.9.8-7-", "4---3-2-4-------", "5.5.9-8-9.a.9-7-", "9-------7-8-9-a-",
+              "b-a-9-a-b---9-7-", "9---7---4---7---", "6.6.8-7-6.4.6-7-", "8-------6---8---"],
+    bass: "r.ro.r.or.ro.rfo", bassTyp: "sawtooth", bassFilter: 520,
+    kick: "x.....x.x.......", snare: "....x.......x...", hat: "x.x.x.x.x.x.x.x.", hatLaut: .07
+  },
+  grotte: {   // Pilze, Wasser und Glitzern: e-Dorisch, schwebend mit Echo
+    bpm: 126, grund: 164.81, leiter: "dorisch", akkorde: [0, 3, 2, 6], lead: "triangle", leadFilter: 5000, leadLaut: .075, echo: .38,
+    melodie: ["7---b---a-9-7---", "8-9-8-7-4-------", "a---c---b-a-7---", "8-7-5-7-a-------",
+              "9---b---d-b-9---", "a-9-8-9-b-------", "8---a---d-c-a---", "c-b-a-8-6---8---"],
+    bass: "r---f---o---f-r-", bassTyp: "triangle", bassFilter: 900,
+    kick: "x.......x.....x.", snare: "............x...", hat: "..x...x...x...x.", hatLaut: .05
+  },
+  glut: {     // Lava und Drache: a-Phrygisch, schnell und hart
+    bpm: 150, grund: 110, leiter: "phrygisch", akkorde: [0, 1, 3, 6], lead: "sawtooth", leadFilter: 2000, leadLaut: .04, echo: .18,
+    melodie: ["7.7.7.8.7-4-2-4-", "7.7.7.9.8---7---", "8.8.8.9.8-5-3-5-", "8.8.8.a.9---8---",
+              "a.a.a.b.a-7-5-7-", "c-b-a-9-a-------", "9.9.8.9.8-6-3-6-", "9---8---6---8---"],
+    bass: "rrorrrorrrorfror", bassTyp: "sawtooth", bassFilter: 420,
+    kick: "x...x...x...x.x.", snare: "....x.......x..x", hat: "xxxxxxxxxxxxxxxx", hatLaut: .04
+  }
+};
+const ARPEGGIO = [0, 2, 4, 7, 4, 2, 0, 2, 4, 7, 9, 7, 4, 2, 4, 7];
+let musikAn = lager.lesen("kart:musik") !== "aus";
+const mus = { bus: null, filter: null, echo: null, rauschen: null, stueck: null, zeit: 0, schritt: 0, laut: 0 };
+function musikBus(c) {
+  if (mus.bus) return;
+  const g = c.createGain(), f = c.createBiquadFilter(), k = c.createDynamicsCompressor(), d = c.createDelay(1), fb = c.createGain(), nass = c.createGain();
+  g.gain.value = 0; f.type = "lowpass"; f.frequency.value = 16000; fb.gain.value = .32; nass.gain.value = .25;
+  g.connect(f); f.connect(k); k.connect(c.destination);
+  d.connect(fb); fb.connect(d); d.connect(nass); nass.connect(f);       // Echo für die Melodie
+  const n = c.createBuffer(1, c.sampleRate, c.sampleRate), w = n.getChannelData(0);
+  for (let i = 0; i < w.length; i++) w[i] = Math.random() * 2 - 1;
+  Object.assign(mus, { bus: g, filter: f, echo: d, nass, rauschen: n });
+}
+const stufeHz = (S, stufe) => S.grund * 2 ** ((Math.floor(stufe / 7) * 12 + TONLEITER[S.leiter][((stufe % 7) + 7) % 7]) / 12);
+function stimme(c, hz, t, dauer, typ, laut, filter, echo) {
+  const o = c.createOscillator(), g = c.createGain(), f = c.createBiquadFilter();
+  o.type = typ; o.frequency.value = hz; f.type = "lowpass"; f.frequency.value = filter;
+  g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(laut, t + .012);
+  g.gain.setValueAtTime(laut * .8, t + Math.max(.02, dauer - .04)); g.gain.exponentialRampToValueAtTime(.0005, t + dauer + .08);
+  o.connect(f); f.connect(g); g.connect(mus.bus); if (echo) g.connect(mus.echo);
+  o.start(t); o.stop(t + dauer + .1);
+}
+function trommel(c, art, t, laut) {
+  if (art === "kick") {
+    const o = c.createOscillator(), g = c.createGain();
+    o.frequency.setValueAtTime(150, t); o.frequency.exponentialRampToValueAtTime(42, t + .14);
+    g.gain.setValueAtTime(laut, t); g.gain.exponentialRampToValueAtTime(.001, t + .3);
+    o.connect(g); g.connect(mus.bus); o.start(t); o.stop(t + .32); return;
+  }
+  const q = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain(), lang = art === "snare" ? .14 : .035;
+  q.buffer = mus.rauschen; f.type = art === "snare" ? "bandpass" : "highpass"; f.frequency.value = art === "snare" ? 1800 : 7500;
+  g.gain.setValueAtTime(laut, t); g.gain.exponentialRampToValueAtTime(.001, t + lang);
+  q.connect(f); f.connect(g); g.connect(mus.bus); q.start(t, Math.random() * .5, lang + .02);
+}
+// ein Sechzehntel planen
+function musikPlanen(c, S, n, t, sch, voll) {
+  const takt = Math.floor(n / 16) % 16, s = n % 16, teil = takt < 8 ? "A" : "B", t8 = takt % 8;
+  const ak = S.akkorde[Math.floor(t8 / 2)], dauer = sch * (S.bpm > 140 ? .9 : 1);
+  // Flächenklang: Dreiklang je Takt
+  if (s === 0) for (const st of [0, 2, 4]) stimme(c, stufeHz(S, ak + st) , t, sch * 15.5, "triangle", voll ? .018 : .026, 1400, false);
+  // Bass
+  const b = S.bass[s];
+  if (b !== "." && b !== "-") {
+    let l = 1; while (s + l < 16 && S.bass[s + l] === "-") l++;
+    stimme(c, stufeHz(S, ak + (b === "f" ? 4 : b === "o" ? 7 : 0)) / 2, t, sch * l * .85, S.bassTyp, .09, S.bassFilter, false);
+  }
+  // Schlagzeug (im Vorspann nur die Becken)
+  if (voll && S.kick[s] === "x") trommel(c, "kick", t, .55);
+  if (voll && S.snare[s] === "x") trommel(c, "snare", t, .2);
+  if (voll && takt % 8 === 7 && s >= 12) trommel(c, "snare", t, .1 + (s - 12) * .04);   // Wirbel vor dem nächsten Teil
+  if (S.hat[s] === "x") trommel(c, "hat", t, S.hatLaut * (s % 4 === 2 ? 1.4 : 1) * (mus.schluss ? 1.3 : 1));
+  if (!voll) return;
+  // Melodie oder Arpeggio
+  if (teil === "A") {
+    const m = S.melodie[t8], z = m[s];
+    if (z !== "." && z !== "-") {
+      let l = 1; while (s + l < 16 && m[s + l] === "-") l++;
+      const hz = stufeHz(S, parseInt(z, 16));
+      stimme(c, hz, t, dauer * l - .02, S.lead, S.leadLaut, S.leadFilter, true);
+      stimme(c, hz * 1.004, t, dauer * l - .02, S.lead, S.leadLaut * .5, S.leadFilter, false);   // leicht verstimmt, klingt voller
+    }
+  } else if (s % 2 === 0 || S.bpm < 140) {
+    const st = ARPEGGIO[(s + (takt % 2) * 4) % 16];
+    stimme(c, stufeHz(S, ak + st + 7), t, sch * .7, S.bpm < 140 ? "sine" : "square", S.leadLaut * .55, S.leadFilter, true);
+  }
+}
+function musikSchritt() {
+  const c = ac;
+  const spielt = musikAn && tonAn && c && c.state === "running" && !document.hidden && ["vorschau", "countdown", "rennen", "ziel", "pause"].includes(phase);
+  if (!c || !mus.bus && !spielt) return;
+  musikBus(c);
+  const S = STUECKE[welt] || STUECKE.kerker, jetzt = c.currentTime;
+  // Lautstärke: im Ziel und in der Pause leiser und dumpfer
+  const ziel = !spielt ? 0 : phase === "pause" ? .35 : phase === "ziel" || (ich && ich.fertig != null) ? .5 : 1;
+  if (Math.abs(ziel - mus.laut) > .01) {
+    mus.laut = ziel; mus.bus.gain.setTargetAtTime(ziel * .6, jetzt, .4);
+    mus.filter.frequency.setTargetAtTime(phase === "pause" ? 700 : 16000, jetzt, .2);
+  }
+  if (!spielt) { mus.stueck = null; return; }
+  if (mus.stueck !== S) { mus.stueck = S; mus.zeit = jetzt + .1; mus.schritt = 0; mus.voll = false; mus.echo.delayTime.value = 60 / S.bpm * .75; mus.nass.gain.value = S.echo; }
+  if (mus.zeit < jetzt - .5) mus.zeit = jetzt + .05;          // nach einer Pause des Tabs nicht nachholen
+  mus.schluss = phase === "rennen" && ich && ich.fertig == null && ich.runden.length >= RUNDEN - 1 && RUNDEN > 1;
+  const los = phase !== "vorschau" && phase !== "countdown", sch = 60 / (S.bpm * (mus.schluss ? 1.08 : 1)) / 4;
+  while (mus.zeit < jetzt + .25) {
+    if (los && !mus.voll && mus.schritt % 16 === 0) { mus.voll = true; mus.schritt = 0; }   // nach dem Vorspann beginnt das Stück mit dem nächsten Takt
+    try { musikPlanen(c, S, mus.schritt, mus.zeit, sch, mus.voll); } catch {}
+    mus.schritt++; if (!mus.voll && mus.schritt >= 32) mus.schritt = 0;              // Vorspann: zwei Takte Fläche, Bass und Becken
+    mus.zeit += sch;
+  }
+}
+// Hörprobe ohne Lautsprecher (für Tests): rendert ein Stück in einen Puffer
+async function musikProbe(name, sekunden = 20) {
+  const S = STUECKE[name], c = new OfflineAudioContext(1, Math.floor(44100 * sekunden), 44100), alt = { ...mus };
+  mus.bus = null; musikBus(c); mus.bus.gain.value = .6; mus.echo.delayTime.value = 60 / S.bpm * .75; mus.nass.gain.value = S.echo;
+  const sch = 60 / S.bpm / 4; let n = 0;
+  for (let t = 0; t < sekunden - .3; t += sch, n++) musikPlanen(c, S, n, t, sch, true);
+  const buf = await c.startRendering(); Object.assign(mus, alt);
+  return Array.from(buf.getChannelData(0));
+}
+function musikKnopf() { const b = $("musikknopf"); if (b) b.textContent = musikAn ? "🎵 Musik an" : "🎵 Musik aus"; }
+
 // ----- Ruhige Stellen der Strecke (dort ist Platz für Stand, Hebel, Kronleuchter, Zuschauer) -----
 const SPERR = new Uint8Array(S);                   // von huegelBauen gefüllt: hier ist schon etwas los
 const DING_GEPLANT = [];
@@ -4570,7 +4699,8 @@ function pause(an) {
   if (an && (phase === "rennen" || phase === "countdown")) { vorPause = phase; phase = "pause"; $("pausiert").hidden = false; }
   else if (!an && phase === "pause") { phase = vorPause; $("pausiert").hidden = true; }
 }
-$("pause").onclick = () => { tonKnopf(); pause(true); };
+$("pause").onclick = () => { tonKnopf(); musikKnopf(); pause(true); };
+$("musikknopf").onclick = () => { musikAn = !musikAn; lager.schreiben("kart:musik", musikAn ? "an" : "aus"); musikKnopf(); if (musikAn) { tonAn = true; lager.schreiben("kart:ton", "an"); tonKnopf(); audio(); } };
 $("tonknopf").onclick = () => { tonAn = !tonAn; lager.schreiben("kart:ton", tonAn ? "an" : "aus"); tonKnopf(); if (tonAn) klang("pling"); };
 $("weiter").onclick = () => pause(false);
 $("abbruch").onclick = () => {
@@ -4589,6 +4719,7 @@ document.addEventListener("visibilitychange", () => { if (document.hidden && mod
 let letzte = performance.now();
 function loop(jetzt) {
   const dt = Math.min(.05, (jetzt - letzte) / 1000); letzte = jetzt;
+  musikSchritt();
   if (phase === "menue") {                    // Menü: Kamera fährt langsam um die Startaufstellung
     const t = jetzt / 6000;
     cam.position.set(ich.x + Math.sin(t) * 14, 5, ich.z + Math.cos(t) * 14); cam.lookAt(ich.x, 1, ich.z);
@@ -4615,6 +4746,6 @@ else if (code && gespeichert && gespeichert.code === code) { wahlGegner = gespei
 else if (code) menue("einladung");
 else menue("start");
 requestAnimationFrame(loop);
-window.KART = { get phase() { return phase; }, get ich() { return ich; }, karts: () => karts, ein, S, get LAENGE() { return LAENGE; }, get liste() { return liste; }, get modus() { return modus; },
+window.KART = { musikProbe, get mus() { return mus; }, get phase() { return phase; }, get ich() { return ich; }, karts: () => karts, ein, S, get LAENGE() { return LAENGE; }, get liste() { return liste; }, get modus() { return modus; },
   sim(sek) { for (let t = 0; t < sek; t += 1 / 60) { update(1 / 60); } }, aufbauen: rennenAufbauen, cam, sc, r, THREE, streckeBauen, planWuerfeln, planCode, get plan() { return plan; }, get strecke() { return { wege, abschnitte, gabeln, loren, troll, pendel, pfosten, rattenStellen, koenig, rampen, pilzSprung, tropfen, schluchten, haengebruecken, welt, geysire, geysirSprung, pfade, spalten, lavaHoch }; }, SCHLUCHT, absturz, PX, PZ, set uhr(v) { uhr = v; }, objekte, extraNutzen, kisten, treffen, versetzen, anwenden, ereignis, schritte(sek) { for (let t = 0; t < sek; t += 1 / 30) { update(1 / 30); karts.forEach(k => k.zeigen(performance.now())); hud(1 / 30); } }, neigung: () => neigung, lenkWert, kraftNutzen, muenzen, wirkung, set steuerung(v) { steuerung = v; }, get fz() { return fz; }, fzWeiter, fluchGewaehlt, ehrungZeigen, zuschauen, get zuschauer() { return zuschauer; }, get fluch() { return fluch; }, get ausgleich() { return ausgleich; }, set ausgleich(v) { ausgleich = v; }, menschLage, hinten, platzVon, truheNehmen, get liste() { return liste; }, set testKamera(v) { testKamera = v; }, HOCH, NEIG, STEIG, WEG, WEG_L, WEG_R, LOCH, GLEIT, BELAG, get gleitstellen() { return gleitstellen; }, get aufwinde() { return aufwinde; }, get strudel() { return strudel; }, get runen() { return runen; }, hoehe, hoeheAn,
   get zf() { return zf; }, get zfPlan() { return zfPlan; }, get staende() { return staende; }, get hebel() { return hebel; }, get leuchter() { return leuchter; }, get publikum() { return publikum; }, get skelettRand() { return skelettRand; }, get fledRand() { return fledRand; }, get faesserRoll() { return faesserRoll; }, get wege() { return wege; }, get tonAn() { return tonAn; }, zufallStart, sperreSetzen, leuchterFall, hebelZiehen, set RUNDEN(v) { RUNDEN = v; }, get ueberfuehrungen() { return ueberfuehrungen; }, UEBER };
