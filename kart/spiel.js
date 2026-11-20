@@ -95,6 +95,9 @@ const S = 3000;
 const PX = new Float32Array(S), PZ = new Float32Array(S), TX = new Float32Array(S), TZ = new Float32Array(S);
 const MAUERW = new Float32Array(S).fill(MAUER);     // Abstand der Mauer je Streckenpunkt (auf der Brücke schmaler)
 const BELAG = new Uint8Array(S);                    // 0 Stein, 1 nass (schneller, aber rutschig)
+const HOCH = new Float32Array(S), NEIG = new Float32Array(S);   // Hügel: Höhe der Fahrbahnmitte und Querneigung (Steilkurve) je Streckenpunkt
+const STEIG = new Float32Array(S);                  // Steigung in Fahrtrichtung (für Tempo und Kartneigung)
+let runen = [];                                     // Schubrunen auf der Fahrbahn
 const nX = i => -TZ[i], nZ = i => TX[i];            // Normale (seitlich)
 const wrap = i => ((i % S) + S) % S;
 const vorab = (i, i0) => wrap(i - i0);              // wie weit liegt i hinter i0, in Fahrtrichtung gezählt
@@ -109,9 +112,10 @@ let streckeG = null, zufall = Math.random, fackeln = [], flammen = [], belegt = 
 const hashf = (a, b) => { const x = Math.sin(a * 12.9898 + b * 78.233) * 43758.5453; return x - Math.floor(x); };
 
 function hoehe(i, d) {
-  if (Math.abs(d) > BR / 2 + 1.3) return 0;
-  for (const r of rampen) { const v = vorab(i, r.i0); if (v <= r.n) return r.h * v / r.n; }
-  return 0;
+  const grund = HOCH[i] + NEIG[i] * (d < -MAUER - 1.3 ? -MAUER - 1.3 : d > MAUER + 1.3 ? MAUER + 1.3 : d);
+  if (Math.abs(d) > BR / 2 + 1.3) return grund;
+  for (const r of rampen) { const v = vorab(i, r.i0); if (v <= r.n) return grund + r.h * v / r.n; }
+  return grund;
 }
 const gabelDrin = (i, f) => { const v = vorab(i, f.i0); return v > 0 && v <= f.n; };
 
@@ -252,7 +256,7 @@ function streckeBauen(p) {
     PX[i] = q.x; PZ[i] = q.z; TX[i] = t.x; TZ[i] = t.z;
   }
   LAENGE = kurve.getLength(); SCHRITT = LAENGE / S; STRICH = meter(4);
-  MAUERW.fill(MAUER); BELAG.fill(0); SCHLUCHT.fill(0);
+  MAUERW.fill(MAUER); BELAG.fill(0); SCHLUCHT.fill(0); HOCH.fill(0); NEIG.fill(0); STEIG.fill(0); runen = [];
   rampen = []; gabeln = []; loren = []; pendel = []; pfosten = []; rattenStellen = []; troll = null; koenig = null; belegt = []; fackeln = [];
   pilzSprung = null; tropfen = []; schluchten = []; haengebruecken = [];
   geysire = []; geysirSprung = null; pfade = []; spalten = []; lavaHoch = false; flutBaender = [];
@@ -452,6 +456,182 @@ function streckeBauen(p) {
   hallenDeko();
   startBogen();
   minikarte();
+  huegelBauen();
+}
+
+// ---------- Hügel ----------
+// Nach dem Bau der flachen Strecke bekommen ruhige Abschnitte (ohne Gitter, Loren, Schluchten, Wasser …) Kuppen, lange Hügel
+// mit Abfahrt und Steilkurven. Danach wird alles in streckeG auf die neue Höhe gehoben: die Fahrbahn verformt, Mauern und Deko
+// verschoben. Außen fällt eine Böschung zum Boden ab. Alles hängt nur vom Plan ab, ist also auf allen Handys gleich.
+const RANDW = MAUER + 1.3, HG = 8;
+let hgGitter = new Map(), hgX0 = 0, hgZ0 = 0;
+const BOESCH = new Float32Array(2 * S);              // Breite der Böschung je Streckenpunkt (links, rechts)
+const hgKey = (cx, cz) => cx * 4096 + cz;
+function hgBauen() {
+  let x0 = 1e9, z0 = 1e9; for (let i = 0; i < S; i++) { x0 = Math.min(x0, PX[i]); z0 = Math.min(z0, PZ[i]); }
+  hgX0 = x0 - 80; hgZ0 = z0 - 80; hgGitter = new Map();
+  for (let i = 0; i < S; i++) { const k = hgKey(Math.floor((PX[i] - hgX0) / HG), Math.floor((PZ[i] - hgZ0) / HG)); if (!hgGitter.has(k)) hgGitter.set(k, []); hgGitter.get(k).push(i); }
+}
+// Nächster Streckenpunkt im Umkreis r (oder -1); mit fern: nur Punkte, die auf der Strecke weiter als fern Punkte von i0 weg sind
+function nahPunkt(x, z, r, i0 = -1, fern = 0) {
+  const cx = Math.floor((x - hgX0) / HG), cz = Math.floor((z - hgZ0) / HG), n = Math.ceil(r / HG);
+  let best = r * r, bi = -1;
+  for (let a = -n; a <= n; a++) for (let b = -n; b <= n; b++) {
+    const l = hgGitter.get(hgKey(cx + a, cz + b)); if (!l) continue;
+    for (const i of l) {
+      if (fern && Math.min(vorab(i, i0), vorab(i0, i)) < fern) continue;
+      const q = (PX[i] - x) ** 2 + (PZ[i] - z) ** 2; if (q < best) { best = q; bi = i; }
+    }
+  }
+  return bi;
+}
+// Höhe des Geländes an einer beliebigen Stelle: auf der Strecke wie hoehe(), außen entlang der Böschung zum Boden
+function hoeheAn(x, z) {
+  let i = nahPunkt(x, z, RANDW + 3); if (i < 0) i = nahPunkt(x, z, RANDW + 26); if (i < 0) return 0;
+  if (!HOCH[i] && !NEIG[i]) return 0;
+  const d = (x - PX[i]) * nX(i) + (z - PZ[i]) * nZ(i), a = Math.abs(d);
+  const g = HOCH[i] + NEIG[i] * klemmen(d, -RANDW, RANDW);
+  if (a <= RANDW) return g;
+  return g * Math.max(0, 1 - (a - RANDW) / Math.max(.01, BOESCH[(d > 0 ? S : 0) + i]));
+}
+const glatt = u => u <= 0 ? 0 : u >= 1 ? 1 : u * u * (3 - 2 * u);
+function huegelBauen() {
+  hgBauen();
+  // 1. Wo es flach bleiben muss
+  const flach = new Uint8Array(S), rand = meter(18);
+  const sperr = (i0, n = 0, r = rand) => { for (let k = -r; k <= n + r; k++) flach[wrap(i0 + k)] = 1; };
+  sperr(0, 0, meter(45));
+  for (const r of rampen) sperr(r.i0, r.n);
+  for (const f of gabeln) sperr(f.i0, f.n, meter(25));
+  for (const f of loren) sperr(f.i0, meter(f.laenge + 16));
+  for (const x of pendel) sperr(x.i);
+  for (const x of rattenStellen) sperr(x.i, 0, meter(25));
+  for (const x of tropfen) sperr(x.i);
+  for (const c of schluchten) sperr(c.i0, c.m);
+  for (const h of haengebruecken) sperr(h.i0, h.m);
+  for (const g of geysire) sperr(g.i);
+  for (const sp of spalten) { sperr(sp.i0, sp.n, meter(25)); sperr(sp.zurueck, 0, meter(10)); }
+  for (const P of pfade) { sperr(P.i, 0, meter(30)); sperr(P.b, 0, meter(30)); }
+  for (const x of [troll, pilzSprung, geysirSprung]) if (x) { sperr(x.i, 0, meter(30)); sperr(x.b, 0, meter(30)); }
+  if (koenig) sperr(koenig.i, 0, meter(45));
+  for (const a of abschnitte) for (const z of [a.bruecke, a.nass, a.kanal]) if (z) sperr(z[0], z[1]);
+  for (let i = 0; i < S; i += 3) {                 // wo die Strecke nah an sich selbst vorbeiführt
+    if (flach[i]) continue;
+    for (const sg of [-1, 1]) { const q = punkt(i, sg * RANDW); if (nahPunkt(q.x, q.z, RANDW + 8, i, meter(60)) >= 0) { sperr(i, 3, meter(6)); break; } }
+  }
+  // 2. Freie Strecken finden und Höhen hineinlegen
+  const laeufe = [];
+  let st = 0; while (st < S && !flach[st]) st++;
+  for (let k = 0, a = -1; k <= S; k++) { const i = wrap(st + k); if (k < S && !flach[i]) { if (a < 0) a = i; } else if (a >= 0) { laeufe.push([a, vorab(i, a)]); a = -1; } }
+  const hill = new Float32Array(S), runenPlan = [];
+  for (const [a, n] of laeufe) {
+    const L = n * SCHRITT, w = zufall();
+    if (L < 45) continue;
+    if (L >= 120 && w < .75) {                    // langer Hügel: flach hinauf, kurz oben, steil hinunter
+      const hoch = Math.min(4.5, L * .03), auf = .55 + zufall() * .1, oben = .08;
+      for (let k = 0; k <= n; k++) { const u = k / n; hill[wrap(a + k)] = hoch * (u < auf ? glatt(u / auf) : u < auf + oben ? 1 : 1 - glatt((u - auf - oben) / (1 - auf - oben))); }
+      runenPlan.push(wrap(a + Math.round(n * (auf + oben * .5))));
+    } else if (w < .92) {                          // Kuppen: kleine Hopser
+      const breite = meter(17), abst = meter(30), anz = Math.max(1, Math.min(4, Math.floor((n - meter(12)) / abst)));
+      const off = Math.round((n - (anz - 1) * abst) / 2);
+      for (let b = 0; b < anz; b++) for (let k = -breite / 2; k <= breite / 2; k++) {
+        const u = (k + breite / 2) / breite, j = wrap(a + off + b * abst + Math.round(k));
+        hill[j] = Math.max(hill[j], 1.15 * Math.sin(Math.PI * u) ** 2);
+      }
+      if (zufall() < .5) runenPlan.push(wrap(a + Math.round(off / 2)));
+    }
+  }
+  // 3. Steilkurven: in engen Kurven ist die Außenseite höher
+  const roh = new Float32Array(S), w6 = meter(6);
+  for (let i = 0; i < S; i++) {
+    if (flach[i]) continue;
+    const a = wrap(i - w6), b = wrap(i + w6); let da = Math.atan2(TX[b], TZ[b]) - Math.atan2(TX[a], TZ[a]); da = Math.atan2(Math.sin(da), Math.cos(da));
+    roh[i] = klemmen(da / (2 * w6 * SCHRITT) * 4.5, -.12, .12);
+    if (Math.abs(roh[i]) < .02) roh[i] = 0;
+  }
+  for (const [a, n] of laeufe) for (let k = 0; k <= n; k++) {
+    const i = wrap(a + k); let sum = 0, cnt = 0;
+    for (let m = -meter(8); m <= meter(8); m += 2) { sum += roh[wrap(i + m)]; cnt++; }
+    NEIG[i] = sum / cnt * glatt(Math.min(k, n - k) / meter(18));
+  }
+  for (let i = 0; i < S; i++) HOCH[i] = hill[i] + Math.abs(NEIG[i]) * RANDW;
+  const s6 = meter(6);
+  for (let i = 0; i < S; i++) STEIG[i] = (HOCH[wrap(i + s6)] - HOCH[wrap(i - s6)]) / (2 * s6 * SCHRITT);
+  // 4. Böschung: so breit wie die Höhe es verlangt, aber nicht bis an einen anderen Teil der Strecke
+  for (let i = 0; i < S; i++) for (const sg of [-1, 1]) {
+    const g = HOCH[i] + NEIG[i] * sg * RANDW, idx = (sg > 0 ? S : 0) + i;
+    if (g <= .01) { BOESCH[idx] = .01; continue; }
+    let w = Math.max(2, g * 2.4);
+    const q = punkt(i, sg * RANDW), j = nahPunkt(q.x, q.z, RANDW + w + 2, i, meter(60));
+    if (j >= 0) w = Math.max(1, Math.min(w, Math.hypot(PX[j] - q.x, PZ[j] - q.z) - RANDW - 1));
+    BOESCH[idx] = w;
+  }
+  // 5. Alles anheben
+  streckeG.updateMatrixWorld(true);
+  const v = new THREE.Vector3(), mm = new THREE.Matrix4(), inv = new THREE.Matrix4(), fertig = new Set(), merk = new Map();
+  const hAn = (x, z) => { const k = Math.round(x * 20) + "," + Math.round(z * 20); let h = merk.get(k); if (h === undefined) { h = hoeheAn(x, z); merk.set(k, h); } return h; };
+  const heben = o => {
+    if (o.isInstancedMesh) {
+      let neu = false;
+      for (let n = 0; n < o.count; n++) { o.getMatrixAt(n, mm); v.setFromMatrixPosition(mm).applyMatrix4(o.matrixWorld); const h = hAn(v.x, v.z); if (h) { mm.elements[13] += h; o.setMatrixAt(n, mm); neu = true; } }
+      if (neu) { o.instanceMatrix.needsUpdate = true; o.computeBoundingSphere && o.computeBoundingSphere(); }
+      return;
+    }
+    if (o.isMesh && o.geometry) {
+      const geo = o.geometry; if (!geo.boundingSphere) geo.computeBoundingSphere();
+      if (geo.boundingSphere.radius > 14) {          // große Teile (Fahrbahn, Bänder): Punkt für Punkt verformen
+        if (fertig.has(geo)) return; fertig.add(geo);
+        const pos = geo.attributes.position; inv.copy(o.matrixWorld).invert(); let neu = false;
+        for (let n = 0; n < pos.count; n++) { v.fromBufferAttribute(pos, n).applyMatrix4(o.matrixWorld); const h = hAn(v.x, v.z); if (!h) continue; v.y += h; v.applyMatrix4(inv); pos.setXYZ(n, v.x, v.y, v.z); neu = true; }
+        if (neu) { pos.needsUpdate = true; geo.computeVertexNormals(); geo.computeBoundingSphere(); geo.computeBoundingBox(); }
+        return;
+      }
+    }
+    if (!o.isMesh && o.children.length && Math.abs(o.position.x) < 1e-4 && Math.abs(o.position.z) < 1e-4) { o.children.forEach(heben); return; }   // reine Sammelgruppe
+    o.getWorldPosition(v); o.position.y += hAn(v.x, v.z);
+  };
+  streckeG.children.slice().forEach(heben);
+  for (const b of kisten) b.h = hAn(b.x, b.z);
+  for (const mz of muenzen) mz.y = mz.m.position.y;
+  for (const f of fackeln) f[1] += hAn(f[0], f[2]);
+  // 6. Böschungen bauen
+  for (const sg of [-1, 1]) {
+    const pos = [], col = [], c = new THREE.Color(), f0 = TH.geroell[0], f1 = TH.geroell[1];
+    for (let i = 0; i < S; i += 2) {
+      const a = i, b = wrap(i + 2), ia = (sg > 0 ? S : 0) + a, ib = (sg > 0 ? S : 0) + b;
+      const ga = HOCH[a] + NEIG[a] * sg * RANDW, gb = HOCH[b] + NEIG[b] * sg * RANDW;
+      if (ga <= .02 && gb <= .02) continue;
+      if (SCHLUCHT[a] || SCHLUCHT[b] || MAUERW[a] < MAUER) continue;
+      const P = (k, d, y) => [PX[k] + nX(k) * d, y, PZ[k] + nZ(k) * d];
+      const q = [P(a, sg * (RANDW - .05), ga + .02), P(a, sg * (RANDW + BOESCH[ia]), .01), P(b, sg * (RANDW + BOESCH[ib]), .01), P(b, sg * (RANDW - .05), gb + .02)];
+      if (sg > 0) pos.push(...q[0], ...q[1], ...q[2], ...q[0], ...q[2], ...q[3]); else pos.push(...q[0], ...q[2], ...q[1], ...q[0], ...q[3], ...q[2]);
+      c.set(Math.floor(i / STRICH) % 2 ? f0 : f1); for (let k = 0; k < 6; k++) col.push(c.r, c.g, c.b);
+    }
+    if (!pos.length) continue;
+    const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute("color", new THREE.Float32BufferAttribute(col, 3)); g.computeVertexNormals();
+    const m = new THREE.Mesh(g, new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide })); m.receiveShadow = true; streckeG.add(m);
+  }
+  // 7. Schubrunen: oben auf den Hügeln vor der Abfahrt, manchmal vor Kuppen
+  for (const i of runenPlan) {
+    const d = Math.round((zufall() - .5) * BR * .6 * 10) / 10, q = punkt(i, d);
+    const m = new THREE.Mesh(runenGeo, runenMat); m.position.set(q.x, hoehe(i, d) + .12, q.z); m.rotation.order = "YXZ"; m.rotation.set(-Math.PI / 2 + Math.atan(STEIG[i]), q.rot, 0);
+    streckeG.add(m); runen.push({ i, d, x: q.x, z: q.z, m });
+  }
+}
+const runenGeo = new THREE.PlaneGeometry(3.4, 3.4);
+const runenMat = (() => {
+  const cv = document.createElement("canvas"); cv.width = cv.height = 128; const x = cv.getContext("2d");
+  const g = x.createRadialGradient(64, 64, 10, 64, 64, 64); g.addColorStop(0, "rgba(90,220,255,.9)"); g.addColorStop(1, "rgba(40,120,255,0)");
+  x.fillStyle = g; x.fillRect(0, 0, 128, 128);
+  x.strokeStyle = "#E8FBFF"; x.lineWidth = 9; x.lineJoin = "round"; x.lineCap = "round";
+  for (const y0 of [34, 66]) { x.beginPath(); x.moveTo(30, y0 + 26); x.lineTo(64, y0); x.lineTo(98, y0 + 26); x.stroke(); }
+  const t = new THREE.CanvasTexture(cv);
+  return new THREE.MeshBasicMaterial({ map: t, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending });
+})();
+// Über eine Schubrune fahren gibt kurzen Schwung (nur das eigene Handy prüft seine Karts)
+function runenPruefen(k) {
+  if (k.luft || k.runeUhr > uhr) return;
+  for (const R of runen) if ((R.x - k.x) ** 2 + (R.z - k.z) ** 2 < 4) { k.boost = Math.max(k.boost, .9); k.runeUhr = uhr + 1.2; if (k.ich) summen(30); break; }
 }
 
 // Fallgitter, Druckplatten, brüchige Wand, Lorenbahn, Troll, Pendel, Fässer, Rüstungen, Ratten, Knochenkönig
@@ -1396,6 +1576,10 @@ class Kart {
     if (this.wurzel > 0) maxV *= .78;
     if (this.schlaf > 0) maxV *= .6;
     if (this.kroete > 0) maxV *= .7;
+    // Hügel: bergab schneller, bergauf langsamer; schwere Karts merken beides stärker
+    const hangZiel = this.luft ? (this.hang ?? 1) : klemmen(1 - STEIG[this.idx] * Math.cos(this.mh - Math.atan2(TX[this.idx], TZ[this.idx])) * 2.2 * (st.masse || 1), .78, 1.28);
+    this.hang = (this.hang ?? 1) + (hangZiel - (this.hang ?? 1)) * Math.min(1, dt * 1.5);
+    maxV *= this.hang;
     maxV *= 1 + this.gold * .006;                                   // jedes Goldstück macht etwas schneller
     maxV *= this.rw || 1;                                           // Rückenwind (Ausgleich)
     if (this.boost > 0) maxV = st.maxV * 1.4;
@@ -1415,12 +1599,12 @@ class Kart {
       if (this.ladung > 1.7) this.boost = Math.max(this.boost, 1.2); else if (this.ladung > .8) this.boost = Math.max(this.boost, .6);
       this.drift = 0; this.ladung = 0;
     }
-    let s = this.s, wende = st.turn;
+    let s = this.s, wende = st.turn * (this.luft ? 1 : 1 + Math.abs(NEIG[this.idx]) * 2.5);    // Steilkurve: lenkt sich leichter
     if (this.drift) { s = this.drift * .6 + this.s * .5; wende *= st.drift; this.ladung += dt * (.6 + Math.abs(s) * .6); if (phase === "rennen") kraftLaden(this, dt * (this.typ === "moench" ? .05 : .025)); }
     let rate = -s * wende * Math.min(1, Math.max(Math.abs(this.v), 3) / 10) * (this.v < -.5 ? -1 : 1) * (this.luft ? .35 : 1);   // auch langsam etwas lenkbar
     if (this.dreher > 0) rate = 0;                 // beim Dreher dreht sich nur das Modell (zeigen), Fahrtrichtung und Blick bleiben
     this.yaw += rate * dt;
-    const k = this.eis > 0 ? .5 : this.wind > 0 ? 16 : (this.drift ? 2.6 : st.grip) * (nass ? .55 : 1) * (this.glatt > 0 ? .3 : 1) * (fluch === "glatteis" ? .4 : 1);
+    const k = this.eis > 0 ? .5 : this.wind > 0 ? 16 : (this.drift ? 2.6 : st.grip) * (1 + Math.abs(NEIG[this.idx]) * 4) * (nass ? .55 : 1) * (this.glatt > 0 ? .3 : 1) * (fluch === "glatteis" ? .4 : 1);
     let diff = this.yaw - this.mh; diff = Math.atan2(Math.sin(diff), Math.cos(diff));
     this.mh += diff * (1 - Math.exp(-k * dt));
     if (this.dreher > 0) this.mh = this.mhFest;
@@ -1455,8 +1639,9 @@ class Kart {
   zeigen(zeit) {
     this.g.position.set(this.x, this.y, this.z);
     this.g.rotation.y = this.yaw;
-    this.koerper.rotation.z = -this.s * .07 * Math.min(1, this.v / 15) + (this.drift ? -this.drift * .06 : 0);
-    this.koerper.rotation.x = this.luft ? -Math.max(-.25, Math.min(.25, this.vy * .02)) : 0;
+    const vor = Math.cos(this.yaw - Math.atan2(TX[this.idx], TZ[this.idx]));      // fährt das Kart in Streckenrichtung?
+    this.koerper.rotation.z = -this.s * .07 * Math.min(1, this.v / 15) + (this.drift ? -this.drift * .06 : 0) - (this.luft ? 0 : Math.atan(NEIG[this.idx]) * vor);
+    this.koerper.rotation.x = this.luft ? -Math.max(-.25, Math.min(.25, this.vy * .02)) : -Math.atan(STEIG[this.idx]) * vor;
     this.koerper.position.y = this.landung > 0 ? -Math.sin(this.landung / .25 * Math.PI) * .12 : 0;
     if (this.koerper.userData.anim) this.koerper.userData.anim(this, zeit);
     for (const w of this.koerper.userData.raeder) w.rotation.x += this.v * .05;
@@ -1579,7 +1764,7 @@ function truhenZeigen(dt) {
   for (const b of kisten) {
     if (b.weg > 0) { b.weg -= dt; if (b.weg <= 0) { b.weg = 0; neuMischen(b); } }
     const h = b.mimik ? b.mg : b.g;
-    h.rotation.y += dt * 1.2; h.position.y = 1.1 + Math.sin(uhr * 3 + b.x) * .15;
+    h.rotation.y += dt * 1.2; h.position.y = 1.1 + (b.h || 0) + Math.sin(uhr * 3 + b.x) * .15;
     if (b.mimik) {
       b.blinzeln -= dt; if (b.blinzeln < -.45) b.blinzeln = 2.5 + Math.random() * 3.5;
       h.userData.deckel.rotation.x = b.blinzeln < 0 ? -Math.sin(-b.blinzeln / .45 * Math.PI) * .55 : 0;
@@ -2893,7 +3078,8 @@ function update(dt) {
       }
     }
     // Kisten
-    if (rennt && k.fertig == null) for (const b of kisten) if (!b.weg && Math.hypot(b.x - k.x, b.z - k.z) < 1.8 && k.y < 2.5) truheNehmen(k, b);
+    if (rennt && k.fertig == null) for (const b of kisten) if (!b.weg && Math.hypot(b.x - k.x, b.z - k.z) < 1.8 && k.y - (b.h || 0) < 2.5) truheNehmen(k, b);
+    if (rennt && k.fertig == null && runen.length) runenPruefen(k);
     if (rennt && k.fertig == null) for (const mz of muenzen) if (!mz.weg && Math.abs(mz.y - 1 - k.y) < 1.6 && (mz.x - k.x) ** 2 + (mz.z - k.z) ** 2 < 2.9) goldNehmen(k, mz);
   }
   stossen();
@@ -2947,15 +3133,18 @@ function zuschauen(an) {
   else { blickId = null; zielZeigen(); }
   zuschauLeiste();
 }
+let testKamera = null;
 function kamera(dt, sofort) {
   if (phase === "vorschau") { vorschauKamera(); kamPos.copy(cam.position); return; }
+  if (testKamera) { cam.position.set(...testKamera.p); cam.lookAt(...testKamera.z); return; }   // nur für Tests und Bilder
   const f = fokusKart();
   const fx = Math.sin(f.yaw * .5 + f.mh * .5), fz = Math.cos(f.yaw * .5 + f.mh * .5);
-  ziel3.set(f.x - fx * 7.6, f.y * .6 + 3.5, f.z - fz * 7.6);
+  const grund = HOCH[f.idx] + NEIG[f.idx] * klemmen(f.d, -RANDW, RANDW), hy = f.y - grund;   // Hügel ganz folgen, Sprüngen nur gedämpft
+  ziel3.set(f.x - fx * 7.6, grund + hy * .6 + 3.5, f.z - fz * 7.6);
   if (sofort) kamPos.copy(ziel3); else kamPos.lerp(ziel3, 1 - Math.exp(-dt * 7));
   cam.position.copy(kamPos);
   if (wackeln > 0) cam.position.add(v3.set((Math.random() - .5) * wackeln * .9, (Math.random() - .5) * wackeln * .6, (Math.random() - .5) * wackeln * .9));
-  blick.set(f.x + fx * 6, f.y * .7 + 1.3, f.z + fz * 6);
+  blick.set(f.x + fx * 6, grund + hy * .7 + 1.3, f.z + fz * 6);
   cam.lookAt(blick);
   const fov = 62 + (f.boost > 0 ? 9 : 0) + Math.min(4, f.v / 8);
   cam.fov += (fov - cam.fov) * Math.min(1, dt * 4); cam.updateProjectionMatrix();
@@ -3541,4 +3730,4 @@ else if (code) menue("einladung");
 else menue("start");
 requestAnimationFrame(loop);
 window.KART = { get phase() { return phase; }, get ich() { return ich; }, karts: () => karts, ein, S, get LAENGE() { return LAENGE; }, get liste() { return liste; }, get modus() { return modus; },
-  sim(sek) { for (let t = 0; t < sek; t += 1 / 60) { update(1 / 60); } }, aufbauen: rennenAufbauen, cam, sc, r, THREE, streckeBauen, planWuerfeln, planCode, get plan() { return plan; }, get strecke() { return { abschnitte, gabeln, loren, troll, pendel, pfosten, rattenStellen, koenig, rampen, pilzSprung, tropfen, schluchten, haengebruecken, welt, geysire, geysirSprung, pfade, spalten, lavaHoch }; }, SCHLUCHT, absturz, PX, PZ, set uhr(v) { uhr = v; }, objekte, extraNutzen, kisten, treffen, versetzen, anwenden, ereignis, schritte(sek) { for (let t = 0; t < sek; t += 1 / 30) { update(1 / 30); karts.forEach(k => k.zeigen(performance.now())); hud(1 / 30); } }, neigung: () => neigung, lenkWert, kraftNutzen, muenzen, wirkung, set steuerung(v) { steuerung = v; }, get fz() { return fz; }, fzWeiter, fluchGewaehlt, ehrungZeigen, zuschauen, get zuschauer() { return zuschauer; }, get fluch() { return fluch; }, get ausgleich() { return ausgleich; }, set ausgleich(v) { ausgleich = v; }, menschLage, hinten, platzVon, truheNehmen, get liste() { return liste; } };
+  sim(sek) { for (let t = 0; t < sek; t += 1 / 60) { update(1 / 60); } }, aufbauen: rennenAufbauen, cam, sc, r, THREE, streckeBauen, planWuerfeln, planCode, get plan() { return plan; }, get strecke() { return { abschnitte, gabeln, loren, troll, pendel, pfosten, rattenStellen, koenig, rampen, pilzSprung, tropfen, schluchten, haengebruecken, welt, geysire, geysirSprung, pfade, spalten, lavaHoch }; }, SCHLUCHT, absturz, PX, PZ, set uhr(v) { uhr = v; }, objekte, extraNutzen, kisten, treffen, versetzen, anwenden, ereignis, schritte(sek) { for (let t = 0; t < sek; t += 1 / 30) { update(1 / 30); karts.forEach(k => k.zeigen(performance.now())); hud(1 / 30); } }, neigung: () => neigung, lenkWert, kraftNutzen, muenzen, wirkung, set steuerung(v) { steuerung = v; }, get fz() { return fz; }, fzWeiter, fluchGewaehlt, ehrungZeigen, zuschauen, get zuschauer() { return zuschauer; }, get fluch() { return fluch; }, get ausgleich() { return ausgleich; }, set ausgleich(v) { ausgleich = v; }, menschLage, hinten, platzVon, truheNehmen, get liste() { return liste; }, set testKamera(v) { testKamera = v; }, HOCH, NEIG, STEIG, get runen() { return runen; }, hoehe, hoeheAn };

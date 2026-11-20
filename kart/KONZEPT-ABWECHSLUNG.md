@@ -280,3 +280,14 @@ Für das Spiel zu fünft ist das zweitrangig.
 | Goldene Truhe in der letzten Runde (hintere Hälfte) | – | ✔ |
 
 Die Monster haben weiter ihr eigenes Gummiband. Es wirkt nur noch auf Monster, nicht auf Menschen.
+
+**Paket 10 ist umgesetzt** (siehe `spiel.js`, Abschnitt „Hügel“):
+
+- Jede Strecke bekommt nach dem Bau Höhen, aber nur in ruhigen Abschnitten. Wo sich etwas bewegt (Gitter, Loren, Pendel, Troll, Endgegner, Schluchten, Wasser, Brücken, Lava-Pfade) und wo die Strecke nah an sich selbst vorbeiführt, bleibt sie flach.
+- **Lange Hügel** (bis 4,5 m): flach hinauf, kurz oben, steil hinunter. **Kuppen** (gut 1 m): kleine Hopser, bei vollem Tempo hebt man ab.
+- **Steilkurven:** In engen Kurven ist die Außenseite höher. Man lenkt dort leichter und hat mehr Halt.
+- **Bergab schneller, bergauf langsamer**, und schwere Karts spüren beides stärker: die Hexe etwa ±20 %, der Dieb etwa ±10 %.
+- **Schubrunen** liegen oben auf den Hügeln vor der Abfahrt, manchmal auch vor Kuppen. Wer drüberfährt, bekommt kurz Schwung.
+- Außen fällt eine Böschung zum Boden ab. Mauern, Fackeln, Truhen, Gold und Deko werden mit angehoben. Die Kamera folgt den Hügeln ganz, Sprüngen nur gedämpft.
+- Anteil mit Höhen: im Kerker etwa die Hälfte der Runde, in Grotte und Glutschlund weniger, weil dort viel los ist. Mit den längeren Runden aus Paket 11 wird es mehr.
+
