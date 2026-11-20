@@ -14,11 +14,11 @@ const lager = { lesen(k) { try { return localStorage.getItem(k); } catch { retur
 // Helden aus dem Verlies, jeder mit eigenem Gefährt. gelaende: Tempo auf Geröll (sonst 0,5)
 const HELDEN = {
   kaempfer: { name: "Kämpfer", gefaehrt: "Streitwagen", klasse: "schwer", text: "schiebt alle weg, beschleunigt langsam", maxV: 27.5, accel: 11.5, turn: 1.75, grip: 11, drift: 1.25, masse: 1.8 },
-  paladin: { name: "Paladin", gefaehrt: "Panzerlore", klasse: "schwer", text: "liegt satt in der Kurve", maxV: 27, accel: 12.5, turn: 1.8, grip: 11.5, drift: 1.3, masse: 1.7 },
-  dieb: { name: "Dieb", gefaehrt: "geklauter Handkarren", klasse: "leicht", text: "flink und wendig", maxV: 26, accel: 17, turn: 2.2, grip: 9.5, drift: 1.55, masse: .8 },
+  paladin: { name: "Paladin", gefaehrt: "Panzerlore", klasse: "schwer", text: "Treffer werfen ihn nur halb so lang aus der Bahn", maxV: 27, accel: 12.5, turn: 1.8, grip: 11.5, drift: 1.3, masse: 1.7 },
+  dieb: { name: "Dieb", gefaehrt: "geklauter Handkarren", klasse: "leicht", text: "flink und wendig, erkennt Mimik-Truhen", maxV: 26, accel: 17, turn: 2.2, grip: 9.5, drift: 1.55, masse: .8 },
   waldlaeufer: { name: "Waldläufer", gefaehrt: "Baumstamm-Renner", klasse: "mittel", text: "Geröll bremst ihn kaum", maxV: 27, accel: 14, turn: 1.95, grip: 10, drift: 1.35, masse: 1, gelaende: .82 },
-  magierin: { name: "Magierin", gefaehrt: "fliegender Teppich", klasse: "leicht", text: "sehr schnell, rutscht in Kurven", maxV: 28.5, accel: 13.5, turn: 1.85, grip: 6.5, drift: 1.35, masse: .8 },
-  heilerin: { name: "Heilerin", gefaehrt: "Kräuterkarren", klasse: "mittel", text: "ausgewogen, gut für den Anfang", maxV: 27, accel: 15, turn: 1.95, grip: 10, drift: 1.4, masse: 1 },
+  magierin: { name: "Magierin", gefaehrt: "fliegender Teppich", klasse: "leicht", text: "sehr schnell, schwebt über Pfützen und Krähenfüße, rutscht in Kurven", maxV: 28.5, accel: 13.5, turn: 1.85, grip: 6.5, drift: 1.35, masse: .8 },
+  heilerin: { name: "Heilerin", gefaehrt: "Kräuterkarren", klasse: "mittel", text: "nach Treffern schnell wieder auf Tempo", maxV: 27, accel: 15, turn: 1.95, grip: 10, drift: 1.4, masse: 1 },
   moench: { name: "Mönch", gefaehrt: "Rollkissen", klasse: "leicht", text: "beste Beschleunigung, driftet stark", maxV: 25.5, accel: 18, turn: 2.25, grip: 9, drift: 1.6, masse: .75 },
   nekromant: { name: "Nekromant", gefaehrt: "rollender Sarg", klasse: "mittel", text: "schnell, aber träge in Kurven", maxV: 28, accel: 13, turn: 1.8, grip: 9.5, drift: 1.35, masse: 1.15 },
 };
@@ -589,6 +589,16 @@ class Kart {
     for (let i = 0; i < 6; i++) { const f = new THREE.Mesh(funkenGeo, new THREE.MeshBasicMaterial({ color: "#F2B705" })); f.visible = false; this.g.add(f); this.funken.push(f); }
     this.flamme = new THREE.Mesh(new THREE.ConeGeometry(.35, 1.4, 8), new THREE.MeshBasicMaterial({ color: "#F97316", transparent: true, opacity: .85 }));
     this.flamme.rotation.x = -Math.PI / 2; this.flamme.position.set(0, .7, -1.8); this.flamme.visible = false; this.g.add(this.flamme);
+    // Extras am Kart: Turmschild hinten, Segensschein, Netz, Fledermäuse
+    this.schildM = new THREE.Group(); teil(this.schildM, box(1.5, 1.2, .16), this.farbe, 0, 0, 0); teil(this.schildM, box(1.62, .14, .2), "#E8C24A", 0, .6, 0);
+    teil(this.schildM, box(1.62, .14, .2), "#E8C24A", 0, -.6, 0); teil(this.schildM, box(.16, 1.2, .2), "#E8C24A", 0, 0, -.02);
+    this.schildM.position.set(0, 1, -1.55); this.schildM.visible = false; this.g.add(this.schildM);
+    this.aura = new THREE.Mesh(kugel(1.9, 16), new THREE.MeshBasicMaterial({ color: "#FFD86A", transparent: true, opacity: .28, blending: THREE.AdditiveBlending, depthWrite: false }));
+    this.aura.position.y = 1; this.aura.visible = false; this.g.add(this.aura);
+    this.netzM = new THREE.Mesh(new THREE.SphereGeometry(1.6, 10, 6, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshBasicMaterial({ color: "#F2EDE0", wireframe: true }));
+    this.netzM.position.y = .2; this.netzM.visible = false; this.g.add(this.netzM);
+    this.fleder = 0; this.flederM = new THREE.Group(); this.flederM.visible = false; this.g.add(this.flederM);
+    for (let i = 0; i < 3; i++) { const f = new THREE.Group(); teil(f, kugel(.14, 6), "#1B1620", 0, 0, 0); teil(f, kegel(.3, .5, 3), "#1B1620", .3, 0, 0, 0, 0, -Math.PI / 2).scale.z = .2; teil(f, kegel(.3, .5, 3), "#1B1620", -.3, 0, 0, 0, 0, Math.PI / 2).scale.z = .2; this.flederM.add(f); }
     sc.add(this.g);
   }
   setzen(i, d) {
@@ -597,6 +607,8 @@ class Kart {
     this.idx = i; this.prog = i > S / 2 ? i - S : i; this.d = d;
     this.boost = 0; this.drift = 0; this.ladung = 0; this.item = null; this.fertig = null; this.runden = []; this.rundeStart = 0;
     this.botTimer = 0; this.spur = d; this.dreher = 0;
+    this.walze = 0; this.schild = false; this.amulett = 0; this.haken = null; this.extraUhr = null;
+    this.schonzeit = this.netz = this.bremse = this.fleder = this.sporen = this.erholung = this.holper = 0;
   }
   suchen() {                                     // nächster Streckenpunkt über die ganze Runde
     let best = Infinity, bi = 0;
@@ -605,14 +617,15 @@ class Kart {
   }
   // Zustand eines anderen Handys übernehmen; dazwischen wird weitergerechnet und weich nachgeführt
   netzZustand(a) {
-    const [x, y, z, yaw, v, s, drift, boost, prog, ladung] = a;
-    const erst = !this.netz;
-    this.netz = { x, y, z, yaw, v, t: performance.now() };
-    this.s = s; this.drift = drift; this.boost = boost ? .2 : 0; this.ladung = ladung; this.netzProg = prog;
+    const [x, y, z, yaw, v, s, drift, boost, prog, ladung, fx = 0] = a;
+    this.schild = !!(fx & 1); this.amulett = fx & 2 ? 1 : 0; this.netz = fx & 4 ? 1 : 0; this.fleder = fx & 8 ? 1 : 0; this.schonzeit = fx & 16 ? 1 : 0;
+    const erst = !this.nz;
+    this.nz = { x, y, z, yaw, v, t: performance.now() };
+    this.s = s; this.drift = drift; this.boost = boost || fx & 32 ? .2 : 0; this.ladung = ladung; this.netzProg = prog;
     if (erst) { this.x = x; this.y = y; this.z = z; this.yaw = this.mh = yaw; this.v = v; this.suchen(); this.prog = prog; }
   }
   folgen(dt) {
-    const n = this.netz; if (!n) return;
+    const n = this.nz; if (!n) return;
     const alter = (performance.now() - n.t) / 1000;
     this.g.visible = this.schatten.visible = alter < 4;
     const a = Math.min(.3, alter), tx = n.x + Math.sin(n.yaw) * n.v * a, tz = n.z + Math.cos(n.yaw) * n.v * a;
@@ -625,7 +638,8 @@ class Kart {
   }
   zustand() {
     const r2 = v => Math.round(v * 100) / 100;
-    return [r2(this.x), r2(this.y), r2(this.z), r2(this.yaw), r2(this.v), r2(this.s), this.drift, this.boost > 0 ? 1 : 0, this.prog, r2(this.ladung)];
+    const fx = (this.schild ? 1 : 0) | (this.amulett > 0 ? 2 : 0) | (this.netz > 0 ? 4 : 0) | (this.fleder > 0 ? 8 : 0) | (this.schonzeit > 0 && !(this.dreher > 0) ? 16 : 0) | (this.haken ? 32 : 0);
+    return [r2(this.x), r2(this.y), r2(this.z), r2(this.yaw), r2(this.v), r2(this.s), this.drift, this.boost > 0 ? 1 : 0, this.prog, r2(this.ladung), fx];
   }
   naechster() {
     let best = Infinity, bi = this.idx;
@@ -640,11 +654,17 @@ class Kart {
     if (this.boost > 0) this.boost -= dt;
     if (this.dreher > 0) this.dreher -= dt;
     let maxV = st.maxV * (offroad ? (st.gelaende || .5) : 1);
+    if (this.netz > 0) maxV *= .7;
+    if (this.bremse > 0) maxV *= .55;
+    if (this.holper > 0) maxV *= .5;
     if (this.boost > 0) maxV = st.maxV * 1.4;
-    if (ein.gas === false || this.dreher > 0) maxV = 0;
-    if (!this.luft) this.v += Math.max(-30 * dt, Math.min(st.accel * dt * (this.boost > 0 ? 3 : 1), maxV - this.v));
-    // Lenken (für Tasten geglättet)
-    this.s += (ein.lenk - this.s) * Math.min(1, dt * (ein.direkt ? 30 : 9));
+    if (this.haken) maxV = st.maxV * 1.55;
+    if (ein.gas === false) maxV = 0; else if (this.dreher > 0) maxV = Math.min(maxV, st.maxV * .35);
+    const schub = this.boost > 0 || this.haken ? 3 : this.erholung > 0 && !(this.dreher > 0) ? 2.2 : 1;
+    if (!this.luft) this.v += Math.max(-30 * dt, Math.min(st.accel * dt * schub, maxV - this.v));
+    // Lenken (für Tasten geglättet); im Netz lenkt es sich schwer
+    const lenk = ein.lenk * (this.netz > 0 ? .3 : 1);
+    this.s += (lenk - this.s) * Math.min(1, dt * (ein.direkt ? 30 : 9));
     // Drift
     if (!this.drift && ein.drift && Math.abs(this.s) > .25 && this.v > 14 && !this.luft) { this.drift = Math.sign(this.s); this.ladung = 0; }
     if (this.drift && (!ein.drift || this.v < 9)) {
@@ -695,28 +715,484 @@ class Kart {
       f.visible = !!this.drift && !this.luft;
       if (f.visible) { f.material.color.set(farbe); f.position.set((i % 2 ? .8 : -.8) + (Math.random() - .5) * .4, .12 + Math.random() * .4, -1 - Math.random() * .6); }
     });
-    this.flamme.visible = this.boost > 0;
+    this.flamme.visible = this.boost > 0 || !!this.haken;
     if (this.flamme.visible) this.flamme.scale.set(1, .7 + Math.random() * .6, 1);
+    const t = zeit / 1000;
+    this.schildM.visible = !!this.schild;
+    this.aura.visible = this.amulett > 0; if (this.aura.visible) this.aura.material.opacity = .2 + Math.sin(t * 10) * .08;
+    this.netzM.visible = this.netz > 0; if (this.netzM.visible) this.netzM.rotation.y = Math.sin(t * 9) * .2;
+    this.flederM.visible = this.fleder > 0;
+    if (this.flederM.visible) this.flederM.children.forEach((f, i) => { const w = t * 5 + i * 2.1; f.position.set(Math.sin(w) * 1.2, 2.3 + Math.sin(t * 9 + i) * .25, Math.cos(w) * 1.2 + .6); f.rotation.y = w + Math.PI / 2; f.children[1].rotation.x = f.children[2].rotation.x = Math.sin(t * 30 + i) * .6; });
+    this.koerper.visible = !(this.schonzeit > 0 && !(this.dreher > 0) && Math.floor(t * 12) % 2 === 0);
+    if (this.seil) this.seil.visible = false;
+    if (this.haken) {
+      const z = karts.find(o => o.id === this.haken.ziel);
+      if (z) {
+        if (!this.seil) { this.seil = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]), new THREE.LineBasicMaterial({ color: "#D9C9A8" })); sc.add(this.seil); }
+        const a = this.seil.geometry.attributes.position; a.setXYZ(0, this.x, this.y + 1.2, this.z); a.setXYZ(1, z.x, z.y + 1, z.z); a.needsUpdate = true; this.seil.visible = true;
+      }
+    }
   }
 }
 
 // ---------- Truhen ----------
+// Etwa jede achte Truhe ist ein Mimik: Er blinzelt ab und zu (Deckel hebt sich, Zähne blitzen). Der Dieb sieht Mimiks rot umrandet.
 const kisten = [];
+const ROT_RAND = new THREE.MeshBasicMaterial({ color: "#FF2A2A", side: THREE.BackSide });
+function truhe(mimik) {
+  const g = new THREE.Group();
+  const holz = mimik ? "#7E5229" : "#8A5A2E";
+  teil(g, box(1.4, .75, 1.0), holz, 0, 0, 0);
+  for (const x of [-.45, .45]) teil(g, box(.12, .78, 1.04), "#E8C24A", x, 0, 0);
+  teil(g, box(.26, .3, .1), "#E8C24A", 0, .2, .52);
+  const deckel = new THREE.Group(); deckel.position.set(0, .375, -.5); deckel.userData.lose = true; g.add(deckel);
+  teil(deckel, new THREE.CylinderGeometry(.5, .5, 1.4, 12, 1, false, 0, Math.PI), mimik ? "#8E5E30" : "#9A6A3A", 0, 0, .5, 0, 0, Math.PI / 2);
+  for (const x of [-.45, .45]) teil(deckel, new THREE.CylinderGeometry(.53, .53, .12, 12, 1, false, 0, Math.PI), "#E8C24A", x, 0, .5, 0, 0, Math.PI / 2);
+  if (mimik) {
+    teil(g, box(1.2, .06, .9), "#7A1E22", 0, .36, 0);                                 // Schlund
+    for (let i = 0; i < 6; i++) teil(g, kegel(.07, .2, 5), "#FFF6E6", -.5 + i * .2, .45, .44);     // Unterzähne
+    for (let i = 0; i < 5; i++) teil(deckel, kegel(.07, .2, 5), "#FFF6E6", -.4 + i * .2, -.08, .96, Math.PI);
+    for (const x of [-.25, .25]) teil(deckel, kugel(.09, 8), null, x, .3, .9, 0, 0, 0, GLUT("#FFD23A"));
+    const rand = new THREE.Mesh(box(1.62, 1.2, 1.22), ROT_RAND); rand.position.y = .12; rand.visible = false; rand.userData.lose = true; g.add(rand); g.userData.rand = rand;
+  }
+  backen(g); g.traverse(o => { if (o.isMesh && o.material !== ROT_RAND) o.castShadow = true; });
+  g.userData.deckel = deckel; return g;
+}
 function truhenReihe(t) {
   const i = wrap(Math.round(t * S));
   for (const d of [-3.4, 0, 3.4]) {
-    const g = new THREE.Group();
-    teil(g, box(1.4, .75, 1.0), "#8A5A2E", 0, 0, 0);
-    teil(g, new THREE.CylinderGeometry(.5, .5, 1.4, 12, 1, false, 0, Math.PI), "#9A6A3A", 0, .375, 0, 0, 0, Math.PI / 2);
-    for (const x of [-.45, .45]) { teil(g, box(.12, .78, 1.04), "#E8C24A", x, 0, 0); teil(g, new THREE.CylinderGeometry(.53, .53, .12, 12, 1, false, 0, Math.PI), "#E8C24A", x, .375, 0, 0, 0, Math.PI / 2); }
-    teil(g, box(.26, .3, .1), "#E8C24A", 0, .2, .52);
-    backen(g); g.traverse(o => o.castShadow = true);
     const x = PX[i] + nX(i) * d, z = PZ[i] + nZ(i) * d;
-    g.position.set(x, 1.1, z); sc.add(g);
-    kisten.push({ g, x, z, weg: 0 });
+    const g = truhe(false), mg = truhe(true);
+    for (const h of [g, mg]) { h.position.set(x, 1.1, z); sc.add(h); }
+    const b = { g, mg, x, z, weg: 0, mimik: false, blinzeln: 2 + Math.random() * 3 };
+    neuMischen(b); kisten.push(b);
   }
 }
+function neuMischen(b) { b.mimik = Math.random() < 1 / 8; b.g.visible = !b.mimik; b.mg.visible = b.mimik; }
 [.09, .4, .63, .86].forEach(truhenReihe);
+function truhenZeigen(dt) {
+  const dieb = ich && ich.typ === "dieb";
+  for (const b of kisten) {
+    if (b.weg > 0) { b.weg -= dt; if (b.weg <= 0) { b.weg = 0; neuMischen(b); } }
+    const h = b.mimik ? b.mg : b.g;
+    h.rotation.y += dt * 1.2; h.position.y = 1.1 + Math.sin(uhr * 3 + b.x) * .15;
+    if (b.mimik) {
+      b.blinzeln -= dt; if (b.blinzeln < -.45) b.blinzeln = 2.5 + Math.random() * 3.5;
+      h.userData.deckel.rotation.x = b.blinzeln < 0 ? -Math.sin(-b.blinzeln / .45 * Math.PI) * .55 : 0;
+      h.userData.rand.visible = dieb && !b.weg;
+    }
+  }
+}
+
+// ---------- Extras ----------
+// Was in der Truhe steckt, hängt vom Platz ab (Gewichte für vorne, Mitte, hinten).
+// Netz: Wer ein Extra einsetzt, schickt ein Ereignis, der Spielleiter reicht es an alle weiter. Jedes Handy zeigt Geschosse und Fallen selbst an.
+// Ob ein Kart getroffen wird, entscheidet nur das Handy, das dieses Kart fährt (das eigene Kart, beim Spielleiter auch die Monster).
+const SVG_KRAEHE = `<svg viewBox="0 0 40 40" width="38" height="38"><g fill="#6B717C" stroke="#1E1A18" stroke-width="2" stroke-linejoin="round"><path d="M20 2l4.5 14L20 20l-4.5-4z"/><path d="M38 20l-14 4.5L20 20l4-4.5z"/><path d="M20 38l-4.5-14L20 20l4.5 4z"/><path d="M2 20l14-4.5L20 20l-4 4.5z"/></g></svg>`;
+const SVG_SCHLEIM = `<svg viewBox="0 0 40 40" width="38" height="38"><path d="M5 27c0-6 6-8 9-12s3-9 8-9 5 6 6 9 8 5 8 11-6 8-15 8S5 33 5 27z" fill="#7BD64A" stroke="#1E1A18" stroke-width="2.4"/><ellipse cx="17" cy="20" rx="3" ry="2" fill="#D8F7B8"/></svg>`;
+const EXTRAS = {
+  flink:     { name: "Flinktrank", bild: "🧪", w: [2, 2, 2] },
+  dreifach:  { name: "Dreifachtrank", bild: "🧪", n: 3, w: [0, 1, 3] },
+  haken:     { name: "Enterhaken", bild: "🪝", w: [0, 2, 3] },
+  teleport:  { name: "Teleport-Schriftrolle", bild: "📜", w: [0, 1, 3] },
+  feuerball: { name: "Feuerball", bild: "🔥", angriff: true, w: [1, 3, 1] },
+  pfeile:    { name: "Pfeilbündel", bild: "🏹", n: 3, angriff: true, w: [1, 2, 1] },
+  axt:       { name: "Bumerang-Axt", bild: "🪓", angriff: true, w: [1, 3, 1] },
+  netz:      { name: "Wurfnetz", bild: "🕸️", angriff: true, w: [1, 2, 1] },
+  schleim:   { name: "Schleimpfütze", bild: SVG_SCHLEIM, falle: true, w: [3, 1, 0] },
+  kraehen:   { name: "Krähenfüße", bild: SVG_KRAEHE, falle: true, w: [3, 1, 0] },
+  kaese:     { name: "Käse", bild: "🧀", falle: true, w: [2, 1, 0] },
+  pilz:      { name: "Knallpilz", bild: "🍄", falle: true, w: [3, 2, 0] },
+  schild:    { name: "Turmschild", bild: "🛡️", w: [3, 1, 0] },
+  amulett:   { name: "Segensamulett", bild: "📿", w: [0, 1, 2] },
+  fleder:    { name: "Fledermausschwarm", bild: "🦇", w: [0, 1, 2] },
+  beben:     { name: "Beben", bild: "🪨", w: [0, 0, 2] }
+};
+const TEST_EXTRA = new URLSearchParams(location.search).get("extra");    // Test: ?extra=feuerball gibt immer dieses Extra
+const SCHRITT = LAENGE / S;                                             // Meter je Streckenpunkt
+const klemmen = (v, a, b) => Math.max(a, Math.min(b, v));
+let wackeln = 0;                                                        // Kamera wackelt (Beben, Treffer)
+
+function extraZiehen(k) {
+  if (TEST_EXTRA && EXTRAS[TEST_EXTRA]) return TEST_EXTRA;
+  const n = karts.length, p = n > 1 ? (platzVon(k) - 1) / (n - 1) : .5;
+  const stufe = p < .34 ? 0 : p < .67 ? 1 : 2;
+  const alle = Object.entries(EXTRAS); let summe = 0; for (const [, e] of alle) summe += e.w[stufe];
+  let x = Math.random() * summe; for (const [a, e] of alle) { x -= e.w[stufe]; if (x < 0) return a; }
+  return "flink";
+}
+function truheNehmen(k, b) {
+  b.weg = 3.5; b.g.visible = b.mg.visible = false;
+  if (b.mimik) {                                   // gebissen: Kart dreht sich, Extra weg
+    k.item = null; k.walze = 0;
+    treffen(k, "mimik");
+    if (k.ich) { melden("Ein Mimik! 😬 Extra weg"); extraAnzeigen(); }
+    return;
+  }
+  if (k.item || k.walze > 0) return;
+  const art = extraZiehen(k);
+  k.item = { art, n: EXTRAS[art].n || 1 }; k.walze = k.bot ? .8 : 1.1;
+  if (k.ich) extraAnzeigen(true);
+}
+
+// Nächstes Kart in Fahrtrichtung (rf = 1) oder dahinter (rf = -1), höchstens weit Meter entfernt
+function naechstesKart(k, rf, weit) {
+  let best = null, bd = Infinity;
+  for (const o of karts) {
+    if (o === k || o.fertig != null || !o.g.visible) continue;
+    const dp = (o.prog - k.prog) * rf * SCHRITT;
+    if (dp > .5 && dp < weit && dp < bd) { bd = dp; best = o; }
+  }
+  return best;
+}
+
+// ----- Ereignisse -----
+let objZaehler = 0;
+const neueId = () => PID + "-" + (++objZaehler);
+function ereignis(e) {
+  e.q = PID; anwenden(e);
+  if (modus === "client") senden({ t: "ev", pid: PID, nr: rennNr, e });
+  else if (modus === "host") anAlle({ t: "ev", nr: rennNr, e });
+}
+function anwenden(e) {
+  if (!e || typeof e !== "object" || (phase !== "rennen" && phase !== "ziel" && phase !== "pause")) return;
+  if (e.a === "wurf" || e.a === "falle") objektNeu(e);
+  else if (e.a === "weg") objektWeg(e.id, true);
+  else if (e.a === "wirkung") { const k = karts.find(o => o.id === e.ziel); if (k && !k.remote) wirkung(k, e); }
+  else if (e.a === "beben") bebenStarten(e);
+}
+// Wirkung auf ein Kart, das dieses Handy fährt
+function wirkung(k, e) {
+  if (e.art === "treffer") treffen(k, "treffer");
+  else if (e.art === "bremse") { k.bremse = 1.2; if (k.ich) melden("Eingehakt! 🪝"); }
+  else if (e.art === "fleder") { if (k.amulett > 0) return; k.fleder = 3; if (k.ich) melden("Fledermäuse! 🦇", 1); }
+  else if (e.art === "tausch") { versetzen(k, wrap(e.idx | 0), +e.d || 0, +e.prog || k.prog); if (k.ich) melden("Platz getauscht! 📜"); }
+}
+
+// Treffer auf ein selbst gefahrenes Kart. Rückgabe: "durch" (wirkt nicht, Geschoss fliegt weiter) oder "weg" (Geschoss verbraucht)
+function treffen(k, art) {
+  if (k.fertig != null) return "durch";
+  if (k.amulett > 0 && art !== "mimik") return "weg";
+  if (k.schonzeit > 0 && art !== "mimik") return "durch";
+  if (k.schild && art !== "mimik") { k.schild = false; k.schonzeit = .8; if (k.ich) { melden("Schild hält! 🛡️"); summen(40); } return "weg"; }
+  if (art === "netz") {
+    k.netz = 2.2; k.schonzeit = 2.4; k.v *= .75;
+    if (k.ich) { melden(steuerung === "neigen" ? "Im Netz! Handy schütteln!" : "Im Netz!", 1.6); summen(120); }
+    return "weg";
+  }
+  if (art === "sporen") {
+    k.sporen = 2.2; k.v *= .75; k.schonzeit = 1;
+    if (k.ich) { melden("Sporen! Wischen!", 1.4); summen(60); }
+    return "weg";
+  }
+  k.dreher = k.typ === "paladin" ? .5 : .95; k.mhFest = k.mh; k.v *= .5; k.drift = 0; k.ladung = 0; k.boost = 0; k.haken = null;
+  k.schonzeit = k.dreher + 2; if (k.typ === "heilerin") k.erholung = k.dreher + 1.5;
+  if (k.ich) { summen(180); wackeln = Math.max(wackeln, .35); }
+  return "weg";
+}
+function summen(ms) { try { if (navigator.vibrate) navigator.vibrate(ms); } catch {} }
+
+// Kart an eine andere Stelle der Strecke setzen (Teleport, Platztausch)
+function versetzen(k, idx, d, prog) {
+  d = klemmen(d, -BR / 2 + 1, BR / 2 - 1);
+  k.x = PX[idx] + nX(idx) * d; k.z = PZ[idx] + nZ(idx) * d; k.idx = idx; k.d = d; k.prog = prog;
+  k.yaw = k.mh = Math.atan2(TX[idx], TZ[idx]); k.y = hoehe(idx, d); k.luft = false; k.vy = 0; k.drift = 0; k.ladung = 0;
+}
+function teleport(k) {
+  if (Math.random() < 1 / 6) {                 // Patzer: Platz mit einem zufälligen Fahrer in der Nähe tauschen
+    const andere = karts.filter(o => o !== k && o.fertig == null && o.g.visible && Math.abs(o.prog - k.prog) < S / 2);
+    if (andere.length) {
+      const o = andere[Math.floor(Math.random() * andere.length)], alt = { idx: k.idx, d: k.d, prog: k.prog };
+      const vor = o.prog > k.prog;
+      versetzen(k, o.idx, o.d, o.prog);
+      if (o.remote) ereignis({ a: "wirkung", ziel: o.id, art: "tausch", idx: alt.idx, d: alt.d, prog: alt.prog });
+      else versetzen(o, alt.idx, alt.d, alt.prog);
+      if (k.ich) melden(vor ? `Patzer! Platz mit ${o.name} getauscht 🙂` : `Patzer! Platz mit ${o.name} getauscht 😖`, 2);
+      return;
+    }
+  }
+  const sprung = Math.round(50 / SCHRITT);
+  versetzen(k, wrap(k.idx + sprung), k.d, k.prog + sprung);
+  k.boost = Math.max(k.boost, .4);
+  if (k.ich) melden("Teleport! 📜");
+}
+
+// Extra einsetzen. wunsch: "vorn", "hinten" oder leer (Angriffe nach vorn, Fallen nach hinten)
+function extraNutzen(k, wunsch) {
+  if (phase !== "rennen" || !k.item || k.walze > 0 || k.fertig != null || k.dreher > 0) return false;
+  const art = k.item.art, E = EXTRAS[art];
+  const hinten = wunsch ? wunsch === "hinten" : !!E.falle, rf = hinten ? -1 : 1;
+  if (--k.item.n <= 0) k.item = null;
+  const sag = t => { if (k.ich) melden(t); };
+  if (art === "flink" || art === "dreifach") { k.boost = Math.max(k.boost, 1.6); sag(E.name + "! 🧪"); }
+  else if (art === "haken") {
+    const z = naechstesKart(k, 1, 80);
+    if (z) { k.haken = { ziel: z.id, t: 0 }; sag("Enterhaken! 🪝"); } else { k.boost = Math.max(k.boost, 1.4); sag("Enterhaken greift ins Leere, Schwung!"); }
+  }
+  else if (art === "teleport") teleport(k);
+  else if (E.angriff) {
+    const ziel = art === "pfeile" || art === "netz" ? naechstesKart(k, rf, 90) : null;
+    ereignis({ a: "wurf", id: neueId(), art, von: k.id, p: k.idx + rf * 3 / SCHRITT, d: k.d, rf, ziel: ziel ? ziel.id : null, y: k.y });
+    if (k.ich && hinten) melden("Nach hinten!", .8);
+  }
+  else if (E.falle) {
+    const weit = hinten ? -2.6 : 28;
+    const idx = wrap(Math.round(k.idx + weit / SCHRITT));
+    const d = art === "kraehen" ? (k.d >= 0 ? 1 : -1) * BR / 4 : art === "kaese" ? 0 : klemmen(k.d, -BR / 2 + 1, BR / 2 - 1);
+    ereignis({ a: "falle", id: neueId(), art, von: k.id, idx, d, flug: !hinten });
+  }
+  else if (art === "schild") { k.schild = true; sag("Turmschild! 🛡️"); }
+  else if (art === "amulett") { k.amulett = 5; sag("Segensamulett! 📿"); }
+  else if (art === "fleder") {
+    const ziele = karts.filter(o => o !== k && o.fertig == null && o.g.visible).sort((a, b) => b.prog - a.prog).slice(0, 3);
+    for (const o of ziele) ereignis({ a: "wirkung", ziel: o.id, art: "fleder" });
+    sag(ziele.length ? "Fledermäuse zu den Ersten! 🦇" : "Die Fledermäuse finden niemanden.");
+  }
+  else if (art === "beben") {
+    const steine = [];
+    for (const o of karts) {
+      if (o === k || o.fertig != null || !o.g.visible) continue;
+      for (let n = 0; n < 2; n++) steine.push([wrap(Math.round(o.idx + (28 + n * 12 + Math.random() * 8) / SCHRITT)), Math.round(((Math.random() - .5) * (BR - 2)) * 10) / 10]);
+    }
+    ereignis({ a: "beben", id: neueId(), von: k.id, steine });
+  }
+  if (k.ich) extraAnzeigen();
+  return true;
+}
+
+// ----- Geschosse und Fallen auf der Strecke -----
+const objekte = new Map();
+const GESCHOSS = {       // Tempo (m/s), Lebensdauer (s)
+  feuerball: { v: 62, leben: 2.6 }, pfeile: { v: 85, leben: 1.6 }, netz: { v: 58, leben: 2 }, axt: { v: 50, leben: 3 }
+};
+const FALLE = { schleim: 30, kraehen: 18, kaese: 5.5, pilz: 30, stein: 4.5 };
+function objMesh(art) {
+  const g = new THREE.Group();
+  if (art === "feuerball") {
+    teil(g, kugel(.55, 12), null, 0, 0, 0, 0, 0, 0, GLUT("#FF6A1A")); teil(g, kugel(.34, 10), null, 0, 0, .12, 0, 0, 0, GLUT("#FFE36A"));
+    const s = new THREE.Mesh(new THREE.PlaneGeometry(3.4, 3.4), scheinMat); s.rotation.x = -Math.PI / 2; s.position.y = -.8; g.add(s);
+  } else if (art === "pfeile") {
+    teil(g, zyl(.04, .04, 1.3, 5), "#8A6A44", 0, 0, 0, Math.PI / 2); teil(g, kegel(.1, .26, 6), "#BFC5CC", 0, 0, .75, Math.PI / 2);
+    teil(g, box(.02, .18, .3), "#E23B2E", 0, 0, -.55);
+  } else if (art === "axt") {
+    const a = new THREE.Group(); g.add(a); g.userData.dreh = a;
+    teil(a, zyl(.06, .06, 1.2, 6), "#7A5434", 0, 0, 0, 0, 0, Math.PI / 2);
+    teil(a, box(.42, .5, .07), "#C9CED6", .5, .12, 0);
+  } else if (art === "netz") {
+    const m = new THREE.Mesh(new THREE.IcosahedronGeometry(.75, 1), new THREE.MeshBasicMaterial({ color: "#F2EDE0", wireframe: true })); g.add(m); g.userData.dreh = m;
+  } else if (art === "schleim") {
+    const m = new THREE.Mesh(new THREE.CircleGeometry(1.7, 18), new THREE.MeshLambertMaterial({ color: "#6CC93E", transparent: true, opacity: .85 })); m.rotation.x = -Math.PI / 2; m.position.y = .05; g.add(m);
+    for (const [x, z, r] of [[.5, .3, .35], [-.6, -.2, .28], [.1, -.7, .22]]) teil(g, kugel(r, 8), "#8BE05A", x, .02, z).scale.y = .45;
+  } else if (art === "kraehen") {
+    const geo = new THREE.TetrahedronGeometry(.28), mat = M("#5C626C");
+    for (let i = 0; i < 16; i++) { const m = new THREE.Mesh(geo, mat); m.position.set((i / 15 - .5) * (BR / 2 - .4), .14, (Math.random() - .5) * 1.4); m.rotation.set(Math.random() * 3, Math.random() * 3, 0); g.add(m); }
+  } else if (art === "kaese") {
+    const k = new THREE.Mesh(new THREE.CylinderGeometry(.7, .7, .5, 3, 1), M("#F2C230")); k.position.y = .25; g.add(k);
+    const ratten = []; for (let i = 0; i < 6; i++) {
+      const r = new THREE.Group(); teil(r, kapsel(.22, .5), "#7D6E62", 0, .25, 0, Math.PI / 2); teil(r, kugel(.16, 8), "#8C7D70", 0, .3, .45);
+      teil(r, zyl(.03, .02, .8, 4), "#E2A3A0", 0, .2, -.7, Math.PI / 2 - .3); teil(r, kugel(.05, 6), "#E23B2E", .08, .38, .58); r.visible = false; g.add(r); ratten.push(r);
+    }
+    g.userData.ratten = ratten;
+  } else if (art === "pilz") {
+    teil(g, zyl(.22, .28, .55, 8), "#F3E6CC", 0, .28, 0); const h = teil(g, kugel(.6, 12), "#D9483B", 0, .55, 0); h.scale.y = .6;
+    for (const [x, z] of [[.3, .2], [-.25, .3], [0, -.35], [-.3, -.1]]) teil(g, kugel(.09, 6), "#FFF6E6", x, .82, z);
+    g.userData.puls = h;
+  } else if (art === "stein") {
+    const s = new THREE.Mesh(new THREE.DodecahedronGeometry(1.1), M("#6E655C")); s.castShadow = true; g.add(s); g.userData.stein = s;
+    const sch = new THREE.Mesh(new THREE.CircleGeometry(1.2, 16), new THREE.MeshBasicMaterial({ color: "#000", transparent: true, opacity: .45, depthWrite: false }));
+    sch.rotation.x = -Math.PI / 2; g.add(sch); g.userData.schatten = sch;
+  }
+  sc.add(g); return g;
+}
+function objektNeu(e) {
+  if (objekte.has(e.id)) return;
+  if (e.a === "wurf") {
+    if (!GESCHOSS[e.art]) return;
+    const o = { id: e.id, art: e.art, von: e.von, wurf: true, p: +e.p || 0, d: +e.d || 0, rf: e.rf === -1 ? -1 : 1, ziel: e.ziel, alter: 0, y: (+e.y || 0) + .9, getroffen: new Set() };
+    o.idx = wrap(Math.round(o.p)); o.x = PX[o.idx] + nX(o.idx) * o.d; o.z = PZ[o.idx] + nZ(o.idx) * o.d;
+    o.g = objMesh(e.art); o.g.position.set(o.x, o.y, o.z); objekte.set(o.id, o);
+  } else {
+    if (!FALLE[e.art]) return;
+    const idx = wrap(e.idx | 0), d = klemmen(+e.d || 0, -MAUER, MAUER);
+    const o = { id: e.id, art: e.art, von: e.von, idx, d, x: PX[idx] + nX(idx) * d, z: PZ[idx] + nZ(idx) * d, alter: 0, flug: e.flug ? .55 : 0, fall: e.fall || 0 };
+    o.y = hoehe(idx, d); o.g = objMesh(e.art); o.g.position.set(o.x, o.y, o.z); o.g.rotation.y = Math.atan2(TX[idx], TZ[idx]); objekte.set(o.id, o);
+  }
+}
+function objektWeg(id, knall) {
+  const o = objekte.get(id); if (!o) return;
+  sc.remove(o.g); objekte.delete(id);
+  if (knall && (o.art === "feuerball" || o.art === "pilz")) puff(o.x, o.y, o.z, o.art === "pilz" ? "#9BE36A" : "#FF8A2A");
+}
+// kurzer Knall (nur Optik)
+const puffs = [];
+function puff(x, y, z, farbe) {
+  const m = new THREE.Mesh(kugel(1, 10), new THREE.MeshBasicMaterial({ color: farbe, transparent: true, opacity: .7, depthWrite: false }));
+  m.position.set(x, y, z); sc.add(m); puffs.push({ m, t: 0 });
+}
+function bebenStarten(e) {
+  if (!Array.isArray(e.steine)) return;
+  e.steine.slice(0, 60).forEach(([idx, d], n) => objektNeu({ a: "falle", id: e.id + "s" + n, art: "stein", von: e.von, idx, d, fall: 1.5 }));
+  wackeln = Math.max(wackeln, 1.4);
+  const k = karts.find(o => o.id === e.von);
+  if (ich && ich.fertig == null) melden(k && k.ich ? "Beben! 🪨" : "⚠ Beben! Ausweichen!", 1.6);
+}
+// Ratten des Käses: wuseln quer über die Fahrbahn
+function rattenPos(o, i) {
+  const t = o.alter, laengs = (i - 2.5) * 2.2, quer = Math.sin(t * 1.7 + i * 1.3) * (BR / 2 + .5);
+  const j = wrap(Math.round(o.idx + laengs / SCHRITT));
+  return { x: PX[j] + nX(j) * quer, z: PZ[j] + nZ(j) * quer, j, quer, dir: Math.cos(t * 1.7 + i * 1.3) };
+}
+
+function objekteSchritt(dt) {
+  for (const [id, o] of [...objekte]) {
+    o.alter += dt;
+    if (o.wurf) {
+      const G = GESCHOSS[o.art];
+      if (o.alter > G.leben) { objektWeg(id, o.art === "feuerball"); continue; }
+      let zielK = o.ziel ? karts.find(k => k.id === o.ziel && k.g.visible && k.fertig == null) : null;
+      let heim = false;
+      if (o.art === "axt" && o.alter > .9) { zielK = karts.find(k => k.id === o.von); heim = true; }
+      const alt = { x: o.x, z: o.z };
+      if (zielK) {                                     // zielsuchend
+        const dx = zielK.x - o.x, dz = zielK.z - o.z, dd = Math.hypot(dx, dz) || 1, s = Math.min(dd, G.v * dt);
+        o.x += dx / dd * s; o.z += dz / dd * s; o.y += (zielK.y + .9 - o.y) * Math.min(1, dt * 6);
+        if (heim && dd < 2) { objektWeg(id); continue; }
+      } else {                                         // folgt der Strecke
+        o.p += o.rf * G.v * dt / SCHRITT; o.idx = wrap(Math.round(o.p));
+        o.x = PX[o.idx] + nX(o.idx) * o.d; o.z = PZ[o.idx] + nZ(o.idx) * o.d; o.y += (hoehe(o.idx, o.d) + .9 - o.y) * Math.min(1, dt * 8);
+      }
+      o.g.position.set(o.x, o.y, o.z);
+      const r = Math.atan2(o.x - alt.x, o.z - alt.z); if (Math.hypot(o.x - alt.x, o.z - alt.z) > .01) o.g.rotation.y = r;
+      if (o.g.userData.dreh) o.g.userData.dreh.rotation.x += dt * 16;
+      // Treffer prüfen (nur eigene Karts)
+      for (const k of karts) {
+        if (k.remote || k.fertig != null || o.getroffen.has(k.id)) continue;
+        if (k.id === o.von) continue;
+        if (Math.hypot(k.x - o.x, k.z - o.z) > (o.art === "netz" ? 1.9 : 1.6) || Math.abs(k.y + .9 - o.y) > 2) continue;
+        const ergebnis = treffen(k, o.art === "netz" ? "netz" : "treffer");
+        if (ergebnis === "durch") continue;
+        o.getroffen.add(k.id);
+        if (o.art !== "axt") { objektWeg(id, true); ereignis({ a: "weg", id }); break; }
+      }
+      continue;
+    }
+    // Fallen
+    if (o.alter > FALLE[o.art]) { objektWeg(id); continue; }
+    const boden = hoehe(o.idx, o.d);
+    if (o.flug > 0) { const f = Math.max(0, o.flug - o.alter) / .55; o.g.position.y = boden + Math.sin(f * Math.PI) * 3; }
+    if (o.art === "stein") {
+      const f = o.fall - o.alter;
+      o.g.userData.stein.position.y = f > 0 ? 1 + f * 12 : 1;
+      o.g.userData.schatten.scale.setScalar(f > 0 ? klemmen(1 - f / o.fall, .2, 1) : 1);
+      o.g.userData.schatten.position.y = .06;
+      if (f > 0) continue;
+      if (!o.gelandet) { o.gelandet = true; wackeln = Math.max(wackeln, .25); }
+      if (o.alter > FALLE.stein - .6) o.g.userData.stein.position.y = 1 - (o.alter - (FALLE.stein - .6)) * 3;
+    }
+    if (o.art === "pilz") { const s = 1 + Math.sin(o.alter * 6) * .08; o.g.userData.puls.scale.set(s, .6 * s, s); }
+    if (o.art === "kaese") {
+      const zeigt = o.alter > .6;
+      o.g.userData.ratten.forEach((r, i) => {
+        r.visible = zeigt; if (!zeigt) return;
+        const p = rattenPos(o, i); r.position.set(p.x - o.x, hoehe(p.j, p.quer) - boden + Math.abs(Math.sin(o.alter * 18 + i)) * .1, p.z - o.z);
+        r.rotation.y = Math.atan2(nX(p.j), nZ(p.j)) * Math.sign(p.dir) - o.g.rotation.y + (p.dir < 0 ? Math.PI : 0);
+      });
+    }
+    if (o.flug > o.alter) continue;
+    for (const k of karts) {
+      if (k.remote || k.fertig != null || k.luft) continue;
+      if (o.art === "schleim") {
+        if (k.typ === "magierin" || Math.hypot(k.x - o.x, k.z - o.z) > 1.9) continue;
+        if (treffen(k, "treffer") === "weg") { objektWeg(id); ereignis({ a: "weg", id }); break; }
+      } else if (o.art === "kraehen") {
+        if (k.typ === "magierin") continue;
+        let di = k.idx - o.idx; if (di > S / 2) di -= S; if (di < -S / 2) di += S;
+        if (Math.abs(di * SCHRITT) < 1 && Math.abs(k.d - o.d) < BR / 4 && k.amulett <= 0) { if (!(k.holper > 0) && k.ich) { melden("Krähenfüße! 🦶", .8); summen(60); } k.holper = Math.max(k.holper || 0, 1); }
+      } else if (o.art === "kaese") {
+        if (o.alter < .6) continue;
+        for (let i = 0; i < 6; i++) { const p = rattenPos(o, i); if (Math.hypot(k.x - p.x, k.z - p.z) < 1.4) { treffen(k, "treffer"); break; } }
+      } else if (o.art === "pilz") {
+        if (Math.hypot(k.x - o.x, k.z - o.z) > 3) continue;
+        if (treffen(k, "sporen") === "weg" || k.amulett > 0) { objektWeg(id, true); ereignis({ a: "weg", id }); break; }
+      } else if (o.art === "stein") {
+        if (Math.hypot(k.x - o.x, k.z - o.z) < 1.7 && o.alter < FALLE.stein - .4) treffen(k, "treffer");
+      }
+    }
+  }
+  for (let i = puffs.length - 1; i >= 0; i--) {
+    const p = puffs[i]; p.t += dt; p.m.scale.setScalar(1 + p.t * 9); p.m.material.opacity = Math.max(0, .7 - p.t * 1.6);
+    if (p.t > .45) { sc.remove(p.m); puffs.splice(i, 1); }
+  }
+}
+function objekteLeeren() { for (const id of [...objekte.keys()]) objektWeg(id); puffs.forEach(p => sc.remove(p.m)); puffs.length = 0; }
+
+// Enterhaken: zieht das Kart zum Ziel, am Ende Schub und das Ziel wird kurz gebremst
+const seilGeo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]);
+function hakenLenken(k, dt) {
+  const h = k.haken; h.t += dt;
+  const z = karts.find(o => o.id === h.ziel);
+  const ende = () => { k.haken = null; k.boost = Math.max(k.boost, 1); if (z) ereignis({ a: "wirkung", ziel: z.id, art: "bremse" }); };
+  if (!z || h.t > 1.8 || z.prog < k.prog - 2) { ende(); return null; }
+  if (Math.hypot(z.x - k.x, z.z - k.z) < 3.4) { ende(); return null; }
+  let diff = Math.atan2(z.x - k.x, z.z - k.z) - k.yaw; diff = Math.atan2(Math.sin(diff), Math.cos(diff));
+  return { lenk: klemmen(-diff * 2.6, -1, 1), drift: false, direkt: true };
+}
+
+// Tempo-Einflüsse der Extras in einem Fahrschritt
+function extraTimer(k, dt) {
+  for (const t of ["schonzeit", "netz", "bremse", "fleder", "sporen", "amulett", "erholung", "holper", "walze"]) if (k[t] > 0) k[t] = Math.max(0, k[t] - dt);
+}
+
+// ----- Anzeige: Extra-Feld mit Walze, Überlagerungen für Fledermäuse und Sporen -----
+const WALZE = Object.values(EXTRAS).map(e => e.bild);
+let walzeTakt = 0, walzeBild = 0;
+function extraAnzeigen(neu) {
+  const e = $("extra"), it = ich && ich.item;
+  e.classList.toggle("leer", !it);
+  if (neu) { e.classList.remove("neu"); void e.offsetWidth; e.classList.add("neu"); }
+  if (!it) { e.innerHTML = ""; return; }
+  if (ich.walze > 0) return;
+  e.innerHTML = `<span class="ico">${EXTRAS[it.art].bild}</span>${it.n > 1 ? `<b class="anz">×${it.n}</b>` : ""}`;
+}
+function extraHud(dt) {
+  if (!ich) return;
+  if (ich.walze > 0 && ich.item) {
+    walzeTakt -= dt;
+    if (walzeTakt <= 0) { walzeTakt = .07; walzeBild = (walzeBild + 1) % WALZE.length; $("extra").innerHTML = `<span class="ico walzt">${WALZE[walzeBild]}</span>`; }
+    ich.walzeLief = true;
+  } else if (ich.walzeLief) { ich.walzeLief = false; extraAnzeigen(true); }
+  $("fleder").hidden = !(ich.fleder > 0);
+  const sp = $("sporen"); sp.hidden = !(ich.sporen > 0); if (ich.sporen > 0) sp.style.opacity = Math.min(1, ich.sporen / 1.2);
+  $("schuettel").hidden = !(ich.netz > 0 && steuerung === "neigen");
+}
+
+// Schütteln (Netz) und Wischen (Sporen)
+let letzterRuck = 0;
+addEventListener("devicemotion", e => {
+  const a = e.acceleration; if (!a || a.x == null) return;
+  const m = Math.hypot(a.x, a.y, a.z), jetzt = performance.now();
+  if (m > 13 && jetzt - letzterRuck > 140) { letzterRuck = jetzt; if (ich && ich.netz > 0) { ich.netz = Math.max(0, ich.netz - .35); summen(20); } }
+});
+let wischStart = null;
+addEventListener("pointerdown", e => { wischStart = { x: e.clientX, y: e.clientY }; });
+addEventListener("pointermove", e => {
+  if (!wischStart || !ich || !(ich.sporen > 0)) return;
+  const w = Math.hypot(e.clientX - wischStart.x, e.clientY - wischStart.y);
+  if (w > 60) { ich.sporen = Math.max(0, ich.sporen - .45); wischStart = { x: e.clientX, y: e.clientY }; }
+});
+addEventListener("pointerup", () => { wischStart = null; });
+
+// Monster setzen ihre Extras mit kleiner Verzögerung ein, der Goblin besonders schnell
+function botExtra(k, dt) {
+  if (!k.item || k.walze > 0) return;
+  if (k.extraUhr == null) k.extraUhr = k.typ === "goblin" ? .3 + Math.random() * .8 : 1 + Math.random() * 3;
+  k.extraUhr -= dt; if (k.extraUhr > 0) return;
+  k.extraUhr = null;
+  const E = EXTRAS[k.item.art];
+  let wunsch;
+  if (E.angriff) wunsch = !naechstesKart(k, 1, 70) && naechstesKart(k, -1, 30) ? "hinten" : "vorn";
+  extraNutzen(k, wunsch);
+}
 
 // ---------- Minikarte ----------
 let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;
@@ -761,7 +1237,8 @@ const tastMap = { ArrowLeft: "l", a: "l", A: "l", ArrowRight: "r", d: "r", D: "r
 addEventListener("keydown", e => {
   if (tastMap[e.key]) tasten[tastMap[e.key]] = true;
   if (e.key === " " || e.key === "Shift") { ein.drift = true; e.preventDefault(); }
-  if (e.key === "e" || e.key === "E" || e.key === "ArrowUp") extraZuenden();
+  if (e.key === "e" || e.key === "E" || e.key === "ArrowUp") extraZuenden(e.key === "ArrowUp" ? "vorn" : undefined);
+  if (e.key === "q" || e.key === "Q" || e.key === "ArrowDown") { extraZuenden("hinten"); e.preventDefault(); }
   if (e.key === "Escape" || e.key === "p") pause(true);
 });
 addEventListener("keyup", e => {
@@ -774,7 +1251,14 @@ function halten(el, an, aus) {
   el.addEventListener("pointerdown", runter); el.addEventListener("pointerup", hoch); el.addEventListener("pointercancel", hoch); el.addEventListener("pointerleave", hoch);
 }
 halten($("kdrift"), () => ein.drift = true, () => ein.drift = false);
-halten($("kextra"), () => extraZuenden());
+// Extra-Knopf: antippen = Standard (Angriffe nach vorn, Fallen nach hinten), nach unten wischen = nach hinten, nach oben = nach vorn
+{
+  const el = $("kextra"); let start = null;
+  el.addEventListener("pointerdown", ev => { ev.preventDefault(); el.classList.add("an"); start = ev.clientY; try { el.setPointerCapture(ev.pointerId); } catch {} });
+  const los = ev => { ev.preventDefault(); el.classList.remove("an"); if (start == null) return; const dy = ev.clientY - start; start = null; extraZuenden(dy > 28 ? "hinten" : dy < -28 ? "vorn" : undefined); };
+  el.addEventListener("pointerup", los);
+  el.addEventListener("pointercancel", () => { el.classList.remove("an"); start = null; });
+}
 halten($("klinks"), () => tasten.l = true, () => tasten.l = false);
 halten($("krechts"), () => tasten.r = true, () => tasten.r = false);
 document.addEventListener("gesturestart", e => e.preventDefault());
@@ -792,7 +1276,7 @@ const SPIELERFARBEN = ["#E23B2E", "#2F6FDE", "#F2B705", "#2E9B4F", "#8B5CF6", "#
 function startplatz(n) { const reihe = Math.round(9 / (LAENGE / S)); return [wrap(-6 - (1 + Math.floor(n / 2)) * reihe), n % 2 ? -2.6 : 2.6]; }
 
 function rennenAufbauen(raster) {
-  karts.forEach(k => { sc.remove(k.g); sc.remove(k.schatten); });
+  karts.forEach(k => { sc.remove(k.g); sc.remove(k.schatten); if (k.seil) sc.remove(k.seil); });
   karts = []; ich = null;
   raster.forEach((e, n) => {
     const k = new Kart(e.typ, e.name, e.id === PID, e.farbe);
@@ -804,7 +1288,8 @@ function rennenAufbauen(raster) {
   $("punkte").innerHTML = karts.map((k, n) => `<circle r="${k.ich ? 4.5 : 3}" fill="${k.farbe}" stroke="#2A1A12" stroke-width="1.2"/>`).join("");
   document.querySelectorAll(".tag").forEach(t => t.remove());
   for (const k of karts) if (!k.ich) { k.tag = document.createElement("div"); k.tag.className = "tag"; k.tag.textContent = k.name; $("hud").appendChild(k.tag); }
-  kisten.forEach(k => { k.weg = 0; k.g.visible = true; });
+  kisten.forEach(b => { b.weg = 0; neuMischen(b); });
+  objekteLeeren(); wackeln = 0;
   liste = []; uhr = 0; rennenVorbei = false; extraAnzeigen();
   kamera(1, true);
 }
@@ -821,6 +1306,15 @@ function botEingabe(k, dt) {
   const j = wrap(k.idx + vor);
   k.botTimer -= dt;
   if (k.botTimer <= 0) { k.botTimer = 2 + Math.random() * 3; k.spurZiel = (Math.random() - .5) * (BR - 4); }
+  // Fallen und Steinen ausweichen (der Pilzling ist zu schusselig dafür)
+  if (k.typ !== "pilzling" && phase === "rennen") for (const o of objekte.values()) {
+    if (o.wurf || o.art === "kaese") continue;
+    let di = o.idx - k.idx; if (di > S / 2) di -= S; if (di < -S / 2) di += S;
+    const m = di * SCHRITT, breit = o.art === "kraehen" ? BR / 4 + 1.6 : 2.6;
+    if (m < 3 || m > 32 || Math.abs(o.d - k.spur) > breit) continue;
+    k.spurZiel = klemmen(o.d > 0 ? o.d - breit - 1.2 : o.d + breit + 1.2, -BR / 2 + 1.5, BR / 2 - 1.5); k.botTimer = Math.max(k.botTimer, 1.2);
+    k.spur += (k.spurZiel - k.spur) * Math.min(1, dt * 2.5);
+  }
   k.spur += ((k.spurZiel ?? 0) - k.spur) * Math.min(1, dt * .8);
   const tx = PX[j] + nX(j) * k.spur, tz = PZ[j] + nZ(j) * k.spur;
   let diff = Math.atan2(tx - k.x, tz - k.z) - k.yaw; diff = Math.atan2(Math.sin(diff), Math.cos(diff));
@@ -828,18 +1322,12 @@ function botEingabe(k, dt) {
   const mensch = Math.max(...karts.filter(o => !o.bot).map(o => o.prog));
   const abstand = (mensch - k.prog) / S * LAENGE;
   k.st = { ...TYPEN[k.typ], maxV: TYPEN[k.typ].maxV * k.tempo * (abstand > 40 ? 1.08 : abstand < -60 ? .93 : 1) };
-  if (k.item && Math.random() < dt * .5) { k.item = null; k.boost = 1.5; }
-  return { lenk: Math.max(-1, Math.min(1, -diff * 2.2)), drift: false, direkt: true };
+  let lenk = -diff * 2.2;
+  if (k.fleder > 0) lenk += Math.sin(uhr * 7 + k.tempo * 50) * .9;      // Fledermäuse vor den Augen
+  return { lenk: Math.max(-1, Math.min(1, lenk)), drift: false, direkt: true };
 }
 
-function extraZuenden() {
-  if (phase !== "rennen" || !ich || !ich.item || ich.fertig != null) return;
-  ich.item = null; ich.boost = Math.max(ich.boost, 1.6); extraAnzeigen(); melden("Flinktrank! 🧪");
-}
-function extraAnzeigen(neu) {
-  const e = $("extra"); e.classList.toggle("leer", !ich || !ich.item);
-  if (neu) { e.classList.remove("neu"); void e.offsetWidth; e.classList.add("neu"); }
-}
+function extraZuenden(wunsch) { if (ich && !AUTO && !ich.aufgegeben) extraNutzen(ich, wunsch); }
 let meldTimer = 0;
 function melden(t, dauer = 1.4) { const m = $("meldung"); m.textContent = t; m.hidden = false; meldTimer = dauer; }
 
@@ -857,6 +1345,8 @@ function stossen() {
       const fA = B.remote ? mB / sum * 2 : mB / sum, fB = A.remote ? mA / sum * 2 : mA / sum;
       if (!A.remote) { A.x -= dx / d * ueber * Math.min(1, fA); A.z -= dz / d * ueber * Math.min(1, fA); }
       if (!B.remote) { B.x += dx / d * ueber * Math.min(1, fB); B.z += dz / d * ueber * Math.min(1, fB); }
+      // Wer das Segensamulett trägt, wirft andere beim Rammen herum (entschieden vom Handy des Gerammten)
+      if (phase === "rennen") { if (!A.remote && B.amulett > 0 && !(A.amulett > 0)) treffen(A, "treffer"); if (!B.remote && A.amulett > 0 && !(B.amulett > 0)) treffen(B, "treffer"); }
     }
   }
 }
@@ -873,9 +1363,12 @@ function update(dt) {
   if (rennt) uhr += dt;
   for (const k of karts) {
     if (k.remote) { k.folgen(dt); continue; }
-    const e = !rennt ? { lenk: k.ich ? ein.lenk : 0, gas: false, drift: false, direkt: true }
+    extraTimer(k, dt);
+    let e = !rennt ? { lenk: k.ich ? ein.lenk : 0, gas: false, drift: false, direkt: true }
       : k.fertig != null ? (k.ich ? { lenk: botEingabe(k, dt).lenk, drift: false, direkt: true } : botEingabe(k, dt))
         : k.ich && !AUTO && !k.aufgegeben ? ein : botEingabe(k, dt);
+    if (rennt && k.haken) e = hakenLenken(k, dt) || e;
+    if (rennt && k.fertig == null && (k.bot || (k.ich && AUTO))) botExtra(k, dt);
     if (k.fertig != null && k.ich) k.st = { ...TYPEN[k.typ], maxV: TYPEN[k.typ].maxV * .6 };
     k.schritt(dt, e);
     // Runden
@@ -886,13 +1379,12 @@ function update(dt) {
       else if (k.ich) melden(k.runden.length === RUNDEN - 1 ? "Letzte Runde!" : `Runde ${k.runden.length + 1}`);
     }
     // Kisten
-    if (rennt) for (const b of kisten) if (!b.weg && Math.hypot(b.x - k.x, b.z - k.z) < 1.8 && k.y < 2.5) {
-      b.weg = 3.5; b.g.visible = false;
-      if (!k.item) { k.item = "trank"; if (k.ich) extraAnzeigen(true); }
-    }
+    if (rennt && k.fertig == null) for (const b of kisten) if (!b.weg && Math.hypot(b.x - k.x, b.z - k.z) < 1.8 && k.y < 2.5) truheNehmen(k, b);
   }
   stossen();
-  for (const b of kisten) { if (b.weg > 0) { b.weg -= dt; if (b.weg <= 0) { b.weg = 0; b.g.visible = true; } } b.g.rotation.y += dt * 1.2; b.g.position.y = 1.1 + Math.sin(uhr * 3 + b.x) * .15; }
+  if (rennt || phase === "ziel") objekteSchritt(dt);
+  truhenZeigen(dt);
+  if (wackeln > 0) wackeln = Math.max(0, wackeln - dt);
   if (meldTimer > 0) { meldTimer -= dt; if (meldTimer <= 0) $("meldung").hidden = true; }
 }
 
@@ -921,6 +1413,7 @@ function kamera(dt, sofort) {
   ziel3.set(ich.x - fx * 7.6, ich.y * .6 + 3.5, ich.z - fz * 7.6);
   if (sofort) kamPos.copy(ziel3); else kamPos.lerp(ziel3, 1 - Math.exp(-dt * 7));
   cam.position.copy(kamPos);
+  if (wackeln > 0) cam.position.add(v3.set((Math.random() - .5) * wackeln * .9, (Math.random() - .5) * wackeln * .6, (Math.random() - .5) * wackeln * .9));
   blick.set(ich.x + fx * 6, ich.y * .7 + 1.3, ich.z + fz * 6);
   cam.lookAt(blick);
   const fov = 62 + (ich.boost > 0 ? 9 : 0) + Math.min(4, ich.v / 8);
@@ -942,6 +1435,7 @@ function hud(dt) {
     }
   });
   $("lenkrad").style.transform = `rotate(${ein.lenk * 90}deg)`;
+  extraHud(dt);
   hudTakt -= dt; if (hudTakt > 0) return; hudTakt = .1;
   $("uhr").textContent = zeitText(ich.fertig ?? uhr);
   $("runde").textContent = `Runde ${Math.min(RUNDEN, Math.max(1, ich.runden.length + 1))}/${RUNDEN}`;
@@ -993,7 +1487,8 @@ let sensorGefragt = false;
 async function sensorErlauben() {      // muss direkt aus einem Tippen heraus kommen (iPhone)
   if (steuerung !== "neigen" || sensorGefragt) return;
   if (typeof DeviceOrientationEvent !== "undefined" && typeof DeviceOrientationEvent.requestPermission === "function") {
-    try { const a = await DeviceOrientationEvent.requestPermission(); sensorGefragt = a === "granted"; if (!sensorGefragt) { steuerung = "tasten"; alert("Ohne Erlaubnis für den Bewegungssensor geht Neigen nicht. Ich schalte auf Tasten um."); } }
+    try { const a = await DeviceOrientationEvent.requestPermission(); sensorGefragt = a === "granted";
+      if (sensorGefragt && typeof DeviceMotionEvent !== "undefined" && DeviceMotionEvent.requestPermission) DeviceMotionEvent.requestPermission().catch(() => {}); if (!sensorGefragt) { steuerung = "tasten"; alert("Ohne Erlaubnis für den Bewegungssensor geht Neigen nicht. Ich schalte auf Tasten um."); } }
     catch { steuerung = "tasten"; }
   } else sensorGefragt = true;
 }
@@ -1090,6 +1585,7 @@ function vonClient(c, m) {
     if (lobbyPhase === "rennen") { try { c.send({ t: "ergebnis", nr: rennNr, liste, vorbei: rennenVorbei }); } catch {} }
   } else if (m.t === "typ" && spieler.has(m.pid) && HELDEN[m.typ]) { spieler.get(m.pid).typ = m.typ; lobbySenden(); }
   else if (m.t === "lauf" && m.nr === rennNr) { const k = karts.find(o => o.id === m.pid); if (k && k.remote) k.netzZustand(m.s); }
+  else if (m.t === "ev" && m.nr === rennNr && m.e) { m.e.q = m.pid; anAlle({ t: "ev", nr: rennNr, e: m.e }); anwenden(m.e); }
   else if (m.t === "ziel" && m.nr === rennNr) { eintragen(m.pid, +m.zeit); ergebnisSenden(); }
   else if (m.t === "aufgeben" && m.nr === rennNr) { eintragen(m.pid, null); ergebnisSenden(); }
 }
@@ -1140,7 +1636,8 @@ function vomHost(m) {
   } else if (m.t === "start") { rennNr = m.nr; countdownStarten(m.raster); }
   else if (m.t === "lauf" && m.nr === rennNr) {
     for (const [id, a] of m.k) { if (id === PID) continue; const k = karts.find(o => o.id === id); if (k && k.remote) k.netzZustand(a); }
-  } else if (m.t === "ergebnis" && m.nr === rennNr) {
+  } else if (m.t === "ev" && m.nr === rennNr && m.e && m.e.q !== PID) anwenden(m.e);
+  else if (m.t === "ergebnis" && m.nr === rennNr) {
     const eigen = liste.find(e => e.id === PID);
     liste = m.liste.slice(); if (eigen && !liste.some(e => e.id === PID)) { liste.push(eigen); liste.sort((a, b) => (a.zeit ?? 1e9) - (b.zeit ?? 1e9)); }
     rennenVorbei = m.vorbei; zielZeigen();
@@ -1301,4 +1798,4 @@ else if (code) menue("einladung");
 else menue("start");
 requestAnimationFrame(loop);
 window.KART = { get phase() { return phase; }, get ich() { return ich; }, karts: () => karts, ein, S, LAENGE, get liste() { return liste; }, get modus() { return modus; },
-  sim(sek) { for (let t = 0; t < sek; t += 1 / 60) { update(1 / 60); } }, aufbauen: rennenAufbauen, cam, sc, r, THREE, neigung: () => neigung, lenkWert, set steuerung(v) { steuerung = v; } };
+  sim(sek) { for (let t = 0; t < sek; t += 1 / 60) { update(1 / 60); } }, aufbauen: rennenAufbauen, cam, sc, r, THREE, objekte, extraNutzen, kisten, treffen, versetzen, anwenden, schritte(sek) { for (let t = 0; t < sek; t += 1 / 30) { update(1 / 30); karts.forEach(k => k.zeigen(performance.now())); hud(1 / 30); } }, neigung: () => neigung, lenkWert, set steuerung(v) { steuerung = v; } };

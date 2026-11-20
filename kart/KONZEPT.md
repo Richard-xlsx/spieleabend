@@ -188,7 +188,7 @@ Was du bekommst, hängt vom Platz ab:
 | **Fledermausschwarm** | Chaos | Er fliegt zu den ersten drei und flattert 3 Sekunden vor ihrem Bild herum. | Grotte |
 | **Beben** | Chaos | Vor allen anderen fallen Steine auf die Strecke. Ein Schatten zeigt, wo, man kann ausweichen. | Knochenkönig |
 
-**Werfen:** Den Knopf antippen wirft nach vorne. Auf dem Knopf nach unten wischen wirft nach hinten.
+**Werfen:** Antippen setzt das Extra wie üblich ein: Angriffe fliegen nach vorn, Fallen landen hinter dir. Auf dem Knopf nach unten wischen wirft nach hinten, nach oben wischen wirft nach vorn. Mit Tastatur: E vorn, Q hinten.
 
 ### 5.3 Treffer
 
@@ -209,8 +209,8 @@ Die Grundsteuerung bleibt: Querformat, Neigen zum Lenken, Gas von selbst, Tasten
 
 | Bereich | Was dort ist |
 |---|---|
-| **links unten** | Drift-Knopf |
-| **rechts unten** | Extra-Knopf (groß), darüber die Heldenkraft (rund, mit Ladering ums Heldenbild) |
+| **links unten** | Extra-Knopf (groß), neben der Karte |
+| **rechts unten** | Drift-Knopf, darüber später die Heldenkraft (rund, mit Ladering ums Heldenbild) |
 | **oben links** | Platz und Runde |
 | **oben rechts** | Zeit, aktuelles Extra, Gold |
 | **Rand** | kurze Warnungen: „⚠ Beben!“, Pfeil zum Endgegner, „Fallgitter rechts zu“ |
@@ -286,7 +286,7 @@ Nach jedem Paket ist das Spiel spielbar, und du kannst es am Handy testen.
 | Paket | Inhalt | Ergebnis |
 |---|---|---|
 | **1** ✔ | Helden als Fahrer (8 Modelle, Gefährte, Fahrwerte), Monster als Übungsgegner, Auswahl mit Heldenwappen, Kerker-Optik auf der bisherigen Strecke | mit Helden durch den Kerker fahren |
-| **2** | Truhen und alle Extras, Treffer, Schutzzeit, Werfen nach hinten, Mimik-Truhen, Schütteln und Wischen | Rennen mit Extras, auch über mehrere Handys |
+| **2** ✔ | Truhen und alle Extras, Treffer, Schutzzeit, Werfen nach hinten, Mimik-Truhen, Schütteln und Wischen | Rennen mit Extras, auch über mehrere Handys |
 | **3** | Kerker als Strecke aus Abschnitten mit Varianten: Fallgitter, Druckplatten, Lorenbahn, Troll-Trampolin, brüchige Wand; Knochenkönig mit Beben; Streckenvorschau | erste Dungeon-Strecke, jedes Rennen anders |
 | **4** | Heldenkräfte und Kraftleiste, Gold auf der Strecke | jeder Held spielt sich anders |
 | **5** | Welt **Spinnengrotte**: Pilzsprung über die Schlucht, Netztunnel, Spinnenkönigin, Absturz mit Fledermäusen | zweite Welt |
@@ -303,3 +303,20 @@ Nach jedem Paket ist das Spiel spielbar, und du kannst es am Handy testen.
 3. **Mönch:** bekommt ein Gefährt, das Rollkissen.
 4. **Nach dem Ziel:** nur zuschauen, nicht ärgern.
 5. **Reihenfolge:** Paket 1 zuerst, zusammen mit der Kerker-Optik, damit man nicht mehr über den Campus fährt. Als Nächstes kommt Paket 2 (Extras).
+6. **Knöpfe:** Drift und Extra haben die Plätze getauscht (Extra links, Drift rechts).
+
+## 11. Stand Paket 2 (20.11.2026)
+
+Eingebaut:
+- alle 16 Extras aus 5.2, mit Walze beim Öffnen der Truhe und Verteilung nach Platz
+- Treffer mit Drehung und 2 Sekunden Schonzeit, Turmschild, Segensamulett (wer gerammt wird, dreht sich)
+- Mimik-Truhen (etwa jede achte), der Dieb sieht sie rot umrandet
+- Schütteln befreit aus dem Netz, Wischen vertreibt die Sporen, Vibration bei Treffern (Android)
+- Heldeneigenschaften rund um Extras: Paladin halb so lange aus der Bahn, Magierin schwebt über Pfützen und Krähenfüße, Heilerin schnell wieder auf Tempo
+- Monster setzen Extras ein und weichen Fallen und Steinen aus, der Goblin wirft besonders oft, der Pilzling weicht nie aus
+
+Noch offen aus Paket 2:
+- der Beutel für zwei Extras
+- Klänge
+- Skelett fällt bei Treffern sichtbar auseinander, Schleim hinterlässt eine Spur, Ork rammt gezielt
+
