@@ -1,6 +1,6 @@
 # Kart-Rennen: Konzept für den großen Ausbau
 
-Stand: 20.11.2026. Pakete 1 bis 3 sind gebaut (Helden und Monster, Extras, Kerker-Strecke aus Abschnitten). Alles andere ist noch Plan.
+Stand: 20.11.2026. Pakete 1 bis 7 sind gebaut, Paket 8 ist offen. Der weitere Ausbau (Schwierigkeitsstufen, Rivale, Monsterkräfte, Medaillen, neue Grundrisse) steht in `KONZEPT-ABWECHSLUNG.md`.
 
 Arbeitstitel: **„Kerker-Kart“**. „Kario Mart“ fällt weg: Das ist erkennbar der Name von Nintendos Spiel mit vertauschten Buchstaben, und die Seite ist öffentlich im Netz.
 

@@ -23,7 +23,7 @@ Aufbau
                                   Helden aus dem Verlies als Fahrer, Monster als Übungsgegner, Extras, Fahrphysik, Neigen zum Lenken, Mehrspieler,
                                   Einzelrennen oder Feldzug über drei Rennen mit Rennflüchen und Siegerehrung, Zuschauen nach dem Ziel),
                                   strecke.js (Abschnitte und Varianten, Streckencode; die Strecke wird vor jedem Rennen neu gebaut),
-                                  KONZEPT.md (Ausbauplan in Paketen). Heldenwappen kommen aus verlies/bilder.js. Testlink: …/kart/
+                                  KONZEPT.md (Ausbauplan in Paketen), KONZEPT-ABWECHSLUNG.md (Stufen, Rivale, Medaillen, Pakete 9–14). Heldenwappen kommen aus verlies/bilder.js. Testlink: …/kart/
                                   Zusammen fahren: jedes Handy rechnet sein Kart selbst und schickt 15×/s seinen Stand an den Spielleiter,
                                   der rechnet die Monster und verteilt alles. Zum Testen: ?auto (Kart fährt selbst), ?runden=1
   wuerfel/                        „Würfelpoker“: index.html, wuerfel-logic.js (Würfeln, Zettel, Punkte), wuerfel.js (Verbindung und Bildschirme),
