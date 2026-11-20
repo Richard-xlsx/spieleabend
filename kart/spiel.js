@@ -5,6 +5,17 @@ import { WELTEN, planWuerfeln, planCode, planAusCode, kontrollpunkte, rng } from
 
 const $ = id => document.getElementById(id);
 const RUNDEN = +(new URLSearchParams(location.search).get("runden")) || 3;   // ?runden=1 zum Testen
+// Rennflüche (im Feldzug wählt der Letzte einen für das nächste Rennen)
+const FLUECHE = {
+  nacht: { name: "Nacht", bild: "🌙", text: "nur Fackellicht, die Strecke ist schwer zu lesen" },
+  glatteis: { name: "Glatteis", bild: "🧊", text: "alle rutschen mehr" },
+  fallen: { name: "Fallenmeister", bild: "🪤", text: "doppelt so viele Fallen-Extras" },
+  koepfe: { name: "Riesenköpfe", bild: "🗿", text: "alle Fahrer mit riesigem Kopf" },
+  spiegel: { name: "Spiegelstrecke", bild: "🪞", text: "die Strecke ist seitenverkehrt" },
+  gold: { name: "Goldrausch", bild: "💰", text: "doppelt so viel Gold, die Heldenkraft lädt schneller" },
+  mimik: { name: "Mimik-Plage", bild: "👅", text: "jede dritte Truhe beißt" },
+};
+let fluch = null;
 const AUTO = new URLSearchParams(location.search).has("auto");   // Test: eigenes Kart fährt selbst
 const BR = 12;                      // Fahrbahnbreite
 const RAND = BR / 2 + 1.3;          // ab hier Geröll (langsamer)
@@ -62,6 +73,7 @@ const sonne = new THREE.DirectionalLight("#FFD9A6", 1.7);
 sonne.castShadow = true; sonne.shadow.mapSize.set(1024, 1024);
 Object.assign(sonne.shadow.camera, { left: -40, right: 40, top: 40, bottom: -40, near: 1, far: 160 });
 sc.add(sonne, sonne.target);
+const laterne = new THREE.PointLight("#FFC98A", 0, 34, 1.2); laterne.position.set(0, -50, 0); sc.add(laterne);   // nur beim Fluch Nacht an
 const matCache = new Map();
 const M = c => { if (!matCache.has(c)) matCache.set(c, new THREE.MeshLambertMaterial({ color: c })); return matCache.get(c); };
 const glutCache = new Map();          // selbstleuchtend (Flammen, Augen, Kugeln): kein Licht nötig
@@ -220,12 +232,16 @@ function entsorgen(g) {
 }
 
 function streckeBauen(p) {
-  plan = p; welt = WELTEN[p.w] ? p.w : "kerker"; TH = THEMEN[welt]; zufall = rng(p.s * 7 + 13);
+  plan = p; welt = WELTEN[p.w] ? p.w : "kerker"; TH = THEMEN[welt]; zufall = rng(p.s * 7 + 13); fluch = FLUECHE[p.f] ? p.f : null;
   sc.background.set(TH.himmel); sc.fog.color.set(TH.himmel); hemi.color.set(TH.hemi[0]); hemi.groundColor.set(TH.hemi[1]); hemi.intensity = TH.hemi[2];
   sonne.color.set(TH.sonne[0]); sonne.intensity = TH.sonne[1]; boden.material.color.set(TH.boden);
+  const nacht = fluch === "nacht";               // Fluch Nacht: kaum Licht, nahe Nebelwand, nur eine Laterne am eigenen Kart
+  if (nacht) { hemi.intensity *= .22; sonne.intensity *= .12; sc.background.set("#050306"); sc.fog.color.set("#050306"); }
+  sc.fog.near = nacht ? 12 : 55; sc.fog.far = nacht ? 62 : 200; laterne.intensity = nacht ? 40 : 0;
   if (streckeG) { sc.remove(streckeG); entsorgen(streckeG); }
   streckeG = new THREE.Group(); sc.add(streckeG);
-  const { kp, start } = kontrollpunkte(p);
+  let { kp, start } = kontrollpunkte(p);
+  if (fluch === "spiegel") kp = kp.map(([x, z]) => [-x, z]);
   const kurve = new THREE.CatmullRomCurve3(kp.map(([x, z]) => new THREE.Vector3(x, 0, z)), true, "catmullrom", .5);
   for (let i = 0; i < S; i++) {
     const q = kurve.getPointAt(i / S), t = kurve.getTangentAt(i / S);
@@ -328,6 +344,7 @@ function streckeBauen(p) {
     // eine Reihe Goldstücke je Abschnitt, nicht direkt an den Truhen
     let u = .3 + zufall() * .4; if ((a.v.truhen || []).some(t => Math.abs(t - u) < .15)) u = u < .5 ? u + .25 : u - .25;
     goldReihe(stelle(n, u), (zufall() - .5) * 5, zufall() * 6);
+    if (fluch === "gold") goldReihe(stelle(n, u > .5 ? u - .2 : u + .2), (zufall() - .5) * 5, zufall() * 6);
   });
 
   // Fahrbahn
@@ -602,23 +619,28 @@ function streckeDingeBauen() {
     sch.position.set(sp.x, 2.8, sp.z); sch.rotation.y = sp.rot + Math.PI; streckeG.add(sch);
   }
   if (koenig && koenig.art === "knochen") {
-    const q = punkt(koenig.i, koenig.s * (MAUER + 3.5)), g = new THREE.Group();
-    const st = new THREE.Mesh(new THREE.BoxGeometry(3.6, 1.6, 3), M("#3A2E26")); st.position.y = .8; g.add(st);
-    const le = new THREE.Mesh(new THREE.BoxGeometry(3.6, 6, .6), M("#3A2E26")); le.position.set(0, 3.5, -1.3); g.add(le);
-    for (let n = -2; n <= 2; n++) { const z = new THREE.Mesh(new THREE.ConeGeometry(.3, 1.2, 6), M("#3A2E26")); z.position.set(n * .75, 7, -1.3); g.add(z); }
-    const ko = new THREE.Mesh(new THREE.CylinderGeometry(.9, 1.2, 2.2, 10), M("#4A2E5A")); ko.position.set(0, 2.6, -.2); g.add(ko);
-    const sch = new THREE.Mesh(new THREE.SphereGeometry(.8, 14, 10), M("#EDE4D0")); sch.position.set(0, 4.3, -.1); g.add(sch);
-    const augMat = new THREE.MeshBasicMaterial({ color: "#7BE3A0" });
-    for (const s of [-1, 1]) { const a = new THREE.Mesh(new THREE.SphereGeometry(.2, 8, 6), augMat); a.position.set(s * .3, 4.4, .6); g.add(a); }
-    const kr = new THREE.Mesh(new THREE.CylinderGeometry(.75, .6, .6, 8, 1, true), new THREE.MeshLambertMaterial({ color: "#E8C24A", side: THREE.DoubleSide })); kr.position.set(0, 5.1, -.1); g.add(kr);
-    const arm = new THREE.Group(); arm.position.set(1.1, 3.2, .2); g.add(arm);
-    const zep = new THREE.Mesh(new THREE.CylinderGeometry(.08, .08, 3.4), M("#E8C24A")); zep.position.set(.3, .2, .2); zep.rotation.z = -.2; arm.add(zep);
-    const kug = new THREE.Mesh(new THREE.SphereGeometry(.3, 10, 8), GLUT("#7BE3A0")); kug.position.set(.62, 1.85, .2); arm.add(kug);
-    g.traverse(o => { if (o.isMesh) o.castShadow = true; });
+    const q = punkt(koenig.i, koenig.s * (MAUER + 3.5)), { g, arm, augMat } = knochenKoenigMesh();
     g.position.set(q.x, 0, q.z); g.rotation.y = q.rot - Math.PI / 2 * koenig.s; streckeG.add(g);
     koenig.g = g; koenig.arm = arm; koenig.augMat = augMat;
   }
   if (welt === "glut") glutDingeBauen();
+}
+// Knochenkönig (Thron, Zepter); auch für die Siegerehrung
+function knochenKoenigMesh() {
+  const g = new THREE.Group();
+  const st = new THREE.Mesh(new THREE.BoxGeometry(3.6, 1.6, 3), M("#3A2E26")); st.position.y = .8; g.add(st);
+  const le = new THREE.Mesh(new THREE.BoxGeometry(3.6, 6, .6), M("#3A2E26")); le.position.set(0, 3.5, -1.3); g.add(le);
+  for (let n = -2; n <= 2; n++) { const z = new THREE.Mesh(new THREE.ConeGeometry(.3, 1.2, 6), M("#3A2E26")); z.position.set(n * .75, 7, -1.3); g.add(z); }
+  const ko = new THREE.Mesh(new THREE.CylinderGeometry(.9, 1.2, 2.2, 10), M("#4A2E5A")); ko.position.set(0, 2.6, -.2); g.add(ko);
+  const sch = new THREE.Mesh(new THREE.SphereGeometry(.8, 14, 10), M("#EDE4D0")); sch.position.set(0, 4.3, -.1); g.add(sch);
+  const augMat = new THREE.MeshBasicMaterial({ color: "#7BE3A0" });
+  for (const s of [-1, 1]) { const a = new THREE.Mesh(new THREE.SphereGeometry(.2, 8, 6), augMat); a.position.set(s * .3, 4.4, .6); g.add(a); }
+  const kr = new THREE.Mesh(new THREE.CylinderGeometry(.75, .6, .6, 8, 1, true), new THREE.MeshLambertMaterial({ color: "#E8C24A", side: THREE.DoubleSide })); kr.position.set(0, 5.1, -.1); g.add(kr);
+  const arm = new THREE.Group(); arm.position.set(1.1, 3.2, .2); g.add(arm);
+  const zep = new THREE.Mesh(new THREE.CylinderGeometry(.08, .08, 3.4), M("#E8C24A")); zep.position.set(.3, .2, .2); zep.rotation.z = -.2; arm.add(zep);
+  const kug = new THREE.Mesh(new THREE.SphereGeometry(.3, 10, 8), GLUT("#7BE3A0")); kug.position.set(.62, 1.85, .2); arm.add(kug);
+  g.traverse(o => { if (o.isMesh) o.castShadow = true; });
+  return { g, arm, augMat };
 }
 // Spinne (Königin mit Krone, sonst klein); Beine in userData.beine zum Krabbeln
 function spinneMesh(r, krone) {
@@ -1186,7 +1208,7 @@ class Kart {
     if (!TYPEN[typ]) typ = "kaempfer";
     this.typ = typ; this.st = TYPEN[typ]; this.name = name; this.ich = istIch;
     this.farbe = eigeneFarbe || TYPEN[typ].farbe || "#E23B2E";
-    this.g = new THREE.Group(); this.koerper = MODELLE[typ](this.farbe); backen(this.koerper); this.g.add(this.koerper);
+    this.g = new THREE.Group(); this.koerper = MODELLE[typ](this.farbe); if (fluch === "koepfe") riesenkopf(this.koerper); backen(this.koerper); this.g.add(this.koerper);
     this.g.traverse(o => { if (o.isMesh && !o.material.transparent) o.castShadow = true; });
     const schatten = new THREE.Mesh(new THREE.CircleGeometry(1.3, 16), new THREE.MeshBasicMaterial({ color: "#000", transparent: true, opacity: .3, depthWrite: false }));
     schatten.rotation.x = -Math.PI / 2; this.schatten = schatten; sc.add(schatten);
@@ -1308,7 +1330,7 @@ class Kart {
     let rate = -s * wende * Math.min(1, Math.max(Math.abs(this.v), 3) / 10) * (this.v < -.5 ? -1 : 1) * (this.luft ? .35 : 1);   // auch langsam etwas lenkbar
     if (this.dreher > 0) rate = 0;                 // beim Dreher dreht sich nur das Modell (zeigen), Fahrtrichtung und Blick bleiben
     this.yaw += rate * dt;
-    const k = this.eis > 0 ? .5 : this.wind > 0 ? 16 : (this.drift ? 2.6 : st.grip) * (nass ? .55 : 1) * (this.glatt > 0 ? .3 : 1);
+    const k = this.eis > 0 ? .5 : this.wind > 0 ? 16 : (this.drift ? 2.6 : st.grip) * (nass ? .55 : 1) * (this.glatt > 0 ? .3 : 1) * (fluch === "glatteis" ? .4 : 1);
     let diff = this.yaw - this.mh; diff = Math.atan2(Math.sin(diff), Math.cos(diff));
     this.mh += diff * (1 - Math.exp(-k * dt));
     if (this.dreher > 0) this.mh = this.mhFest;
@@ -1448,10 +1470,10 @@ function goldReihe(i0, mitte, phase) {
 }
 function goldNehmen(k, mz) {
   mz.weg = 8; mz.m.visible = false;
-  k.gold = Math.min(10, (k.gold || 0) + 1); kraftLaden(k, .05);
+  k.gold = Math.min(10, (k.gold || 0) + 1); kraftLaden(k, fluch === "gold" ? .1 : .05);
   if (k.ich) { const g = $("gold"); g.classList.remove("neu"); void g.offsetWidth; g.classList.add("neu"); }
 }
-function neuMischen(b) { b.mimik = Math.random() < 1 / 8; b.g.visible = !b.mimik; b.mg.visible = b.mimik; }
+function neuMischen(b) { b.mimik = Math.random() < (fluch === "mimik" ? 1 / 3 : 1 / 8); b.g.visible = !b.mimik; b.mg.visible = b.mimik; }
 function truhenZeigen(dt) {
   const dieb = ich && ich.typ === "dieb";
   for (const mz of muenzen) {
@@ -1502,8 +1524,9 @@ function extraZiehen(k) {
   if (TEST_EXTRA && EXTRAS[TEST_EXTRA]) return TEST_EXTRA;
   const n = karts.length, p = n > 1 ? (platzVon(k) - 1) / (n - 1) : .5;
   const stufe = p < .34 ? 0 : p < .67 ? 1 : 2;
-  const alle = Object.entries(EXTRAS); let summe = 0; for (const [, e] of alle) summe += e.w[stufe];
-  let x = Math.random() * summe; for (const [a, e] of alle) { x -= e.w[stufe]; if (x < 0) return a; }
+  const alle = Object.entries(EXTRAS), w = e => e.w[stufe] * (fluch === "fallen" && e.falle ? 2.5 : 1);
+  let summe = 0; for (const [, e] of alle) summe += w(e);
+  let x = Math.random() * summe; for (const [a, e] of alle) { x -= w(e); if (x < 0) return a; }
   return "flink";
 }
 function truheNehmen(k, b) {
@@ -2443,7 +2466,7 @@ function vorschauKamera() {
   sonne.position.set(PX[i] - 30, 60, PZ[i] + 25); sonne.target.position.set(PX[i], 0, PZ[i]);
   const n = abschnitte.findIndex(a => vorab(i, a.von) < vorab(a.bis, a.von));
   const v = $("vorschau"); v.hidden = false;
-  v.innerHTML = `<b>${esc(abschnitte[n] ? abschnitte[n].name : "")}</b><small>${planCode(plan)}${modus === "allein" ? " · Tippen überspringt" : ""}</small>`;
+  v.innerHTML = `<b>${esc(abschnitte[n] ? abschnitte[n].name : "")}</b><small>${fz ? `FELDZUG ${fz.nr + 1}/3 · ` : ""}${fluch ? `FLUCH: ${FLUECHE[fluch].bild} ${FLUECHE[fluch].name.toUpperCase()} · ` : ""}${planCode(plan)}${modus === "allein" ? " · Tippen überspringt" : ""}</small>`;
 }
 
 // ---------- Minikarte ----------
@@ -2551,12 +2574,19 @@ function rennenAufbauen(raster) {
   $("kkraft").hidden = !ich || !HELDEN[ich.typ];
   kamera(1, true);
 }
+// Fluch Riesenköpfe: die oberste Kugel des Modells (der Kopf) wird riesig
+function riesenkopf(koerper) {
+  let kopf = null, hoch = -1e9; const p = new THREE.Vector3();
+  koerper.updateMatrixWorld(true);
+  koerper.traverse(o => { if (o.isMesh && o.geometry.type === "SphereGeometry" && o.visible) { o.getWorldPosition(p); if (p.y > hoch) { hoch = p.y; kopf = o; } } });
+  if (kopf) { kopf.scale.multiplyScalar(2.7); kopf.position.y += .35; }
+}
 // Übungsgegner: zufällige Monster, jedes nur einmal
 function monsterRaster(n) {
   return Object.keys(MONSTER).sort(() => Math.random() - .5).slice(0, n).map((t, i) => ({ id: "bot" + i, name: MONSTER[t].name, typ: t, bot: true }));
 }
 function alleinRaster() {
-  return [...monsterRaster(wahlGegner), { id: PID, name: name || "Du", typ: wahlTyp, farbe: SPIELERFARBEN[0] }];
+  return [...(fz && fz.monster ? fz.monster : monsterRaster(wahlGegner)), { id: PID, name: name || "Du", typ: wahlTyp, farbe: SPIELERFARBEN[0] }];
 }
 
 function botEingabe(k, dt) {
@@ -2694,18 +2724,43 @@ function platzVon(k) {
 }
 
 const ziel3 = new THREE.Vector3(), kamPos = new THREE.Vector3(), blick = new THREE.Vector3();
+// Zuschauen: Wer im Ziel ist oder aufgegeben hat, kann anderen Fahrern folgen (Antippen wechselt)
+let zuschauer = false, blickId = null;
+function fokusKart() { if (!zuschauer) return ich; const k = karts.find(o => o.id === blickId && o.g.visible); return k || ich; }
+function naechsterBlick() {
+  const noch = karts.filter(o => o.fertig == null && o.g.visible && o !== ich), alle = noch.length ? noch : karts.filter(o => o !== ich && o.g.visible);
+  if (!alle.length) { blickId = ich.id; return; }
+  alle.sort((a, b) => b.prog - a.prog);
+  const i = alle.findIndex(o => o.id === blickId);
+  blickId = alle[(i + 1) % alle.length].id;
+  zuschauLeiste();
+}
+function zuschauLeiste() {
+  const z = $("zuschau"); z.hidden = !zuschauer || phase === "ehrung";
+  if (z.hidden) return;
+  const k = fokusKart();
+  $("zuschauName").innerHTML = `${icon(k.typ)} ${esc(k.ich ? "Du" : k.name)}${k.fertig != null ? " <small>im Ziel</small>" : ""}`;
+}
+function zuschauen(an) {
+  zuschauer = an; $("hud").classList.toggle("zuschauer", an);
+  if (an) { $("ziel").hidden = true; blickId = null; naechsterBlick(); kamera(1, true); }
+  else { blickId = null; zielZeigen(); }
+  zuschauLeiste();
+}
 function kamera(dt, sofort) {
   if (phase === "vorschau") { vorschauKamera(); kamPos.copy(cam.position); return; }
-  const fx = Math.sin(ich.yaw * .5 + ich.mh * .5), fz = Math.cos(ich.yaw * .5 + ich.mh * .5);
-  ziel3.set(ich.x - fx * 7.6, ich.y * .6 + 3.5, ich.z - fz * 7.6);
+  const f = fokusKart();
+  const fx = Math.sin(f.yaw * .5 + f.mh * .5), fz = Math.cos(f.yaw * .5 + f.mh * .5);
+  ziel3.set(f.x - fx * 7.6, f.y * .6 + 3.5, f.z - fz * 7.6);
   if (sofort) kamPos.copy(ziel3); else kamPos.lerp(ziel3, 1 - Math.exp(-dt * 7));
   cam.position.copy(kamPos);
   if (wackeln > 0) cam.position.add(v3.set((Math.random() - .5) * wackeln * .9, (Math.random() - .5) * wackeln * .6, (Math.random() - .5) * wackeln * .9));
-  blick.set(ich.x + fx * 6, ich.y * .7 + 1.3, ich.z + fz * 6);
+  blick.set(f.x + fx * 6, f.y * .7 + 1.3, f.z + fz * 6);
   cam.lookAt(blick);
-  const fov = 62 + (ich.boost > 0 ? 9 : 0) + Math.min(4, ich.v / 8);
+  const fov = 62 + (f.boost > 0 ? 9 : 0) + Math.min(4, f.v / 8);
   cam.fov += (fov - cam.fov) * Math.min(1, dt * 4); cam.updateProjectionMatrix();
-  sonne.position.set(ich.x - 30, 60, ich.z + 25); sonne.target.position.set(ich.x, 0, ich.z);
+  sonne.position.set(f.x - 30, 60, f.z + 25); sonne.target.position.set(f.x, 0, f.z);
+  if (laterne.intensity) laterne.position.set(f.x + fx * 4, f.y + 4.5, f.z + fz * 4);
 }
 
 const v3 = new THREE.Vector3();
@@ -2716,7 +2771,7 @@ function hud(dt) {
     c.style.display = k.g.visible && !(k.unsicht > 0 && !k.ich) ? "" : "none";
     if (k.tag) {
       v3.set(k.x, k.y + 2.8, k.z).project(cam);
-      const sichtbar = k.g.visible && !(k.unsicht > 0) && v3.z < 1 && Math.abs(v3.x) < 1.1 && Math.abs(v3.y) < 1.1 && Math.hypot(k.x - ich.x, k.z - ich.z) < 120;
+      const sichtbar = k.g.visible && !(k.unsicht > 0) && v3.z < 1 && Math.abs(v3.x) < 1.1 && Math.abs(v3.y) < 1.1 && Math.hypot(k.x - fokusKart().x, k.z - fokusKart().z) < 120 && k !== fokusKart();
       k.tag.style.display = sichtbar ? "" : "none";
       if (sichtbar) { k.tag.style.left = (v3.x + 1) / 2 * innerWidth + "px"; k.tag.style.top = (1 - v3.y) / 2 * innerHeight + "px"; }
     }
@@ -2724,6 +2779,7 @@ function hud(dt) {
   $("lenkrad").style.transform = `rotate(${ein.lenk * 90}deg)`;
   extraHud(dt);
   hudTakt -= dt; if (hudTakt > 0) return; hudTakt = .1;
+  if (zuschauer) zuschauLeiste();
   const kk = $("kkraft"); kk.style.setProperty("--k", ich.kraft.toFixed(3)); kk.classList.toggle("voll", ich.kraft >= 1);
   $("gold").innerHTML = `<i></i>${ich.gold}`;
   $("uhr").textContent = zeitText(ich.fertig ?? uhr);
@@ -2745,9 +2801,12 @@ function zielEinlauf() {
 }
 function zielZeigen() {
   if (phase !== "ziel" && !(phase === "rennen" && ich && ich.aufgegeben)) return;
+  if (zuschauer && !rennenVorbei) { zuschauLeiste(); return; }
+  if (zuschauer) { zuschauer = false; $("hud").classList.remove("zuschauer"); zuschauLeiste(); }
   const bestRunde = ich.runden.length ? Math.min(...ich.runden) : 0, mehr = karts.length > 1;
   const p = ich.fertig != null ? platzVon(ich) : null;
   let h = `<h1>${ich.aufgegeben ? "Aufgegeben" : (mehr ? `${p}. Platz` : "Im Ziel") + (zielInfo && zielInfo.rekord ? " · neue Bestzeit!" : "")}</h1>`;
+  if (fz) h += `<p class="leise">Feldzug · Rennen ${fz.nr + 1} von 3: ${esc(WELTEN[welt].name)}${fluch ? ` · <span class="fluchschild">${FLUECHE[fluch].bild} ${FLUECHE[fluch].name}</span>` : ""}</p>`;
   h += `<div class="zeile" style="align-items:flex-start;gap:28px"><table>`;
   if (ich.fertig != null) {
     h += ich.runden.map((t, i) => `<tr><td>Runde ${i + 1}</td><td><b>${zeitText(t)}</b>${t === bestRunde ? " ⚡" : ""}</td></tr>`).join("") + `<tr><td>Gesamt</td><td><b>${zeitText(ich.fertig)}</b></td></tr>`;
@@ -2756,20 +2815,161 @@ function zielZeigen() {
   h += `</table>`;
   if (mehr) {
     const fertig = liste.filter(e => e.zeit != null), rest = karts.filter(k => !fertig.some(e => e.id === k.id)).sort((a, b) => b.prog - a.prog);
-    h += `<table>${fertig.map((e, i) => `<tr><td>${i + 1}.</td><td>${e.id === PID ? "<b>Du</b>" : esc(e.name)}</td><td>${icon(e.typ)}</td><td class="leise">${zeitText(e.zeit)}</td></tr>`).join("")}
-      ${rest.map(k => `<tr><td></td><td>${k.ich ? "<b>Du</b>" : esc(k.name)}</td><td>${icon(k.typ)}</td><td class="leise">${liste.some(e => e.id === k.id) ? "aufgegeben" : rennenVorbei ? "–" : "fährt noch …"}</td></tr>`).join("")}</table>`;
+    const pkt = n => fz ? `<td class="plus">+${FZ_PUNKTE[n] || 0}</td>` : "";
+    h += `<table>${fertig.map((e, i) => `<tr><td>${i + 1}.</td><td>${e.id === PID ? "<b>Du</b>" : esc(e.name)}</td><td>${icon(e.typ)}</td><td class="leise">${zeitText(e.zeit)}</td>${pkt(i)}</tr>`).join("")}
+      ${rest.map(k => `<tr><td></td><td>${k.ich ? "<b>Du</b>" : esc(k.name)}</td><td>${icon(k.typ)}</td><td class="leise">${liste.some(e => e.id === k.id) ? "aufgegeben" : rennenVorbei ? "–" : "fährt noch …"}</td>${fz ? "<td></td>" : ""}</tr>`).join("")}</table>`;
   }
-  h += `</div><p class="leise">Strecke ${planCode(plan)}: ${abschnitte.map(a => esc(a.name)).join(" · ")}</p><div class="zeile" style="justify-content:space-between">`;
-  if (modus === "allein") h += `<a class="zurueck" href="../">‹ Spielauswahl</a><span><button class="los zweit" id="zumMenue">Einstellungen</button> <button class="los zweit" id="gleich">Gleiche Strecke</button> <button class="los" id="nochmal">Neue Strecke</button></span>`;
-  else if (modus === "host") h += `<button class="zurueck knopflos" id="verlassen">Raum schließen</button><span><button class="los zweit" id="zurLobby">Zur Lobby</button> <button class="los zweit" id="gleich">Gleiche Strecke</button> <button class="los" id="nochmal">Neue Strecke</button></span>`;
-  else h += `<button class="zurueck knopflos" id="verlassen">Raum verlassen</button><span class="leise">${esc(hostName())} startet das nächste Rennen.</span>`;
   h += `</div>`;
+  if (fz && fz.nr > 0) h += `<div><b class="etikett">Gesamtwertung vor diesem Rennen</b>${fzTabelle(false)}</div>`;
+  if (!fz) h += `<p class="leise">Strecke ${planCode(plan)}: ${abschnitte.map(a => esc(a.name)).join(" · ")}</p>`;
+  const nochWer = karts.some(k => k !== ich && k.fertig == null && k.g.visible && !liste.some(e => e.id === k.id));
+  const schauen = nochWer && !rennenVorbei ? `<button class="los zweit klein" id="schauen">👀 Zuschauen</button> ` : "";
+  const fertigGenug = modus === "allein" ? true : rennenVorbei;
+  h += `<div class="zeile" style="justify-content:space-between">`;
+  if (fz) {
+    const weiterText = fz.nr >= 2 ? "Zur Siegerehrung 🏆" : `Weiter: Rennen ${fz.nr + 2} von 3`;
+    if (modus === "client") h += `<button class="zurueck knopflos" id="verlassen">Raum verlassen</button><span>${schauen}<span class="leise">${esc(hostName())} macht weiter.</span></span>`;
+    else h += `<button class="zurueck knopflos" id="${modus === "host" ? "verlassen" : "zumMenue"}">${modus === "host" ? "Raum schließen" : "Feldzug abbrechen"}</button><span>${schauen}${fertigGenug ? `<button class="los" id="fzweiter">${weiterText}</button>` : `<span class="leise">Warte, bis alle im Ziel sind …</span>`}</span>`;
+  }
+  else if (modus === "allein") h += `<a class="zurueck" href="../">‹ Spielauswahl</a><span>${schauen}<button class="los zweit" id="zumMenue">Einstellungen</button> <button class="los zweit" id="gleich">Gleiche Strecke</button> <button class="los" id="nochmal">Neue Strecke</button></span>`;
+  else if (modus === "host") h += `<button class="zurueck knopflos" id="verlassen">Raum schließen</button><span>${schauen}<button class="los zweit" id="zurLobby">Zur Lobby</button> <button class="los zweit" id="gleich">Gleiche Strecke</button> <button class="los" id="nochmal">Neue Strecke</button></span>`;
+  else h += `<button class="zurueck knopflos" id="verlassen">Raum verlassen</button><span>${schauen}<span class="leise">${esc(hostName())} startet das nächste Rennen.</span></span>`;
+  h += `</div>`;
+  $("ziel").classList.remove("ehrung");
   $("zielKasten").innerHTML = h; $("ziel").hidden = false;
   if ($("nochmal")) $("nochmal").onclick = () => modus === "allein" ? alleinStarten() : rennenStarten();
   if ($("gleich")) $("gleich").onclick = () => modus === "allein" ? alleinStarten(true) : rennenStarten(true);
-  if ($("zumMenue")) $("zumMenue").onclick = () => menue("start");
+  if ($("zumMenue")) $("zumMenue").onclick = () => { fz = null; menue("start"); };
   if ($("zurLobby")) $("zurLobby").onclick = () => { lobbyPhase = "lobby"; lobbySenden(); menue("lobby"); };
   if ($("verlassen")) $("verlassen").onclick = verlassen;
+  if ($("schauen")) $("schauen").onclick = () => zuschauen(true);
+  if ($("fzweiter")) $("fzweiter").onclick = fzWeiter;
+}
+
+// ---------- Feldzug: drei Rennen (Kerker, Grotte, Glutschlund), Punkte nach Platz, Flüche, Siegerehrung ----------
+const FZ_WELTEN = ["kerker", "grotte", "glut"], FZ_PUNKTE = [10, 8, 6, 5, 4, 3, 2, 1];
+let wahlModus = lager.lesen("kart:modus") === "feldzug" ? "feldzug" : "rennen";
+let fz = null, fluchTimer = null;      // fz: { nr, punkte, leute, letzte, waehler, angebot } – der Spielleiter (oder allein) rechnet, alle anderen bekommen eine Kopie
+const fzNeu = () => ({ nr: 0, punkte: {}, leute: {}, letzte: {} });
+function fzPlan(f) { const p = planWuerfeln(FZ_WELTEN[fz.nr] || "kerker"); if (f) p.f = f; return p; }
+// Reihenfolge des Rennens: erst die im Ziel, dann die noch fahren (nach Fortschritt), zuletzt wer aufgegeben hat
+function rennReihenfolge() {
+  const fertig = liste.filter(e => e.zeit != null).map(e => e.id), auf = id => liste.some(e => e.id === id) ? 1 : 0;
+  return [...fertig, ...karts.filter(k => !fertig.includes(k.id)).sort((a, b) => auf(a.id) - auf(b.id) || b.prog - a.prog).map(k => k.id)];
+}
+function fzTabelle(mitPlus) {
+  const ids = Object.keys(fz.punkte).sort((a, b) => fz.punkte[b] - fz.punkte[a]);
+  if (!ids.length) return "";
+  return `<table class="wertung">${ids.map((id, i) => { const l = fz.leute[id] || {}; return `<tr class="${id === PID ? "ich" : ""}"><td>${i + 1}.</td><td>${icon(l.typ)}</td><td>${id === PID ? "<b>Du</b>" : esc(l.name || "?")}</td>${mitPlus ? `<td class="plus">+${fz.letzte[id] || 0}</td>` : ""}<td class="pkt">${fz.punkte[id]} P.</td></tr>`; }).join("")}</table>`;
+}
+function fzSenden() { if (modus === "host") anAlle({ t: "fz", nr: rennNr, fz }); }
+// Spielleiter oder allein: Rennen werten, dann Fluch wählen lassen oder Siegerehrung
+function fzWeiter() {
+  if (!fz || modus === "client" || !karts.length) return;
+  if (fz.gewertet !== fz.nr) {
+    fz.gewertet = fz.nr; fz.letzte = {};
+    rennReihenfolge().forEach((id, i) => {
+      const k = karts.find(o => o.id === id); if (!k) return;
+      fz.leute[id] = { name: k.name, typ: k.typ, bot: !!k.bot, farbe: k.farbe };
+      fz.punkte[id] = (fz.punkte[id] || 0) + (FZ_PUNKTE[i] || 0); fz.letzte[id] = FZ_PUNKTE[i] || 0;
+    });
+  }
+  if (fz.nr >= 2) { fz.ende = true; fzSenden(); ehrungZeigen(); return; }
+  // der letzte Mensch dieses Rennens sucht einen Fluch aus (3 zur Wahl)
+  const menschen = rennReihenfolge().filter(id => fz.leute[id] && !fz.leute[id].bot);
+  fz.waehler = menschen[menschen.length - 1] || PID;
+  fz.angebot = Object.keys(FLUECHE).sort(() => Math.random() - .5).slice(0, 3);
+  fz.wahl = true;
+  fzSenden(); fluchWahlZeigen();
+  clearTimeout(fluchTimer); fluchTimer = setTimeout(() => { if (fz && fz.wahl) fluchGewaehlt(fz.angebot[Math.floor(Math.random() * 3)]); }, 25000);
+}
+function fluchWahlZeigen() {
+  phase = "fluch"; zuschauer = false; $("hud").classList.remove("zuschauer"); zuschauLeiste();
+  const ich_ = fz.waehler === PID, w = fz.leute[fz.waehler] || { name: "?" };
+  let h = `<h1>Rennen ${fz.nr + 1} von 3 ist vorbei</h1><div class="zeile" style="align-items:flex-start;gap:24px"><div><b class="etikett">Gesamtwertung</b>${fzTabelle(true)}</div><div class="stapel" style="flex:1;min-width:240px">`;
+  h += `<b class="etikett">Als Nächstes: ${esc(WELTEN[FZ_WELTEN[fz.nr + 1]].name)}</b>`;
+  if (ich_) h += `<p style="margin:0"><b>Du warst Letzter.</b> Dafür darfst du das nächste Rennen verfluchen:</p><div class="fluchwahl">${fz.angebot.map(f => `<button class="fluch" data-fluch="${f}"><span class="bild">${FLUECHE[f].bild}</span><b>${FLUECHE[f].name}</b>${FLUECHE[f].text}</button>`).join("")}</div>`;
+  else h += `<p class="warte">${icon(w.typ)} ${esc(w.name)} war Letzter und sucht einen Fluch für das nächste Rennen aus …</p><div class="fluchwahl">${fz.angebot.map(f => `<div class="fluch" style="cursor:default"><span class="bild">${FLUECHE[f].bild}</span><b>${FLUECHE[f].name}</b></div>`).join("")}</div>`;
+  h += `</div></div>`;
+  if (modus === "host") h += `<div class="zeile"><button class="zurueck knopflos" id="verlassen">Raum schließen</button></div>`;
+  $("ziel").classList.remove("ehrung");
+  $("zielKasten").innerHTML = h; $("ziel").hidden = false;
+  document.querySelectorAll("[data-fluch]").forEach(b => b.onclick = () => {
+    const f = b.dataset.fluch;
+    if (modus === "client") { senden({ t: "fluch", pid: PID, f }); document.querySelectorAll("[data-fluch]").forEach(x => x.disabled = true); b.style.background = "#F2C14E"; }
+    else fluchGewaehlt(f);
+  });
+  if ($("verlassen")) $("verlassen").onclick = verlassen;
+}
+// Spielleiter oder allein: nächstes Rennen mit dem Fluch starten
+function fluchGewaehlt(f) {
+  if (!fz || !fz.wahl || !FLUECHE[f]) return;
+  clearTimeout(fluchTimer); fz.wahl = false; fz.nr++;
+  const p = fzPlan(f);
+  if (modus === "allein") { countdownStarten(alleinRaster(), p); }
+  else rennenStarten(false, p);
+}
+function feldzugStarten() {
+  fz = fzNeu(); fz.monster = monsterRaster(wahlGegner);         // dieselben Monster in allen drei Rennen
+  if (modus === "allein") countdownStarten(alleinRaster(), fzPlan(null));
+  else rennenStarten(false, fzPlan(null));
+}
+
+// ---------- Siegerehrung: Podest, der Knochenkönig überreicht schlecht gelaunt den Pokal ----------
+let ehrung = null;
+function ehrungWeg() { if (!ehrung) return; sc.remove(ehrung.g); entsorgen(ehrung.g); ehrung = null; $("ziel").classList.remove("ehrung"); cam.clearViewOffset(); laterne.intensity = fluch === "nacht" ? 40 : 0; }
+function ehrungZeigen() {
+  ehrungWeg(); clearTimeout(fluchTimer);
+  phase = "ehrung"; zuschauer = false; $("hud").classList.remove("zuschauer"); zuschauLeiste();
+  $("hud").hidden = true; objekteLeeren();
+  karts.forEach(k => { k.g.visible = false; k.schatten.visible = false; if (k.tag) k.tag.style.display = "none"; });
+  const ids = Object.keys(fz.punkte).sort((a, b) => fz.punkte[b] - fz.punkte[a]);
+  const i0 = meter(30), O = new THREE.Vector3(PX[i0], 0, PZ[i0]), rot = Math.atan2(TX[i0], TZ[i0]), nx = nX(i0), nz = nZ(i0);
+  const g = new THREE.Group(); sc.add(g);
+  const am = (d, y = 0) => new THREE.Vector3(O.x + nx * d, y, O.z + nz * d);
+  const stufen = [[0, 2.4, "#E8B53A", "1"], [-3.4, 1.6, "#C9CED6", "2"], [3.4, 1, "#C98A4A", "3"]];
+  const sieger = [];
+  stufen.forEach(([d, h, farbe, z], n) => {
+    const b = new THREE.Mesh(box(3.2, h, 3.2), schildMat(z, farbe, "#2A1A12", 128, 128)); const p = am(d, h / 2); b.position.copy(p); b.rotation.y = rot; b.castShadow = b.receiveShadow = true; g.add(b);
+    const id = ids[n]; if (!id) return;
+    const l = fz.leute[id] || { typ: "kaempfer", name: "?" }, m = new Kart(l.typ, l.name, false, l.farbe);
+    sc.remove(m.g); sc.remove(m.schatten); m.g.position.copy(am(d, h)); m.g.rotation.y = rot; g.add(m.g); sieger.push(m.g);
+  });
+  const { g: kg, arm } = knochenKoenigMesh(); kg.position.copy(am(7.6)); kg.rotation.y = rot - .5; kg.scale.setScalar(.8); g.add(kg);
+  const pokal = new THREE.Group(); teil(pokal, zyl(.5, .2, .8, 12), "#E8C24A", 0, .9, 0); teil(pokal, zyl(.15, .15, .4, 8), "#E8C24A", 0, .35, 0); teil(pokal, zyl(.35, .35, .12, 12), "#E8C24A", 0, .1, 0);
+  for (const x of [-1, 1]) teil(pokal, new THREE.TorusGeometry(.22, .05, 6, 12), "#E8C24A", x * .55, .95, 0, 0, Math.PI / 2, 0);
+  g.add(pokal);
+  const sch = new THREE.Mesh(new THREE.PlaneGeometry(26, 26), scheinMat); sch.rotation.x = -Math.PI / 2; sch.position.copy(am(1.5, .15)); g.add(sch);
+  ehrung = { g, O, rot, arm, pokal, kg, t: 0, sieger, start: am(7.6, 3.4), ziel: am(0, 2.4 + 2.6) };
+  // Tafel
+  const ich_ = ids.indexOf(PID);
+  let h = `<h1>🏆 Siegerehrung</h1><div class="sprechblase">„Hmpf. Na schön. Hier ist euer Pokal. Freut euch nicht zu sehr.“<br><small class="leise">– der Knochenkönig</small></div>`;
+  h += `<p style="margin:0">${ich_ === 0 ? "<b>Du gewinnst den Feldzug!</b>" : ich_ > 0 ? `Du bist <b>${ich_ + 1}.</b>` : ""}</p>${fzTabelle(true)}<div class="zeile" style="justify-content:space-between">`;
+  if (modus === "client") h += `<button class="zurueck knopflos" id="verlassen">Raum verlassen</button><span class="leise">${esc(hostName())} entscheidet, wie es weitergeht.</span>`;
+  else if (modus === "host") h += `<button class="zurueck knopflos" id="verlassen">Raum schließen</button><span><button class="los zweit klein" id="zurLobby">Zur Lobby</button> <button class="los klein" id="neuFz">Neuer Feldzug</button></span>`;
+  else h += `<button class="zurueck knopflos" id="zumMenue">Einstellungen</button><button class="los klein" id="neuFz">Neuer Feldzug</button>`;
+  h += `</div>`;
+  $("ziel").classList.add("ehrung"); $("zielKasten").innerHTML = h; $("ziel").hidden = false;
+  if ($("verlassen")) $("verlassen").onclick = verlassen;
+  if ($("zurLobby")) $("zurLobby").onclick = () => { fz = null; ehrungWeg(); lobbyPhase = "lobby"; lobbySenden(); menue("lobby"); };
+  if ($("zumMenue")) $("zumMenue").onclick = () => { fz = null; ehrungWeg(); menue("start"); };
+  if ($("neuFz")) $("neuFz").onclick = () => { ehrungWeg(); feldzugStarten(); };
+}
+function ehrungSchritt(dt) {
+  const E = ehrung; if (!E) return;
+  E.t += dt;
+  const t = E.t, f = Math.min(1, Math.max(0, (t - 2) / 1.6)), e = f * f * (3 - 2 * f);
+  E.arm.rotation.z = t < 2 ? Math.min(1, t) * 1.3 : 1.3 * (1 - e);                 // erst hochhalten, dann widerwillig abgeben
+  E.pokal.position.lerpVectors(E.start, E.ziel, e); E.pokal.position.y += Math.sin(e * Math.PI) * 2.5; E.pokal.rotation.y = t * 1.5;
+  E.kg.rotation.z = Math.sin(t * 1.3) * .03;
+  E.sieger.forEach((s, n) => s.position.y += Math.sin(t * 6 + n) * .004);
+  const w = Math.sin(t * .25) * .5, d = 15, nx = Math.sin(E.rot + w), nz = Math.cos(E.rot + w);
+  cam.position.set(E.O.x + nx * d + nX(meter(30)) * 1.5, 5.5, E.O.z + nz * d + nZ(meter(30)) * 1.5); cam.lookAt(E.O.x + nX(meter(30)) * 1.5, 2.6, E.O.z + nZ(meter(30)) * 1.5);
+  if (cam.fov !== 55) cam.fov = 55;
+  const breit = innerWidth > 700;                       // die Tafel steht rechts: Bild nach links schieben
+  cam.setViewOffset(innerWidth, innerHeight, breit ? innerWidth * .2 : 0, 0, innerWidth, innerHeight);
+  sonne.position.set(E.O.x - 30, 60, E.O.z + 25); sonne.target.position.copy(E.O);
+  laterne.intensity = 140; laterne.position.set(E.O.x + Math.sin(E.rot) * 6, 9, E.O.z + Math.cos(E.rot) * 6);
 }
 
 // ---------- Steuerung vorbereiten ----------
@@ -2790,9 +2990,14 @@ function hudVorbereiten() {
   $("lenktext").textContent = t ? "Pfeiltasten lenken" : "Handy neigen zum Lenken";
 }
 // Plan aus dem Netz prüfen (sonst würfeln)
-function planPruefen(p) { return p && planAusCode(planCode({ w: p.w, v: Array.isArray(p.v) ? p.v : [], s: +p.s || 0 })) || planWuerfeln(wahlWelt); }
+function planPruefen(p) {
+  const q = p && planAusCode(planCode({ w: p.w, v: Array.isArray(p.v) ? p.v : [], s: +p.s || 0 })) || planWuerfeln(wahlWelt);
+  if (p && FLUECHE[p.f]) q.f = p.f;
+  return q;
+}
 function countdownStarten(raster, p) {
   if (!raster.some(e => e.id === PID)) { menue("lobby"); return; }      // bin nicht dabei (zu spät gekommen)
+  ehrungWeg(); zuschauer = false; $("hud").classList.remove("zuschauer"); $("zuschau").hidden = true;
   streckeBauen(planPruefen(p));
   rennenAufbauen(raster);
   hudVorbereiten(); zielInfo = null;
@@ -2800,10 +3005,14 @@ function countdownStarten(raster, p) {
   phase = "vorschau"; vorschauZeit = VORSCHAU; $("gross").hidden = true;
 }
 // gleich = dieselbe Strecke noch einmal, sonst eine neue
-function alleinStarten(gleich) { modus = "allein"; countdownStarten(alleinRaster(), gleich ? plan : startPlan || planWuerfeln(wahlWelt)); startPlan = null; }
+function alleinStarten(gleich) { modus = "allein"; if (!(gleich && fz)) fz = null; countdownStarten(alleinRaster(), gleich ? plan : startPlan || planWuerfeln(wahlWelt)); startPlan = null; }
 let startPlan = planAusCode(new URLSearchParams(location.search).get("strecke"));   // ?strecke=KERKER-… fährt diese Strecke
 // Vorschau: allein mit Antippen überspringen
 addEventListener("pointerdown", () => { if (phase === "vorschau" && modus === "allein") vorschauZeit = Math.min(vorschauZeit, .01); });
+// Zuschauen: Antippen des Bildes wechselt zum nächsten Fahrer
+addEventListener("pointerdown", e => { if (zuschauer && e.target === r.domElement) naechsterBlick(); });
+$("zuschauWeiter").onclick = naechsterBlick;
+$("zuschauErgebnis").onclick = () => zuschauen(false);
 
 // ---------- Verbindung ----------
 const params = new URLSearchParams(location.search);
@@ -2841,12 +3050,12 @@ function lobbyListe() {
 function lobbySenden() {
   if (modus !== "host") return;
   ss.set("kart:host", { code, gegner: wahlGegner });
-  anAlle({ t: "lobby", spieler: lobbyListe(), gegner: wahlGegner, welt: wahlWelt, phase: lobbyPhase, nr: rennNr });
+  anAlle({ t: "lobby", spieler: lobbyListe(), gegner: wahlGegner, welt: wahlWelt, modus: wahlModus, phase: lobbyPhase, nr: rennNr });
   if (phase === "menue") menue("lobby");
 }
 
 function raumErstellen() {
-  code = Array.from({ length: 4 }, () => ZEICHEN[Math.floor(Math.random() * ZEICHEN.length)]).join("");
+  code = (ABEND && ABEND.neuerRaum()) || Array.from({ length: 4 }, () => ZEICHEN[Math.floor(Math.random() * ZEICHEN.length)]).join("");
   history.replaceState(null, "", "?raum=" + code + (params.get("test") ? "&test=" + params.get("test") : ""));
   hostStarten();
 }
@@ -2885,6 +3094,7 @@ function vonClient(c, m) {
   else if (m.t === "ev" && m.nr === rennNr && m.e) { m.e.q = m.pid; anAlle({ t: "ev", nr: rennNr, e: m.e }); anwenden(m.e); }
   else if (m.t === "ziel" && m.nr === rennNr) { eintragen(m.pid, +m.zeit); ergebnisSenden(); }
   else if (m.t === "aufgeben" && m.nr === rennNr) { eintragen(m.pid, null); ergebnisSenden(); }
+  else if (m.t === "fluch" && fz && fz.wahl && fz.waehler === m.pid) fluchGewaehlt(m.f);
 }
 function ergebnisSenden() {
   const menschen = karts.filter(k => !k.bot);
@@ -2892,15 +3102,16 @@ function ergebnisSenden() {
   anAlle({ t: "ergebnis", nr: rennNr, liste, vorbei: rennenVorbei });
   zielZeigen();
 }
-function rennenStarten(gleich) {
+function rennenStarten(gleich, fzP) {
   if (modus !== "host") return;
-  const p = gleich && plan ? plan : startPlan || planWuerfeln(wahlWelt); startPlan = null;
+  if (!fzP && !(gleich && fz)) fz = null;                // ein einzelnes Rennen beendet einen alten Feldzug
+  const p = fzP || (gleich && plan ? plan : startPlan || planWuerfeln(wahlWelt)); startPlan = null;
   rennNr++; lobbyPhase = "rennen";
-  const menschen = lobbyListe().filter(e => e.online), raster = monsterRaster(wahlGegner);
+  const menschen = lobbyListe().filter(e => e.online), raster = fz && fz.monster ? fz.monster.slice() : monsterRaster(wahlGegner);
   // Spieler in zufälliger Reihenfolge hinter die Übungsgegner
   menschen.sort(() => Math.random() - .5).forEach((e, n) => raster.push({ id: e.pid, name: e.name, typ: e.typ, farbe: SPIELERFARBEN[n % SPIELERFARBEN.length] }));
   lobbySenden();
-  anAlle({ t: "start", nr: rennNr, raster, plan: p });
+  anAlle({ t: "start", nr: rennNr, raster, plan: p, fz });
   countdownStarten(raster, p);
 }
 
@@ -2928,10 +3139,11 @@ function verbinde() {
 function vomHost(m) {
   if (!m) return;
   if (m.t === "lobby") {
-    lobby = m; wahlGegner = m.gegner; if (m.welt) wahlWelt = m.welt;
-    if (m.phase === "lobby" && (phase === "ziel" || phase === "menue")) { phase = "menue"; menue("lobby"); }
+    lobby = m; wahlGegner = m.gegner; if (m.welt) wahlWelt = m.welt; if (m.modus) wahlModus = m.modus;
+    if (m.phase === "lobby" && (phase === "ziel" || phase === "menue" || phase === "ehrung" || phase === "fluch")) { fz = null; phase = "menue"; menue("lobby"); }
     else if (phase === "menue") menue("lobby");
-  } else if (m.t === "start") { rennNr = m.nr; countdownStarten(m.raster, m.plan); }
+  } else if (m.t === "start") { rennNr = m.nr; fz = m.fz || null; countdownStarten(m.raster, m.plan); }
+  else if (m.t === "fz" && m.fz) { fz = m.fz; if (fz.ende) ehrungZeigen(); else if (fz.wahl) fluchWahlZeigen(); }
   else if (m.t === "lauf" && m.nr === rennNr) {
     for (const [id, a] of m.k) { if (id === PID) continue; const k = karts.find(o => o.id === id); if (k && k.remote) k.netzZustand(a); }
   } else if (m.t === "ev" && m.nr === rennNr && m.e && m.e.q !== PID) anwenden(m.e);
@@ -2963,12 +3175,17 @@ function heldWahl() {
     <p class="heldinfo"><b>${h.gefaehrt}</b> · ${h.klasse}: ${h.text}<br>Heldenkraft <b>${KRAEFTE[wahlTyp].name}</b>: ${KRAEFTE[wahlTyp].text}</p></div>`;
 }
 const WELT_NAMEN = { kerker: "🏰 Kerker", grotte: "🕷️ Grotte", glut: "🌋 Glutschlund", zufall: "🎲 Zufall" };
+function modusWahl() { return [["rennen", "🏁 Ein Rennen"], ["feldzug", "⚔️ Feldzug (3 Rennen)"]].map(([m, t]) => `<button class="wahl ${wahlModus === m ? "an" : ""}" data-modus="${m}">${t}</button>`).join(""); }
+const weltZeile = host => wahlModus === "feldzug" ? `<p class="leise">Feldzug: Kerker → Spinnengrotte → Glutschlund. Punkte nach Platz, der Letzte verflucht das nächste Rennen, am Ende Siegerehrung.</p>`
+  : host ? `<div class="zeile"><b>Welt</b>${weltWahl()}</div>` : `<p class="leise">Welt: ${WELT_NAMEN[wahlWelt] || "Zufall"}</p>`;
+// Gemeinsamer Abend (../abend.js): Der Abendleiter öffnet den Raum, die anderen folgen ihm von selbst
+const ABEND = window.ABEND && window.ABEND.aktiv ? window.ABEND : null;
 function weltWahl() { return Object.entries(WELT_NAMEN).map(([w, t]) => `<button class="wahl ${wahlWelt === w ? "an" : ""}" data-welt="${w}">${t}</button>`).join(""); }
 function lenkWahl() {
   return `<button class="wahl ${steuerung === "neigen" ? "an" : ""}" data-st="neigen">📱 Neigen</button><button class="wahl ${steuerung === "tasten" ? "an" : ""}" data-st="tasten">◀ ▶ Tasten</button>`;
 }
 function menue(a) {
-  ansicht = a; phase = "menue";
+  ansicht = a; phase = "menue"; ehrungWeg(); zuschauer = false; $("zuschau").hidden = true;
   $("menue").hidden = false; $("ziel").hidden = true; $("pausiert").hidden = true; $("hud").hidden = true;
   let h = "";
   if (a === "start") {
@@ -2978,14 +3195,16 @@ function menue(a) {
         <label class="zeile namenszeile"><b>Name</b><input id="name" maxlength="20" value="${esc(name)}" autocomplete="nickname" placeholder="z. B. Richard"></label>
         ${heldWahl()}
         <div class="zeile"><b>Lenken</b>${lenkWahl()}</div>
-        <div class="zeile"><b>Welt</b>${weltWahl()}</div>
+        <div class="zeile"><b>Modus</b>${modusWahl()}</div>
+        ${weltZeile(true)}
         ${best ? `<p class="leise">Deine Bestzeit als ${HELDEN[wahlTyp].name}: ${zeitText(best)}</p>` : ""}
       </div><div class="stapel">
+        ${ABEND ? `<div class="box"><b class="titelchen">Gemeinsamer Abend</b>${ABEND.leiter ? `<p class="leise">Wähle Held und Modus, dann öffne den Raum. Die anderen kommen von selbst dazu.</p><button class="los" id="erstellen">Raum öffnen</button>` : `<p class="warte">${esc(ABEND.warten())}</p>`}</div>` : `
         <div class="box"><b class="titelchen">Zusammen fahren</b><button class="los" id="erstellen">Raum erstellen</button>
           <div class="zeile"><input id="code" maxlength="4" autocapitalize="characters" placeholder="Code" value="${esc(code)}"><button class="los zweit" id="beitreten">Beitreten</button></div></div>
-        <div class="box"><b class="titelchen">Allein üben</b><div class="zeile">${[3, 5, 0].map(n => `<button class="wahl ${wahlGegner === n || (n === 3 && wahlGegner && wahlGegner !== 5) ? "an" : ""}" data-geg="${n}">${n ? n + " Monster" : "ohne"}</button>`).join("")}<button class="los zweit" id="allein">Los</button></div></div>
+        <div class="box"><b class="titelchen">Allein üben</b><div class="zeile">${[3, 5, 0].map(n => `<button class="wahl ${wahlGegner === n || (n === 3 && wahlGegner && wahlGegner !== 5) ? "an" : ""}" data-geg="${n}">${n ? n + " Monster" : "ohne"}</button>`).join("")}<button class="los zweit" id="allein">Los</button></div></div>`}
       </div></div>
-      <div class="zeile" style="justify-content:space-between"><a class="zurueck" href="../">‹ Spielauswahl</a><span class="leise">Am Computer: Pfeiltasten, Leertaste = Drift, E = Extra, R = Heldenkraft</span></div>`;
+      <div class="zeile" style="justify-content:space-between">${ABEND ? (ABEND.leiter ? `<button class="zurueck knopflos" id="zumAbend">‹ Zurück zum Abend</button>` : "<span></span>") : `<a class="zurueck" href="../">‹ Spielauswahl</a>`}<span class="leise">Am Computer: Pfeiltasten, Leertaste = Drift, E = Extra, R = Heldenkraft</span></div>`;
   } else if (a === "einladung") {
     h = `<div><h1>Kerker-<span>Kart</span></h1><p class="leise">Du wurdest in Raum <b>${esc(code)}</b> eingeladen.</p></div>
       <div class="stapel">
@@ -2993,7 +3212,7 @@ function menue(a) {
         ${heldWahl()}
         <div class="zeile"><b>Lenken</b>${lenkWahl()}</div>
       </div>
-      <div class="zeile" style="justify-content:space-between"><button class="zurueck knopflos" id="abbrechen">‹ Abbrechen</button><button class="los" id="mitfahren">Mitfahren</button></div>`;
+      <div class="zeile" style="justify-content:space-between">${ABEND ? `<span class="leise">Gemeinsamer Abend: Held wählen, dann Mitfahren.</span>` : `<button class="zurueck knopflos" id="abbrechen">‹ Abbrechen</button>`}<button class="los" id="mitfahren">Mitfahren</button></div>`;
   } else if (a === "lobby") {
     const host = modus === "host", l = lobbyListe(), da = l.filter(e => e.online);
     let qr = "";
@@ -3005,9 +3224,10 @@ function menue(a) {
       </div><div class="stapel">
         ${heldWahl()}
         <div class="zeile"><b>Lenken</b>${lenkWahl()}</div>
-        ${host ? `<div class="zeile"><b>Welt</b>${weltWahl()}</div>` : `<p class="leise">Welt: ${WELT_NAMEN[wahlWelt] || "Zufall"}</p>`}
+        ${host ? `<div class="zeile"><b>Modus</b>${modusWahl()}</div>` : `<p class="leise">Modus: ${wahlModus === "feldzug" ? "Feldzug (3 Rennen)" : "ein Rennen"}</p>`}
+        ${weltZeile(host)}
         ${host ? `<div class="zeile"><b>Monster</b>${[0, 1, 2, 3, 4, 5].map(n => `<button class="wahl ${wahlGegner === n ? "an" : ""}" data-geg="${n}">${n}</button>`).join("")}</div>` : `<p class="leise">Monster als Gegner: ${wahlGegner}</p>`}
-        ${host ? `<button class="los" id="rennstart">Rennen starten</button>` : `<p class="warte">${lobby && lobby.phase === "rennen" ? "Ein Rennen läuft gerade. Beim nächsten bist du dabei." : `Warte, bis ${esc(hostName())} das Rennen startet …`}</p>`}
+        ${host ? `<button class="los" id="rennstart">${wahlModus === "feldzug" ? "Feldzug starten" : "Rennen starten"}</button>` : `<p class="warte">${lobby && lobby.phase === "rennen" ? "Ein Rennen läuft gerade. Beim nächsten bist du dabei." : `Warte, bis ${esc(hostName())} das Rennen startet …`}</p>`}
         <button class="zurueck knopflos" id="verlassen" style="align-self:flex-start">${host ? "Raum schließen" : "Raum verlassen"}</button>
       </div></div>`;
   }
@@ -3035,7 +3255,9 @@ function menueBinden() {
   });
   document.querySelectorAll("[data-geg]").forEach(b => b.onclick = () => { nameMerken(); wahlGegner = +b.dataset.geg; lager.schreiben("kart:gegner", wahlGegner); if (modus === "host") lobbySenden(); else menue(ansicht); });
   const klick = (id, f) => { if ($(id)) $(id).onclick = f; };
-  klick("allein", async () => { if (!nameAus()) return; await sensorErlauben(); alleinStarten(); });
+  document.querySelectorAll("[data-modus]").forEach(b => b.onclick = () => { nameMerken(); wahlModus = b.dataset.modus; lager.schreiben("kart:modus", wahlModus); if (modus === "host") lobbySenden(); else menue(ansicht); });
+  klick("allein", async () => { if (!nameAus()) return; await sensorErlauben(); if (wahlModus === "feldzug") { modus = "allein"; feldzugStarten(); } else alleinStarten(); });
+  klick("zumAbend", () => ABEND.zurueck());
   klick("erstellen", async () => { if (!nameAus()) return; await sensorErlauben(); raumErstellen(); });
   klick("beitreten", async () => {
     if (!nameAus()) return;
@@ -3046,7 +3268,7 @@ function menueBinden() {
   });
   klick("mitfahren", async () => { if (!nameAus()) return; await sensorErlauben(); clientStarten(); });
   klick("abbrechen", () => { code = ""; history.replaceState(null, "", location.pathname); menue("start"); });
-  klick("rennstart", async () => { await sensorErlauben(); rennenStarten(); });
+  klick("rennstart", async () => { await sensorErlauben(); if (wahlModus === "feldzug") feldzugStarten(); else rennenStarten(); });
   klick("verlassen", verlassen);
   klick("teilen", () => { if (navigator.share) navigator.share({ title: "Kerker-Kart", text: "Fahr mit! Raum " + code, url: link() }).catch(() => {}); else { try { navigator.clipboard.writeText(link()); $("teilen").textContent = "Kopiert"; } catch { prompt("Link kopieren:", link()); } } });
   // Im Rennen gestartet ohne Sensor-Erlaubnis (Mitspieler): beim ersten Tippen nachholen
@@ -3085,7 +3307,8 @@ function loop(jetzt) {
     const t = jetzt / 6000;
     cam.position.set(ich.x + Math.sin(t) * 14, 5, ich.z + Math.cos(t) * 14); cam.lookAt(ich.x, 1, ich.z);
     sonne.position.set(ich.x - 30, 60, ich.z + 25); sonne.target.position.set(ich.x, 0, ich.z);
-  } else if (phase !== "pause") {
+  } else if (phase === "ehrung") ehrungSchritt(dt);
+  else if (phase !== "pause") {
     update(dt);
     karts.forEach(k => k.zeigen(jetzt));
     kamera(dt);
@@ -3107,4 +3330,4 @@ else if (code) menue("einladung");
 else menue("start");
 requestAnimationFrame(loop);
 window.KART = { get phase() { return phase; }, get ich() { return ich; }, karts: () => karts, ein, S, get LAENGE() { return LAENGE; }, get liste() { return liste; }, get modus() { return modus; },
-  sim(sek) { for (let t = 0; t < sek; t += 1 / 60) { update(1 / 60); } }, aufbauen: rennenAufbauen, cam, sc, r, THREE, streckeBauen, planWuerfeln, planCode, get plan() { return plan; }, get strecke() { return { abschnitte, gabeln, loren, troll, pendel, pfosten, rattenStellen, koenig, rampen, pilzSprung, tropfen, schluchten, haengebruecken, welt, geysire, geysirSprung, pfade, spalten, lavaHoch }; }, SCHLUCHT, absturz, PX, PZ, set uhr(v) { uhr = v; }, objekte, extraNutzen, kisten, treffen, versetzen, anwenden, ereignis, schritte(sek) { for (let t = 0; t < sek; t += 1 / 30) { update(1 / 30); karts.forEach(k => k.zeigen(performance.now())); hud(1 / 30); } }, neigung: () => neigung, lenkWert, kraftNutzen, muenzen, wirkung, set steuerung(v) { steuerung = v; } };
+  sim(sek) { for (let t = 0; t < sek; t += 1 / 60) { update(1 / 60); } }, aufbauen: rennenAufbauen, cam, sc, r, THREE, streckeBauen, planWuerfeln, planCode, get plan() { return plan; }, get strecke() { return { abschnitte, gabeln, loren, troll, pendel, pfosten, rattenStellen, koenig, rampen, pilzSprung, tropfen, schluchten, haengebruecken, welt, geysire, geysirSprung, pfade, spalten, lavaHoch }; }, SCHLUCHT, absturz, PX, PZ, set uhr(v) { uhr = v; }, objekte, extraNutzen, kisten, treffen, versetzen, anwenden, ereignis, schritte(sek) { for (let t = 0; t < sek; t += 1 / 30) { update(1 / 30); karts.forEach(k => k.zeigen(performance.now())); hud(1 / 30); } }, neigung: () => neigung, lenkWert, kraftNutzen, muenzen, wirkung, set steuerung(v) { steuerung = v; }, get fz() { return fz; }, fzWeiter, fluchGewaehlt, ehrungZeigen, zuschauen, get zuschauer() { return zuschauer; }, get fluch() { return fluch; } };

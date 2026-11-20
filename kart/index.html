@@ -97,6 +97,21 @@ input.fehlt{border-color:var(--rot)}
 .knopflos{appearance:none;background:none;border:0;padding:0;cursor:pointer;text-decoration:underline}
 .etikett{margin:0;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:var(--leise)}
 .code{font:900 40px/1 var(--display);letter-spacing:.08em}
+/* Zuschauen, Feldzug, Flüche, Siegerehrung */
+.zuschau{pointer-events:auto;left:50%;bottom:max(12px,env(safe-area-inset-bottom));transform:translateX(-50%);display:flex;align-items:center;gap:8px;background:var(--creme);border:2.5px solid var(--tinte);border-radius:999px;padding:4px 6px 4px 14px;font:700 13px var(--fliess);white-space:nowrap;box-shadow:0 3px 0 var(--tinte)}
+.zuschau small{color:var(--leise);font-weight:600}
+.zuschau button{appearance:none;border:2px solid var(--tinte);background:#fff;border-radius:999px;padding:4px 10px;font:800 12px var(--fliess);color:var(--tinte);cursor:pointer}
+.hud.zuschauer :is(.knopf,.lenk,.extra,.gold){display:none!important}
+.fluchwahl{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.fluch{appearance:none;border:2.5px solid var(--tinte);background:#fff;border-radius:14px;padding:8px;display:flex;flex-direction:column;align-items:center;gap:2px;font:600 12px var(--fliess);color:var(--tinte);cursor:pointer;text-align:center}
+.fluch b{font:800 14px var(--display)} .fluch .bild{font-size:30px;line-height:1}
+.fluch:hover{background:#F2C14E}
+.fluchschild{display:inline-flex;align-items:center;gap:6px;background:#2A1A12;color:#fff;border-radius:999px;padding:2px 10px;font:700 12px var(--fliess)}
+.wertung td.pkt{font-weight:900;text-align:right} .wertung td.plus{color:#2E9B4F;font-weight:800;text-align:right}
+.wertung tr.ich td{background:#F2C14E55}
+#ziel.ehrung{background:none;backdrop-filter:none;-webkit-backdrop-filter:none;place-items:end end}
+#ziel.ehrung .kasten{width:min(360px,100%);margin:0;max-height:calc(100dvh - 20px);overflow:auto}
+.sprechblase{background:#fff;border:2.5px solid var(--tinte);border-radius:14px;padding:6px 10px;font:700 13px var(--fliess);position:relative}
 .warte{margin:0;font-weight:700;background:#fff;border:2px dashed var(--tinte);border-radius:12px;padding:8px 10px}
 .qr{width:112px;height:112px;background:#fff;border:2.5px solid var(--tinte);border-radius:10px;padding:4px;flex:none}
 .qr svg{width:100%;height:100%;display:block}
@@ -140,6 +155,7 @@ input.fehlt{border-color:var(--rot)}
   <div class="knopf k-rechts" id="krechts" hidden>▶</div>
   <div class="gross" id="gross" hidden></div>
   <div class="meldung" id="meldung" hidden></div>
+  <div class="zuschau" id="zuschau" hidden><span>👀 <span id="zuschauName"></span></span><button id="zuschauWeiter">Nächster ▶</button><button id="zuschauErgebnis">Ergebnis</button></div>
 </div>
 
 <div class="schicht" id="menue"><div class="kasten breit" id="menueKasten"></div></div>
@@ -160,8 +176,9 @@ input.fehlt{border-color:var(--rot)}
 <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <script src="../netz.js?v=2026-11-20a"></script>
+<script src="../abend.js?v=2026-11-20b" data-spiel="kart"></script>
 <script src="../verlies/bilder.js?v=2026-11-20b"></script>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"}}</script>
-<script type="module" src="spiel.js?v=2026-11-20h"></script>
+<script type="module" src="spiel.js?v=2026-11-20i"></script>
 </body>
 </html>

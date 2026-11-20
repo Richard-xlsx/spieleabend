@@ -291,7 +291,7 @@ Nach jedem Paket ist das Spiel spielbar, und du kannst es am Handy testen.
 | **4** ✔ | Heldenkräfte und Kraftleiste, Gold auf der Strecke | jeder Held spielt sich anders |
 | **5** ✔ | Welt **Spinnengrotte**: Pilzsprung über die Schlucht, Netztunnel, Spinnenkönigin, Absturz mit Fledermäusen | zweite Welt |
 | **6** ✔ | Welt **Glutschlund**: Geysire, sinkende Steine, einstürzende Brücke, Glutdrache, steigende Lava | dritte Welt |
-| **7** | Feldzug mit Siegerehrung, Rennflüche, Zuschauen, Aufnahme in Spielauswahl und Spieleabend | fertiges Partyspiel |
+| **7** ✔ | Feldzug mit Siegerehrung, Rennflüche, Zuschauen, Aufnahme in Spielauswahl und Spieleabend | fertiges Partyspiel |
 | **8** | Flucht aus dem Glutschlund, Schatzjagd, Bardin und Hexe | zusätzliche Modi |
 
 ---
@@ -409,4 +409,20 @@ So ist es umgesetzt:
 - **Steigende Lava:** Sobald jemand in Runde 3 ist, steigt die Lava: Sie leuchtet heller und überflutet die Randstreifen, man fällt also schon früher hinein.
 - Abkürzungen über die Lava sind auf der Minikarte gestrichelt.
 - **Monster** weichen Geysiren aus, nehmen teils Geysir, Steine (nur wenn der Takt passt) und Brücke.
+
+## 16. Stand Paket 7 (20.11.2026)
+
+- **Modus:** Im Menü (allein) und in der Lobby (Spielleiter) wählt man „Ein Rennen“ oder „Feldzug (3 Rennen)“.
+- **Feldzug:** Kerker, Spinnengrotte, Glutschlund, jeweils mit zufälligen Varianten. Alle drei Rennen fahren dieselben Monster mit. Punkte nach Platz (10, 8, 6, 5, 4, 3, 2, 1), Monster eingeschlossen. Wer noch fährt, wenn alle Menschen im Ziel sind, wird nach Fortschritt eingereiht, wer aufgegeben hat, kommt ans Ende. Im Ergebnis steht, wie viele Punkte es gibt, und die Gesamtwertung. Der Spielleiter (oder man selbst allein) tippt „Weiter“.
+- **Rennflüche:** Nach Rennen 1 und 2 sucht der letzte Mensch aus drei zufälligen Flüchen einen aus, die anderen sehen, wer gerade wählt. Nach 25 Sekunden ohne Wahl entscheidet der Zufall. Der Fluch steht in der Vorschau und im Ergebnis.
+  - Nacht: kaum Licht, nahe Nebelwand, nur eine Laterne am eigenen Kart
+  - Glatteis: Haftung stark verringert
+  - Fallenmeister: Fallen-Extras 2,5-mal so häufig
+  - Riesenköpfe: Der Kopf jedes Fahrers ist fast dreimal so groß
+  - Spiegelstrecke: Die Strecke ist seitenverkehrt
+  - Goldrausch: doppelt so viele Goldreihen, Gold lädt die Heldenkraft doppelt
+  - Mimik-Plage: jede dritte Truhe ist ein Mimik
+- **Siegerehrung:** Podest am Start mit den drei Besten in ihren Karts. Der Knochenkönig hält den Pokal hoch und gibt ihn widerwillig dem Sieger („Hmpf. Na schön …“). Daneben die Endwertung. Danach: „Neuer Feldzug“ oder „Zur Lobby“.
+- **Zuschauen:** Wer im Ziel ist oder aufgegeben hat, tippt im Ergebnis auf „Zuschauen“. Die Kamera folgt einem anderen Fahrer, Antippen oder „Nächster“ wechselt, „Ergebnis“ führt zurück. Sind alle Menschen im Ziel, erscheint das Ergebnis von selbst.
+- **Spielauswahl und Abend:** Das Kart-Rennen steht normal auf der Startseite und macht im gemeinsamen Abend mit. Der Abendleiter öffnet den Raum, die anderen landen von selbst auf der Einladung und tippen „Mitfahren“. „Zurück zum Abend“ holt alle zurück. Eine gemeinsame Abend-Wertung über alle Spiele gibt es noch nicht.
 
