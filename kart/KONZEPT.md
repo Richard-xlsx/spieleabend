@@ -290,7 +290,7 @@ Nach jedem Paket ist das Spiel spielbar, und du kannst es am Handy testen.
 | **3** ✔ | Kerker als Strecke aus Abschnitten mit Varianten: Fallgitter, Druckplatten, Lorenbahn, Troll-Trampolin, brüchige Wand; Knochenkönig mit Beben; Streckenvorschau | erste Dungeon-Strecke, jedes Rennen anders |
 | **4** ✔ | Heldenkräfte und Kraftleiste, Gold auf der Strecke | jeder Held spielt sich anders |
 | **5** ✔ | Welt **Spinnengrotte**: Pilzsprung über die Schlucht, Netztunnel, Spinnenkönigin, Absturz mit Fledermäusen | zweite Welt |
-| **6** | Welt **Glutschlund**: Geysire, sinkende Steine, einstürzende Brücke, Glutdrache, steigende Lava | dritte Welt |
+| **6** ✔ | Welt **Glutschlund**: Geysire, sinkende Steine, einstürzende Brücke, Glutdrache, steigende Lava | dritte Welt |
 | **7** | Feldzug mit Siegerehrung, Rennflüche, Zuschauen, Aufnahme in Spielauswahl und Spieleabend | fertiges Partyspiel |
 | **8** | Flucht aus dem Glutschlund, Schatzjagd, Bardin und Hexe | zusätzliche Modi |
 
@@ -384,3 +384,29 @@ So ist es umgesetzt:
 
 Noch nicht gebaut: Fledermäuse, die am Rand auffliegen, wenn man vorbeirast.
 - Behoben: Nach einem Dreher (Mimik, Treffer, Prellbock) zeigten Fahrtrichtung und Kamera in eine zufällige Richtung. Jetzt dreht sich nur das Modell zweimal um sich selbst, Fahrtrichtung und Blick bleiben nach vorn.
+
+## 15. Stand Paket 6 (20.11.2026)
+
+Der **Glutschlund** ist die dritte Welt (Menü: 🌋 Glutschlund, Streckencode GLUT-…). Es gibt 32 Kombinationen, eine Runde ist 980 bis 1090 m lang.
+
+| Abschnitt | Varianten |
+|---|---|
+| 1 Start | Obsidiantor mit Schmiede · Lavafall-Gerade (Lava an der Außenseite) |
+| 2 Lavasee | Uferweg am Lavasee · Geysirsprung über den Lavasee |
+| 3 Glutfelder | Geysirfeld · Sinkende Steine |
+| 4 Drachenhorst | Horst des Glutdrachen (immer) |
+| 5 Schlund | Einstürzende Brücke · Schlackehalde mit Obsidian-Splittern |
+| 6 Heimweg | Kettenbrücke über die Glut · Aschegang mit Lavaspalte |
+
+So ist es umgesetzt:
+- **Lava:** wie die Schlucht in der Grotte, nur leuchtend und pulsierend. Wer hineinfährt, wird von Fledermäusen herausgeholt („In die Lava!“).
+- **Geysirsprung:** Auf einem Felsvorsprung an der Innenseite steht ein großer Geysir. Er brodelt (Dampf) und bricht dann etwa 1,5 von 4,6 Sekunden aus. Wer während des Ausbruchs drauffährt, fliegt über den Lavasee. Zu früh oder zu spät: Dreher und zurück auf die Fahrbahn.
+- **Sinkende Steine:** Die Straße macht einen Bogen um einen Lavasee, die Steine führen geradeaus hinüber. Man fährt selbst und muss auf der Linie bleiben. Alle 7 Sekunden werden die Steine rot, wackeln und sinken für gut eine Sekunde ein. Wer dann drauf ist oder daneben fährt, landet in der Lava.
+- **Einstürzende Brücke:** Gleiche Idee mit einer Holzbrücke mit Geländer. Nach 5 Überfahrten stürzt sie ein und bleibt für das ganze Rennen weg, dann bleibt nur der Umweg. Ab 2 übrigen Überfahrten knirscht sie.
+- **Geysirfeld:** fünf kleine Geysire auf der Fahrbahn, die im Takt ausbrechen.
+- **Lavaspalte:** Hinter einer Rampe quert eine Spalte die Fahrbahn. Mit Tempo springt man drüber, zu langsam fällt man hinein.
+- **Glutdrache:** sitzt auf seinem Horst. Ab Runde 2 kommt er alle 12 bis 16 Sekunden einem Fahrer von vorn entgegengeflogen und brennt eine Feuerspur über die halbe Fahrbahn (in Runde 3 alle 8 bis 11 Sekunden vor zwei Fahrern). Feuer gibt einen Dreher.
+- **Steigende Lava:** Sobald jemand in Runde 3 ist, steigt die Lava: Sie leuchtet heller und überflutet die Randstreifen, man fällt also schon früher hinein.
+- Abkürzungen über die Lava sind auf der Minikarte gestrichelt.
+- **Monster** weichen Geysiren aus, nehmen teils Geysir, Steine (nur wenn der Takt passt) und Brücke.
+

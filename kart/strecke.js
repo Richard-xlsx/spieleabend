@@ -93,9 +93,49 @@ const GROTTE = [
   ] }
 ];
 
+// Glutschlund: Lava, Obsidian, rotes Licht. Wer in die Lava fährt, wird von Fledermäusen herausgeholt.
+const GLUT_KNOTEN = [[0, 0], [150, 0], [230, -110], [170, -240], [10, -255], [-120, -140]];
+const GLUT = [
+  { name: "Start", varianten: [
+    { name: "Obsidiantor", punkte: [[75, -3]],
+      dinge: [{ art: "haus", bei: .45, seite: 1, w: 24, h: 8, d: 12, farbe: "#3A2F33", schild: "SCHMIEDE" }], truhen: [.75] },
+    { name: "Lavafall-Gerade", punkte: [[50, 3], [105, -3]],
+      dinge: [{ art: "lava", von: .3, bis: .8, seite: 1 }], truhen: [.92] }
+  ] },
+  { name: "Lavasee", varianten: [
+    { name: "Uferweg am Lavasee", punkte: [[200, -18], [228, -58]],
+      dinge: [{ art: "lava", von: .15, bis: .85, seite: "aussen" }], truhen: [.1] },
+    { name: "Geysirsprung über den Lavasee", punkte: [[200, 20], [262, 22], [292, -10], [270, -48], [236, -60]],
+      dinge: [{ art: "lava", von: .08, bis: .8, seite: "innen" }, { art: "geysirsprung", bei: .19 }], truhen: [.9] }
+  ] },
+  { name: "Glutfelder", varianten: [
+    { name: "Geysirfeld", punkte: [[244, -160], [218, -215]],
+      dinge: [{ art: "geysire", stuecke: [[.26, -3], [.4, 3.2], [.54, -.4], [.68, 3.4], [.8, -3.2]] }], truhen: [.1] },
+    { name: "Sinkende Steine", punkte: [[234, -140], [254, -144], [272, -158], [274, -176], [258, -190], [236, -192], [226, -214]],
+      dinge: [{ art: "lava", von: .13, bis: .66, seite: "innen" }, { art: "steine", bei: .14 }], truhen: [.9] }
+  ] },
+  { name: "Drachenhorst", varianten: [
+    { name: "Horst des Glutdrachen", punkte: [[90, -264]],
+      dinge: [{ art: "drache", bei: .45, seite: "aussen" }, { art: "lava", von: .62, bis: .9, seite: "innen" }], truhen: [.25] }
+  ] },
+  { name: "Schlund", varianten: [
+    { name: "Einstürzende Brücke", punkte: [[-15, -258], [-24, -278], [-42, -294], [-64, -294], [-78, -278], [-74, -260], [-90, -232]],
+      dinge: [{ art: "lava", von: .09, bis: .56, seite: "innen" }, { art: "einsturz", bei: .1 }], truhen: [.8] },
+    { name: "Schlackehalde", punkte: [[-50, -240], [-98, -200]],
+      dinge: [{ art: "obsidian", stuecke: [[.3, 3.2], [.42, -3], [.55, .3], [.68, 3.3], [.78, -2.6]] }], truhen: [.12] }
+  ] },
+  { name: "Heimweg", varianten: [
+    { name: "Kettenbrücke über die Glut", punkte: [[-140, -60], [-80, -5]],
+      dinge: [{ art: "bruecke", von: .3, bis: .62 }], truhen: [.82] },
+    { name: "Aschegang mit Lavaspalte", punkte: [[-150, -70], [-95, -12], [-45, 2]],
+      dinge: [{ art: "rampe", von: .3, bis: .38, h: 2.4 }, { art: "spalte", bei: .38 }], truhen: [.85] }
+  ] }
+];
+
 export const WELTEN = {
   kerker: { name: "Kerker", code: "KERKER", knoten: KERKER_KNOTEN, abschnitte: KERKER },
   grotte: { name: "Spinnengrotte", code: "GROTTE", knoten: GROTTE_KNOTEN, abschnitte: GROTTE },
+  glut: { name: "Glutschlund", code: "GLUT", knoten: GLUT_KNOTEN, abschnitte: GLUT },
 };
 
 // Zufall mit Startwert (für alle Handys gleich)
