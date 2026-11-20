@@ -310,3 +310,25 @@ Die Monster haben weiter ihr eigenes Gummiband. Es wirkt nur noch auf Monster, n
 - **Strudel** drehen und bremsen, wer hineinfährt. Monster weichen ihnen aus. Die Magierin schwebt übers Wasser ohne Nachteil.
 - Noch nicht umgesetzt: zwei Landestellen beim Gleiten, Wasserfall-Abfahrt, treibende Lavaschollen im Glutschlund, Gabelung „Kanal oder Hof“.
 
+
+**Paket 13 ist umgesetzt** (siehe `spiel.js`, Abschnitt „Ereignisse im Rennen“):
+
+- **Zufallsereignis:** einmal je Rennen in Runde 2 oder 3, wenn der Führende eine zufällige Stelle erreicht. Es wird 3 Sekunden vorher groß angesagt. Der Spielleiter würfelt es aus und schickt es an alle.
+
+  | Ereignis | Was passiert |
+  |---|---|
+  | Goldregen 💰 | 10 Sekunden lang fallen 70 Goldstücke vor dem Feld von der Decke |
+  | Goblin-Horde 👺 | 14 Goblins rennen 16 Sekunden lang an einer Stelle hin und her, wer einen erwischt, dreht sich |
+  | Fackeln aus 🌑 | 15 Sekunden fast dunkel, nur die Laterne am eigenen Kart leuchtet (nicht beim Fluch Nacht) |
+  | Händlerkarren 🛒 | fährt 30 Sekunden langsam mit, wer ihn berührt, bekommt einmal ein starkes Extra |
+  | Truhenfieber 🎁 | 12 Sekunden lang gibt jede Truhe das Extra doppelt, die Truhen pulsieren |
+  | Geisterkarren 👻 | fährt 26 Sekunden lang rückwärts durchs Feld, wer ihn berührt, dreht sich |
+
+- **Runde für Runde:** In Runde 1 ist der kurze Weg der ersten Gabelung vergittert, ab Runde 2 ist das Gitter offen („Abkürzung“). In der letzten Runde (ab 3 Runden) stürzt der lange Weg der zweiten Gabelung ein. Monster nehmen keinen versperrten Weg.
+- **Händlerstand** (jede Welt, in einer Kurve über der Innenseite): Wer hindurchfährt, wird langsamer und bekommt beim Hinausfahren ein Extra (einmal je Runde).
+- **Hebel mit Fässern** (Kerker 2, sonst 1, am Fahrbahnrand): Wer ihn rammt, lässt 4 Fässer nach hinten rollen, auf die Karts dahinter. Monster rammen ihn manchmal, wenn jemand hinter ihnen ist.
+- **Kronleuchter** (Kerker, 2): Ein Feuerball holt ihn herunter. Wer darunter ist, dreht sich. Dann liegt er 45 Sekunden (etwa eine Runde) als Hindernis auf der Fahrbahn und wird wieder hochgezogen.
+- **Leben am Rand:** Goblins klatschen auf der Mauer, wenn Karts vorbeifahren. Skelette am Rand (Kerker, Glutschlund) fallen auseinander, wenn man sie streift, und setzen sich wieder zusammen. In der Grotte flattern Fledermäuse auf. Im Glutschlund zieht in Runde 1 der Schatten des Drachen über die Strecke.
+- **Klänge** (im Handy erzeugt, im Menü während des Rennens abschaltbar): Ansage, je Extra ein eigener Ton, Gelächter des Mimiks, „Hach“ des mitleidigen Mimiks, Brüllen der Endgegner, Gold, Treffer, Klatschen, Klappern.
+- Zum Testen: `?ereignis=horde` (oder goldregen, dunkel, haendler, fieber, geist) erzwingt das Ereignis gleich in Runde 1.
+- Noch nicht umgesetzt: „Steigendes Wasser“ und ein Einsturz als Zufallsereignis (der Einsturz kommt stattdessen fest in der letzten Runde).

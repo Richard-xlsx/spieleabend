@@ -67,6 +67,11 @@ canvas{display:block;position:fixed;inset:0;width:100vw;height:100dvh}
 .tag{transform:translate(-50%,-100%);background:rgba(22,22,29,.72);color:#fff;font:700 12px var(--fliess);padding:2px 8px;border-radius:999px;white-space:nowrap}
 .gross{left:50%;top:38%;transform:translate(-50%,-50%);font:900 92px/1 var(--display);color:#fff;-webkit-text-stroke:4px var(--tinte);paint-order:stroke}
 .gross.klein{font-size:40px}
+.ansage{left:50%;top:30%;transform:translateX(-50%);background:var(--creme);border:3px solid var(--tinte);border-radius:16px;padding:8px 18px;text-align:center;display:flex;flex-direction:column;gap:2px;max-width:calc(100vw - 32px);box-shadow:0 4px 0 var(--tinte)}
+.ansage b{font:900 24px var(--display)}
+.ansage span{font:700 14px var(--fliess)}
+.ansage.neu{animation:ansageRein .45s cubic-bezier(.3,1.6,.6,1)}
+@keyframes ansageRein{from{transform:translateX(-50%) scale(.4);opacity:0}to{transform:translateX(-50%) scale(1);opacity:1}}
 .meldung{left:50%;top:22%;transform:translateX(-50%);background:var(--creme);border:2.5px solid var(--tinte);border-radius:999px;padding:4px 14px;font:800 14px var(--fliess);white-space:nowrap}
 .pause{pointer-events:auto;right:calc(max(14px,env(safe-area-inset-right)) + 74px);top:52px;width:36px;height:36px;border-radius:10px;background:var(--creme);border:2.5px solid var(--tinte);font:900 14px var(--fliess);display:grid;place-items:center}
 
@@ -155,6 +160,7 @@ input.fehlt{border-color:var(--rot)}
   <div class="knopf k-rechts" id="krechts" hidden>▶</div>
   <div class="gross" id="gross" hidden></div>
   <div class="meldung" id="meldung" hidden></div>
+  <div class="ansage" id="ansage" hidden></div>
   <div class="zuschau" id="zuschau" hidden><span>👀 <span id="zuschauName"></span></span><button id="zuschauWeiter">Nächster ▶</button><button id="zuschauErgebnis">Ergebnis</button></div>
 </div>
 
@@ -165,6 +171,7 @@ input.fehlt{border-color:var(--rot)}
 <div class="schicht" id="pausiert" hidden>
   <div class="kasten" style="width:auto;align-items:center">
     <h1>Menü</h1>
+    <button class="wahl" id="tonknopf">🔊 Ton an</button>
     <div class="zeile"><button class="los zweit" id="abbruch">Aufgeben</button><button class="los" id="weiter">Weiter</button></div>
   </div>
 </div>
@@ -179,6 +186,6 @@ input.fehlt{border-color:var(--rot)}
 <script src="../abend.js?v=2026-11-20b" data-spiel="kart"></script>
 <script src="../verlies/bilder.js?v=2026-11-20b"></script>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"}}</script>
-<script type="module" src="spiel.js?v=2026-11-20n"></script>
+<script type="module" src="spiel.js?v=2026-11-20o"></script>
 </body>
 </html>

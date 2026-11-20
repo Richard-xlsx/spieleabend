@@ -495,6 +495,8 @@ function streckeBauen(p) {
   startBogen();
   minikarte();
   huegelBauen();
+  sperrenBauen();
+  ereignisDingeBauen();
 }
 
 // ---------- Hügel ----------
@@ -559,6 +561,7 @@ function huegelBauen() {
     if (flach[i]) continue;
     for (const sg of [-1, 1]) { const q = punkt(i, sg * RANDW); if (nahPunkt(q.x, q.z, RANDW + 8, i, meter(60)) >= 0) { sperr(i, 3, meter(6)); break; } }
   }
+  SPERR.set(flach);                                // für Händlerstand, Hebel, Kronleuchter, Zuschauer
   // 2. Freie Strecken finden und Höhen hineinlegen
   const laeufe = [];
   let st = 0; while (st < S && !flach[st]) st++;
@@ -1943,7 +1946,7 @@ function goldReihe(i0, mitte, phase) {
 function goldNehmen(k, mz) {
   mz.weg = 8; mz.m.visible = false;
   k.gold = Math.min(10, (k.gold || 0) + 1); kraftLaden(k, (fluch === "gold" ? .1 : .05) * (k.typ === "bardin" ? 2 : 1));
-  if (k.ich) { const g = $("gold"); g.classList.remove("neu"); void g.offsetWidth; g.classList.add("neu"); }
+  if (k.ich) { const g = $("gold"); g.classList.remove("neu"); void g.offsetWidth; g.classList.add("neu"); klang("muenze"); }
 }
 function neuMischen(b) { b.mimik = Math.random() < (fluch === "mimik" ? 1 / 3 : 1 / 8); b.g.visible = !b.mimik; b.mg.visible = b.mimik; }
 function truhenZeigen(dt) {
@@ -1955,7 +1958,7 @@ function truhenZeigen(dt) {
   for (const b of kisten) {
     if (b.weg > 0) { b.weg -= dt; if (b.weg <= 0) { b.weg = 0; neuMischen(b); } }
     const h = b.mimik ? b.mg : b.g;
-    h.rotation.y += dt * 1.2; h.position.y = 1.1 + (b.h || 0) + Math.sin(uhr * 3 + b.x) * .15;
+    h.rotation.y += dt * (zfAktiv("fieber") ? 4 : 1.2); h.position.y = 1.1 + (b.h || 0) + Math.sin(uhr * 3 + b.x) * .15; h.scale.setScalar(zfAktiv("fieber") ? 1.2 + Math.sin(uhr * 10) * .1 : 1);
     if (b.mimik) {
       b.blinzeln -= dt; if (b.blinzeln < -.45) b.blinzeln = 2.5 + Math.random() * 3.5;
       h.userData.deckel.rotation.x = b.blinzeln < 0 ? -Math.sin(-b.blinzeln / .45 * Math.PI) * .55 : 0;
@@ -2050,7 +2053,7 @@ function truheNehmen(k, b) {
     return;
   }
   if (b.mimik && hinten(k)) {                      // der Mimik hat Mitleid mit denen hinten
-    if (k.ich) melden("Der Mimik hat Mitleid … hier 🥺", 1.4);
+    if (k.ich) { melden("Der Mimik hat Mitleid … hier 🥺", 1.4); klang("hach"); }
     if (k.item || k.walze > 0 || k.kroete > 0) return;
     const art = extraZiehen(k);
     k.item = { art, n: EXTRAS[art].n || 1 }; k.walze = k.bot ? .8 : 1.1;
@@ -2060,13 +2063,13 @@ function truheNehmen(k, b) {
   if (b.mimik) {                                   // gebissen: Kart dreht sich, Extra weg
     k.item = null; k.walze = 0;
     treffen(k, "mimik");
-    if (k.ich) { melden("Ein Mimik! 😬 Extra weg"); extraAnzeigen(); }
+    if (k.ich) { melden("Ein Mimik! 😬 Extra weg"); extraAnzeigen(); klang("lachen"); }
     return;
   }
   if (k.item || k.walze > 0 || k.kroete > 0) return;
-  const art = extraZiehen(k);
-  k.item = { art, n: EXTRAS[art].n || 1 }; k.walze = k.bot ? .8 : 1.1;
-  if (k.ich) extraAnzeigen(true);
+  const art = extraZiehen(k), fieber = zfAktiv("fieber");          // Truhenfieber: doppelt
+  k.item = { art, n: (EXTRAS[art].n || 1) * (fieber ? 2 : 1) }; k.walze = k.bot ? .8 : 1.1;
+  if (k.ich) { extraAnzeigen(true); if (fieber) melden("Truhenfieber: doppelt! 🎁", 1); }
 }
 
 // Nächstes Kart in Fahrtrichtung (rf = 1) oder dahinter (rf = -1), höchstens weit Meter entfernt
@@ -2093,12 +2096,12 @@ function anwenden(e) {
   if (e.a === "wurf" || e.a === "falle") objektNeu(e);
   else if (e.a === "weg") objektWeg(e.id, true);
   else if (e.a === "wirkung") { const k = karts.find(o => o.id === e.ziel); if (k && !k.remote) wirkung(k, e); }
-  else if (e.a === "beben") { bebenStarten(e); if (e.von === "koenig" && koenig) { koenig.anim = 1.6; if (ich && ich.fertig == null) melden("Der Knochenkönig zürnt! ⚠", 1.8); } }
+  else if (e.a === "beben") { bebenStarten(e); if (e.von === "koenig" && koenig) { koenig.anim = 1.6; if (ich && ich.fertig == null) { melden("Der Knochenkönig zürnt! ⚠", 1.8); klang("bruellen"); } } }
   else if (e.a === "wand") { const f = gabeln[e.n | 0]; if (f && !f.offen) { f.offen = true; if (f.wandM) { f.wandM.visible = false; const q = punkt(f.i0, f.innen * 6); puff(q.x, 2, q.z, "#9A8F82"); } } }
   else if (e.a === "riss") { const f = gabeln[e.n | 0]; if (f && f.staerke && f.staerke[e.w | 0] > 0) f.staerke[e.w | 0]--; }
   else if (e.a === "faden" && Array.isArray(e.stellen)) {
     e.stellen.slice(0, 8).forEach(([idx, d], n) => objektNeu({ a: "falle", id: e.id + "k" + n, art: "koenigin", von: "koenigin", idx, d }));
-    if (ich && ich.fertig == null) melden("⚠ Die Spinnenkönigin seilt sich ab!", 1.6);
+    if (ich && ich.fertig == null) { melden("⚠ Die Spinnenkönigin seilt sich ab!", 1.6); klang("bruellen"); }
   }
   else if (e.a === "glut" && Array.isArray(e.spuren)) {
     e.spuren.slice(0, 4).forEach(([idx, d0, d1], n) => {
@@ -2106,13 +2109,17 @@ function anwenden(e) {
       objektNeu({ a: "falle", id: e.id + "d" + n, art: "drache", idx, d: d0, d1 });
       for (let k = 0; k <= 10; k++) objektNeu({ a: "falle", id: e.id + "f" + n + "_" + k, art: "feuer", idx: wrap((idx | 0) + meter(k * 3)), d: d0 + (d1 - d0) * k / 10, fall: DRACHE_FLUG * (50 - k * 3) / 70 });
     });
-    if (ich && ich.fertig == null) melden("⚠ Der Glutdrache greift an!", 1.6);
+    if (ich && ich.fertig == null) { melden("⚠ Der Glutdrache greift an!", 1.6); klang("bruellen"); }
   }
   else if (e.a === "lava") { if (!lavaHoch) { lavaHoch = true; flutBaender.forEach(f => f.visible = true); wackeln = Math.max(wackeln, .8); if (ich && ich.fertig == null) melden("Die Lava steigt! 🌋", 2); } }
   else if (e.a === "bruecke") {
     const P = pfade[e.n | 0];
     if (P && P.art === "einsturz" && P.hp > 0) { P.hp--; if (P.hp <= 0) { P.weg = true; P.fallT = 0; if (ich && ich.fertig == null) melden("Die Brücke ist eingestürzt! 💥", 1.8); } }
   }
+  else if (e.a === "zufall") zufallStart(e);
+  else if (e.a === "sperre") sperreSetzen(e);
+  else if (e.a === "hebel") hebelZiehen(e);
+  else if (e.a === "leuchter") leuchterFall(e);
   else if (e.a === "platte") { const f = gabeln[e.n | 0]; if (f && (e.seite === 1 || e.seite === -1)) f.platte = { seite: e.seite, bis: +e.bis || 0 }; }
 }
 // Wirkung auf ein Kart, das dieses Handy fährt
@@ -2206,7 +2213,7 @@ function treffen(k, art) {
   k.dreher = k.dreherDauer = k.typ === "paladin" ? .5 : mild && ausgleich === "stark" ? .6 : .95; k.mhFest = k.mh; k.yaw = k.mh; k.v *= .5; k.drift = 0; k.ladung = 0; k.boost = 0; k.haken = null;
   k.schonzeit = k.dreher + 2; if (k.typ === "heilerin") k.erholung = k.dreher + 1.5;
   if (art !== "mimik" && k.gold > 0 && !mild) { k.gold = Math.max(0, k.gold - 2); if (k.ich) puff(k.x, k.y + 1.5, k.z, "#F2B705"); }
-  if (k.ich) { summen(180); wackeln = Math.max(wackeln, .35); }
+  if (k.ich) { summen(180); wackeln = Math.max(wackeln, .35); klang("treffer"); }
   return "weg";
 }
 function summen(ms) { try { if (navigator.vibrate) navigator.vibrate(ms); } catch {} }
@@ -2243,6 +2250,7 @@ function extraNutzen(k, wunsch) {
   const art = k.item.art, E = EXTRAS[art];
   const hinten = wunsch ? wunsch === "hinten" : !!E.falle, rf = hinten ? -1 : 1;
   if (--k.item.n <= 0) k.item = null;
+  if (k.ich) klang("extra", art);
   const sag = t => { if (k.ich) melden(t); };
   if (art === "flink" || art === "dreifach") { k.boost = Math.max(k.boost, 1.6); sag(E.name + "! 🧪"); }
   else if (art === "haken") {
@@ -2414,6 +2422,7 @@ function objekteSchritt(dt) {
           if (k && !k.remote) ereignis({ a: "wand", n: f.nr });
           o.alter = 99;
         }
+        if (o.art === "feuerball" && leuchter.length) { const k = karts.find(x => x.id === o.von); if (k && !k.remote && leuchterFeuer(o)) o.alter = 99; }
         if (o.rel != null) o.d = (WEG[o.idx] ? wegMitte(o.idx, o.ws) : 0) + o.rel;      // in der Gabelung auf dem eigenen Weg bleiben
         o.x = PX[o.idx] + nX(o.idx) * o.d; o.z = PZ[o.idx] + nZ(o.idx) * o.d; o.y += (hoehe(o.idx, o.d) + .9 - o.y) * Math.min(1, dt * 8);
       }
@@ -2688,6 +2697,8 @@ function streckeStoss(k, alt, dt) {
     const dx = k.x - p.x, dz = k.z - p.z, dd = Math.hypot(dx, dz), r = p.r + .9;
     if (dd < r && dd > .001) { k.x = p.x + dx / dd * r; k.z = p.z + dz / dd * r; k.v *= Math.max(0, 1 - 6 * dt); }
   }
+  if (wege.length) sperreStoss(k, alt);
+  if (leuchter.length) leuchterStoss(k, dt);
 }
 
 // Was auf der Strecke passiert, für selbst gefahrene Karts: Platten, Gold, Gleise, Troll, Pendel, Ratten
@@ -3116,6 +3127,600 @@ halten($("krechts"), () => tasten.r = true, () => tasten.r = false);
 document.addEventListener("gesturestart", e => e.preventDefault());
 document.addEventListener("contextmenu", e => e.preventDefault());
 
+// ---------- Ereignisse im Rennen ----------
+// Zufallsereignis (einmal je Rennen, Runde 2 oder 3), Runde für Runde (Gitter öffnet sich, Weg stürzt ein),
+// Händlerstand, Hebel mit Fässern, Kronleuchter, Leben am Rand und Klänge.
+// Der Spielleiter (oder wer allein fährt) entscheidet und schickt es als Ereignis an alle, wie beim Endgegner.
+
+// ----- Klänge: im Handy erzeugt -----
+let tonAn = lager.lesen("kart:ton") !== "aus", ac = null;
+function audio() {
+  if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch { return null; } }
+  if (ac.state === "suspended") ac.resume().catch(() => {});
+  return ac;
+}
+function rauschen(dauer, freq, laut) {
+  const c = audio(); if (!c) return;
+  const n = c.createBuffer(1, Math.floor(c.sampleRate * dauer), c.sampleRate), d = n.getChannelData(0);
+  for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / d.length);
+  const q = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain();
+  q.buffer = n; f.type = "bandpass"; f.frequency.value = freq; f.Q.value = 1.2; g.gain.value = laut;
+  q.connect(f); f.connect(g); g.connect(c.destination); q.start();
+}
+function ton(frequenzen, dauer, typ, laut, abstand = .7) {
+  const c = audio(); if (!c) return;
+  frequenzen.forEach((fr, i) => {
+    const o = c.createOscillator(), g = c.createGain(), t0 = c.currentTime + i * dauer * abstand;
+    o.type = typ || "sine"; o.frequency.value = fr; g.gain.setValueAtTime(0, t0);
+    g.gain.linearRampToValueAtTime(laut || .1, t0 + .02); g.gain.exponentialRampToValueAtTime(.001, t0 + dauer);
+    o.connect(g); g.connect(c.destination); o.start(t0); o.stop(t0 + dauer + .05);
+  });
+}
+function gleitTon(f0, f1, dauer, typ, laut) {
+  const c = audio(); if (!c) return;
+  const o = c.createOscillator(), g = c.createGain(), t0 = c.currentTime;
+  o.type = typ; o.frequency.setValueAtTime(f0, t0); o.frequency.exponentialRampToValueAtTime(f1, t0 + dauer);
+  g.gain.setValueAtTime(0, t0); g.gain.linearRampToValueAtTime(laut, t0 + .04); g.gain.exponentialRampToValueAtTime(.001, t0 + dauer);
+  o.connect(g); g.connect(c.destination); o.start(t0); o.stop(t0 + dauer + .05);
+}
+// je Extra ein eigener Ton: [Frequenzen, Dauer, Wellenform] oder eine Funktion
+const EXTRA_TON = {
+  flink: [[660, 990], .12, "triangle"], dreifach: [[660, 880, 1100], .1, "triangle"], haken: () => gleitTon(250, 1100, .25, "sawtooth", .05),
+  teleport: () => { gleitTon(1400, 300, .3, "sine", .08); setTimeout(() => gleitTon(300, 1500, .25, "sine", .07), 260); },
+  feuerball: () => { rauschen(.45, 700, .5); ton([160], .25, "sawtooth", .05); }, pfeile: () => { rauschen(.08, 3600, .35); setTimeout(() => rauschen(.08, 3300, .3), 90); },
+  axt: () => gleitTon(300, 160, .3, "square", .05), netz: [[420, 320], .14, "triangle"], schleim: () => gleitTon(260, 90, .35, "sine", .14),
+  kraehen: [[1900, 1500, 1700], .06, "square"], kaese: [[784, 988], .1, "sine"], pilz: () => { gleitTon(200, 500, .15, "triangle", .1); setTimeout(() => rauschen(.2, 900, .4), 150); },
+  schild: [[330, 440], .25, "triangle"], amulett: [[523, 659, 784, 1046], .16, "sine"], fleder: [[1500, 1800, 1400, 1700], .05, "square"],
+  beben: () => { rauschen(.7, 110, .9); ton([55, 45], .3, "sine", .25); }, fluegel: [[392, 523, 659, 880], .18, "sine"],
+  rachegeist: () => gleitTon(500, 180, .9, "sine", .1)
+};
+const KLAENGE = {
+  ansage() { ton([523, 659, 784, 1046], .2, "square", .045); },
+  extra(art) { const t = EXTRA_TON[art]; if (typeof t === "function") t(); else if (t) ton(t[0], t[1], t[2], .07); },
+  lachen() { [0, 1, 2, 3].forEach(n => setTimeout(() => gleitTon(340 - n * 30, 250 - n * 25, .13, "square", .045), n * 150)); },   // „Ha-ha-ha-ha“ des Mimiks
+  hach() { gleitTon(620, 260, .75, "sine", .12); },                                                     // „Hach“ des mitleidigen Mimiks
+  bruellen() { rauschen(1, 170, .7); gleitTon(120, 55, 1, "sawtooth", .07); },
+  pling() { ton([1320, 1760, 2093], .1, "triangle", .05); },
+  muenze() { ton([1568, 2093], .06, "triangle", .025); },
+  knall() { rauschen(.5, 240, .8); ton([70], .3, "sawtooth", .06); },
+  treffer() { ton([140, 90], .12, "triangle", .14); },
+  klatschen() { for (let n = 0; n < 5; n++) setTimeout(() => rauschen(.05, 2200, .18), n * 110 + Math.random() * 40); },
+  klappern() { for (let n = 0; n < 4; n++) setTimeout(() => ton([900 + Math.random() * 500], .04, "square", .03), n * 60); }
+};
+function klang(name, arg) { if (!tonAn) return; try { KLAENGE[name](arg); } catch {} }
+for (const t of ["pointerdown", "keydown"]) addEventListener(t, () => { if (tonAn) audio(); }, { passive: true });
+function tonKnopf() { const b = $("tonknopf"); if (b) b.textContent = tonAn ? "🔊 Ton an" : "🔇 Ton aus"; }
+
+// ----- Ruhige Stellen der Strecke (dort ist Platz für Stand, Hebel, Kronleuchter, Zuschauer) -----
+const SPERR = new Uint8Array(S);                   // von huegelBauen gefüllt: hier ist schon etwas los
+const DING_GEPLANT = [];
+function ruhigeStelle(laenge, abstand = 60, versuche = 40, deko = false) {
+  const r = meter(laenge);
+  for (let n = 0; n < versuche; n++) {
+    const i = Math.floor(zufall() * S);
+    let ok = vorab(i, 0) > meter(70) && vorab(0, i) > meter(40);
+    for (let k = -r; ok && k <= r; k += 2) { const j = wrap(i + k); if ((!deko && SPERR[j]) || WEG[j] || LOCH[j] || GLEIT[j] || SCHLUCHT[j] || BELAG[j] || MAUERW[j] < MAUER) ok = false; }
+    if (ok) ok = !DING_GEPLANT.some(j => Math.abs(((i - j + S / 2) % S + S) % S - S / 2) * SCHRITT < abstand);
+    if (ok && !deko) ok = ![...kisten, ...muenzen].some(b => (b.x - PX[i]) ** 2 + (b.z - PZ[i]) ** 2 < 10 * 10);
+    if (ok && !deko) ok = !runen.some(u => (u.x - PX[i]) ** 2 + (u.z - PZ[i]) ** 2 < 10 * 10);
+    if (ok) { DING_GEPLANT.push(i); return i; }
+  }
+  return -1;
+}
+const kruemmung = i => { let d = Math.atan2(TX[wrap(i + meter(8))], TZ[wrap(i + meter(8))]) - Math.atan2(TX[wrap(i - meter(8))], TZ[wrap(i - meter(8))]); return Math.atan2(Math.sin(d), Math.cos(d)); };
+
+// ----- Modelle -----
+function goblinModell(farbe = "#6E9E3A") {
+  const g = new THREE.Group();
+  teil(g, zyl(.26, .34, .7, 8), "#5A3B26", 0, .55, 0);                          // Kittel
+  teil(g, kugel(.3, 10), farbe, 0, 1.12, 0);                                    // Kopf
+  for (const s of [-1, 1]) { teil(g, kegel(.1, .42, 4), farbe, s * .34, 1.2, 0, 0, 0, -s * 1.25); teil(g, kugel(.06, 6), "#FFD23A", s * .11, 1.18, .25, 0, 0, 0, GLUT("#FFD23A")); }
+  teil(g, kegel(.07, .2, 5), "#E9E2C8", 0, 1.02, .28, Math.PI / 2);              // Zahn
+  const arme = [-1, 1].map(s => { const a = new THREE.Group(); a.position.set(s * .3, .82, 0); a.userData.lose = true; teil(a, zyl(.07, .06, .5, 6), farbe, 0, .22, 0); g.add(a); return a; });
+  backen(g); g.userData.arme = arme; return g;
+}
+function haendlerModell() {
+  const g = new THREE.Group();
+  teil(g, box(2.4, .8, 3.4), "#7A5434", 0, .95, 0);
+  for (const x of [-1.25, 1.25]) for (const z of [-1, 1]) teil(g, zyl(.5, .5, .2, 12), "#3A2A20", x, .5, z, 0, 0, Math.PI / 2);
+  for (let n = 0; n < 5; n++) teil(g, box(.5, .1, 3.4), n % 2 ? "#F2EDE0" : "#C9372C", -1 + n * .5, 2.7, 0);   // gestreiftes Dach
+  for (const x of [-1.1, 1.1]) teil(g, zyl(.06, .06, 1.6, 6), "#4A3426", x, 1.9, 1.5);
+  teil(g, box(.5, .5, .5), "#B08A4A", -.6, 1.6, -1); teil(g, box(.5, .5, .5), "#8A5A2E", .5, 1.6, -.8); teil(g, kugel(.3, 10), "#E8C24A", 0, 1.6, .4);
+  teil(g, zyl(.3, .36, .8, 8), "#6B4A8E", 0, 1.75, 1.2); teil(g, kugel(.27, 10), HAUT, 0, 2.35, 1.2); teil(g, kegel(.34, .5, 8), "#6B4A8E", 0, 2.72, 1.2);
+  teil(g, box(.2, .2, .12), "#FFE07A", .5, 2.9, 1.6, 0, 0, 0, GLUT("#FFE07A"));
+  backen(g); return g;
+}
+const geistKarrenMat = new THREE.MeshBasicMaterial({ color: "#BFE9FF", transparent: true, opacity: .45, blending: THREE.AdditiveBlending, depthWrite: false });
+function geistKarrenModell() {
+  const g = MODELLE.kaempfer("#BFE9FF"); backen(g);
+  g.traverse(o => { if (o.isMesh) { o.material = geistKarrenMat; o.castShadow = false; } });
+  return g;
+}
+function fassModell() { const g = new THREE.Group(); teil(g, zyl(.55, .55, 1.3, 12), "#7A5434", 0, 0, 0, 0, 0, Math.PI / 2); for (const x of [-.45, .45]) teil(g, zyl(.58, .58, .1, 12), "#3A3A40", x, 0, 0, 0, 0, Math.PI / 2); backen(g); return g; }
+function skelettModell() {
+  const g = new THREE.Group(), K = "#EDE4D0", teile = [];
+  const t = (geo, x, y, z, rx = 0, rz = 0) => { const m = teil(g, geo, K, x, y, z, rx, 0, rz); m.userData.ruhe = { p: m.position.clone(), r: m.rotation.clone() }; teile.push(m); return m; };
+  t(kugel(.26, 10), 0, 1.15, .1); t(box(.5, .5, .25), 0, .7, 0); t(box(.45, .14, .25), 0, .38, 0);
+  for (const s of [-1, 1]) { t(zyl(.05, .05, .6, 5), s * .32, .7, .15, -.6, s * .2); t(zyl(.06, .06, .7, 5), s * .14, .2, .35, Math.PI / 2 - .2); }
+  teil(g, kugel(.06, 6), "#1B1620", -.09, 1.18, .33).userData.auge = true; teil(g, kugel(.06, 6), "#1B1620", .09, 1.18, .33).userData.auge = true;
+  g.userData.teile = teile; return g;
+}
+function fledermaus() {
+  const f = new THREE.Group(); teil(f, kugel(.16, 6), "#1B1620", 0, 0, 0);
+  const fl = [-1, 1].map(s => { const w = teil(f, kegel(.32, .55, 3), "#1B1620", s * .32, 0, 0, 0, 0, -s * Math.PI / 2); w.scale.z = .2; return w; });
+  f.userData.fl = fl; return f;
+}
+function leuchterModell() {
+  const g = new THREE.Group();
+  teil(g, new THREE.TorusGeometry(1.8, .12, 6, 24), "#C9A13A", 0, 0, 0, Math.PI / 2);
+  teil(g, new THREE.TorusGeometry(.9, .1, 6, 18), "#C9A13A", 0, .5, 0, Math.PI / 2);
+  for (let n = 0; n < 8; n++) { const a = n / 8 * Math.PI * 2; teil(g, zyl(.1, .1, .45, 6), "#F2EDE0", Math.cos(a) * 1.8, .3, Math.sin(a) * 1.8); teil(g, kegel(.1, .3, 6), "#FFB347", Math.cos(a) * 1.8, .65, Math.sin(a) * 1.8, 0, 0, 0, GLUT("#FFB347")); }
+  for (let n = 0; n < 4; n++) { const a = n / 4 * Math.PI * 2; teil(g, zyl(.04, .04, 2.2, 4), "#8A7A4A", Math.cos(a) * .9, 1.1, Math.sin(a) * .9, Math.sin(a) * .7, 0, -Math.cos(a) * .7); }
+  backen(g); return g;
+}
+const drachenSchattenMat = (() => {
+  const cv = document.createElement("canvas"); cv.width = cv.height = 256; const x = cv.getContext("2d");
+  x.fillStyle = "#000"; x.translate(128, 128);
+  x.beginPath(); x.ellipse(0, 0, 18, 70, 0, 0, Math.PI * 2); x.fill();                                    // Leib
+  for (const s of [-1, 1]) { x.beginPath(); x.moveTo(0, -20); x.lineTo(s * 125, -45); x.lineTo(s * 95, 0); x.lineTo(s * 110, 25); x.lineTo(s * 60, 15); x.lineTo(0, 25); x.fill(); }
+  x.beginPath(); x.moveTo(-6, 60); x.lineTo(6, 60); x.lineTo(0, 125); x.fill();                           // Schwanz
+  const t = new THREE.CanvasTexture(cv);
+  return new THREE.MeshBasicMaterial({ map: t, transparent: true, opacity: .42, depthWrite: false, color: "#000" });
+})();
+
+// ----- Bauen (nach den Hügeln, damit alles auf der richtigen Höhe steht) -----
+let staende = [], hebel = [], leuchter = [], publikum = [], skelettRand = [], fledRand = [], drachenSchatten = null, faesserRoll = [];
+function ereignisDingeBauen() {
+  staende = []; hebel = []; leuchter = []; publikum = []; skelettRand = []; fledRand = []; faesserRoll = []; DING_GEPLANT.length = 0;
+  // Händlerstand: in einer Kurve, über der Innenseite
+  {
+    let i = -1; for (let n = 0; n < 6 && i < 0; n++) { const j = ruhigeStelle(12, 80); if (j >= 0 && Math.abs(kruemmung(j)) > .12) i = j; else if (j >= 0) DING_GEPLANT.pop(); }
+    if (i < 0) i = ruhigeStelle(12, 80);
+    if (i >= 0) {
+      const s = kruemmung(i) > 0 ? -1 : 1, g = new THREE.Group(), q = punkt(i, s * (BR / 4 + .5)), y = hoehe(i, s * BR / 4);
+      for (const sl of [-1, 1]) for (const dz of [-3, 3]) teil(g, zyl(.12, .12, 3.6, 6), "#4A3426", sl * (BR / 4 + .3), 1.8, dz);
+      for (let n = 0; n < 8; n++) teil(g, box(.9, .1, 7), n % 2 ? "#F2EDE0" : (welt === "grotte" ? "#2F7F8A" : welt === "glut" ? "#C2410C" : "#C9372C"), -BR / 4 + .2 + n * (BR / 2 - .4) / 7, 3.7 + Math.sin(n / 7 * Math.PI) * .4, 0);
+      for (let n = 0; n < 5; n++) { const kx = -BR / 4 + 1 + n * (BR / 2 - 2) / 4; teil(g, zyl(.03, .03, .6, 4), "#2A2A2A", kx, 3.3, -1 + (n % 2) * 2); teil(g, kugel(.22, 8), ["#8BF0A0", "#E86FB0", "#38BDF8", "#F2B705", "#B78CFF"][n], kx, 2.95, -1 + (n % 2) * 2, 0, 0, 0, GLUT(["#8BF0A0", "#E86FB0", "#38BDF8", "#F2B705", "#B78CFF"][n])); }
+      const sx = -s;                              // lokales x zeigt gegen die Streckennormale
+      teil(g, box(1.2, 1, 4), "#7A5434", sx * (BR / 4 + 1.4), .5, 0); teil(g, box(.5, .5, .5), "#B08A4A", sx * (BR / 4 + 1.4), 1.25, -1.2); teil(g, kugel(.3, 10), "#E8C24A", sx * (BR / 4 + 1.4), 1.3, .8);
+      teil(g, zyl(.34, .4, 1, 8), "#6B4A8E", sx * (BR / 4 + 2.6), .5, 0); teil(g, kugel(.3, 10), HAUT, sx * (BR / 4 + 2.6), 1.3, 0); teil(g, kegel(.38, .55, 8), "#6B4A8E", sx * (BR / 4 + 2.6), 1.75, 0);
+      const schild = new THREE.Mesh(new THREE.PlaneGeometry(4, 1), schildMat("Händler", "#5A3B26", "#F2EDE0")); schild.position.set(0, 4.5, 3.55); g.add(schild);
+      const schild2 = schild.clone(); schild2.rotation.y = Math.PI; schild2.position.z = -3.55; g.add(schild2);
+      backen(g); g.position.set(q.x, y, q.z); g.rotation.y = q.rot; streckeG.add(g);
+      staende.push({ i, s, n: meter(6) });
+    }
+  }
+  // Hebel mit Fässern: am Rand, dahinter eine Rampe mit Fässern
+  const hebelZahl = welt === "kerker" ? 2 : 1;
+  for (let n = 0; n < hebelZahl; n++) {
+    const i = ruhigeStelle(10, 70); if (i < 0) continue;
+    const s = zufall() < .5 ? -1 : 1, q = punkt(i, s * (BR / 2 + .6)), y = hoehe(i, s * BR / 2);
+    const g = new THREE.Group(); teil(g, box(.7, .5, .7), "#3A3A40", 0, .25, 0);
+    const arm = new THREE.Group(); arm.position.y = .45; arm.userData.lose = true; teil(arm, zyl(.07, .07, 1.5, 6), "#5A3B26", 0, .75, 0); teil(arm, kugel(.2, 8), "#C9372C", 0, 1.5, 0); arm.rotation.x = -.6; g.add(arm);
+    const rampe = new THREE.Group(); teil(rampe, box(3, .2, 6), "#6A4A30", 0, 0, 0); rampe.rotation.x = .35; rampe.position.set(-s * 2.2, 1.2, -1.5); g.add(rampe);
+    for (let f = 0; f < 3; f++) { const fm = fassModell(); fm.position.set(-s * 2.2, 2.3 - f * .05, -3.8 + f * 1.2); fm.rotation.y = Math.PI / 2; g.add(fm); }
+    backen(g); g.position.set(q.x, y, q.z); g.rotation.y = q.rot; streckeG.add(g);
+    hebel.push({ nr: hebel.length, i, s, d: s * (BR / 2 + .6), x: q.x, z: q.z, y, arm, bis: 0 });
+  }
+  // Kronleuchter (Kerker): hängt über der Fahrbahn, ein Feuerball holt ihn herunter
+  if (welt === "kerker") for (let n = 0; n < 2; n++) {
+    const i = ruhigeStelle(8, 70); if (i < 0) continue;
+    const q = punkt(i, 0), y0 = hoehe(i, 0), g = leuchterModell(); g.position.set(q.x, y0 + 9, q.z); streckeG.add(g);
+    const kette = new THREE.Mesh(zyl(.05, .05, 30, 4), M("#5A5048")); kette.position.set(q.x, y0 + 25, q.z); streckeG.add(kette);
+    leuchter.push({ nr: leuchter.length, i, d: 0, x: q.x, z: q.z, y0, g, kette, zustand: 0, t: 0 });
+  }
+  // Zuschauer: Goblins auf der Mauer, die klatschen
+  for (let n = 0; n < 7; n++) {
+    const i = ruhigeStelle(4, 45, 40, true); if (i < 0) continue;
+    const s = zufall() < .5 ? -1 : 1, gruppe = [];
+    for (let m = -1; m <= 1; m++) {
+      const j = wrap(i + meter(m * 1.3)), q = punkt(j, s * (MAUER + .7)), g = goblinModell(["#6E9E3A", "#7FAF45", "#5E8E30"][(m + 1)]);
+      g.position.set(q.x, hoeheAn(q.x, q.z) + 2.2, q.z); g.rotation.y = q.rot + (s > 0 ? Math.PI / 2 : -Math.PI / 2); g.scale.setScalar(1.15); streckeG.add(g);
+      gruppe.push({ g, y: g.position.y, ph: zufall() * 6 });
+    }
+    publikum.push({ i, x: PX[i], z: PZ[i], gruppe, laut: 0 });
+  }
+  // Skelette am Rand (Kerker, Glutschlund): wer sie streift, lässt sie auseinanderfallen
+  if (welt !== "grotte") for (let n = 0; n < 6; n++) {
+    const i = ruhigeStelle(3, 40, 40, true); if (i < 0) continue;
+    const s = zufall() < .5 ? -1 : 1, d = s * (RAND + 1.2), q = punkt(i, d), g = skelettModell();
+    g.position.set(q.x, hoehe(i, d), q.z); g.rotation.y = q.rot + (s > 0 ? Math.PI / 2 : -Math.PI / 2); streckeG.add(g);
+    skelettRand.push({ g, x: q.x, z: q.z, t: 0 });
+  }
+  // Fledermäuse (Grotte): hängen unter der Decke und flattern auf, wenn jemand vorbeirast
+  if (welt === "grotte") for (let n = 0; n < 6; n++) {
+    const i = ruhigeStelle(3, 40, 40, true); if (i < 0) continue;
+    const s = zufall() < .5 ? -1 : 1, q = punkt(i, s * (BR / 2 + 1)), y = hoehe(i, 0) + 8, schwarm = [];
+    for (let m = 0; m < 7; m++) { const f = fledermaus(); const p = new THREE.Vector3(q.x + (zufall() - .5) * 3, y + zufall(), q.z + (zufall() - .5) * 3); f.position.copy(p); f.rotation.x = Math.PI; streckeG.add(f); schwarm.push({ f, p, dir: new THREE.Vector3(zufall() - .5, .6 + zufall() * .4, zufall() - .5).normalize() }); }
+    fledRand.push({ x: q.x, z: q.z, schwarm, t: 0 });
+  }
+  drachenSchatten = null;
+  if (welt === "glut") { const m = new THREE.Mesh(new THREE.PlaneGeometry(26, 26), drachenSchattenMat); m.rotation.x = -Math.PI / 2; m.visible = false; streckeG.add(m); drachenSchatten = { m, t: 0, pause: 6 }; }
+}
+
+// ----- Runde für Runde: Sperren an den Gabelungen -----
+// Runde 1: Gitter vor dem kurzen Weg der ersten Gabelung, ab Runde 2 offen. Letzte Runde (ab 3 Runden): Der lange Weg der zweiten Gabelung stürzt ein.
+const SPERR_U = .1;
+const sperrIdx = W => wrap(W.i0 + Math.round(W.n * SPERR_U));
+function sperrenBauen() {
+  for (const W of wege) {
+    W.zu = 0; W.sperrM = {};
+    const gi = sperrIdx(W), mitte = (WEG_L[gi] + WEG_R[gi]) / 2;
+    for (const s of [-1, 1]) {
+      const innen = mitte, aussen = wegMitte(gi, s) + s * WEG_RAND, breit = Math.abs(aussen - innen), q = punkt(gi, (innen + aussen) / 2), y = hoehe(gi, (innen + aussen) / 2);
+      const g = new THREE.Group();
+      if (W.nr === 0 && s === -W.lang) {           // Gitter
+        const farbe = welt === "grotte" ? "#E8E4D8" : welt === "glut" ? "#3A2F33" : "#4A4A52";
+        for (let x = -breit / 2 + .4; x <= breit / 2; x += .8) teil(g, box(.14, 4, .14), farbe, x, 2, 0);
+        for (const h of [1, 2.6, 3.9]) teil(g, box(breit, .14, .14), farbe, 0, h, 0);
+        for (const x of [-breit / 2, breit / 2]) teil(g, box(.6, 5, .6), TH.pfeiler, x, 2.5, 0);
+      } else if (W.nr === 1 && s === W.lang) {      // Trümmer (erst beim Einsturz sichtbar)
+        for (let n = 0; n < 9; n++) teil(g, box(1.4 + zufall(), 1 + zufall() * 1.2, 1.4 + zufall()), TH.stein[n % 4], -breit / 2 + .8 + n * (breit - 1.6) / 8, .6 + zufall() * .5, (zufall() - .5) * 2, zufall(), zufall(), zufall());
+        for (let n = 0; n < 4; n++) teil(g, box(1.2, .9, 1.2), TH.stein[(n + 1) % 4], -breit / 2 + 1.6 + n * (breit - 3) / 3, 1.7, (zufall() - .5), zufall(), zufall(), zufall());
+      } else continue;
+      backen(g); g.position.set(q.x, y, q.z); g.rotation.y = q.rot; streckeG.add(g);
+      W.sperrM[s] = g; g.visible = false;
+    }
+  }
+}
+function sperreSetzen(e) {
+  const W = wege[e.w | 0]; if (!W) return;
+  const zu = e.zu === 1 || e.zu === -1 ? e.zu : 0, vorher = W.zu;
+  if (vorher === zu) return;
+  W.zu = zu;
+  for (const s of [-1, 1]) if (W.sperrM && W.sperrM[s]) W.sperrM[s].visible = s === zu;
+  if (!e.leise) {
+    const gi = sperrIdx(W), q = punkt(gi, wegMitte(gi, zu || vorher));
+    if (zu) { for (let n = 0; n < 6; n++) puff(q.x + (Math.random() - .5) * 8, 1.5 + Math.random() * 2, q.z + (Math.random() - .5) * 8, "#9A8F82"); wackeln = Math.max(wackeln, .6); }
+    if (ich && ich.fertig == null) { melden(zu ? `Einsturz! Ein Weg bei „${W.insel}“ ist zu 💥` : `Das Gitter bei „${W.insel}“ ist offen! Abkürzung 🔓`, 2.2); klang(zu ? "knall" : "pling"); }
+  }
+}
+// Zusammenstoß mit einer Sperre (aus streckeStoss)
+function sperreStoss(k, alt) {
+  for (const W of wege) {
+    if (!W.zu) continue;
+    const gi = sperrIdx(W);
+    if (!(vorab(alt.idx, gi) > S / 2 && vorab(k.idx, gi) < meter(4))) continue;
+    if (wegSeite(k.idx, k.d) !== W.zu) continue;
+    k.x = alt.x; k.z = alt.z; k.idx = alt.idx; k.prog = alt.prog; k.d = alt.d; k.v = -Math.max(3.5, Math.min(7, Math.abs(k.v) * .35)); k.drift = 0;
+    if (k.bot || AUTO) k.wegWahl = -W.zu;
+    if (k.ich) { wackeln = Math.max(wackeln, .3); summen(60); if (!(k.sperrGemeldet > uhr)) { k.sperrGemeldet = uhr + 3; melden("Versperrt! Nimm den anderen Weg", 1.6); } }
+  }
+}
+// Monster nehmen keinen versperrten Weg (aus botEingabe)
+function botSperre(k) {
+  for (const W of wege) if (W.zu && k.wegWahl === W.zu) { const v = vorab(k.idx, W.i0); if (!(v <= W.n && v > Math.round(W.n * SPERR_U))) k.wegWahl = -W.zu; }
+}
+
+// ----- Händlerstand: langsamer hindurch, dafür ein Extra -----
+function standPruefen(k) {
+  for (const T of staende) {
+    const v = vorab(k.idx, wrap(T.i - (T.n >> 1))), drin = v <= T.n && k.d * T.s > .3 && Math.abs(k.d) < BR / 2 + .5 && !k.luft;
+    if (drin) { k.bremse = Math.max(k.bremse, .12); if (!k.imStand) { k.imStand = true; if (k.ich) melden("Beim Händler 🛍️", .8); } }
+    else if (k.imStand && v > T.n && v < T.n + meter(6)) {
+      k.imStand = false;
+      const runde = Math.floor(k.prog / S);
+      if (k.standRunde === runde || k.item || k.walze > 0 || k.kroete > 0) continue;
+      k.standRunde = runde;
+      const art = extraZiehen(k); k.item = { art, n: EXTRAS[art].n || 1 }; k.walze = k.bot ? .8 : 1.1;
+      if (k.ich) { extraAnzeigen(true); klang("pling"); }
+    } else if (v > T.n + meter(6) && v < S / 2) k.imStand = false;
+  }
+}
+
+// ----- Hebel mit Fässern -----
+function hebelPruefen(k) {
+  for (const H of hebel) {
+    if (H.bis > uhr || (k.x - H.x) ** 2 + (k.z - H.z) ** 2 > 1.9 * 1.9) continue;
+    H.bis = uhr + 1;                                // gegen doppeltes Auslösen, bis das Ereignis zurückkommt
+    ereignis({ a: "hebel", n: H.nr, von: k.id });
+    if (k.ich) melden("Hebel! Die Fässer rollen nach hinten 🛢️", 1.4);
+  }
+}
+let fassGeo = null;
+function hebelZiehen(e) {
+  const H = hebel[e.n | 0]; if (!H) return;
+  H.bis = uhr + 6; H.zug = .6; klang("knall");
+  for (let n = 0; n < 4; n++) {
+    const g = fassModell(); streckeG.add(g);
+    faesserRoll.push({ g, p: H.i - meter(1 + n * 2.2), d: H.s * (BR / 2 - 1.2 - n * 3.1), dv: -H.s * (.6 + n * .2), t: -n * .12, von: e.von, weg: false });
+  }
+}
+function faesserSchritt(dt) {
+  for (const H of hebel) if (H.zug > 0) { H.zug = Math.max(0, H.zug - dt); H.arm.rotation.x = -.6 + Math.sin((1 - H.zug / .6) * Math.PI) * 1.3; }
+  for (const F of faesserRoll) {
+    F.t += dt; if (F.t < 0) { F.g.visible = false; continue; }
+    F.g.visible = !F.weg;
+    F.p -= 14 * dt / SCHRITT; F.d = klemmen(F.d + F.dv * dt, -BR / 2 + .8, BR / 2 - .8);
+    const i = wrap(Math.round(F.p)), d = aufWeg(i, F.d, .8), q = punkt(i, d);
+    F.x = q.x; F.z = q.z; F.g.position.set(q.x, hoehe(i, d) + .55, q.z); F.g.rotation.set(0, q.rot + Math.PI / 2, 0); F.g.children.forEach(c => c.rotation.x -= dt * 9);
+    if (F.weg) continue;
+    for (const k of karts) {
+      if (k.remote || k.id === F.von || k.fertig != null || (k.x - q.x) ** 2 + (k.z - q.z) ** 2 > 1.7 * 1.7 || k.y - hoehe(i, d) > 1.5) continue;
+      treffen(k, "treffer"); F.weg = true; F.g.visible = false; puff(q.x, 1, q.z, "#7A5434"); if (k.ich) melden("Ein Fass! 🛢️", 1);
+      break;
+    }
+  }
+  for (let n = faesserRoll.length - 1; n >= 0; n--) if (faesserRoll[n].t > 4.5) { streckeG.remove(faesserRoll[n].g); entsorgen(faesserRoll[n].g); faesserRoll.splice(n, 1); }
+}
+// Monster rammen manchmal den Hebel, wenn jemand hinter ihnen ist
+function hebelSpur(k) {
+  for (const H of hebel) {
+    const m = vorab(H.i, k.idx) * SCHRITT;
+    if (m < 2 || m > 32 || H.bis > uhr) continue;
+    if (k.hebelFuer !== H.nr + ":" + Math.floor(k.prog / S)) { k.hebelFuer = H.nr + ":" + Math.floor(k.prog / S); k.hebelWill = Math.random() < .45 && !!naechstesKart(k, -1, 45); }
+    if (k.hebelWill) return H.s * (BR / 2 - .2);
+  }
+  return null;
+}
+
+// ----- Kronleuchter: ein Feuerball holt ihn herunter, dann liegt er eine Runde lang auf der Fahrbahn -----
+const LEUCHTER_LIEGT = 45;
+function leuchterFeuer(o) {                         // aus objekteSchritt, für Feuerbälle von Karts dieses Handys
+  for (const L of leuchter) if (L.zustand === 0 && Math.abs(((o.idx - L.i + S / 2) % S + S) % S - S / 2) * SCHRITT < 3 && Math.abs(o.d - L.d) < 4.5) { ereignis({ a: "leuchter", n: L.nr }); return true; }
+  return false;
+}
+function leuchterFall(e) {
+  const L = leuchter[e.n | 0]; if (!L || L.zustand !== 0) return;
+  L.zustand = 1; L.t = 0; klang("knall");
+  if (ich && ich.fertig == null && Math.abs(((ich.idx - L.i + S / 2) % S + S) % S - S / 2) * SCHRITT < 120) melden("Der Kronleuchter stürzt herab! 💥", 1.6);
+}
+function leuchterSchritt(dt) {
+  for (const L of leuchter) {
+    if (L.zustand === 0) { L.g.rotation.y += dt * .2; continue; }
+    L.t += dt;
+    if (L.zustand === 1) {                          // fällt
+      const y = Math.max(L.y0 + .3, L.y0 + 9 - 30 * L.t * L.t);
+      L.g.position.y = y; L.kette.position.y = y + 16;
+      if (y <= L.y0 + .3) {
+        L.zustand = 2; L.t = 0; L.g.rotation.z = .12; wackeln = Math.max(wackeln, .4);
+        for (let n = 0; n < 5; n++) puff(L.x + (Math.random() - .5) * 4, 1, L.z + (Math.random() - .5) * 4, "#C9A13A");
+        for (const k of karts) if (!k.remote && (k.x - L.x) ** 2 + (k.z - L.z) ** 2 < 9) treffen(k, "treffer");
+      }
+    } else if (L.zustand === 2 && L.t > LEUCHTER_LIEGT) { L.zustand = 3; L.t = 0; L.g.rotation.z = 0; }
+    else if (L.zustand === 3) {                     // wird wieder hochgezogen
+      const y = Math.min(L.y0 + 9, L.y0 + .3 + L.t * 3); L.g.position.y = y; L.kette.position.y = y + 16;
+      if (y >= L.y0 + 9) { L.zustand = 0; L.t = 0; }
+    }
+  }
+}
+function leuchterStoss(k, dt) {                     // aus streckeStoss
+  for (const L of leuchter) {
+    if (L.zustand !== 2 && L.zustand !== 3) continue;
+    if (L.zustand === 3 && L.g.position.y > L.y0 + 2.2) continue;
+    const dx = k.x - L.x, dz = k.z - L.z, dd = Math.hypot(dx, dz), r = 2.1 + .9;
+    if (dd < r && dd > .001) { k.x = L.x + dx / dd * r; k.z = L.z + dz / dd * r; k.v *= Math.max(0, 1 - 6 * dt); }
+  }
+}
+const liegendeLeuchter = () => leuchter.filter(L => L.zustand === 2).map(L => ({ i: L.i, d: L.d }));
+
+// ----- Leben am Rand -----
+function randLeben(dt) {
+  const t = performance.now() / 1000;
+  for (const P of publikum) {
+    let nah = false; for (const k of karts) if (k.g.visible && (k.x - P.x) ** 2 + (k.z - P.z) ** 2 < 28 * 28) { nah = true; break; }
+    if (nah && P.laut <= 0 && ich && (ich.x - P.x) ** 2 + (ich.z - P.z) ** 2 < 20 * 20) { klang("klatschen"); P.laut = 4; }
+    if (P.laut > 0) P.laut -= dt;
+    for (const G of P.gruppe) {
+      const a = G.g.userData.arme, w = nah ? Math.sin(t * 16 + G.ph) : Math.sin(t * 2 + G.ph) * .2;
+      a[0].rotation.z = -.4 - (nah ? 1.6 : .2) + w * .35; a[1].rotation.z = .4 + (nah ? 1.6 : .2) - w * .35;
+      G.g.position.y = G.y + (nah ? Math.abs(Math.sin(t * 8 + G.ph)) * .35 : 0);
+    }
+  }
+  for (const K of skelettRand) {
+    const teile = K.g.userData.teile;
+    if (K.t <= 0) {
+      for (const k of karts) if (k.g.visible && (k.x - K.x) ** 2 + (k.z - K.z) ** 2 < 2.4 * 2.4) {
+        K.t = 4.5; if (k.ich) klang("klappern");
+        teile.forEach(m => m.userData.flug = new THREE.Vector3((Math.random() - .5) * 6, 3 + Math.random() * 4, (Math.random() - .5) * 6 + k.v * .15));
+        break;
+      }
+      continue;
+    }
+    K.t -= dt;
+    K.g.children.forEach(c => { if (c.userData.auge) c.visible = K.t <= .6; });
+    for (const m of teile) {
+      const R = m.userData.ruhe;
+      if (K.t > 1.2) {                              // fällt auseinander
+        const f = m.userData.flug; f.y -= 20 * dt; m.position.addScaledVector(f, dt);
+        if (m.position.y < .12) { m.position.y = .12; f.set(f.x * .5, 0, f.z * .5); }
+        m.rotation.x += dt * 5; m.rotation.z += dt * 3;
+      } else {                                      // setzt sich wieder zusammen
+        const u = Math.min(1, dt * 5); m.position.lerp(R.p, u);
+        m.rotation.x += (R.r.x - m.rotation.x) * u; m.rotation.y += (R.r.y - m.rotation.y) * u; m.rotation.z += (R.r.z - m.rotation.z) * u;
+      }
+    }
+    if (K.t <= 0) teile.forEach(m => { m.position.copy(m.userData.ruhe.p); m.rotation.copy(m.userData.ruhe.r); });
+  }
+  for (const F of fledRand) {
+    if (F.t <= 0) {
+      F.schwarm.forEach((b, n) => { b.f.position.copy(b.p); b.f.rotation.set(Math.PI, 0, 0); b.f.visible = true; b.f.userData.fl.forEach(w => w.rotation.x = 0); });
+      for (const k of karts) if (k.g.visible && k.v > 12 && (k.x - F.x) ** 2 + (k.z - F.z) ** 2 < 14 * 14) { F.t = 14; if (k.ich) klang("extra", "fleder"); break; }
+      continue;
+    }
+    F.t -= dt;
+    const flug = 14 - F.t;
+    F.schwarm.forEach((b, n) => {
+      b.f.visible = flug < 3.5;
+      b.f.position.addScaledVector(b.dir, dt * 11); b.f.position.x += Math.sin(t * 9 + n) * dt * 3;
+      b.f.rotation.set(0, Math.atan2(b.dir.x, b.dir.z), 0); b.f.userData.fl.forEach((w, j) => w.rotation.x = Math.sin(t * 30 + n) * .7 * (j ? 1 : -1));
+    });
+  }
+  // Der Schatten des Glutdrachen zieht in Runde 1 über die Strecke
+  const D = drachenSchatten;
+  if (D) {
+    const f = fokusKart();
+    if (D.t > 0 && f) {
+      D.t -= dt; const u = 1 - D.t / 2.4, i = D.i, quer = -45 + u * 90, q = punkt(i, quer * D.s);
+      D.m.visible = true; D.m.position.set(q.x, hoehe(i, 0) + .3, q.z); D.m.rotation.z = Math.atan2(D.s * TZ[i], -D.s * TX[i]);
+      if (D.t <= 0) D.m.visible = false;
+    } else if (phase === "rennen" && f && f.runden.length === 0 && koenig && koenig.art === "drache") {
+      D.pause -= dt;
+      if (D.pause <= 0) { D.pause = 9 + Math.random() * 6; D.t = 2.4; D.i = wrap(f.idx + meter(30 + f.v * .6)); D.s = Math.random() < .5 ? -1 : 1; if (f.ich) klang("bruellen"); }
+    }
+  }
+}
+
+// ----- Zufallsereignis -----
+const ZUFALL = {
+  goldregen: { name: "Goldregen", bild: "💰", text: "Gold fällt von der Decke!", dauer: 10 },
+  horde: { name: "Goblin-Horde", bild: "👺", text: "Eine Goblin-Horde rennt über die Strecke!", dauer: 16 },
+  dunkel: { name: "Fackeln aus", bild: "🌑", text: "Die Fackeln gehen aus!", dauer: 15 },
+  haendler: { name: "Händlerkarren", bild: "🛒", text: "Wer den Händler berührt, bekommt ein starkes Extra!", dauer: 30 },
+  fieber: { name: "Truhenfieber", bild: "🎁", text: "Jede Truhe gibt doppelt!", dauer: 12 },
+  geist: { name: "Geisterkarren", bild: "👻", text: "Ein Geisterkarren fährt rückwärts. Ausweichen!", dauer: 26 }
+};
+const TEST_ZUFALL = new URLSearchParams(location.search).get("ereignis");   // Test: ?ereignis=horde erzwingt dieses Ereignis
+let zf = null, zfPlan = null, zfDinge = [];
+const zfAktiv = art => !!zf && zf.art === art && zf.t >= 0 && zf.t < ZUFALL[art].dauer;
+const fuehrung = () => karts.reduce((b, k) => k.fertig == null && (!b || k.prog > b.prog) ? k : b, null);
+// Neues Rennen: alles zurücksetzen (alle Handys gleich)
+function ereignisseZuruecksetzen() {
+  if (zf) zufallEnde();
+  zf = null; zfPlan = null;
+  for (const W of wege) { W.zu = 0; W.gestuerzt = false; if (W.sperrM) for (const s of [-1, 1]) if (W.sperrM[s]) W.sperrM[s].visible = false; }
+  if (wege[0] && wege[0].sperrM && wege[0].sperrM[-wege[0].lang]) sperreSetzen({ w: 0, zu: -wege[0].lang, leise: true });
+  for (const H of hebel) { H.bis = 0; H.zug = 0; H.arm.rotation.x = -.6; }
+  for (const F of faesserRoll) { streckeG.remove(F.g); entsorgen(F.g); } faesserRoll = [];
+  for (const L of leuchter) { L.zustand = 0; L.t = 0; L.g.position.y = L.y0 + 9; L.kette.position.y = L.y0 + 25; L.g.rotation.z = 0; }
+  for (const F of fledRand) F.t = 0;
+  for (const K of skelettRand) { K.t = 0; K.g.userData.teile.forEach(m => { m.position.copy(m.userData.ruhe.p); m.rotation.copy(m.userData.ruhe.r); }); K.g.children.forEach(c => c.visible = true); }
+  if (drachenSchatten) { drachenSchatten.t = 0; drachenSchatten.pause = 6; drachenSchatten.m.visible = false; }
+  $("ansage").hidden = true;
+}
+// Spielleiter: plant das Zufallsereignis und die Sperren, löst sie aus
+function ereignisseLenken() {
+  if (modus === "client" || phase !== "rennen") return;
+  const F = fuehrung(); if (!F) return;
+  const runde = Math.floor(F.prog / S);
+  if (wege[0] && wege[0].zu && wege[0].zu === -wege[0].lang && runde >= 1) ereignis({ a: "sperre", w: 0, zu: 0 });
+  if (wege[1] && !wege[1].zu && RUNDEN >= 3 && runde >= RUNDEN - 1 && !wege[1].gestuerzt) { wege[1].gestuerzt = true; ereignis({ a: "sperre", w: 1, zu: wege[1].lang }); }
+  if (!zfPlan) {
+    const arten = Object.keys(ZUFALL).filter(a => !(a === "dunkel" && fluch === "nacht") && !(a === "fieber" && kisten.length < 6));
+    const art = ZUFALL[TEST_ZUFALL] ? TEST_ZUFALL : arten[Math.floor(Math.random() * arten.length)];
+    const r = TEST_ZUFALL ? 0 : RUNDEN <= 2 ? 1 : 1 + Math.floor(Math.random() * Math.min(2, RUNDEN - 1));
+    zfPlan = { art, prog: r * S + Math.floor((TEST_ZUFALL ? .08 : .15 + Math.random() * .4) * S), los: false };
+  }
+  if (!zfPlan.los && F.prog >= zfPlan.prog) {
+    zfPlan.los = true;
+    const e = { a: "zufall", art: zfPlan.art, s: Math.floor(Math.random() * 9999) + 1, seite: Math.random() < .5 ? 1 : -1 };
+    // wo es passiert: vor dem Führenden, für die Horde an einer freien Stelle
+    const vor = { horde: 150, haendler: 70, geist: 230, goldregen: 30 }[e.art] || 0;
+    let i = wrap(F.idx + meter(vor));
+    if (e.art === "horde") for (let n = 0; n < 200 && (WEG[i] || LOCH[i] || GLEIT[i] || SCHLUCHT[i] || BELAG[i] === BOOT || MAUERW[i] < MAUER); n++) i = wrap(i + meter(4));
+    e.idx = i; ereignis(e);
+  }
+}
+// Alle Handys: Ereignis ansagen und ablaufen lassen
+function zufallStart(e) {
+  if (zf || !ZUFALL[e.art]) return;
+  zf = { art: e.art, t: -3, idx: wrap(e.idx | 0), s: +e.s || 1, seite: e.seite === -1 ? -1 : 1, an: false };
+  const Z = ZUFALL[e.art], a = $("ansage");
+  a.innerHTML = `<b>${Z.bild} ${Z.name}</b><span>${Z.text}</span>`; a.hidden = false; a.classList.remove("neu"); void a.offsetWidth; a.classList.add("neu");
+  klang("ansage");
+}
+function zufallEnde() {
+  for (const o of zfDinge) { streckeG.remove(o.g); if (!o.geteilt) entsorgen(o.g); }
+  zfDinge = [];
+  if (zf && zf.art === "dunkel") dunkelSetzen(0);
+  zf = null;
+}
+const GOLD_REGEN = 70, HORDE = 14;
+function zufallSchritt(dt) {
+  if (!zf) return;
+  const Z = ZUFALL[zf.art], vorher = zf.t;
+  zf.t += dt;
+  if (vorher < -.5 && zf.t >= -.5) $("ansage").hidden = true;
+  if (vorher < 0 && zf.t >= 0) zufallAn();
+  const t = zf.t;
+  if (zf.art === "goldregen" && zf.an) {
+    for (const c of zfDinge) {
+      if (c.weg) continue;
+      if (t < c.ab) { c.g.visible = false; continue; }
+      c.g.visible = true;
+      if (c.y > c.boden) { c.vy -= 25 * dt; c.y = Math.max(c.boden, c.y + c.vy * dt); }
+      c.g.position.y = c.y; c.g.rotation.y += dt * 3;
+      if (c.y > c.boden + 2.5) continue;
+      for (const k of karts) {
+        if (k.fertig != null || (k.x - c.x) ** 2 + (k.z - c.z) ** 2 > 2.9 || Math.abs(c.y - 1 - k.y) > 1.8) continue;
+        c.weg = true; c.g.visible = false;
+        if (!k.remote) { k.gold = Math.min(10, (k.gold || 0) + 1); kraftLaden(k, .05 * (k.typ === "bardin" ? 2 : 1)); if (k.ich) { klang("muenze"); const g = $("gold"); g.classList.remove("neu"); void g.offsetWidth; g.classList.add("neu"); } }
+        break;
+      }
+    }
+  }
+  if (zf.art === "horde") {
+    const i0 = zf.idx;
+    zfDinge.forEach((G, n) => {
+      const laengs = (n - (HORDE - 1) / 2) * 1.5, j = wrap(i0 + meter(laengs)), lauf = t >= 0 && t < Z.dauer;
+      const quer = lauf ? Math.sin(t * G.tempo + G.ph) * (BR / 2 + 1.2) : (t < 0 ? 1 : -1) * G.seite * (BR / 2 + 2.5 + Math.max(0, t - Z.dauer) * 8);
+      const q = punkt(j, quer), y = hoehe(j, quer);
+      G.g.position.set(q.x, y + Math.abs(Math.sin(performance.now() / 90 + n)) * .25, q.z);
+      const richt = lauf ? Math.cos(t * G.tempo + G.ph) : -G.seite;
+      G.g.rotation.y = q.rot + (richt > 0 ? Math.PI / 2 : -Math.PI / 2);
+      const a = G.g.userData.arme; a[0].rotation.x = a[1].rotation.x = Math.sin(performance.now() / 70 + n) * .9;
+      G.g.visible = t < Z.dauer + 3;
+      if (!lauf) return;
+      for (const k of karts) if (!k.remote && k.fertig == null && !k.luft && (k.x - q.x) ** 2 + (k.z - q.z) ** 2 < 1.4 * 1.4) { if (treffen(k, "treffer") === "weg" && k.ich) melden("Von Goblins überrannt! 👺", 1.2); }
+    });
+  }
+  if (zf.art === "dunkel") dunkelSetzen(t < 0 ? 0 : t < 1 ? t : t < Z.dauer - 1.5 ? 1 : Math.max(0, (Z.dauer - t) / 1.5));
+  if ((zf.art === "haendler" || zf.art === "geist") && zf.an) {
+    const W = zfDinge[0], geist = zf.art === "geist";
+    W.p += (geist ? -21 : 15) * dt / SCHRITT;
+    const i = wrap(Math.round(W.p)), wm = WEG[i] ? wegMitte(i, geist ? zf.seite : WEG_LANG[i]) : 0, d = wm + Math.sin(t * (geist ? .8 : .45)) * (geist ? BR / 2 - 2.2 : 2), q = punkt(i, d);
+    const boden = LOCH[i] ? W.y : hoehe(i, d); W.y = W.y == null ? boden : W.y + (boden - W.y) * Math.min(1, dt * 6);
+    const raus = t > Z.dauer - 1.5 ? Math.min(1, (t - Z.dauer + 1.5) / 1.5) : 0;
+    W.g.position.set(q.x, W.y + (geist ? .4 + Math.sin(t * 3) * .25 : 0) + raus * 6, q.z); W.g.rotation.y = q.rot + (geist ? Math.PI : 0);
+    W.g.visible = raus < 1;
+    if (raus === 0) for (const k of karts) {
+      if (k.remote || k.fertig != null || (k.x - q.x) ** 2 + (k.z - q.z) ** 2 > (geist ? 2.3 : 2.9) ** 2) continue;
+      if (geist) { if (treffen(k, "treffer") === "weg" && k.ich) melden("Der Geisterkarren! 👻", 1.2); continue; }
+      if (k.vomHaendler) continue;
+      k.vomHaendler = true;
+      const art = STARKE_EXTRAS[Math.floor(Math.random() * STARKE_EXTRAS.length)];
+      k.item = { art, n: EXTRAS[art].n || 1 }; k.walze = k.bot ? .6 : 1.1; puff(k.x, k.y + 1.6, k.z, "#F2B705");
+      if (k.ich) { melden("Der Händler schenkt dir etwas! 🛒", 1.4); extraAnzeigen(true); klang("pling"); }
+    }
+  }
+  if (t > Z.dauer + (zf.art === "goldregen" ? 14 : 3)) zufallEnde();
+}
+// Ereignis beginnt (nach der Ansage)
+function zufallAn() {
+  zf.an = true;
+  const Z = ZUFALL[zf.art], h = (n, m = 0) => hashf(zf.s + m * 17, n);
+  if (ich && ich.fertig == null) melden(`${Z.bild} ${Z.text}`, 1.8);
+  if (zf.art === "goldregen") {
+    for (let n = 0; n < GOLD_REGEN; n++) {
+      const i = wrap(zf.idx + meter(10 + h(n) * 520)); if (LOCH[i]) continue;
+      const d = aufWeg(i, (h(n, 1) - .5) * (BR - 2.4), 1.2), q = punkt(i, d), boden = hoehe(i, d) + 1;
+      const g = new THREE.Mesh(muenzGeo, MUENZ_MAT); g.castShadow = true; g.position.set(q.x, boden + 16, q.z); g.visible = false; streckeG.add(g);
+      zfDinge.push({ g, x: q.x, z: q.z, y: boden + 16, vy: 0, boden, ab: h(n, 2) * 9, weg: false, geteilt: true });
+    }
+  }
+  if (zf.art === "horde") {
+    for (let n = 0; n < HORDE; n++) { const g = goblinModell(["#6E9E3A", "#7FAF45", "#5E8E30", "#8A9E3A"][n % 4]); g.scale.setScalar(1.1); streckeG.add(g); zfDinge.push({ g, tempo: .9 + h(n) * .7, ph: h(n, 1) * 6.3, seite: h(n, 2) < .5 ? -1 : 1 }); }
+    if (ich && ich.fertig == null) klang("klatschen");
+  }
+  if (zf.art === "haendler") { const g = haendlerModell(); streckeG.add(g); zfDinge.push({ g, p: zf.idx, y: null }); for (const k of karts) k.vomHaendler = false; }
+  if (zf.art === "geist") { const g = geistKarrenModell(); streckeG.add(g); zfDinge.push({ g, p: zf.idx, y: null }); }
+}
+// Fackeln aus: Licht dimmen, Laterne am eigenen Kart an (f: 0 hell … 1 dunkel)
+function dunkelSetzen(f) {
+  if (fluch === "nacht") return;
+  hemi.intensity = TH.hemi[2] * (1 - .8 * f); sonne.intensity = TH.sonne[1] * (1 - .9 * f);
+  sc.fog.near = 55 - 40 * f; sc.fog.far = 200 - 130 * f; laterne.intensity = 40 * f;
+  const c = new THREE.Color(TH.himmel).lerp(new THREE.Color("#050306"), f); sc.background.copy(c); sc.fog.color.copy(c);
+  for (const fl of flammen) fl.visible = f < .5;
+}
+
+// ----- Für update(): alles, was je Bild passiert -----
+function ereignisseSchritt(dt) {
+  ereignisseLenken();
+  if (phase === "rennen" || phase === "ziel") { zufallSchritt(dt); faesserSchritt(dt); leuchterSchritt(dt); }
+  randLeben(dt);
+}
+
 // ---------- Rennen ----------
 // Jedes Handy rechnet sein eigenes Kart selbst und schickt 15-mal pro Sekunde seinen Zustand an den Spielleiter.
 // Der Spielleiter rechnet die Übungsgegner und schickt allen den Stand aller Karts.
@@ -3142,7 +3747,7 @@ function rennenAufbauen(raster) {
   document.querySelectorAll(".tag").forEach(t => t.remove());
   for (const k of karts) if (!k.ich) { k.tag = document.createElement("div"); k.tag.className = "tag"; k.tag.textContent = k.name; $("hud").appendChild(k.tag); }
   kisten.forEach(b => { b.weg = 0; neuMischen(b); });
-  objekteLeeren(); wackeln = 0;
+  objekteLeeren(); wackeln = 0; ereignisseZuruecksetzen();
   liste = []; uhr = 0; rennenVorbei = false; extraAnzeigen();
   $("kraftbild").innerHTML = ich && window.VB && HELDEN[ich.typ] ? VB.held(ich.typ) : "⚡";
   $("kkraft").hidden = !ich || !HELDEN[ich.typ];
@@ -3169,6 +3774,7 @@ function botEingabe(k, dt) {
     let sg = 0; for (let m = 0; m <= 36; m += 4) { const c = SCHLUCHT[wrap(k.idx + meter(m))]; if (c) sg = sg && sg !== c ? 2 : c; }
     if (sg) { const sp = k.spur || 0; fs = sg === 2 ? klemmen(sp, -2.5, 2.5) : sg > 0 ? Math.min(sp, BR / 2 - 3) : Math.max(sp, -BR / 2 + 3); }
   }
+  if (fs == null && phase === "rennen" && hebel.length) fs = hebelSpur(k);
   const vor = Math.round((fs != null ? 5 + k.v * .45 : 10 + k.v * .9) / (LAENGE / S));   // vor Engstellen kürzer vorausschauen, sonst wird die Kurve geschnitten
   const j = wrap(k.idx + vor);
   k.botTimer -= dt;
@@ -3183,7 +3789,7 @@ function botEingabe(k, dt) {
     k.spurZiel = klemmen(od > 0 ? od - breit - 1.2 : od + breit + 1.2, -BR / 2 + 1.5, BR / 2 - 1.5); k.botTimer = Math.max(k.botTimer, 1.2);
     k.spur += (k.spurZiel - k.spur) * Math.min(1, dt * 2.5);
   }
-  if (k.typ !== "pilzling" && phase === "rennen") for (const g of [...geysire, ...strudel]) {      // Geysiren auf der Fahrbahn ausweichen
+  if (k.typ !== "pilzling" && phase === "rennen") for (const g of [...geysire, ...strudel, ...liegendeLeuchter()]) {      // Geysiren auf der Fahrbahn ausweichen
     const m = vorab(g.i, k.idx) * SCHRITT;
     if (m < 3 || m > 28 || Math.abs(g.d - k.spur) > 2.6) continue;
     k.spurZiel = klemmen(g.d > 0 ? g.d - 3.9 : g.d + 3.9, -BR / 2 + 1.5, BR / 2 - 1.5); k.botTimer = Math.max(k.botTimer, 1.2);
@@ -3195,6 +3801,7 @@ function botEingabe(k, dt) {
     const vor = vorab(W.i0, k.idx) * SCHRITT, runde = Math.floor(k.prog / S);
     if (vor > 0 && vor < 70 && k.wegFuer !== W.nr + ":" + runde) { k.wegFuer = W.nr + ":" + runde; k.wegWahl = Math.random() < .5 ? W.lang : -W.lang; }
   }
+  botSperre(k);
   const wm = WEG[j] ? wegMitte(j, k.wegWahl || 1) : 0;
   const tx = PX[j] + nX(j) * (wm + k.spur), tz = PZ[j] + nZ(j) * (wm + k.spur);
   let diff = Math.atan2(tx - k.x, tz - k.z) - k.yaw; diff = Math.atan2(Math.sin(diff), Math.cos(diff));
@@ -3282,10 +3889,12 @@ function update(dt) {
     if (rennt && k.fertig == null) for (const b of kisten) if (!b.weg && Math.hypot(b.x - k.x, b.z - k.z) < 1.8 && k.y - (b.h || 0) < 2.5) truheNehmen(k, b);
     if (rennt && k.fertig == null && runen.length) runenPruefen(k);
     if (rennt && strudel.length) strudelPruefen(k, dt);
+    if (rennt && k.fertig == null) { if (staende.length) standPruefen(k); if (hebel.length) hebelPruefen(k); }
     if (rennt && k.fertig == null) for (const mz of muenzen) if (!mz.weg && Math.abs(mz.y - 1 - k.y) < 1.6 && (mz.x - k.x) ** 2 + (mz.z - k.z) ** 2 < 2.9) goldNehmen(k, mz);
   }
   stossen();
   if (rennt || phase === "ziel") objekteSchritt(dt);
+  ereignisseSchritt(dt);
   streckeZeigen(dt); koenigLenken(dt); gleitWasserZeigen(dt);
   truhenZeigen(dt);
   if (wackeln > 0) wackeln = Math.max(0, wackeln - dt);
@@ -3890,7 +4499,8 @@ function pause(an) {
   if (an && (phase === "rennen" || phase === "countdown")) { vorPause = phase; phase = "pause"; $("pausiert").hidden = false; }
   else if (!an && phase === "pause") { phase = vorPause; $("pausiert").hidden = true; }
 }
-$("pause").onclick = () => pause(true);
+$("pause").onclick = () => { tonKnopf(); pause(true); };
+$("tonknopf").onclick = () => { tonAn = !tonAn; lager.schreiben("kart:ton", tonAn ? "an" : "aus"); tonKnopf(); if (tonAn) klang("pling"); };
 $("weiter").onclick = () => pause(false);
 $("abbruch").onclick = () => {
   if (modus === "allein") return menue("start");
@@ -3935,4 +4545,5 @@ else if (code) menue("einladung");
 else menue("start");
 requestAnimationFrame(loop);
 window.KART = { get phase() { return phase; }, get ich() { return ich; }, karts: () => karts, ein, S, get LAENGE() { return LAENGE; }, get liste() { return liste; }, get modus() { return modus; },
-  sim(sek) { for (let t = 0; t < sek; t += 1 / 60) { update(1 / 60); } }, aufbauen: rennenAufbauen, cam, sc, r, THREE, streckeBauen, planWuerfeln, planCode, get plan() { return plan; }, get strecke() { return { wege, abschnitte, gabeln, loren, troll, pendel, pfosten, rattenStellen, koenig, rampen, pilzSprung, tropfen, schluchten, haengebruecken, welt, geysire, geysirSprung, pfade, spalten, lavaHoch }; }, SCHLUCHT, absturz, PX, PZ, set uhr(v) { uhr = v; }, objekte, extraNutzen, kisten, treffen, versetzen, anwenden, ereignis, schritte(sek) { for (let t = 0; t < sek; t += 1 / 30) { update(1 / 30); karts.forEach(k => k.zeigen(performance.now())); hud(1 / 30); } }, neigung: () => neigung, lenkWert, kraftNutzen, muenzen, wirkung, set steuerung(v) { steuerung = v; }, get fz() { return fz; }, fzWeiter, fluchGewaehlt, ehrungZeigen, zuschauen, get zuschauer() { return zuschauer; }, get fluch() { return fluch; }, get ausgleich() { return ausgleich; }, set ausgleich(v) { ausgleich = v; }, menschLage, hinten, platzVon, truheNehmen, get liste() { return liste; }, set testKamera(v) { testKamera = v; }, HOCH, NEIG, STEIG, WEG, WEG_L, WEG_R, LOCH, GLEIT, BELAG, get gleitstellen() { return gleitstellen; }, get aufwinde() { return aufwinde; }, get strudel() { return strudel; }, get runen() { return runen; }, hoehe, hoeheAn };
+  sim(sek) { for (let t = 0; t < sek; t += 1 / 60) { update(1 / 60); } }, aufbauen: rennenAufbauen, cam, sc, r, THREE, streckeBauen, planWuerfeln, planCode, get plan() { return plan; }, get strecke() { return { wege, abschnitte, gabeln, loren, troll, pendel, pfosten, rattenStellen, koenig, rampen, pilzSprung, tropfen, schluchten, haengebruecken, welt, geysire, geysirSprung, pfade, spalten, lavaHoch }; }, SCHLUCHT, absturz, PX, PZ, set uhr(v) { uhr = v; }, objekte, extraNutzen, kisten, treffen, versetzen, anwenden, ereignis, schritte(sek) { for (let t = 0; t < sek; t += 1 / 30) { update(1 / 30); karts.forEach(k => k.zeigen(performance.now())); hud(1 / 30); } }, neigung: () => neigung, lenkWert, kraftNutzen, muenzen, wirkung, set steuerung(v) { steuerung = v; }, get fz() { return fz; }, fzWeiter, fluchGewaehlt, ehrungZeigen, zuschauen, get zuschauer() { return zuschauer; }, get fluch() { return fluch; }, get ausgleich() { return ausgleich; }, set ausgleich(v) { ausgleich = v; }, menschLage, hinten, platzVon, truheNehmen, get liste() { return liste; }, set testKamera(v) { testKamera = v; }, HOCH, NEIG, STEIG, WEG, WEG_L, WEG_R, LOCH, GLEIT, BELAG, get gleitstellen() { return gleitstellen; }, get aufwinde() { return aufwinde; }, get strudel() { return strudel; }, get runen() { return runen; }, hoehe, hoeheAn,
+  get zf() { return zf; }, get zfPlan() { return zfPlan; }, get staende() { return staende; }, get hebel() { return hebel; }, get leuchter() { return leuchter; }, get publikum() { return publikum; }, get skelettRand() { return skelettRand; }, get fledRand() { return fledRand; }, get faesserRoll() { return faesserRoll; }, get wege() { return wege; }, get tonAn() { return tonAn; }, zufallStart, sperreSetzen, leuchterFall, hebelZiehen, set RUNDEN(v) { RUNDEN = v; } };
