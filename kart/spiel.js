@@ -1,7 +1,7 @@
 // Kerker-Kart (Arbeitstitel): Die Helden aus Dungeons & Disappointments fahren durch den Kerker.
 // Lenken durch Neigen des Handys im Querformat (wie ein Lenkrad) oder mit Tasten. Konzept: KONZEPT.md
 import * as THREE from "three";
-import { ABSCHNITTE, planWuerfeln, planCode, planAusCode, kontrollpunkte, rng } from "./strecke.js?v=2026-11-20e";
+import { WELTEN, planWuerfeln, planCode, planAusCode, kontrollpunkte, rng } from "./strecke.js?v=2026-11-20g";
 
 const $ = id => document.getElementById(id);
 const RUNDEN = +(new URLSearchParams(location.search).get("runden")) || 3;   // ?runden=1 zum Testen
@@ -57,7 +57,7 @@ const sc = new THREE.Scene();
 const DUNKEL = "#140F14";
 sc.background = new THREE.Color(DUNKEL); sc.fog = new THREE.Fog(DUNKEL, 55, 200);
 const cam = new THREE.PerspectiveCamera(62, 1, .4, 600);
-sc.add(new THREE.HemisphereLight("#FFE6C4", "#3A2C24", 1.35));
+const hemi = new THREE.HemisphereLight("#FFE6C4", "#3A2C24", 1.35); sc.add(hemi);
 const sonne = new THREE.DirectionalLight("#FFD9A6", 1.7);
 sonne.castShadow = true; sonne.shadow.mapSize.set(1024, 1024);
 Object.assign(sonne.shadow.camera, { left: -40, right: 40, top: 40, bottom: -40, near: 1, far: 160 });
@@ -69,7 +69,7 @@ const GLUT = c => { if (!glutCache.has(c)) glutCache.set(c, new THREE.MeshBasicM
 function groesse() { const w = innerWidth, h = innerHeight; r.setSize(w, h); cam.aspect = w / h; cam.updateProjectionMatrix(); }
 addEventListener("resize", groesse); groesse();
 
-const boden = new THREE.Mesh(new THREE.PlaneGeometry(900, 900), M("#2E2723"));
+const boden = new THREE.Mesh(new THREE.PlaneGeometry(900, 900), new THREE.MeshLambertMaterial({ color: "#2E2723" }));
 boden.rotation.x = -Math.PI / 2; boden.receiveShadow = true; sc.add(boden);
 
 // ---------- Strecke ----------
@@ -85,6 +85,8 @@ const vorab = (i, i0) => wrap(i - i0);              // wie weit liegt i hinter i
 let LAENGE = 1000, SCHRITT = 1 / 3, STRICH = 12;
 const meter = m => Math.round(m / SCHRITT);
 let plan = null, abschnitte = [], rampen = [], gabeln = [], loren = [], pendel = [], pfosten = [], rattenStellen = [], troll = null, koenig = null;
+const SCHLUCHT = new Int8Array(S);                  // Schlucht neben der Fahrbahn: Seite +1/-1, 2 = beide Seiten (Hängebrücke)
+let welt = "kerker", TH = null, pilzSprung = null, tropfen = [], schluchten = [], haengebruecken = [];
 let streckeG = null, zufall = Math.random, fackeln = [], flammen = [], belegt = [];
 const hashf = (a, b) => { const x = Math.sin(a * 12.9898 + b * 78.233) * 43758.5453; return x - Math.floor(x); };
 
@@ -131,6 +133,25 @@ const scheinTex = (() => {
   x.fillStyle = g; x.fillRect(0, 0, 64, 64); return new THREE.CanvasTexture(cv);
 })();
 const scheinMat = new THREE.MeshBasicMaterial({ map: scheinTex, transparent: true, opacity: .4, blending: THREE.AdditiveBlending, depthWrite: false });
+const scheinGruen = new THREE.MeshBasicMaterial({ map: scheinTex, color: "#55FFB0", transparent: true, opacity: .5, blending: THREE.AdditiveBlending, depthWrite: false });
+// Aussehen der Welten
+const THEMEN = {
+  kerker: { himmel: "#140F14", hemi: ["#FFE6C4", "#3A2C24", 1.35], sonne: ["#FFD9A6", 1.7], boden: "#2E2723", platte: ["#9A8F82", "#8C8275", "#A39888"], nass: ["#5E7E80", "#567476", "#66888A"],
+    kante: ["#E6D6AE", "#8E2F22"], geroell: ["#4E443B", "#463D35"], stein: ["#6B6158", "#62584F", "#73695F", "#5D544C"], pfeiler: "#574E46", schein: scheinMat, wasser: ["#1E3A44", "#22424C"] },
+  grotte: { himmel: "#07110E", hemi: ["#C4F7E0", "#1A2620", 1.3], sonne: ["#BDF7D8", 1.35], boden: "#18201C", platte: ["#8E998F", "#838F86", "#98A39A"], nass: ["#4F8790", "#477D86", "#5A929A"],
+    kante: ["#D4F7E4", "#2F7A64"], geroell: ["#2E3A34", "#29342E"], stein: ["#44514A", "#3C4842", "#4C5952", "#36423C"], pfeiler: "#2E3A33", schein: scheinGruen, wasser: ["#123A3A", "#164444"] },
+};
+// Spinnennetz als Bild (Netztunnel, Nest)
+const netzTex = (() => {
+  const cv = document.createElement("canvas"); cv.width = cv.height = 256;
+  const x = cv.getContext("2d"); x.strokeStyle = "rgba(240,250,245,.95)"; x.lineWidth = 3;
+  const n = 12, R = 124;
+  for (let k = 0; k < n; k++) { const w = k / n * Math.PI * 2; x.beginPath(); x.moveTo(128, 128); x.lineTo(128 + Math.cos(w) * R, 128 + Math.sin(w) * R); x.stroke(); }
+  x.lineWidth = 2;
+  for (let r = 14; r < R; r += 13) { x.beginPath(); for (let k = 0; k <= n; k++) { const w = k / n * Math.PI * 2, rr = r + Math.sin(k * 2.3) * 2; x[k ? "lineTo" : "moveTo"](128 + Math.cos(w) * rr, 128 + Math.sin(w) * rr); } x.stroke(); }
+  const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; return t;
+})();
+const netzMat = new THREE.MeshBasicMaterial({ map: netzTex, transparent: true, side: THREE.DoubleSide, depthWrite: false });
 
 // Viele gleiche Teile als eine Instanz-Gruppe: liste = [[x, y, z, drehY, groesse, farbe?], …]
 function instanzen(geo, mat, liste, schatten = true) {
@@ -177,7 +198,7 @@ function bau(i, seite, w, h, d, farbe, schild, gitter) {
 
 // Alles wegräumen, was zur alten Strecke gehörte (geteilte Materialien bleiben)
 function entsorgen(g) {
-  const geteilt = new Set([...matCache.values(), ...glutCache.values(), scheinMat, ROT_RAND, MUENZ_MAT]);
+  const geteilt = new Set([...matCache.values(), ...glutCache.values(), scheinMat, scheinGruen, netzMat, ROT_RAND, MUENZ_MAT]);
   g.traverse(o => {
     if (o.geometry) o.geometry.dispose();
     const ms = Array.isArray(o.material) ? o.material : o.material ? [o.material] : [];
@@ -186,7 +207,9 @@ function entsorgen(g) {
 }
 
 function streckeBauen(p) {
-  plan = p; zufall = rng(p.s * 7 + 13);
+  plan = p; welt = WELTEN[p.w] ? p.w : "kerker"; TH = THEMEN[welt]; zufall = rng(p.s * 7 + 13);
+  sc.background.set(TH.himmel); sc.fog.color.set(TH.himmel); hemi.color.set(TH.hemi[0]); hemi.groundColor.set(TH.hemi[1]); hemi.intensity = TH.hemi[2];
+  sonne.color.set(TH.sonne[0]); sonne.intensity = TH.sonne[1]; boden.material.color.set(TH.boden);
   if (streckeG) { sc.remove(streckeG); entsorgen(streckeG); }
   streckeG = new THREE.Group(); sc.add(streckeG);
   const { kp, start } = kontrollpunkte(p);
@@ -196,14 +219,15 @@ function streckeBauen(p) {
     PX[i] = q.x; PZ[i] = q.z; TX[i] = t.x; TZ[i] = t.z;
   }
   LAENGE = kurve.getLength(); SCHRITT = LAENGE / S; STRICH = meter(4);
-  MAUERW.fill(MAUER); BELAG.fill(0);
+  MAUERW.fill(MAUER); BELAG.fill(0); SCHLUCHT.fill(0);
   rampen = []; gabeln = []; loren = []; pendel = []; pfosten = []; rattenStellen = []; troll = null; koenig = null; belegt = []; fackeln = [];
+  pilzSprung = null; tropfen = []; schluchten = []; haengebruecken = [];
   kisten.length = 0; muenzen.length = 0;
   muenzGeo = new THREE.CylinderGeometry(.5, .5, .13, 16); muenzGeo.rotateX(Math.PI / 2);
   // Abschnitte: Knoten auf Streckenpunkte abbilden
   const knoten = start.map(k => { const [x, z] = kp[k]; let best = 1e12, bi = 0; for (let i = 0; i < S; i++) { const q = (PX[i] - x) ** 2 + (PZ[i] - z) ** 2; if (q < best) { best = q; bi = i; } } return bi; });
   knoten[0] = 0;
-  abschnitte = ABSCHNITTE.map((a, n) => ({ von: knoten[n], bis: knoten[(n + 1) % knoten.length], name: a.varianten[p.v[n]].name, v: a.varianten[p.v[n]] }));
+  abschnitte = (WELTEN[welt]).abschnitte.map((a, n) => ({ von: knoten[n], bis: knoten[(n + 1) % knoten.length], name: a.varianten[p.v[n]].name, v: a.varianten[p.v[n]] }));
   const stelle = (n, u) => wrap(Math.round(abschnitte[n].von + vorab(abschnitte[n].bis, abschnitte[n].von) * u));
   const seiteVon = (s, n, u) => s === "innen" || s === "aussen" ? innenSeite(stelle(n, Math.max(0, u - .2)), stelle(n, Math.min(1, u + .2))) * (s === "innen" ? 1 : -1) : s;
 
@@ -212,7 +236,34 @@ function streckeBauen(p) {
     for (const d of a.v.dinge) {
       if (d.art === "haus") bau(stelle(n, d.bei), seiteVon(d.seite, n, d.bei), d.w, d.h, d.d, d.farbe, d.schild, d.gitter);
       else if (d.art === "rampe") rampen.push({ i0: stelle(n, d.von), n: vorab(stelle(n, d.bis), stelle(n, d.von)), h: d.h, treppe: !!d.treppe });
-      else if (d.art === "nass") { const i0 = stelle(n, d.von), m = vorab(stelle(n, d.bis), i0); for (let k = 0; k <= m; k++) BELAG[wrap(i0 + k)] = 1; a.kanal = d.kanal ? [i0, m] : null; a.nass = [i0, m]; }
+      else if (d.art === "nass") { const i0 = stelle(n, d.von), m = vorab(stelle(n, d.bis), i0); for (let k = 0; k <= m; k++) BELAG[wrap(i0 + k)] = 1; a.kanal = d.kanal || d.see ? [i0, m] : null; a.nass = [i0, m]; }
+      else if (d.art === "schlucht") {
+        const i0 = stelle(n, d.von), m = vorab(stelle(n, d.bis), i0), sg = seiteVon(d.seite, n, (d.von + d.bis) / 2);
+        for (let k = 0; k <= m; k++) { const j = wrap(i0 + k); SCHLUCHT[j] = SCHLUCHT[j] && SCHLUCHT[j] !== sg ? 2 : sg; }
+        schluchten.push({ i0, m, s: sg });
+      }
+      else if (d.art === "haengebruecke") {
+        const i0 = stelle(n, d.von), m = vorab(stelle(n, d.bis), i0);
+        for (let k = 0; k <= m; k++) SCHLUCHT[wrap(i0 + k)] = 2;
+        haengebruecken.push({ i0, m });
+      }
+      else if (d.art === "tunnel") {
+        const i0 = stelle(n, d.von), f = { art: "tunnel", nr: gabeln.length, i0, n: vorab(stelle(n, d.bis), i0), torY: { "-1": 6, "1": 6 }, platte: null, offen: true };
+        f.innen = innenSeite(i0, wrap(i0 + f.n)); f.netze = [.12, .36, .6, .84].map(u => Math.round(f.n * u)); f.staerke = [3, 3, 3, 3];
+        gabeln.push(f);
+      }
+      else if (d.art === "koenigin") koenig = { art: "spinne", i: stelle(n, d.bei), s: seiteVon(d.seite, n, d.bei), anim: 0 };
+      else if (d.art === "spinnen") d.bei.forEach((u, k) => rattenStellen.push({ i: stelle(n, u), phase: k * 3.1, art: "spinne" }));
+      else if (d.art === "eier") eierDeko(stelle(n, d.bei), seiteVon(d.seite, n, d.bei));
+      else if (d.art === "pilzhaus") pilzHaus(stelle(n, d.bei), seiteVon(d.seite, n, d.bei));
+      else if (d.art === "tropfen") d.bei.forEach((u, k) => tropfen.push({ i: stelle(n, u), phase: k * 1.9, nr: tropfen.length }));
+      else if (d.art === "pilzsprung") {
+        // Landestelle: der nächste Streckenpunkt weiter vorn (jenseits der Schlucht)
+        const i = stelle(n, d.bei); let best = 1e12, b = -1;
+        for (let k = meter(45); k < S / 2; k++) { const j = wrap(i + k), dd = (PX[j] - PX[i]) ** 2 + (PZ[j] - PZ[i]) ** 2; if (dd < best) { best = dd; b = j; } }
+        const sg = Math.sign((PX[b] - PX[i]) * nX(i) + (PZ[b] - PZ[i]) * nZ(i)) || 1;
+        pilzSprung = { i, s: sg, b, sprung: vorab(b, i) };
+      }
       else if (d.art === "bruecke") { const i0 = stelle(n, d.von), m = vorab(stelle(n, d.bis), i0); for (let k = 0; k <= m; k++) MAUERW[wrap(i0 + k)] = RAND + .6; a.bruecke = [i0, m]; }
       else if (d.art === "gabel" || d.art === "wand") {
         const i0 = stelle(n, d.von), f = { art: d.art, nr: gabeln.length, i0, n: vorab(stelle(n, d.bis), i0), torY: { "-1": 6, "1": 6 }, platte: null, offen: false };
@@ -224,9 +275,9 @@ function streckeBauen(p) {
         loren.push({ i0, s, railD: s * (RAND + 3.4), laenge, weiche: laenge * (d.weiche - d.von) / (d.bis - d.von), tot: zufall() < .5 ? "ab" : "gerade" });
       }
       else if (d.art === "pendel") d.bei.forEach((u, k) => pendel.push({ i: stelle(n, u), phase: k * 2.1 }));
-      else if (d.art === "faesser" || d.art === "ruestung") for (const [u, dd] of d.stuecke) { const q = punkt(stelle(n, u), dd); pfosten.push({ x: q.x, z: q.z, r: d.art === "faesser" ? .75 : .7, art: d.art, rot: q.rot, i: stelle(n, u), d: dd }); }
+      else if (d.art === "faesser" || d.art === "ruestung" || d.art === "tropfstein" || d.art === "kristall") for (const [u, dd] of d.stuecke) { const q = punkt(stelle(n, u), dd); pfosten.push({ x: q.x, z: q.z, r: d.art === "faesser" ? .75 : d.art === "ruestung" ? .7 : .85, art: d.art, rot: q.rot, i: stelle(n, u), d: dd }); }
       else if (d.art === "ratten") d.bei.forEach((u, k) => rattenStellen.push({ i: stelle(n, u), phase: k * 3.1 }));
-      else if (d.art === "koenig") koenig = { i: stelle(n, d.bei), s: seiteVon(d.seite, n, d.bei), anim: 0 };
+      else if (d.art === "koenig") koenig = { art: "knochen", i: stelle(n, d.bei), s: seiteVon(d.seite, n, d.bei), anim: 0 };
       else if (d.art === "troll") {
         const i = stelle(n, d.bei);
         // Landestelle: der nächste Streckenpunkt jenseits der Mauer, weiter vorn auf der Strecke
@@ -246,17 +297,30 @@ function streckeBauen(p) {
   });
 
   // Fahrbahn
-  const nassFarbe = ["#5E7E80", "#567476", "#66888A"];
-  const PLATTE = ["#9A8F82", "#8C8275", "#A39888"];
+  const nassFarbe = TH.nass, PLATTE = TH.platte;
   for (let j = 0; j < 3; j++) band(-BR / 2 + j * BR / 3, -BR / 2 + (j + 1) * BR / 3, i => (BELAG[wrap(i)] ? nassFarbe : PLATTE)[(Math.floor(i / (STRICH * .75) + j * .5) + j) % 3], .05);
   for (const sg of [-1, 1]) {
-    band(sg * BR / 2, sg * (BR / 2 + 1.3), i => (Math.floor(i / (STRICH * .6)) % 2 ? "#E6D6AE" : "#8E2F22"), .05);
-    band(sg * RAND, i => sg * (MAUERW[i] + .2), i => MAUERW[wrap(i)] < MAUER ? "#1E3A44" : (Math.floor(i / STRICH) % 3 ? "#4E443B" : "#463D35"), .03);
+    band(sg * BR / 2, sg * (BR / 2 + 1.3), i => (Math.floor(i / (STRICH * .6)) % 2 ? TH.kante[0] : TH.kante[1]), .05);
+    band(sg * RAND, i => sg * (MAUERW[i] + .2), i => MAUERW[wrap(i)] < MAUER ? "#1E3A44" : (Math.floor(i / STRICH) % 3 ? TH.geroell[0] : TH.geroell[1]), .03);
   }
   // Wasser unter Brücke und in der Kanalisation
   for (const a of abschnitte) {
     if (a.bruecke) for (const sg of [-1, 1]) band(sg * (RAND + .6), sg * (MAUER + 12), i => (Math.floor(i / STRICH) % 2 ? "#1E3A44" : "#22424C"), .02, a.bruecke[0], a.bruecke[0] + a.bruecke[1]);
-    if (a.kanal) for (const sg of [-1, 1]) band(sg * (RAND + .5), sg * (MAUER - 1), i => (Math.floor(i / STRICH) % 2 ? "#2C4A48" : "#33554F"), .06, a.kanal[0], a.kanal[0] + a.kanal[1]);
+    if (a.kanal) for (const sg of [-1, 1]) band(sg * (RAND + .5), sg * (MAUER - 1), i => (Math.floor(i / STRICH) % 2 ? (welt === "grotte" ? "#1E5652" : "#2C4A48") : (welt === "grotte" ? "#24605B" : "#33554F")), .06, a.kanal[0], a.kanal[0] + a.kanal[1]);
+  }
+  // Schluchten: schwarzer Abgrund neben der Fahrbahn, Hängebrücke aus Planken
+  for (const c of schluchten) band(c.s * RAND, c.s * (MAUER + 30), i => (Math.floor(i / STRICH) % 2 ? "#040807" : "#060C0A"), .04, c.i0, c.i0 + c.m);
+  if (pilzSprung) { const P = pilzSprung; band(P.s * (RAND - .2), P.s * (RAND + 3.6), i => (Math.floor(i / meter(2)) % 2 ? "#55625A" : "#4C5850"), .07, P.i - meter(24), P.i + meter(1)); }
+  for (const h of haengebruecken) {
+    for (const sg of [-1, 1]) band(sg * (RAND - 1), sg * (MAUER + 30), i => (Math.floor(i / STRICH) % 2 ? "#040807" : "#060C0A"), .06, h.i0, h.i0 + h.m);
+    band(-RAND + 1, RAND - 1, i => (Math.floor(i / meter(1.1)) % 3 ? "#7A5A3A" : "#6A4C30"), .09, h.i0, h.i0 + h.m);
+    const pfo = [], seile = [];
+    for (let k = 0; k <= h.m; k += meter(4)) for (const sg of [-1, 1]) {
+      const i = wrap(h.i0 + k), q = punkt(i, sg * (RAND - .7)); pfo.push([q.x, .7, q.z, q.rot]);
+      if (k + meter(4) <= h.m) { const j = wrap(h.i0 + k + meter(2)), r2 = punkt(j, sg * (RAND - .7)); seile.push([r2.x, 1.2, r2.z, r2.rot]); }
+    }
+    instanzen(box(.25, 1.4, .25), M("#4A3426"), pfo);
+    instanzen(box(.07, .07, 4.1), M("#C9B48A"), seile, false);
   }
   // Rampen und Treppen
   for (const r of rampen) {
@@ -279,20 +343,21 @@ function streckeBauen(p) {
 
   // Mauer am Rand, Pfeiler mit Fackeln; auf der Brücke ein Geländer, an der Treppe offen, am Troll eingestürzt
   {
-    const steine = [], pfeiler = [], scheine = [], gelaender = [], STEIN = ["#6B6158", "#62584F", "#73695F", "#5D544C"];
+    const steine = [], pfeiler = [], scheine = [], gelaender = [], STEIN = TH.stein;
     const n = Math.floor(LAENGE / 2.2);
     for (let j = 0; j < n; j++) {
       const i = Math.floor(j * S / n);
       if (rampen.some(r => r.treppe && vorab(i, wrap(r.i0 - 8)) <= r.n + 12)) continue;
       for (const s of [-1, 1]) {
         const rot = Math.atan2(TX[i], TZ[i]) + Math.PI / 2;
+        if (SCHLUCHT[i] === s || SCHLUCHT[i] === 2) continue;
         if (MAUERW[i] < MAUER) { const q = punkt(i, s * (MAUERW[i] + .3)); gelaender.push([q.x, .6, q.z, rot]); continue; }
         if (troll && s === troll.s && Math.abs(((i - troll.i + S / 2) % S + S) % S - S / 2) < meter(8)) { if (j % 2) { const q = punkt(i, s * (MAUER + .7)); steine.push([q.x, .3, q.z, rot + zufall(), .55, STEIN[0]]); } continue; }
         const d = s * (MAUER + .7);
         steine.push([PX[i] + nX(i) * d, 1.1, PZ[i] + nZ(i) * d, rot, 1, STEIN[Math.floor(zufall() * 4)]]);
         if (j % 7 === 0) {
           pfeiler.push([PX[i] + nX(i) * d, 2.4, PZ[i] + nZ(i) * d, rot]);
-          const df = s * (MAUER - .2); fackeln.push([PX[i] + nX(i) * df, 3.9, PZ[i] + nZ(i) * df]);
+          const df = s * (welt === "grotte" ? MAUER + .7 : MAUER - .2); fackeln.push([PX[i] + nX(i) * df, welt === "grotte" ? 5.6 : 3.9, PZ[i] + nZ(i) * df]);
           const ds = s * (MAUER - 3); scheine.push([PX[i] + nX(i) * ds, .14, PZ[i] + nZ(i) * ds]);
         }
       }
@@ -300,14 +365,23 @@ function streckeBauen(p) {
     // Trennwände der Gabelungen
     for (const f of gabeln) for (let k = 0; k <= f.n; k += meter(2.2)) { const i = wrap(f.i0 + k); steine.push([PX[i], .9, PZ[i], Math.atan2(TX[i], TZ[i]) + Math.PI / 2, .75, STEIN[Math.floor(zufall() * 4)]]); }
     instanzen(new THREE.BoxGeometry(2.4, 2.2, 1.3), new THREE.MeshLambertMaterial({ color: "#ffffff" }), steine);
-    instanzen(new THREE.BoxGeometry(1.6, 4.8, 1.6), M("#574E46"), pfeiler);
     instanzen(new THREE.BoxGeometry(2.3, 1.2, .25), M("#4A3426"), gelaender);
-    instanzen(new THREE.CylinderGeometry(.09, .06, .9, 6), M("#4A3426"), fackeln.map(([x, y, z]) => [x, y - .5, z]), false);
+    if (welt === "grotte") {          // Leuchtpilze statt Pfeiler und Fackeln
+      instanzen(new THREE.CylinderGeometry(.45, .7, 5, 8), M("#D6E4D8"), pfeiler.map(([x, , z, r]) => [x, 2.5, z, r]));
+      const kappe = new THREE.SphereGeometry(2.1, 14, 8, 0, Math.PI * 2, 0, Math.PI / 2);
+      instanzen(kappe, GLUT("#3FD9A4"), pfeiler.map(([x, , z, r], n) => [x, 4.8, z, r, .85 + (n % 3) * .12]), false);
+    } else {
+      instanzen(new THREE.BoxGeometry(1.6, 4.8, 1.6), M(TH.pfeiler), pfeiler);
+      instanzen(new THREE.CylinderGeometry(.09, .06, .9, 6), M("#4A3426"), fackeln.map(([x, y, z]) => [x, y - .5, z]), false);
+    }
     const sg = new THREE.PlaneGeometry(13, 13); sg.rotateX(-Math.PI / 2);
-    const ims = instanzen(sg, scheinMat, scheine, false); ims.receiveShadow = false;
+    const ims = instanzen(sg, TH.schein, scheine, false); ims.receiveShadow = false;
   }
-  flammen = [instanzen(new THREE.ConeGeometry(.28, .9, 6), GLUT("#FF8A2A"), fackeln.map(([x, y, z]) => [x, y + .2, z]), false),
-    instanzen(new THREE.ConeGeometry(.16, .6, 6), GLUT("#FFE07A"), fackeln.map(([x, y, z]) => [x, y + .1, z]), false)];
+  flammen = welt === "grotte"
+    ? [instanzen(new THREE.SphereGeometry(.22, 6, 4), GLUT("#A6FFDA"), fackeln.map(([x, y, z]) => [x, y + .2, z]), false),
+      instanzen(new THREE.SphereGeometry(.13, 6, 4), GLUT("#F0FFF8"), fackeln.map(([x, y, z]) => [x + .5, y + .1, z]), false)]
+    : [instanzen(new THREE.ConeGeometry(.28, .9, 6), GLUT("#FF8A2A"), fackeln.map(([x, y, z]) => [x, y + .2, z]), false),
+      instanzen(new THREE.ConeGeometry(.16, .6, 6), GLUT("#FFE07A"), fackeln.map(([x, y, z]) => [x, y + .1, z]), false)];
 
   streckeDingeBauen();
   hallenDeko();
@@ -334,6 +408,24 @@ function streckeDingeBauen() {
       }
       // Torbalken über beiden Durchfahrten
       const q = punkt(f.i0, 0), bo = new THREE.Mesh(box(2 * MAUER + 1.4, 1.2, 1.2), M("#5F564D")); bo.position.set(q.x, 6.6, q.z); bo.rotation.y = q.rot; streckeG.add(bo);
+    } else if (f.art === "tunnel") {
+      // Netztunnel auf der Innenseite (Dach, Felspfeiler, Netze), außen Wurzeln
+      const dach = [], pf = [], wurzeln = [], licht = [];
+      for (let k = 0; k <= f.n; k += meter(3)) {
+        const i = wrap(f.i0 + k), q = punkt(i, f.innen * (MAUER / 2 + .5)); dach.push([q.x, 5.6, q.z, q.rot]);
+        if (k % meter(6) < meter(3)) { const r = punkt(i, f.innen * 1.1); pf.push([r.x, 2.8, r.z, r.rot]); const l = punkt(i, f.innen * (MAUER - .6)); licht.push([l.x, 1.2, l.z, 0, .8 + (k % 5) * .1]); }
+      }
+      for (let k = meter(2); k < f.n; k += meter(2.6)) { const i = wrap(f.i0 + k), q = punkt(i, -f.innen * (MAUER / 2 + .4)); wurzeln.push([q.x, .12, q.z, q.rot + Math.sin(k) * .2, 1, k % 2 ? "#5A3F2A" : "#6B4A30"]); }
+      instanzen(box(MAUER + 1.5, 1.4, SCHRITT * meter(3) + .2), M("#25302A"), dach);
+      instanzen(box(1.1, 5.6, 1.1), M("#33403A"), pf);
+      instanzen(new THREE.CapsuleGeometry(.28, MAUER - 3, 3, 6), new THREE.MeshLambertMaterial({ color: "#ffffff" }), wurzeln).geometry.rotateZ(Math.PI / 2);
+      instanzen(kugel(.35, 8), GLUT("#62F2C0"), licht, false);
+      f.netzM = f.netze.map(k => {
+        const i = wrap(f.i0 + k), q = punkt(i, f.innen * (MAUER / 2 + .5)), m = new THREE.Mesh(new THREE.PlaneGeometry(MAUER - 1.5, 4.8), netzMat.clone());
+        m.position.set(q.x, 2.5, q.z); m.rotation.y = q.rot; streckeG.add(m); return m;
+      });
+      const sp = punkt(wrap(f.i0 - meter(16)), f.innen * (MAUER - 1.2)), sch = new THREE.Mesh(box(4.4, 1.1, .2), schildMat("NETZTUNNEL", "#DFF7EA", "#1E4A3A", 512, 96));
+      sch.position.set(sp.x, 2.8, sp.z); sch.rotation.y = sp.rot + Math.PI; streckeG.add(sch);
     } else {
       // Brüchige Wand auf der Innenseite; dahinter Gold, das Schwung gibt
       const g = new THREE.Group(), q = punkt(f.i0, f.innen * mitte);
@@ -376,6 +468,28 @@ function streckeDingeBauen() {
     teil(lo, box(1.6, .9, 2.2), "#5A4A3A", 0, .75, 0); teil(lo, box(1.2, .3, 1.8), "#E8B53A", 0, 1.3, 0);
     lo.position.set(lq.x, 0, lq.z); lo.rotation.y = lq.rot; streckeG.add(lo);
   }
+  if (pilzSprung) {
+    // drei Leuchtpilze: der erste am Rand der Schlucht (zum Draufspringen), zwei stehen tief in der Schlucht
+    const P = pilzSprung, a = punkt(P.i, P.s * (RAND + 1.2)), z = punkt(P.b, 0);
+    P.pilze = [0, .36, .68].map((u, n) => {
+      const x = a.x + (z.x - a.x) * u, zz = a.z + (z.z - a.z) * u, h = n ? 2.6 : .7, g = new THREE.Group();
+      teil(g, zyl(n ? .7 : 1, n ? 1 : 1.3, h + 6, 10), "#D9E7DA", 0, (h - 6) / 2, 0);
+      const k = teil(g, new THREE.SphereGeometry(2.4, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2), null, 0, h, 0, 0, 0, 0, GLUT(n % 2 ? "#E070FF" : "#4FE3B6")); k.scale.y = .55;
+      for (const [dx, dz] of [[.9, .5], [-.7, .9], [.2, -1.1], [-1.2, -.3]]) teil(g, kugel(.25, 6), null, dx, h + .9, dz, 0, 0, 0, GLUT("#FFFFFF"));
+      const sch = new THREE.Mesh(new THREE.PlaneGeometry(12, 12), scheinGruen); sch.rotation.x = -Math.PI / 2; sch.position.y = .1; g.add(sch);
+      g.position.set(x, 0, zz); streckeG.add(g); g.userData.kappe = k; return { x, z: zz, g, h };
+    });
+    const sp = punkt(wrap(P.i - meter(26)), P.s * (BR / 2 + .6)), sch = new THREE.Mesh(box(4.6, 1.1, .2), schildMat("PILZSPRUNG ➜", "#DFF7EA", "#5A2A6A", 512, 96));
+    sch.position.set(sp.x, 2.6, sp.z); sch.rotation.y = sp.rot + Math.PI; streckeG.add(sch);
+    const pp = new THREE.Mesh(zyl(.08, .08, 2.4), M("#3A4A42")); pp.position.set(sp.x, 1.2, sp.z); streckeG.add(pp);
+  }
+  for (const t of tropfen) {
+    const g = new THREE.Group(); teil(g, kegel(.8, 3.2, 8), "#8C9A90", 0, -1.6, 0, Math.PI); teil(g, kegel(.4, 1.6, 6), "#A4B2A8", .5, -.8, .3, Math.PI);
+    g.traverse(o => { if (o.isMesh) o.castShadow = true; }); streckeG.add(g); t.g = g;
+    const sch = new THREE.Mesh(new THREE.CircleGeometry(1.3, 16), new THREE.MeshBasicMaterial({ color: "#000", transparent: true, opacity: .5, depthWrite: false }));
+    sch.rotation.x = -Math.PI / 2; streckeG.add(sch); t.sch = sch;
+    const decke = punkt(t.i, 0), dk = new THREE.Mesh(new THREE.DodecahedronGeometry(5), M("#26302B")); dk.scale.set(2.2, .5, 1.4); dk.position.set(decke.x, 17, decke.z); dk.rotation.y = decke.rot; streckeG.add(dk);
+  }
   for (const p of pendel) {
     const q = punkt(p.i, 0), g = new THREE.Group();
     for (const s of [-1, 1]) teil(g, box(.8, 10, .8), "#4A3F36", s * (RAND + .6), 5, 0);
@@ -388,6 +502,11 @@ function streckeDingeBauen() {
   for (const p of pfosten) {
     const g = new THREE.Group();
     if (p.art === "faesser") { teil(g, zyl(.7, .7, 1.5, 12), "#7A5434", 0, .75, 0); teil(g, zyl(.73, .73, .12, 12), "#3A3A40", 0, .35, 0); teil(g, zyl(.73, .73, .12, 12), "#3A3A40", 0, 1.15, 0); }
+    else if (p.art === "tropfstein") { teil(g, kegel(.95, 4.2, 9), "#8C9A90", 0, 2.1, 0); teil(g, kegel(.5, 2.2, 7), "#A4B2A8", .6, 1.1, .3); teil(g, kegel(.4, 1.6, 7), "#7E8C82", -.5, .8, -.4); }
+    else if (p.art === "kristall") {
+      for (const [x, z, h, rz, f] of [[0, 0, 3.4, 0, "#7FF3FF"], [.5, .2, 2.2, .45, "#C59BFF"], [-.45, -.2, 2.6, -.4, "#7FF3FF"]]) { const c = teil(g, new THREE.OctahedronGeometry(.6), null, x, h / 2, z, 0, 0, rz, GLUT(f)); c.scale.y = h / 1.2; }
+      const sch = new THREE.Mesh(new THREE.PlaneGeometry(7, 7), scheinGruen); sch.rotation.x = -Math.PI / 2; sch.position.y = .1; g.add(sch);
+    }
     else {
       teil(g, box(.9, .2, .9), "#4A3F36", 0, .1, 0);
       for (const x of [-.2, .2]) teil(g, zyl(.13, .13, 1, 8), "#9AA3AD", x, .7, 0);
@@ -398,6 +517,11 @@ function streckeDingeBauen() {
   }
   for (const r of rattenStellen) {
     r.g = new THREE.Group(); streckeG.add(r.g); r.ratten = [];
+    if (r.art === "spinne") {
+      for (let i = 0; i < 5; i++) { const g = spinneMesh(.42, false); g.visible = false; r.g.add(g); r.ratten.push(g); }
+      for (const s of [-1, 1]) { const q = punkt(r.i, s * (RAND + 1.2)); for (let e = 0; e < 4; e++) { const ei = new THREE.Mesh(kugel(.45, 10), M("#EDEBDD")); ei.scale.y = 1.25; ei.position.set(q.x + Math.sin(e * 2.1) * .7, .5, q.z + Math.cos(e * 2.1) * .7); streckeG.add(ei); } }
+      continue;
+    }
     for (let i = 0; i < 5; i++) { const g = new THREE.Group(); teil(g, kapsel(.22, .5), "#7D6E62", 0, .25, 0, Math.PI / 2); teil(g, kugel(.16, 8), "#8C7D70", 0, .3, .45); teil(g, zyl(.03, .02, .8, 4), "#E2A3A0", 0, .2, -.7, Math.PI / 2 - .3); g.visible = false; r.g.add(g); r.ratten.push(g); }
     for (const s of [-1, 1]) { const q = punkt(r.i, s * (RAND + .4)), loch = new THREE.Mesh(new THREE.CircleGeometry(1, 12, 0, Math.PI), M("#141010")); loch.position.set(q.x, .05, q.z); loch.rotation.y = q.rot + (s > 0 ? Math.PI / 2 : -Math.PI / 2); streckeG.add(loch); }
   }
@@ -417,7 +541,19 @@ function streckeDingeBauen() {
     const zz = new THREE.Group(); for (let n = 0; n < 3; n++) { const z = new THREE.Mesh(new THREE.PlaneGeometry(.8, .8), new THREE.MeshBasicMaterial({ map: schildMat("Z", "#140F14", "#F3E6CC", 64, 64)[4].map, transparent: true })); z.position.set(n * .5, 3 + n * .8, 3 + n * .3); zz.add(z); }
     g.add(zz); troll.zz = zz;
   }
-  if (koenig) {
+  if (koenig && koenig.art === "spinne") {
+    // Nest: große Netze an der Wand, darin sitzt die Königin (ab Runde 2 ist sie auf der Jagd)
+    for (let n = -2; n <= 2; n++) {
+      const q = punkt(wrap(koenig.i + meter(n * 9)), koenig.s * (MAUER + 2.5 + Math.abs(n))), m = new THREE.Mesh(new THREE.PlaneGeometry(14 - Math.abs(n) * 2, 14 - Math.abs(n) * 2), netzMat);
+      m.position.set(q.x, 7 - Math.abs(n), q.z); m.rotation.y = q.rot + Math.PI / 2 + n * .25; streckeG.add(m);
+    }
+    for (let n = 0; n < 9; n++) { const q = punkt(wrap(koenig.i + meter((n - 4) * 5)), koenig.s * (MAUER + 1 + (n % 3))), ei = new THREE.Mesh(kugel(.7, 10), M("#E4E2D2")); ei.scale.y = 1.3; ei.position.set(q.x, .8, q.z); streckeG.add(ei); }
+    const q = punkt(koenig.i, koenig.s * (MAUER + 2)), g = spinneMesh(2.4, true);
+    g.position.set(q.x, 7.5, q.z); g.rotation.y = q.rot - Math.PI / 2 * koenig.s; g.rotation.x = -.9; streckeG.add(g); koenig.g = g;
+    const sp = punkt(wrap(koenig.i - meter(30)), koenig.s * (MAUER - 1.2)), sch = new THREE.Mesh(box(4.6, 1.1, .2), schildMat("NEST ⚠", "#DFF7EA", "#5A2A6A", 512, 96));
+    sch.position.set(sp.x, 2.8, sp.z); sch.rotation.y = sp.rot + Math.PI; streckeG.add(sch);
+  }
+  if (koenig && koenig.art === "knochen") {
     const q = punkt(koenig.i, koenig.s * (MAUER + 3.5)), g = new THREE.Group();
     const st = new THREE.Mesh(new THREE.BoxGeometry(3.6, 1.6, 3), M("#3A2E26")); st.position.y = .8; g.add(st);
     const le = new THREE.Mesh(new THREE.BoxGeometry(3.6, 6, .6), M("#3A2E26")); le.position.set(0, 3.5, -1.3); g.add(le);
@@ -435,6 +571,40 @@ function streckeDingeBauen() {
     koenig.g = g; koenig.arm = arm; koenig.augMat = augMat;
   }
 }
+// Spinne (Königin mit Krone, sonst klein); Beine in userData.beine zum Krabbeln
+function spinneMesh(r, krone) {
+  const g = new THREE.Group(), dunkel = krone ? "#2B1A33" : "#2A2420";
+  teil(g, kugel(r, 14), dunkel, 0, r * .9, -r * .9).scale.set(1, .85, 1.15);
+  teil(g, kugel(r * .6, 12), dunkel, 0, r * .8, r * .4);
+  if (krone) { teil(g, kugel(r * .55, 10), "#7A2A8A", 0, r * 1.3, -r * 1.1).scale.set(1, .4, 1.2); for (let n = 0; n < 5; n++) teil(g, kegel(r * .1, r * .35, 4), "#E8C24A", (n - 2) * r * .14, r * 1.45, r * .55); }
+  for (const x of [-1, 1]) for (const y of [0, 1]) teil(g, kugel(r * .09, 6), null, x * r * (.13 + y * .1), r * (1.02 + y * .08), r * .92, 0, 0, 0, GLUT("#FF3A3A"));
+  g.userData.beine = [];
+  for (const sx of [-1, 1]) for (let n = 0; n < 4; n++) {
+    const b = new THREE.Group(); b.position.set(sx * r * .45, r * .85, r * (.6 - n * .38)); b.rotation.y = sx * (n * .35 - .5);
+    teil(b, zyl(r * .07, r * .07, r * 1.3, 5), dunkel, sx * r * .55, r * .25, 0, 0, 0, sx * 1.1);
+    teil(b, zyl(r * .06, r * .04, r * 1.4, 5), dunkel, sx * r * 1.25, -r * .35, 0, 0, 0, -sx * .45);
+    g.add(b); g.userData.beine.push(b);
+  }
+  g.traverse(o => { if (o.isMesh) o.castShadow = true; });
+  return g;
+}
+function eierDeko(i, sg) {
+  const q = punkt(i, sg * (MAUER + 4));
+  for (let n = 0; n < 14; n++) { const ei = new THREE.Mesh(kugel(.6 + (n % 3) * .2, 10), M(n % 4 ? "#E8E6D6" : "#D6E8C8")); ei.scale.y = 1.3; ei.position.set(q.x + Math.sin(n * 2.4) * (1 + n * .25), .8, q.z + Math.cos(n * 2.4) * (1 + n * .25)); streckeG.add(ei); }
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(12, 12), netzMat); m.position.set(q.x, 6, q.z); m.rotation.y = q.rot + Math.PI / 2; streckeG.add(m);
+  belegt.push({ x: q.x, z: q.z, r: 7 });
+}
+function pilzHaus(i, sg) {
+  const q = punkt(i, sg * (MAUER + 11)), g = new THREE.Group();
+  teil(g, zyl(3.6, 4.4, 9, 16), "#E6DCC4", 0, 4.5, 0);
+  const k = teil(g, new THREE.SphereGeometry(8, 20, 10, 0, Math.PI * 2, 0, Math.PI / 2), "#C8443A", 0, 8.5, 0); k.scale.y = .7;
+  for (let n = 0; n < 9; n++) { const w = n * 2.3; teil(g, kugel(.9, 8), "#FFF6E6", Math.sin(w) * 5.5, 10.8 - (n % 2) * 1.4, Math.cos(w) * 5.5); }
+  for (let n = 0; n < 5; n++) { const w = n / 5 * Math.PI * 2, f = teil(g, new THREE.PlaneGeometry(1.1, 1.6), null, Math.sin(w) * 4.05, 4 + (n % 2) * 2.4, Math.cos(w) * 4.05, 0, w, 0, GLUT("#9BFFD0")); f.material.side = THREE.DoubleSide; }
+  teil(g, box(1.8, 3, .3), "#5A3F2A", 0, 1.5, 4.2);
+  g.position.set(q.x, 0, q.z); g.rotation.y = q.rot; g.traverse(o => { if (o.isMesh) o.castShadow = true; }); streckeG.add(g);
+  const sl = new THREE.Mesh(box(8, 1.6, .3), schildMat("PILZHAIN", "#DFF7EA", "#1E4A3A", 1024, 160)); const sq = punkt(i, sg * (MAUER + 2.6)); sl.position.set(sq.x, 3.2, sq.z); sl.rotation.y = sq.rot + (sg > 0 ? -Math.PI / 2 : Math.PI / 2); streckeG.add(sl);
+  belegt.push({ x: q.x, z: q.z, r: 10 });
+}
 // Gleisverlauf der Lore: Seitenabstand nach m Metern seit der Auffahrt
 function lorePfad(f, m, zweig) {
   const ziel = f.s * (BR / 2 - 1.5);
@@ -448,8 +618,9 @@ function lorePfad(f, m, zweig) {
 function hallenDeko() {
   let x0 = Infinity, x1 = -Infinity, z0 = Infinity, z1 = -Infinity;
   for (let i = 0; i < S; i += 10) { x0 = Math.min(x0, PX[i]); x1 = Math.max(x1, PX[i]); z0 = Math.min(z0, PZ[i]); z1 = Math.max(z1, PZ[i]); }
-  // Feuerschale in der Mitte
   const cx = (x0 + x1) / 2, cz = (z0 + z1) / 2;
+  if (welt === "grotte") { grottenDeko(x0, x1, z0, z1, cx, cz); return; }
+  // Feuerschale in der Mitte
   if (frei(cx, cz, MAUER + 16)) {
     const g = new THREE.Group();
     const s = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 2, 3, 10), M("#5A5048")); s.position.y = 1.5; g.add(s);
@@ -479,18 +650,55 @@ function hallenDeko() {
   instanzen(new THREE.CylinderGeometry(.75, .75, 1.6, 10), M("#7A5434"), faesser);
   instanzen(new THREE.BoxGeometry(1.4, 1.4, 1.4), M("#8A6A44"), kisten_);
 }
+// Grotte: Riesenkristall in der Mitte, Tropfsteine, Leuchtpilze und Felsbrocken
+function grottenDeko(x0, x1, z0, z1, cx, cz) {
+  if (frei(cx, cz, MAUER + 16)) {
+    const g = new THREE.Group();
+    for (const [x, z, h, rx, rz, f] of [[0, 0, 16, 0, 0, "#7FF3FF"], [3, 1, 10, 0, .4, "#C59BFF"], [-3, -1, 12, .2, -.35, "#7FF3FF"], [1, -3, 8, -.4, .1, "#C59BFF"], [-1.5, 3, 9, .35, 0, "#9BFFD0"]]) { const c = teil(g, new THREE.OctahedronGeometry(1.6), null, x, h / 2, z, rx, 0, rz, GLUT(f)); c.scale.y = h / 3.2; }
+    const sc2 = new THREE.Mesh(new THREE.PlaneGeometry(40, 40), scheinGruen); sc2.rotation.x = -Math.PI / 2; sc2.position.y = .12; g.add(sc2);
+    g.position.set(cx, 0, cz); streckeG.add(g); belegt.push({ x: cx, z: cz, r: 12 });
+  }
+  const steine = [], spitzen = [], stiele = [], kappen = [], brocken = [];
+  const W = x1 - x0 + 160, H = z1 - z0 + 160;
+  for (let n = 0; n < 1500 && steine.length < 80; n++) {
+    const x = x0 - 80 + zufall() * W, z = z0 - 80 + zufall() * H;
+    if (!frei(x, z, MAUER + 8) || belegt.some(b => (b.x - x) ** 2 + (b.z - z) ** 2 < (b.r + 4) ** 2) || steine.some(([a, , c]) => (a - x) ** 2 + (c - z) ** 2 < 360)) continue;
+    const sz = .7 + zufall() * .8; steine.push([x, 9 * sz, z, zufall() * 3, sz]);
+    spitzen.push([x + 3, 34 - 6 * sz, z - 2, zufall() * 3, sz]);
+  }
+  for (let n = 0; n < 2500 && stiele.length + brocken.length < 170; n++) {
+    const x = x0 - 70 + zufall() * (W - 20), z = z0 - 70 + zufall() * (H - 20);
+    if (!frei(x, z, MAUER + 2.5) || belegt.some(b => (b.x - x) ** 2 + (b.z - z) ** 2 < (b.r + 2) ** 2)) continue;
+    if (pilzSprung && (x - PX[pilzSprung.i]) ** 2 + (z - PZ[pilzSprung.i]) ** 2 < 50 ** 2) continue;
+    if (schluchten.some(c => { for (let k = 0; k <= c.m; k += 15) { const j = wrap(c.i0 + k); if ((PX[j] - x) ** 2 + (PZ[j] - z) ** 2 < 45 ** 2) return true; } return false; })) continue;
+    const sz = .6 + zufall() * .9;
+    if (zufall() < .55) { stiele.push([x, 1.2 * sz, z, 0, sz]); kappen.push([x, 2.4 * sz, z, zufall() * 3, sz, zufall() < .5 ? "#4FE3B6" : zufall() < .5 ? "#E070FF" : "#7FC8FF"]); }
+    else brocken.push([x, .6 * sz, z, zufall() * 3, sz]);
+  }
+  instanzen(new THREE.ConeGeometry(3.2, 18, 9), M("#3C4A43"), steine);
+  const sp = new THREE.ConeGeometry(2.4, 12, 8); sp.rotateX(Math.PI);
+  instanzen(sp, M("#2E3A34"), spitzen, false);
+  instanzen(new THREE.CylinderGeometry(.35, .5, 2.4, 7), M("#D6E4D8"), stiele);
+  instanzen(new THREE.SphereGeometry(1.3, 12, 6, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshBasicMaterial({ color: "#ffffff" }), kappen, false);
+  instanzen(new THREE.DodecahedronGeometry(1.2), M("#46534C"), brocken);
+}
 // Start: Steinbogen mit Schild und Bannern, Fässer an der Geraden
 function startBogen() {
+  const gr = welt === "grotte", fels = gr ? "#4A5750" : "#6E655C", banner = gr ? "#2F7A64" : "#8E2F22";
   const d = BR / 2 + 2.2, r0 = Math.atan2(TX[0], TZ[0]);
   for (const s of [-1, 1]) {
-    const p = new THREE.Mesh(new THREE.BoxGeometry(1.6, 8, 1.6), M("#6E655C")); p.position.set(PX[0] + nX(0) * d * s, 4, PZ[0] + nZ(0) * d * s); p.castShadow = true; streckeG.add(p);
-    const ban = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 3.4), new THREE.MeshLambertMaterial({ color: "#8E2F22", side: THREE.DoubleSide }));
+    const p = new THREE.Mesh(new THREE.BoxGeometry(1.6, 8, 1.6), M(fels)); p.position.set(PX[0] + nX(0) * d * s, 4, PZ[0] + nZ(0) * d * s); p.castShadow = true; streckeG.add(p);
+    const ban = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 3.4), new THREE.MeshLambertMaterial({ color: banner, side: THREE.DoubleSide }));
     ban.position.set(PX[0] + nX(0) * (d - 1.6) * s, 5.2, PZ[0] + nZ(0) * (d - 1.6) * s); ban.rotation.y = r0; streckeG.add(ban);
   }
-  const bo = new THREE.Mesh(new THREE.BoxGeometry(d * 2 + 1.6, 1.4, 1.4), M("#6E655C")); bo.position.set(PX[0], 8.6, PZ[0]); bo.rotation.y = r0 + Math.PI / 2; streckeG.add(bo);
+  const bo = new THREE.Mesh(new THREE.BoxGeometry(d * 2 + 1.6, 1.4, 1.4), M(fels)); bo.position.set(PX[0], 8.6, PZ[0]); bo.rotation.y = r0 + Math.PI / 2; streckeG.add(bo);
   const b = new THREE.Mesh(new THREE.BoxGeometry(d * 2 - 1, 1.5, .4), schildMat("START · ZIEL", "#F3E6CC", "#2A2118", 1024, 96));
   b.position.set(PX[0], 7.2, PZ[0]); b.rotation.y = r0 + Math.PI; streckeG.add(b);
-  for (let i = 0; i < 6; i++) { const p = punkt(meter(18 + i * 12), -(MAUER + 2.4)); const f = new THREE.Mesh(new THREE.CylinderGeometry(.6, .6, 1.3, 10), M("#7A5434")); f.position.set(p.x, .65, p.z); f.castShadow = true; streckeG.add(f); }
+  for (let i = 0; i < 6; i++) {
+    const p = punkt(meter(18 + i * 12), -(MAUER + 2.4));
+    if (gr) { const g = new THREE.Group(); teil(g, zyl(.3, .4, 1.6, 7), "#D6E4D8", 0, .8, 0); const k = teil(g, new THREE.SphereGeometry(1, 10, 6, 0, Math.PI * 2, 0, Math.PI / 2), null, 0, 1.6, 0, 0, 0, 0, GLUT(i % 2 ? "#E070FF" : "#4FE3B6")); g.position.set(p.x, 0, p.z); streckeG.add(g); continue; }
+    const f = new THREE.Mesh(new THREE.CylinderGeometry(.6, .6, 1.3, 10), M("#7A5434")); f.position.set(p.x, .65, p.z); f.castShadow = true; streckeG.add(f);
+  }
 }
 
 // Flammen flackern: jede Fackel hat zwei Flammen, die abwechselnd größer und kleiner werden
@@ -843,6 +1051,7 @@ class Kart {
     this.botTimer = 0; this.spur = d; this.dreher = 0;
     this.walze = 0; this.schild = false; this.amulett = 0; this.haken = null; this.extraUhr = null; this.lore = null; this.flug = null;
     this.schonzeit = this.netz = this.bremse = this.fleder = this.sporen = this.erholung = this.holper = 0;
+    this.absturz = null; this.wurzel = 0; this.riss = null;
     this.kraft = 0; this.gold = 0; this.wirbel = this.wall = this.unsicht = this.wind = this.segen = this.eis = this.glatt = this.skelette = this.skelettUhr = 0; this.klauVor = null; this.wirbelGetroffen = null;
   }
   suchen() {                                     // nächster Streckenpunkt über die ganze Runde
@@ -855,7 +1064,7 @@ class Kart {
     const [x, y, z, yaw, v, s, drift, boost, prog, ladung, fx = 0] = a;
     this.schild = !!(fx & 1); this.amulett = fx & 2 ? 1 : 0; this.netz = fx & 4 ? 1 : 0; this.fleder = fx & 8 ? 1 : 0; this.schonzeit = fx & 16 ? 1 : 0;
     this.wirbel = fx & 64 ? 1 : 0; this.wall = fx & 128 ? 1 : 0; this.unsicht = fx & 256 ? 1 : 0; this.eis = fx & 512 ? 1 : 0; this.segen = fx & 1024 ? 1 : 0; this.wind = fx & 2048 ? 1 : 0;
-    this.skelette = (fx & 4096 ? 1 : 0) + (fx & 8192 ? 1 : 0);
+    this.skelette = (fx & 4096 ? 1 : 0) + (fx & 8192 ? 1 : 0); this.abst = !!(fx & 16384); this.dreher = fx & 32768 ? 1 : 0;
     const erst = !this.nz;
     this.nz = { x, y, z, yaw, v, t: performance.now() };
     this.s = s; this.drift = drift; this.boost = boost || fx & 32 ? .2 : 0; this.ladung = ladung; this.netzProg = prog;
@@ -877,7 +1086,7 @@ class Kart {
     const r2 = v => Math.round(v * 100) / 100;
     const fx = (this.schild ? 1 : 0) | (this.amulett > 0 ? 2 : 0) | (this.netz > 0 ? 4 : 0) | (this.fleder > 0 ? 8 : 0) | (this.schonzeit > 0 && !(this.dreher > 0) ? 16 : 0) | (this.haken ? 32 : 0)
       | (this.wirbel > 0 ? 64 : 0) | (this.wall > 0 ? 128 : 0) | (this.unsicht > 0 ? 256 : 0) | (this.eis > 0 ? 512 : 0) | (this.segen > 0 ? 1024 : 0) | (this.wind > 0 ? 2048 : 0)
-      | (this.skelette > 0 ? 4096 : 0) | (this.skelette > 1 ? 8192 : 0);
+      | (this.skelette > 0 ? 4096 : 0) | (this.skelette > 1 ? 8192 : 0) | (this.absturz ? 16384 : 0) | (this.dreher > 0 ? 32768 : 0);
     return [r2(this.x), r2(this.y), r2(this.z), r2(this.yaw), r2(this.v), r2(this.s), this.drift, this.boost > 0 ? 1 : 0, this.prog, r2(this.ladung), fx];
   }
   naechster() {
@@ -897,6 +1106,7 @@ class Kart {
     if (this.bremse > 0) maxV *= .55;
     if (this.holper > 0) maxV *= .5;
     if (this.skelette > 0) maxV *= 1 - .14 * this.skelette;
+    if (this.wurzel > 0) maxV *= .78;
     maxV *= 1 + this.gold * .006;                                   // jedes Goldstück macht etwas schneller
     if (this.boost > 0) maxV = st.maxV * 1.4;
     if (this.wind > 0) maxV = st.maxV * 1.5;
@@ -917,7 +1127,7 @@ class Kart {
     let s = this.s, wende = st.turn;
     if (this.drift) { s = this.drift * .6 + this.s * .5; wende *= st.drift; this.ladung += dt * (.6 + Math.abs(s) * .6); if (phase === "rennen") kraftLaden(this, dt * (this.typ === "moench" ? .05 : .025)); }
     let rate = -s * wende * Math.min(1, Math.max(Math.abs(this.v), 3) / 10) * (this.v < -.5 ? -1 : 1) * (this.luft ? .35 : 1);   // auch langsam etwas lenkbar
-    if (this.dreher > 0) rate = 9;
+    if (this.dreher > 0) rate = 0;                 // beim Dreher dreht sich nur das Modell (zeigen), Fahrtrichtung und Blick bleiben
     this.yaw += rate * dt;
     const k = this.eis > 0 ? .5 : this.wind > 0 ? 16 : (this.drift ? 2.6 : st.grip) * (nass ? .55 : 1) * (this.glatt > 0 ? .3 : 1);
     let diff = this.yaw - this.mh; diff = Math.atan2(Math.sin(diff), Math.cos(diff));
@@ -928,6 +1138,9 @@ class Kart {
     if (this.wind > 0) { this.x -= Math.cos(this.mh) * this.s * 16 * dt; this.z += Math.sin(this.mh) * this.s * 16 * dt; }   // Windschritt: seitlich ausweichen
     this.naechster();
     streckeStoss(this, alt, dt);
+    // Schlucht: wer über den Rand fährt, stürzt ab (nicht am Pilzsprung, dort entscheidet der Pilz)
+    const sch = SCHLUCHT[this.idx];
+    if (sch && !this.luft && phase === "rennen" && (sch === 2 ? Math.abs(this.d) > RAND - .6 : this.d * sch > BR / 2 + 1.6) && !pilzZone(this)) { absturz(this); return; }
     // Mauer
     const mw = MAUERW[this.idx];
     if (Math.abs(this.d) > mw) {
@@ -968,10 +1181,12 @@ class Kart {
     this.schildM.visible = !!this.schild;
     this.aura.visible = this.amulett > 0; if (this.aura.visible) this.aura.material.opacity = .2 + Math.sin(t * 10) * .08;
     this.netzM.visible = this.netz > 0; if (this.netzM.visible) this.netzM.rotation.y = Math.sin(t * 9) * .2;
-    this.flederM.visible = this.fleder > 0;
+    this.flederM.visible = this.fleder > 0 || !!this.absturz || !!this.abst;
     if (this.flederM.visible) this.flederM.children.forEach((f, i) => { const w = t * 5 + i * 2.1; f.position.set(Math.sin(w) * 1.2, 2.3 + Math.sin(t * 9 + i) * .25, Math.cos(w) * 1.2 + .6); f.rotation.y = w + Math.PI / 2; f.children[1].rotation.x = f.children[2].rotation.x = Math.sin(t * 30 + i) * .6; });
     this.koerper.visible = !(this.schonzeit > 0 && !(this.dreher > 0) && Math.floor(t * 12) % 2 === 0);
-    this.koerper.rotation.y = this.wirbel > 0 ? t * 26 : 0;
+    // Dreher: genau zwei ganze Umdrehungen des Modells, danach schaut es wieder nach vorn
+    const dreh = this.dreher > 0 ? (this.remote ? t * 14 : (1 - this.dreher / (this.dreherDauer || .95)) * Math.PI * 4) : 0;
+    this.koerper.rotation.y = this.wirbel > 0 ? t * 26 : dreh;
     this.wirbelM.visible = this.wirbel > 0; if (this.wirbelM.visible) { this.wirbelM.rotation.z = t * 20; this.wirbelM.scale.setScalar(.85 + Math.sin(t * 30) * .12); }
     this.wallM.visible = this.wall > 0;
     this.eisM.visible = this.eis > 0;
@@ -1151,6 +1366,11 @@ function anwenden(e) {
   else if (e.a === "wirkung") { const k = karts.find(o => o.id === e.ziel); if (k && !k.remote) wirkung(k, e); }
   else if (e.a === "beben") { bebenStarten(e); if (e.von === "koenig" && koenig) { koenig.anim = 1.6; if (ich && ich.fertig == null) melden("Der Knochenkönig zürnt! ⚠", 1.8); } }
   else if (e.a === "wand") { const f = gabeln[e.n | 0]; if (f && !f.offen) { f.offen = true; if (f.wandM) { f.wandM.visible = false; const q = punkt(f.i0, f.innen * 6); puff(q.x, 2, q.z, "#9A8F82"); } } }
+  else if (e.a === "riss") { const f = gabeln[e.n | 0]; if (f && f.staerke && f.staerke[e.w | 0] > 0) f.staerke[e.w | 0]--; }
+  else if (e.a === "faden" && Array.isArray(e.stellen)) {
+    e.stellen.slice(0, 8).forEach(([idx, d], n) => objektNeu({ a: "falle", id: e.id + "k" + n, art: "koenigin", von: "koenigin", idx, d }));
+    if (ich && ich.fertig == null) melden("⚠ Die Spinnenkönigin seilt sich ab!", 1.6);
+  }
   else if (e.a === "platte") { const f = gabeln[e.n | 0]; if (f && (e.seite === 1 || e.seite === -1)) f.platte = { seite: e.seite, bis: +e.bis || 0 }; }
 }
 // Wirkung auf ein Kart, das dieses Handy fährt
@@ -1195,7 +1415,7 @@ function lohn(vonId, opfer) {
 
 // Treffer auf ein selbst gefahrenes Kart. Rückgabe: "durch" (wirkt nicht, Geschoss fliegt weiter) oder "weg" (Geschoss verbraucht)
 function treffen(k, art) {
-  if (k.fertig != null) return "durch";
+  if (k.fertig != null || k.absturz) return "durch";
   if ((k.unsicht > 0 || k.wind > 0) && art !== "mimik") return "durch";        // Langfinger, Windschritt: nicht zu treffen
   if ((k.wirbel > 0 || k.wall > 0) && art !== "mimik") return "weg";          // Wirbelschlag, Schildwall: prallt ab
   if (k.segen > 0 && art !== "mimik") { k.boost = Math.max(k.boost, .8); if (k.ich) melden("Gesegnet! Schub statt Treffer ✨", 1); return "weg"; }
@@ -1218,7 +1438,7 @@ function treffen(k, art) {
     if (k.ich) { melden("Sporen! Wischen!", 1.4); summen(60); }
     return "weg";
   }
-  k.dreher = k.typ === "paladin" ? .5 : .95; k.mhFest = k.mh; k.v *= .5; k.drift = 0; k.ladung = 0; k.boost = 0; k.haken = null;
+  k.dreher = k.dreherDauer = k.typ === "paladin" ? .5 : .95; k.mhFest = k.mh; k.yaw = k.mh; k.v *= .5; k.drift = 0; k.ladung = 0; k.boost = 0; k.haken = null;
   k.schonzeit = k.dreher + 2; if (k.typ === "heilerin") k.erholung = k.dreher + 1.5;
   if (art !== "mimik" && k.gold > 0) { k.gold = Math.max(0, k.gold - 2); if (k.ich) puff(k.x, k.y + 1.5, k.z, "#F2B705"); }
   if (k.ich) { summen(180); wackeln = Math.max(wackeln, .35); }
@@ -1253,7 +1473,7 @@ function teleport(k) {
 
 // Extra einsetzen. wunsch: "vorn", "hinten" oder leer (Angriffe nach vorn, Fallen nach hinten)
 function extraNutzen(k, wunsch) {
-  if (phase !== "rennen" || !k.item || k.walze > 0 || k.fertig != null || k.dreher > 0 || k.eis > 0) return false;
+  if (phase !== "rennen" || !k.item || k.walze > 0 || k.fertig != null || k.dreher > 0 || k.eis > 0 || k.absturz) return false;
   const art = k.item.art, E = EXTRAS[art];
   const hinten = wunsch ? wunsch === "hinten" : !!E.falle, rf = hinten ? -1 : 1;
   if (--k.item.n <= 0) k.item = null;
@@ -1299,7 +1519,7 @@ const objekte = new Map();
 const GESCHOSS = {       // Tempo (m/s), Lebensdauer (s)
   feuerball: { v: 62, leben: 2.6 }, pfeile: { v: 85, leben: 1.6 }, netz: { v: 58, leben: 2 }, axt: { v: 50, leben: 3 }, eis: { v: 80, leben: 3 }
 };
-const FALLE = { schleim: 30, kraehen: 18, kaese: 5.5, pilz: 30, stein: 4.5, glatt: 4 };
+const FALLE = { schleim: 30, kraehen: 18, kaese: 5.5, pilz: 30, stein: 4.5, glatt: 4, koenigin: 4.6 };
 function objMesh(art) {
   const g = new THREE.Group();
   if (art === "feuerball") {
@@ -1317,6 +1537,11 @@ function objMesh(art) {
   } else if (art === "eis") {
     teil(g, kegel(.22, 1.9, 6), null, 0, 0, .2, Math.PI / 2, 0, 0, GLUT("#CFF1FF")); teil(g, kugel(.3, 8), null, 0, 0, -.7, 0, 0, 0, GLUT("#7FD3FF"));
     const s = new THREE.Mesh(new THREE.PlaneGeometry(2.6, 2.6), scheinMat); s.rotation.x = -Math.PI / 2; s.position.y = -.8; g.add(s);
+  } else if (art === "koenigin") {
+    const sp = spinneMesh(1.15, true); g.add(sp); g.userData.sp = sp;
+    const faden = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 40, 0)]), new THREE.LineBasicMaterial({ color: "#E8F5EE" })); g.add(faden); g.userData.faden = faden;
+    const sch = new THREE.Mesh(new THREE.CircleGeometry(2.2, 18), new THREE.MeshBasicMaterial({ color: "#000", transparent: true, opacity: .5, depthWrite: false }));
+    sch.rotation.x = -Math.PI / 2; sch.position.y = .07; g.add(sch); g.userData.schatten = sch;
   } else if (art === "glatt") {
     const m = new THREE.Mesh(new THREE.CircleGeometry(3, 20), new THREE.MeshLambertMaterial({ color: "#CDEFFF", transparent: true, opacity: .7, depthWrite: false })); m.rotation.x = -Math.PI / 2; m.position.y = .06; g.add(m);
     g.userData.glatt = m;
@@ -1437,6 +1662,13 @@ function objekteSchritt(dt) {
       if (o.alter > FALLE.stein - .6) o.g.userData.stein.position.y = 1 - (o.alter - (FALLE.stein - .6)) * 3;
     }
     if (o.art === "pilz") { const s = 1 + Math.sin(o.alter * 6) * .08; o.g.userData.puls.scale.set(s, .6 * s, s); }
+    if (o.art === "koenigin") {
+      const a = o.alter, h = a < 1.3 ? 1.6 + 26 * (1 - Math.sin(a / 1.3 * Math.PI / 2)) : a < 3.4 ? 1.6 + Math.sin(a * 5) * .25 : 1.6 + (a - 3.4) / 1.2 * 28;
+      const U = o.g.userData; U.sp.position.y = h; U.sp.rotation.y = Math.sin(a * 2) * .5;
+      const fp = U.faden.geometry.attributes.position; fp.setY(0, h + 2); fp.needsUpdate = true;
+      U.schatten.scale.setScalar(klemmen(1.3 - (h - 1.6) / 22, .25, 1.2));
+      U.sp.userData.beine.forEach((b, m) => b.rotation.x = Math.sin(a * 12 + m) * .3);
+    }
     if (o.art === "glatt") o.g.userData.glatt.material.opacity = .7 * Math.min(1, (FALLE.glatt - o.alter) / .8);
     if (o.art === "kaese") {
       const zeigt = o.alter > .6;
@@ -1452,6 +1684,8 @@ function objekteSchritt(dt) {
       if (o.art === "schleim") {
         if (k.typ === "magierin" || Math.hypot(k.x - o.x, k.z - o.z) > 1.9) continue;
         if (treffen(k, "treffer") === "weg") { if (k.dreher > 0) lohn(o.von, k); objektWeg(id); ereignis({ a: "weg", id }); break; }
+      } else if (o.art === "koenigin") {
+        if (o.alter > 1 && o.alter < 3.6 && Math.hypot(k.x - o.x, k.z - o.z) < 2.4) treffen(k, "netz");
       } else if (o.art === "glatt") {
         if (k.typ !== "magierin" && Math.hypot(k.x - o.x, k.z - o.z) < 3.2) k.glatt = .4;
       } else if (o.art === "kraehen") {
@@ -1490,12 +1724,12 @@ function hakenLenken(k, dt) {
 
 // Tempo-Einflüsse der Extras in einem Fahrschritt
 function extraTimer(k, dt) {
-  for (const t of ["schonzeit", "netz", "bremse", "fleder", "sporen", "amulett", "erholung", "holper", "walze", "wirbel", "wall", "unsicht", "wind", "segen", "eis", "glatt"]) if (k[t] > 0) k[t] = Math.max(0, k[t] - dt);
+  for (const t of ["schonzeit", "netz", "bremse", "fleder", "sporen", "amulett", "erholung", "holper", "walze", "wirbel", "wall", "unsicht", "wind", "segen", "eis", "glatt", "wurzel"]) if (k[t] > 0) k[t] = Math.max(0, k[t] - dt);
 }
 
 // ----- Heldenkräfte -----
 function kraftNutzen(k) {
-  if (phase !== "rennen" || k.kraft < 1 || k.fertig != null || k.lore || k.flug || k.eis > 0 || (k.dreher > 0 && k.typ !== "heilerin")) return false;
+  if (phase !== "rennen" || k.kraft < 1 || k.fertig != null || k.lore || k.flug || k.absturz || k.eis > 0 || (k.dreher > 0 && k.typ !== "heilerin")) return false;
   const sag = (t, d) => { if (k.ich) melden(t, d); };
   const vor = n => karts.filter(o => o !== k && o.fertig == null && o.g.visible && !(o.unsicht > 0) && o.prog > k.prog && (o.prog - k.prog) * SCHRITT < 250).sort((a, b) => a.prog - b.prog).slice(0, n);
   const wurf = (art, ziel, d) => ereignis({ a: "wurf", id: neueId(), art, von: k.id, p: k.idx + 3 / SCHRITT, d: d ?? k.d, rf: 1, ziel: ziel ? ziel.id : null, y: k.y, kraft: true });
@@ -1626,7 +1860,7 @@ function streckeStoss(k, alt, dt) {
     const seite = Math.sign(k.d) || 1;
     let zu = false;
     if (f.art === "gabel") zu = seite === torZu(f) && f.torY[seite] < 1.6;
-    else if (!f.offen && seite === f.innen) {
+    else if (f.art === "wand" && !f.offen && seite === f.innen) {
       if (k.st.masse >= 1.5 && k.v > 12) { ereignis({ a: "wand", n: f.nr }); k.v *= .75; if (k.ich) melden("Wand durchbrochen! 💥"); }
       else { zu = true; if (k.ich && !f.gemeldet) { f.gemeldet = true; melden("Zu leicht! Nur schwere Karts oder ein Feuerball", 2); } }
     }
@@ -1672,6 +1906,25 @@ function streckeWirkung(k, dt, e) {
     const v = vorab(k.idx, p.i), nah = Math.min(v, S - v) * SCHRITT;
     if (nah < 1.3 && Math.abs(k.d - p.d) < 1.4 && p.y < 2.6) treffen(k, "treffer");
   }
+  if (pilzSprung) {
+    const P = pilzSprung, v = vorab(k.idx, P.i), nah = Math.min(v, S - v) * SCHRITT;
+    if (nah < 3.5 && k.d * P.s > RAND - .4) pilzHuepfer(k);
+  }
+  for (const f of gabeln) {
+    if (f.art !== "tunnel" || !gabelDrin(k.idx, f)) continue;
+    const v = vorab(k.idx, f.i0);
+    if (Math.sign(k.d) === f.innen) f.netze.forEach((pos, w) => {
+      if (f.staerke[w] <= 0 || Math.abs(v - pos) > meter(1.2)) return;
+      const key = f.nr * 10 + w; k.riss = k.riss || {};
+      if (k.riss[key] > uhr) return;
+      k.riss[key] = uhr + 2;
+      const st = f.staerke[w]; k.v *= [1, .86, .64, .38][st];
+      ereignis({ a: "riss", n: f.nr, w });
+      if (k.ich) { melden(st === 3 ? "Klebriges Netz! 🕸️" : st === 2 ? "Netz reißt …" : "Netz zerrissen!", .9); summen(st * 30); }
+    });
+    else if (k.typ !== "magierin") { if (!(k.wurzel > 0) && k.ich) melden("Wurzeln! Holprig", .7); k.wurzel = .25; }
+  }
+  for (const t of tropfen) if (t.liegt && Math.hypot(k.x - t.x, k.z - t.z) < 1.6) treffen(k, "treffer");
   for (const r of rattenStellen) if (r.aktiv) for (const q of r.pos) if (Math.hypot(k.x - q.x, k.z - q.z) < 1.3) { treffen(k, "treffer"); break; }
 }
 
@@ -1685,7 +1938,7 @@ function loreSchritt(k, dt, e) {
   k.v += (k.st.maxV * 1.38 - k.v) * Math.min(1, dt * 2.5);
   L.m += k.v * dt;
   if (L.zweig === f.tot && L.m >= f.weiche + 9) {               // Prellbock
-    k.lore = null; k.v = 0; k.dreher = .9; k.mhFest = k.mh; k.schonzeit = 2.2; k.drift = 0;
+    k.lore = null; k.v = 0; k.dreher = k.dreherDauer = .9; k.mhFest = k.mh; k.schonzeit = 2.2; k.drift = 0;
     if (k.ich) { melden("Prellbock! 💥 Falsche Weiche", 1.6); wackeln = Math.max(wackeln, .6); summen(200); }
     return;
   }
@@ -1704,13 +1957,48 @@ function trollSprung(k) {
   k.flug = { t: 0, dauer: 1.3, x0: k.x, z0: k.z, y0: k.y, yaw0: k.yaw, prog: k.prog + vorab(b, k.idx), b, d: t.ld };
   k.drift = 0; if (k.ich) { melden("Boing! 🧌", 1); summen(40); }
 }
+// Pilzsprung: mittig getroffen = von Pilz zu Pilz über die Schlucht, am Rand = zu kurz und hinein
+const pilzZone = k => { if (!pilzSprung) return false; const v = vorab(pilzSprung.i, k.idx); return (v < meter(24) || v > S - meter(3.5)) && k.d * pilzSprung.s > 0; };   // Felsvorsprung vor dem Pilz
+function pilzHuepfer(k) {
+  const P = pilzSprung, sd = k.d * P.s, mitte = sd > RAND + .3 && sd < RAND + 3.4 && k.v > 11;   // am inneren Rand des Pilzes = zu kurz
+  if (mitte) k.flug = { t: 0, dauer: 1.9, x0: k.x, z0: k.z, y0: k.y, yaw0: k.yaw, prog: k.prog + vorab(P.b, k.idx), b: P.b, d: 0, hops: 3, hoch: 5 };
+  else { const q = P.pilze[1]; k.flug = { t: 0, dauer: .8, x0: k.x, z0: k.z, y0: k.y, yaw0: k.yaw, kurz: { x: (k.x + q.x) / 2, z: (k.z + q.z) / 2 }, hops: 1, hoch: 3 }; }
+  k.drift = 0; P.pilze[0].wipp = .4;
+  if (k.ich) { melden(mitte ? "Boing, boing, boing! 🍄" : "Zu weit am Rand! 😱", 1.2); summen(40); }
+}
 function flugSchritt(k, dt) {
   const F = k.flug; F.t += dt;
-  const u = Math.min(1, F.t / F.dauer), tx = PX[F.b] + nX(F.b) * F.d, tz = PZ[F.b] + nZ(F.b) * F.d;
-  k.x = F.x0 + (tx - F.x0) * u; k.z = F.z0 + (tz - F.z0) * u; k.y = F.y0 * (1 - u) + 4 * 9 * u * (1 - u);
-  let dy = Math.atan2(TX[F.b], TZ[F.b]) - F.yaw0; dy = Math.atan2(Math.sin(dy), Math.cos(dy));
-  k.yaw = k.mh = F.yaw0 + dy * u; k.luft = true; k.vy = u < .5 ? 5 : -5;
+  const u = Math.min(1, F.t / F.dauer), tx = F.kurz ? F.kurz.x : PX[F.b] + nX(F.b) * F.d, tz = F.kurz ? F.kurz.z : PZ[F.b] + nZ(F.b) * F.d;
+  const hops = F.hops || 1, hu = u >= 1 ? 1 : (u * hops) % 1;
+  k.x = F.x0 + (tx - F.x0) * u; k.z = F.z0 + (tz - F.z0) * u; k.y = F.y0 * (1 - u) + 4 * (F.hoch || 9) * hu * (1 - hu);
+  if (!F.kurz) { let dy = Math.atan2(TX[F.b], TZ[F.b]) - F.yaw0; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); k.yaw = k.mh = F.yaw0 + dy * u; }
+  k.luft = true; k.vy = hu < .5 ? 5 : -5;
+  if (u >= 1 && F.kurz) { k.flug = null; absturz(k); return; }
   if (u >= 1) { k.flug = null; k.idx = F.b; k.prog = F.prog; k.d = F.d; k.y = hoehe(F.b, F.d); k.luft = false; k.vy = 0; k.landung = .25; k.boost = Math.max(k.boost, .4); }
+}
+
+// Absturz in die Schlucht: fallen, dann tragen Fledermäuse das Kart zurück auf die Fahrbahn (etwa 2 Sekunden)
+function absturz(k) {
+  if (k.absturz) return;
+  const zi = wrap(k.idx - meter(3));
+  k.absturz = { t: 0, vx: Math.sin(k.mh) * k.v * .4, vz: Math.cos(k.mh) * k.v * .4, zi, prog: k.prog - vorab(k.idx, zi), y0: k.y };
+  k.drift = 0; k.ladung = 0; k.boost = 0; k.haken = null; k.v = 0; k.dreher = 0; k.luft = true;
+  if (k.ich) { melden("Abgestürzt! Fledermäuse holen dich 🦇", 1.8); summen(150); wackeln = Math.max(wackeln, .4); }
+}
+function absturzSchritt(k, dt) {
+  const A = k.absturz; A.t += dt;
+  const q = punkt(A.zi, 0);
+  if (A.t < .7) { k.x += A.vx * dt; k.z += A.vz * dt; k.y = A.y0 - A.t * A.t * 22; }
+  else {
+    if (A.x1 == null) { A.x1 = k.x; A.z1 = k.z; A.y1 = k.y; A.yaw1 = k.yaw; }
+    const u = Math.min(1, (A.t - .7) / 1.3), e = u * u * (3 - 2 * u);
+    k.x = A.x1 + (q.x - A.x1) * e; k.z = A.z1 + (q.z - A.z1) * e; k.y = A.y1 * (1 - e) + Math.sin(u * Math.PI) * 4;
+    let dy = q.rot - A.yaw1; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); k.yaw = k.mh = A.yaw1 + dy * e;
+  }
+  if (A.t >= 2) {
+    k.absturz = null; k.x = q.x; k.z = q.z; k.idx = A.zi; k.prog = A.prog; k.d = 0; k.y = hoehe(A.zi, 0); k.vy = 0; k.luft = false;
+    k.yaw = k.mh = q.rot; k.v = 7; k.s = 0; k.schonzeit = 1.5;
+  }
 }
 
 // Bewegte Dinge (auf allen Handys gleich, nach der Rennuhr): Gitter, Pendel, Ratten, Troll, König
@@ -1722,6 +2010,17 @@ function streckeZeigen(dt) {
       f.tore[s].position.y = f.torY[s];
     }
   }
+  if (pilzSprung && pilzSprung.pilze) for (const pz of pilzSprung.pilze) { if (pz.wipp > 0) pz.wipp = Math.max(0, pz.wipp - dt); pz.g.userData.kappe.scale.y = .55 - Math.sin((pz.wipp || 0) / .4 * Math.PI) * .25; }
+  // Tropfende Decke: Tropfsteine fallen im Takt an wechselnden Stellen (für alle Handys gleich)
+  for (const t of tropfen) {
+    const T = 5.5, z = Math.floor((uhr + t.phase) / T), tt = phase === "rennen" ? (uhr + t.phase) % T : 4;
+    const d = (hashf(plan.s + t.nr * 3, z) - .5) * (BR - 3), q = punkt(t.i, d);
+    t.x = q.x; t.z = q.z; t.liegt = tt > 1.85 && tt < 2.9;
+    const y = tt < 1.6 ? 15 + Math.sin(uhr * 40) * (tt > .9 ? .15 : 0) : tt < 2 ? 15 - (tt - 1.6) / .4 * 14.2 : tt < 3 ? .8 : 15;
+    t.g.position.set(q.x, y + (tt >= 2 && tt < 3 ? 2.4 : 0), q.z); t.g.rotation.z = tt >= 2 && tt < 3 ? 1.3 : 0; t.g.visible = tt < 3 || tt > 3.6;
+    t.sch.position.set(q.x, .07, q.z); t.sch.visible = tt < 2; t.sch.scale.setScalar(Math.min(1, tt / 1.6));
+  }
+  for (const f of gabeln) if (f.art === "tunnel" && f.netzM) f.netzM.forEach((m, w) => { const st = f.staerke[w]; m.visible = st > 0; m.material.opacity = [0, .35, .65, .95][st]; m.scale.set(1, [0, .5, .8, 1][st], 1); });
   for (const p of pendel) {
     const w = Math.sin(uhr * 2.1 + p.phase) * .95;
     p.arm.rotation.z = w; p.d = -Math.sin(w) * 7.6; p.y = 9.6 - Math.cos(w) * 7.6;
@@ -1733,6 +2032,7 @@ function streckeZeigen(dt) {
       const quer = ((t - 3.5) / 3.5 * 2 - 1) * (RAND + .4) * (n % 2 ? 1 : -1), laengs = (n - 2) * 2;
       const j = wrap(r.i + meter(laengs) + 0), q = punkt(j, quer + Math.sin(uhr * 9 + n) * .4);
       g.position.set(q.x, Math.abs(Math.sin(uhr * 16 + n)) * .1, q.z); g.rotation.y = q.rot + (n % 2 ? -Math.PI / 2 : Math.PI / 2);
+      if (g.userData.beine) g.userData.beine.forEach((b, m) => b.rotation.x = Math.sin(uhr * 22 + m * 1.6) * .35);
       r.pos.push(q);
     });
   }
@@ -1745,7 +2045,11 @@ function streckeZeigen(dt) {
     troll.keule.position.y = wach ? 1.6 : .5;
     troll.keuleD = troll.s * (RAND + 2.6) - troll.s * (BR * .5) * (1 + Math.sin(uhr * 2.6)) * .9;
   }
-  if (koenig) {
+  if (koenig && koenig.art === "spinne") {
+    koenig.g.visible = ![...objekte.values()].some(o => o.art === "koenigin");
+    koenig.g.position.y = 7.5 + Math.sin(uhr * 1.3) * .3; koenig.g.userData.beine.forEach((b, m) => b.rotation.x = Math.sin(uhr * 3 + m) * .12);
+  }
+  if (koenig && koenig.art === "knochen") {
     if (koenig.anim > 0) koenig.anim = Math.max(0, koenig.anim - dt);
     const a = koenig.anim > 0 ? Math.sin(Math.min(1, (1.6 - koenig.anim) * 3) * Math.PI / 2) : 0;
     koenig.arm.rotation.z = a * 1.4; koenig.augMat.color.set(a > .2 ? "#C6FFD8" : "#7BE3A0");
@@ -1757,6 +2061,15 @@ function koenigLenken(dt) {
   if (!koenig || modus === "client" || phase !== "rennen") return;
   if (!karts.some(k => k.runden.length >= 1 && k.fertig == null)) { koenigTakt = 6; return; }
   koenigTakt -= dt; if (koenigTakt > 0) return;
+  if (koenig.art === "spinne") {
+    // Spinnenkönigin: seilt sich vor zwei Fahrern ab, in Runde 3 öfter
+    const wild = karts.some(k => k.runden.length >= 2 && k.fertig == null);
+    koenigTakt = wild ? 7 + Math.random() * 3 : 11 + Math.random() * 5;
+    const ziele = karts.filter(o => o.fertig == null && o.g.visible).sort(() => Math.random() - .5).slice(0, wild ? 3 : 2);
+    const stellen = ziele.map(o => [wrap(Math.round(o.idx + (34 + Math.random() * 10) / SCHRITT)), Math.round(((Math.random() - .5) * (BR - 4)) * 10) / 10]);
+    if (stellen.length) ereignis({ a: "faden", id: neueId(), stellen });
+    return;
+  }
   koenigTakt = 14 + Math.random() * 6;
   const steine = [];
   for (const o of karts) {
@@ -1772,10 +2085,12 @@ function streckenSpur(k) {
     const vor = vorab(f.i0, k.idx) * SCHRITT;
     if (vor < 55) {
       if (f.art === "gabel") return -torZu(f) * BR / 4;
+      if (f.art === "tunnel") return (k.tunnelWahl || f.staerke.reduce((a, b) => a + b, 0) <= 5 ? f.innen : -f.innen) * BR / 4;
       return !f.offen && k.st.masse < 1.5 ? -f.innen * BR / 4 : f.innen * BR / 4;
     }
   }
   if (k.loreWahl) for (const f of loren) { const vor = vorab(f.i0, k.idx) * SCHRITT; if (vor > 0 && vor < 45) return f.railD; }
+  if (k.trollWahl && pilzSprung) { const vor = vorab(pilzSprung.i, k.idx) * SCHRITT; if (vor > 0 && vor < 40) return pilzSprung.s * (vor < 23 ? RAND + 1.2 : BR / 2 - 1.2); }
   if (k.trollWahl && troll && !trollWach()) { const vor = vorab(troll.i, k.idx) * SCHRITT; if (vor > 0 && vor < 40) return troll.s * (RAND + 1.6); }
   return null;
 }
@@ -1870,6 +2185,7 @@ document.addEventListener("contextmenu", e => e.preventDefault());
 // Jedes Handy rechnet sein eigenes Kart selbst und schickt 15-mal pro Sekunde seinen Zustand an den Spielleiter.
 // Der Spielleiter rechnet die Übungsgegner und schickt allen den Stand aller Karts.
 let karts = [], ich = null, phase = "menue", uhr = 0, countdown = 0, liste = [], rennNr = 0, rennenVorbei = false;
+let wahlWelt = ["kerker", "grotte", "zufall"].includes(lager.lesen("kart:welt")) ? lager.lesen("kart:welt") : "zufall";
 let wahlTyp = heldOder(lager.lesen("kart:typ")), wahlGegner = Math.min(5, +(lager.lesen("kart:gegner") ?? 3));
 // Jeder Mitspieler bekommt eine eigene Kart-Farbe, damit gleiche Fahrzeuge unterscheidbar sind
 const SPIELERFARBEN = ["#E23B2E", "#2F6FDE", "#F2B705", "#2E9B4F", "#8B5CF6", "#F97316", "#E86FB0", "#38BDF8"];
@@ -1883,7 +2199,7 @@ function rennenAufbauen(raster) {
   raster.forEach((e, n) => {
     const k = new Kart(e.typ, e.name, e.id === PID, e.farbe);
     k.id = e.id; k.bot = !!e.bot; k.remote = e.id !== PID && !(e.bot && modus !== "client");
-    k.tempo = .9 + (n % 4) * .025; k.loreWahl = Math.random() < .45; k.trollWahl = Math.random() < .4;
+    k.tempo = .9 + (n % 4) * .025; k.loreWahl = Math.random() < .45; k.trollWahl = Math.random() < .4; k.tunnelWahl = Math.random() < .5;
     const [i, d] = startplatz(n); k.setzen(i, d); k.zeigen(0);
     karts.push(k); if (k.ich) ich = k;
   });
@@ -1906,7 +2222,11 @@ function alleinRaster() {
 }
 
 function botEingabe(k, dt) {
-  const fs = phase === "rennen" ? streckenSpur(k) : null;          // Spur, die die Strecke verlangt (Gabelung, Wand, Lore, Troll)
+  let fs = phase === "rennen" ? streckenSpur(k) : null;            // Spur, die die Strecke verlangt (Gabelung, Wand, Lore, Troll)
+  if (fs == null) {                                                   // an der Schlucht: Abstand zum Abgrund halten, Kurve nicht schneiden
+    let sg = 0; for (let m = 0; m <= 36; m += 4) { const c = SCHLUCHT[wrap(k.idx + meter(m))]; if (c) sg = sg && sg !== c ? 2 : c; }
+    if (sg) { const sp = k.spur || 0; fs = sg === 2 ? klemmen(sp, -2.5, 2.5) : sg > 0 ? Math.min(sp, BR / 2 - 3) : Math.max(sp, -BR / 2 + 3); }
+  }
   const vor = Math.round((fs != null ? 5 + k.v * .45 : 10 + k.v * .9) / (LAENGE / S));   // vor Engstellen kürzer vorausschauen, sonst wird die Kurve geschnitten
   const j = wrap(k.idx + vor);
   k.botTimer -= dt;
@@ -1929,7 +2249,7 @@ function botEingabe(k, dt) {
   const abstand = (mensch - k.prog) / S * LAENGE;
   k.st = { ...TYPEN[k.typ], maxV: TYPEN[k.typ].maxV * k.tempo * (abstand > 40 ? 1.08 : abstand < -60 ? .93 : 1) };
   let lenk = -diff * 2.2;
-  if (fs != null) lenk += klemmen((k.spur - k.d) * .18, -.6, .6);   // aktiv in die verlangte Spur
+  if (fs != null) lenk += klemmen((k.spur - k.d) * .3, -.8, .8);   // aktiv in die verlangte Spur
   if (k.fleder > 0) lenk += Math.sin(uhr * 7 + k.tempo * 50) * .9;      // Fledermäuse vor den Augen
   return { lenk: Math.max(-1, Math.min(1, lenk)), drift: false, direkt: true };
 }
@@ -1986,7 +2306,8 @@ function update(dt) {
     if (rennt && k.ich && AUTO && k.kraft >= 1) kraftNutzen(k);
     if (rennt) kraftSchritt(k, dt);
     if (k.fertig != null && k.ich) k.st = { ...TYPEN[k.typ], maxV: TYPEN[k.typ].maxV * .6 };
-    if (k.lore) loreSchritt(k, dt, e);
+    if (k.absturz) absturzSchritt(k, dt);
+    else if (k.lore) loreSchritt(k, dt, e);
     else if (k.flug) flugSchritt(k, dt);
     else { k.schritt(dt, e); if (rennt) streckeWirkung(k, dt, e); }
     // Runden
@@ -2124,7 +2445,7 @@ function hudVorbereiten() {
   $("lenktext").textContent = t ? "Pfeiltasten lenken" : "Handy neigen zum Lenken";
 }
 // Plan aus dem Netz prüfen (sonst würfeln)
-function planPruefen(p) { return p && planAusCode(planCode({ v: Array.isArray(p.v) ? p.v : [], s: +p.s || 0 })) || planWuerfeln(); }
+function planPruefen(p) { return p && planAusCode(planCode({ w: p.w, v: Array.isArray(p.v) ? p.v : [], s: +p.s || 0 })) || planWuerfeln(wahlWelt); }
 function countdownStarten(raster, p) {
   if (!raster.some(e => e.id === PID)) { menue("lobby"); return; }      // bin nicht dabei (zu spät gekommen)
   streckeBauen(planPruefen(p));
@@ -2134,7 +2455,7 @@ function countdownStarten(raster, p) {
   phase = "vorschau"; vorschauZeit = VORSCHAU; $("gross").hidden = true;
 }
 // gleich = dieselbe Strecke noch einmal, sonst eine neue
-function alleinStarten(gleich) { modus = "allein"; countdownStarten(alleinRaster(), gleich ? plan : startPlan || planWuerfeln()); startPlan = null; }
+function alleinStarten(gleich) { modus = "allein"; countdownStarten(alleinRaster(), gleich ? plan : startPlan || planWuerfeln(wahlWelt)); startPlan = null; }
 let startPlan = planAusCode(new URLSearchParams(location.search).get("strecke"));   // ?strecke=KERKER-… fährt diese Strecke
 // Vorschau: allein mit Antippen überspringen
 addEventListener("pointerdown", () => { if (phase === "vorschau" && modus === "allein") vorschauZeit = Math.min(vorschauZeit, .01); });
@@ -2175,7 +2496,7 @@ function lobbyListe() {
 function lobbySenden() {
   if (modus !== "host") return;
   ss.set("kart:host", { code, gegner: wahlGegner });
-  anAlle({ t: "lobby", spieler: lobbyListe(), gegner: wahlGegner, phase: lobbyPhase, nr: rennNr });
+  anAlle({ t: "lobby", spieler: lobbyListe(), gegner: wahlGegner, welt: wahlWelt, phase: lobbyPhase, nr: rennNr });
   if (phase === "menue") menue("lobby");
 }
 
@@ -2228,7 +2549,7 @@ function ergebnisSenden() {
 }
 function rennenStarten(gleich) {
   if (modus !== "host") return;
-  const p = gleich && plan ? plan : startPlan || planWuerfeln(); startPlan = null;
+  const p = gleich && plan ? plan : startPlan || planWuerfeln(wahlWelt); startPlan = null;
   rennNr++; lobbyPhase = "rennen";
   const menschen = lobbyListe().filter(e => e.online), raster = monsterRaster(wahlGegner);
   // Spieler in zufälliger Reihenfolge hinter die Übungsgegner
@@ -2262,7 +2583,7 @@ function verbinde() {
 function vomHost(m) {
   if (!m) return;
   if (m.t === "lobby") {
-    lobby = m; wahlGegner = m.gegner;
+    lobby = m; wahlGegner = m.gegner; if (m.welt) wahlWelt = m.welt;
     if (m.phase === "lobby" && (phase === "ziel" || phase === "menue")) { phase = "menue"; menue("lobby"); }
     else if (phase === "menue") menue("lobby");
   } else if (m.t === "start") { rennNr = m.nr; countdownStarten(m.raster, m.plan); }
@@ -2296,6 +2617,8 @@ function heldWahl() {
   return `<div class="wahlblock"><b class="etikett">Dein Held</b><div class="helden">${Object.entries(HELDEN).map(([t, f]) => `<button class="held ${t === wahlTyp ? "an" : ""}" data-typ="${t}">${window.VB ? VB.held(t) : ""}<span>${f.name}</span></button>`).join("")}</div>
     <p class="heldinfo"><b>${h.gefaehrt}</b> · ${h.klasse}: ${h.text}<br>Heldenkraft <b>${KRAEFTE[wahlTyp].name}</b>: ${KRAEFTE[wahlTyp].text}</p></div>`;
 }
+const WELT_NAMEN = { kerker: "🏰 Kerker", grotte: "🕷️ Grotte", zufall: "🎲 Zufall" };
+function weltWahl() { return Object.entries(WELT_NAMEN).map(([w, t]) => `<button class="wahl ${wahlWelt === w ? "an" : ""}" data-welt="${w}">${t}</button>`).join(""); }
 function lenkWahl() {
   return `<button class="wahl ${steuerung === "neigen" ? "an" : ""}" data-st="neigen">📱 Neigen</button><button class="wahl ${steuerung === "tasten" ? "an" : ""}" data-st="tasten">◀ ▶ Tasten</button>`;
 }
@@ -2305,11 +2628,12 @@ function menue(a) {
   let h = "";
   if (a === "start") {
     const best = +lager.lesen("kart:best:" + wahlTyp);
-    h = `<div class="zeile" style="justify-content:space-between;align-items:baseline"><h1>Kerker-<span>Kart</span></h1><p class="leise">Testversion: Kerker, 3 Runden, bis zu 8 Leute</p></div>
+    h = `<div class="zeile" style="justify-content:space-between;align-items:baseline"><h1>Kerker-<span>Kart</span></h1><p class="leise">Testversion: Kerker und Spinnengrotte, 3 Runden, bis zu 8 Leute</p></div>
       <div class="spalten"><div class="stapel">
         <label class="zeile namenszeile"><b>Name</b><input id="name" maxlength="20" value="${esc(name)}" autocomplete="nickname" placeholder="z. B. Richard"></label>
         ${heldWahl()}
         <div class="zeile"><b>Lenken</b>${lenkWahl()}</div>
+        <div class="zeile"><b>Welt</b>${weltWahl()}</div>
         ${best ? `<p class="leise">Deine Bestzeit als ${HELDEN[wahlTyp].name}: ${zeitText(best)}</p>` : ""}
       </div><div class="stapel">
         <div class="box"><b class="titelchen">Zusammen fahren</b><button class="los" id="erstellen">Raum erstellen</button>
@@ -2336,6 +2660,7 @@ function menue(a) {
       </div><div class="stapel">
         ${heldWahl()}
         <div class="zeile"><b>Lenken</b>${lenkWahl()}</div>
+        ${host ? `<div class="zeile"><b>Welt</b>${weltWahl()}</div>` : `<p class="leise">Welt: ${WELT_NAMEN[wahlWelt] || "Zufall"}</p>`}
         ${host ? `<div class="zeile"><b>Monster</b>${[0, 1, 2, 3, 4, 5].map(n => `<button class="wahl ${wahlGegner === n ? "an" : ""}" data-geg="${n}">${n}</button>`).join("")}</div>` : `<p class="leise">Monster als Gegner: ${wahlGegner}</p>`}
         ${host ? `<button class="los" id="rennstart">Rennen starten</button>` : `<p class="warte">${lobby && lobby.phase === "rennen" ? "Ein Rennen läuft gerade. Beim nächsten bist du dabei." : `Warte, bis ${esc(hostName())} das Rennen startet …`}</p>`}
         <button class="zurueck knopflos" id="verlassen" style="align-self:flex-start">${host ? "Raum schließen" : "Raum verlassen"}</button>
@@ -2357,6 +2682,12 @@ function menueBinden() {
     if (modus === "host") lobbySenden(); else menue(ansicht);
   });
   document.querySelectorAll("[data-st]").forEach(b => b.onclick = async () => { nameMerken(); steuerung = b.dataset.st; lager.schreiben("kart:steuerung", steuerung); await sensorErlauben(); menue(ansicht); });
+  document.querySelectorAll("[data-welt]").forEach(b => b.onclick = () => {
+    nameMerken(); wahlWelt = b.dataset.welt; lager.schreiben("kart:welt", wahlWelt);
+    // Hintergrund im Menü zeigt die gewählte Welt
+    if (phase === "menue" && wahlWelt !== "zufall" && welt !== wahlWelt) { streckeBauen(planWuerfeln(wahlWelt)); rennenAufbauen(alleinRaster()); }
+    if (modus === "host") lobbySenden(); else menue(ansicht);
+  });
   document.querySelectorAll("[data-geg]").forEach(b => b.onclick = () => { nameMerken(); wahlGegner = +b.dataset.geg; lager.schreiben("kart:gegner", wahlGegner); if (modus === "host") lobbySenden(); else menue(ansicht); });
   const klick = (id, f) => { if ($(id)) $(id).onclick = f; };
   klick("allein", async () => { if (!nameAus()) return; await sensorErlauben(); alleinStarten(); });
@@ -2422,7 +2753,7 @@ function loop(jetzt) {
 }
 
 // ---------- Start ----------
-streckeBauen(startPlan || planWuerfeln());
+streckeBauen(startPlan || planWuerfeln(wahlWelt));
 rennenAufbauen(alleinRaster());
 const gespeichert = ss.get("kart:host");
 if (typeof Peer === "undefined") { menue("start"); netzStatus("Die Verbindungsbibliothek fehlt: zusammen fahren geht gerade nicht."); }
@@ -2431,4 +2762,4 @@ else if (code) menue("einladung");
 else menue("start");
 requestAnimationFrame(loop);
 window.KART = { get phase() { return phase; }, get ich() { return ich; }, karts: () => karts, ein, S, get LAENGE() { return LAENGE; }, get liste() { return liste; }, get modus() { return modus; },
-  sim(sek) { for (let t = 0; t < sek; t += 1 / 60) { update(1 / 60); } }, aufbauen: rennenAufbauen, cam, sc, r, THREE, streckeBauen, planWuerfeln, planCode, get plan() { return plan; }, get strecke() { return { abschnitte, gabeln, loren, troll, pendel, pfosten, rattenStellen, koenig, rampen }; }, PX, PZ, set uhr(v) { uhr = v; }, objekte, extraNutzen, kisten, treffen, versetzen, anwenden, ereignis, schritte(sek) { for (let t = 0; t < sek; t += 1 / 30) { update(1 / 30); karts.forEach(k => k.zeigen(performance.now())); hud(1 / 30); } }, neigung: () => neigung, lenkWert, kraftNutzen, muenzen, wirkung, set steuerung(v) { steuerung = v; } };
+  sim(sek) { for (let t = 0; t < sek; t += 1 / 60) { update(1 / 60); } }, aufbauen: rennenAufbauen, cam, sc, r, THREE, streckeBauen, planWuerfeln, planCode, get plan() { return plan; }, get strecke() { return { abschnitte, gabeln, loren, troll, pendel, pfosten, rattenStellen, koenig, rampen, pilzSprung, tropfen, schluchten, haengebruecken, welt }; }, SCHLUCHT, absturz, PX, PZ, set uhr(v) { uhr = v; }, objekte, extraNutzen, kisten, treffen, versetzen, anwenden, ereignis, schritte(sek) { for (let t = 0; t < sek; t += 1 / 30) { update(1 / 30); karts.forEach(k => k.zeigen(performance.now())); hud(1 / 30); } }, neigung: () => neigung, lenkWert, kraftNutzen, muenzen, wirkung, set steuerung(v) { steuerung = v; } };

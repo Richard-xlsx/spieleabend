@@ -289,7 +289,7 @@ Nach jedem Paket ist das Spiel spielbar, und du kannst es am Handy testen.
 | **2** ✔ | Truhen und alle Extras, Treffer, Schutzzeit, Werfen nach hinten, Mimik-Truhen, Schütteln und Wischen | Rennen mit Extras, auch über mehrere Handys |
 | **3** ✔ | Kerker als Strecke aus Abschnitten mit Varianten: Fallgitter, Druckplatten, Lorenbahn, Troll-Trampolin, brüchige Wand; Knochenkönig mit Beben; Streckenvorschau | erste Dungeon-Strecke, jedes Rennen anders |
 | **4** ✔ | Heldenkräfte und Kraftleiste, Gold auf der Strecke | jeder Held spielt sich anders |
-| **5** | Welt **Spinnengrotte**: Pilzsprung über die Schlucht, Netztunnel, Spinnenkönigin, Absturz mit Fledermäusen | zweite Welt |
+| **5** ✔ | Welt **Spinnengrotte**: Pilzsprung über die Schlucht, Netztunnel, Spinnenkönigin, Absturz mit Fledermäusen | zweite Welt |
 | **6** | Welt **Glutschlund**: Geysire, sinkende Steine, einstürzende Brücke, Glutdrache, steigende Lava | dritte Welt |
 | **7** | Feldzug mit Siegerehrung, Rennflüche, Zuschauen, Aufnahme in Spielauswahl und Spieleabend | fertiges Partyspiel |
 | **8** | Flucht aus dem Glutschlund, Schatzjagd, Bardin und Hexe | zusätzliche Modi |
@@ -358,3 +358,29 @@ Eingebaut:
   - Skelett rufen: zwei Karts hinter ihm (bis 120 m) bekommen je ein Skelett, jedes bremst um 14 %. Schütteln wirft eins ab, sonst fällt es nach 5 und 3,5 Sekunden von selbst. Ist niemand hinter ihm, bleibt die Kraft geladen.
 - Monster haben keine Heldenkraft (ihre Eigenheiten kommen später). Monster sammeln Gold, laden aber nichts.
 - Behoben dabei: Monster schnitten vor der brüchigen Wand die Kurve und hingen dann an der Wand fest, wenn kein schweres Kart dabei war. Sie schauen vor Engstellen jetzt kürzer voraus und bekommen beim Abprallen einen Schubs auf die freie Seite.
+
+## 14. Stand Paket 5 (20.11.2026)
+
+Die **Spinnengrotte** ist die zweite Welt. Im Menü und in der Lobby wählt man die Welt: Kerker, Grotte oder Zufall. Der Streckencode beginnt mit GROTTE, zum Beispiel GROTTE-101001-0004. Es gibt 32 Kombinationen, eine Runde ist 870 bis 1030 m lang.
+
+| Abschnitt | Varianten |
+|---|---|
+| 1 Start | Pilzhain mit Pilzhaus · Tropfstein-Slalom |
+| 2 Schlucht | Schluchtkante (Abgrund an der Außenseite) · Pilzsprung über die Schlucht |
+| 3 Tiefe | Netztunnel · Ufer am Höhlensee (nass) |
+| 4 Nest | Nest der Spinnenkönigin (immer) |
+| 5 Brut | Eierkammer mit krabbelnden Spinnen · Hängebrücke über die Schlucht |
+| 6 Heimweg | Kristallhöhle · Tropfende Decke |
+
+So ist es umgesetzt:
+- **Aussehen:** grünes Licht, Leuchtpilze statt Fackeln, Tropfsteine oben und unten, Riesenkristall in der Mitte.
+- **Schlucht:** Wo ein Abgrund ist, fehlt die Mauer. Wer über den Rand fährt, stürzt ab. Ein Fledermausschwarm trägt das Kart nach etwa 2 Sekunden ein paar Meter zurück auf die Fahrbahn.
+- **Pilzsprung:** Vor dem Pilz führt ein Felsvorsprung an den Abgrund. Wer mit Tempo mittig oder außen auf den Pilz fährt, hüpft von Pilz zu Pilz über die Schlucht und spart die Schleife. Wer nur den inneren Rand trifft, springt zu kurz und stürzt ab.
+- **Netztunnel:** Eine Trennwand teilt die Fahrbahn. Innen liegt der Tunnel mit 4 Netzen, außen ein Wurzelweg (holprig, 22 % langsamer; die Magierin schwebt darüber). Jedes Netz bremst stark, wenn es frisch ist, und jedes Durchfahren reißt es weiter auf: 62 %, dann 36 %, dann 14 % Tempoverlust, danach ist es weg und bleibt für das ganze Rennen offen.
+- **Hängebrücke:** schmale Planken ohne Geländer, links und rechts Abgrund.
+- **Tropfende Decke:** Tropfsteine fallen im Takt an wechselnden Stellen. Vorher wächst ein Schatten auf der Fahrbahn, der gefallene Tropfstein liegt kurz als Hindernis da.
+- **Spinnenkönigin:** In Runde 1 sitzt sie im Nest. Ab Runde 2 seilt sie sich alle 11 bis 16 Sekunden vor zwei Fahrern ab (ab Runde 3 alle 7 bis 10 Sekunden vor drei). Ihr Schatten warnt, wer unter ihr durchfährt, wird eingesponnen (wie das Wurfnetz, Schütteln hilft).
+- **Monster:** halten an Schluchten Abstand vom Rand, springen teils über die Pilze und wählen Tunnel oder Wurzelweg.
+
+Noch nicht gebaut: Fledermäuse, die am Rand auffliegen, wenn man vorbeirast.
+- Behoben: Nach einem Dreher (Mimik, Treffer, Prellbock) zeigten Fahrtrichtung und Kamera in eine zufällige Richtung. Jetzt dreht sich nur das Modell zweimal um sich selbst, Fahrtrichtung und Blick bleiben nach vorn.

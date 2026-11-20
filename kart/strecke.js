@@ -6,9 +6,9 @@
 // Stellen sind Anteile u von 0 (Anfang des Abschnitts) bis 1 (Ende). Seiten: +1 / -1 quer zur Fahrtrichtung,
 // "innen" heißt: zur Innenseite der Kurve (wird beim Bauen ausgerechnet).
 
-export const KNOTEN = [[0, 0], [150, -8], [196, -150], [92, -236], [-64, -226], [-170, -112]];
+const KERKER_KNOTEN = [[0, 0], [150, -8], [196, -150], [92, -236], [-64, -226], [-170, -112]];
 
-export const ABSCHNITTE = [
+const KERKER = [
   { name: "Start", varianten: [
     { name: "Wachstube, lange Gerade", punkte: [[75, -4]],
       dinge: [{ art: "haus", bei: .45, seite: 1, w: 24, h: 8, d: 12, farbe: "#6E655C", schild: "WACHSTUBE" }], truhen: [.75] },
@@ -54,26 +54,73 @@ export const ABSCHNITTE = [
   ] }
 ];
 
+// Spinnengrotte: Leuchtpilze, Netze, Schluchten. Wer in eine Schlucht fällt, wird von Fledermäusen zurückgetragen.
+const GROTTE_KNOTEN = [[0, 0], [160, 10], [225, -95], [190, -220], [30, -250], [-110, -150]];
+const GROTTE = [
+  { name: "Start", varianten: [
+    { name: "Pilzhain", punkte: [[80, 8]],
+      dinge: [{ art: "pilzhaus", bei: .45, seite: 1 }], truhen: [.75] },
+    { name: "Tropfstein-Slalom", punkte: [[50, 4], [85, -4], [120, 10]],
+      dinge: [{ art: "tropfstein", stuecke: [[.38, 3.4], [.44, 1.8], [.6, -3.5], [.66, -1.8], [.82, 3]] }], truhen: [.93] }
+  ] },
+  { name: "Schlucht", varianten: [
+    { name: "Schluchtkante", punkte: [[205, -10], [228, -50]],
+      dinge: [{ art: "schlucht", von: .15, bis: .85, seite: "aussen" }], truhen: [.1] },
+    { name: "Pilzsprung über die Schlucht", punkte: [[205, 22], [265, 22], [292, -8], [268, -42], [232, -50]],
+      dinge: [{ art: "schlucht", von: .08, bis: .78, seite: "innen" }, { art: "pilzsprung", bei: .17 }], truhen: [.88] }
+  ] },
+  { name: "Tiefe", varianten: [
+    { name: "Netztunnel", punkte: [[248, -150], [230, -200]],
+      dinge: [{ art: "tunnel", von: .22, bis: .7 }], truhen: [.9] },
+    { name: "Ufer am Höhlensee", punkte: [[262, -142], [240, -210]],
+      dinge: [{ art: "nass", von: .12, bis: .88, see: true }], truhen: [.95] }
+  ] },
+  { name: "Nest", varianten: [
+    { name: "Nest der Spinnenkönigin", punkte: [[110, -252]],
+      dinge: [{ art: "koenigin", bei: .5, seite: "aussen" }, { art: "nestdeko", bei: .5 }], truhen: [.85] }
+  ] },
+  { name: "Brut", varianten: [
+    { name: "Eierkammer", punkte: [[-30, -240], [-80, -205]],
+      dinge: [{ art: "spinnen", bei: [.35, .6] }, { art: "eier", bei: .48, seite: "aussen" }], truhen: [.85] },
+    { name: "Hängebrücke über die Schlucht", punkte: [[-40, -246], [-85, -200]],
+      dinge: [{ art: "haengebruecke", von: .3, bis: .66 }], truhen: [.86] }
+  ] },
+  { name: "Heimweg", varianten: [
+    { name: "Kristallhöhle", punkte: [[-105, -75], [-60, -20]],
+      dinge: [{ art: "kristall", stuecke: [[.3, 3.2], [.42, -3], [.55, .3], [.68, 3.3], [.78, -2.6]] }], truhen: [.12] },
+    { name: "Tropfende Decke", punkte: [[-120, -80], [-70, -15]],
+      dinge: [{ art: "tropfen", bei: [.3, .42, .54, .66] }], truhen: [.12] }
+  ] }
+];
+
+export const WELTEN = {
+  kerker: { name: "Kerker", code: "KERKER", knoten: KERKER_KNOTEN, abschnitte: KERKER },
+  grotte: { name: "Spinnengrotte", code: "GROTTE", knoten: GROTTE_KNOTEN, abschnitte: GROTTE },
+};
+
 // Zufall mit Startwert (für alle Handys gleich)
 export function rng(seed) { let s = (seed >>> 0) % 2147483646 + 1; return () => (s = (s * 16807) % 2147483647) / 2147483647; }
 
 // Plan: welche Variante je Abschnitt plus Startwert für Kleinkram (Deko, Mimiks, Gitter-Takt)
-export function planWuerfeln(zufall = Math.random) {
-  return { v: ABSCHNITTE.map(a => Math.floor(zufall() * a.varianten.length)), s: Math.floor(zufall() * 65536) };
+export function planWuerfeln(welt, zufall = Math.random) {
+  if (!WELTEN[welt]) welt = Object.keys(WELTEN)[Math.floor(zufall() * Object.keys(WELTEN).length)];
+  return { w: welt, v: WELTEN[welt].abschnitte.map(a => Math.floor(zufall() * a.varianten.length)), s: Math.floor(zufall() * 65536) };
 }
 // Streckencode wie KERKER-1203-7F3A: Ziffern = Varianten, dahinter der Startwert
-export function planCode(p) { return "KERKER-" + p.v.join("") + "-" + p.s.toString(16).toUpperCase().padStart(4, "0"); }
+export function planCode(p) { return (WELTEN[p.w] || WELTEN.kerker).code + "-" + p.v.join("") + "-" + p.s.toString(16).toUpperCase().padStart(4, "0"); }
 export function planAusCode(c) {
-  const m = /^KERKER-(\d{6})-([0-9A-F]{1,4})$/i.exec(String(c || "").trim());
+  const m = /^([A-Z]+)-(\d{6})-([0-9A-F]{1,4})$/i.exec(String(c || "").trim());
   if (!m) return null;
-  const v = [...m[1]].map(Number);
-  if (v.some((x, i) => x >= ABSCHNITTE[i].varianten.length)) return null;
-  return { v, s: parseInt(m[2], 16) };
+  const w = Object.keys(WELTEN).find(k => WELTEN[k].code === m[1].toUpperCase()); if (!w) return null;
+  const v = [...m[2]].map(Number);
+  if (v.some((x, i) => x >= WELTEN[w].abschnitte[i].varianten.length)) return null;
+  return { w, v, s: parseInt(m[3], 16) };
 }
 // Kontrollpunkte des Rundkurses und je Abschnitt der Index des ersten Punktes
 const MASS = .85;      // alle Punkte werden so verkleinert (eine Runde dauert dann etwa 40 Sekunden)
 export function kontrollpunkte(p) {
   const kp = [], start = [];
-  ABSCHNITTE.forEach((a, i) => { start.push(kp.length); kp.push(KNOTEN[i]); kp.push(...a.varianten[p.v[i]].punkte); });
+  const W = WELTEN[p.w] || WELTEN.kerker;
+  W.abschnitte.forEach((a, i) => { start.push(kp.length); kp.push(W.knoten[i]); kp.push(...a.varianten[p.v[i]].punkte); });
   return { kp: kp.map(([x, z]) => [x * MASS, z * MASS]), start };
 }
