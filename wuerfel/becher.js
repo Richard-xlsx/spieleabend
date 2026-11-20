@@ -4,7 +4,7 @@
 // Schnittstelle für wuerfel.js: window.BECHER (siehe ganz unten).
 import * as THREE from "three";
 import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
-import * as P from "./physik.js?v=2026-11-20b";
+import * as P from "./physik.js?v=2026-11-20c";
 
 const klemmen = (x, a, b) => Math.max(a, Math.min(b, x));
 const glatt = x => x * x * (3 - 2 * x);

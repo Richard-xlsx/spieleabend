@@ -91,19 +91,29 @@ export function erstelle() {
   });
 
   // Pose des Bechers setzen. Mit dt bekommt er die passende Geschwindigkeit, damit er die Würfel anschubst.
+  // Wichtig: Die Physik schiebt einen bewegten Körper im nächsten Schritt selbst um Geschwindigkeit·dt weiter.
+  // Deshalb steht er vor dem Schritt auf der alten Soll-Pose und kommt durch den Schritt genau auf der neuen an.
+  // (Früher stand er schon auf der neuen und wurde noch weitergeschoben, dann pendelte er heftig hin und her
+  // und hat Würfel durch die Wand geschleudert.)
+  const soll = { x: 0, y: 0, z: 0, q: new CANNON.Quaternion() };
   sim.becherSetzen = (x, y, z, q, dt) => {
-    const qa = becher.quaternion;
+    const qa = becher.quaternion, qz = new CANNON.Quaternion(q[0], q[1], q[2], q[3]);
     if (dt) {
-      becher.velocity.set((x - becher.position.x) / dt, (y - becher.position.y) / dt, (z - becher.position.z) / dt);
-      const qz = new CANNON.Quaternion(q[0], q[1], q[2], q[3]), d = qz.mult(qa.conjugate());
+      becher.velocity.set((x - soll.x) / dt, (y - soll.y) / dt, (z - soll.z) / dt);
+      const d = qz.mult(soll.q.conjugate());
       if (d.w < 0) { d.x = -d.x; d.y = -d.y; d.z = -d.z; d.w = -d.w; }
       const s = Math.sqrt(1 - Math.min(1, d.w * d.w)), w = 2 * Math.acos(Math.min(1, d.w));
       if (s > 1e-6) becher.angularVelocity.set(d.x / s * w / dt, d.y / s * w / dt, d.z / s * w / dt); else becher.angularVelocity.set(0, 0, 0);
-    } else { becher.velocity.set(0, 0, 0); becher.angularVelocity.set(0, 0, 0); }
-    becher.position.set(x, y, z); qa.set(q[0], q[1], q[2], q[3]);
+      becher.position.set(soll.x, soll.y, soll.z); qa.copy(soll.q);
+    } else {
+      becher.velocity.set(0, 0, 0); becher.angularVelocity.set(0, 0, 0);
+      becher.position.set(x, y, z); qa.copy(qz);
+    }
+    soll.x = x; soll.y = y; soll.z = z; soll.q.copy(qz);
     const oben = qa.vmult(v3(0, B.h + .4, 0));
-    deckel.position.set(x + oben.x, y + oben.y, z + oben.z); deckel.quaternion.copy(qa);
-    deckel.velocity.copy(becher.velocity);
+    deckel.position.set(becher.position.x + oben.x, becher.position.y + oben.y, becher.position.z + oben.z); deckel.quaternion.copy(qa);
+    deckel.velocity.copy(becher.velocity).vadd(becher.angularVelocity.cross(oben), deckel.velocity);
+    deckel.angularVelocity.copy(becher.angularVelocity);
   };
   // Abgeschaltete Teile ganz aus der Kollisionsprüfung nehmen, das spart viel Rechenzeit
   sim.deckelZu = zu => { deckel.collisionFilterMask = zu ? -1 : 0; };
@@ -133,7 +143,31 @@ export function erstelle() {
       b.velocity.copy(becher.velocity); b.angularVelocity.set(0, 0, 0);
     });
   };
-  sim.schritt = () => { welt.step(DT); sim.zeit += DT; };
+  // Sicherung beim Schütteln: Würfel, die durch Wand oder Deckel gedrückt wurden, zurück in den Becher holen
+  const ql = new CANNON.Quaternion(), rel = v3(0, 0, 0), vr = v3(0, 0, 0);
+  sim.festhalten = () => {
+    becher.quaternion.conjugate(ql);
+    const ra = B.r - .45, yo = B.h - .45;
+    for (const b of wuerfel) {
+      if (!b.dabei) continue;
+      b.position.vsub(becher.position, rel); ql.vmult(rel, rel);
+      b.velocity.vsub(becher.velocity, vr); ql.vmult(vr, vr);
+      let neu = false;
+      const r = Math.hypot(rel.x, rel.z);
+      if (r > ra) {
+        const nx = rel.x / r, nz = rel.z / r, raus = vr.x * nx + vr.z * nz;
+        rel.x = nx * ra; rel.z = nz * ra; neu = true;
+        if (raus > 0) { vr.x -= nx * raus * 1.4; vr.z -= nz * raus * 1.4; }
+      }
+      if (rel.y > yo) { rel.y = yo; if (vr.y > 0) vr.y = -vr.y * .4; neu = true; }
+      if (rel.y < .45) { rel.y = .45; if (vr.y < 0) vr.y = -vr.y * .4; neu = true; }
+      if (!neu) continue;
+      becher.quaternion.vmult(rel, rel); becher.position.vadd(rel, b.position);
+      becher.quaternion.vmult(vr, vr); becher.velocity.vadd(vr, b.velocity);
+      b.aabbNeedsUpdate = true;
+    }
+  };
+  sim.schritt = () => { welt.step(DT); sim.zeit += DT; if (deckel.collisionFilterMask) sim.festhalten(); };
 
   // Ab dem Loslassen: Auskippen und Ausrollen in einem Rutsch berechnen. Liefert Bahn (für die Wiedergabe) und Endlage.
   sim.werfen = (p, zufall = Math.random, maxSek = 7) => {
