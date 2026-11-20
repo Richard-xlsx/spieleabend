@@ -19,10 +19,11 @@ Aufbau
   viererkette/                    „Vier gelingt“ (Ordner heißt weiter so): index.html, viererkette-logic.js (Brett, Gewinnreihe), viererkette.js (Verbindung und Bildschirme)
   kritzelraten/                   „Malalarm“ (Ordner heißt weiter so): index.html, logic.js (Begriffe, Raten, Punkte), app.js (Verbindung, Malfläche, Bildschirme)
   wortverbot/                     „Umschreiben“ (Ordner heißt weiter so): index.html, logic.js (Karten, Teams, Züge, Punkte), app.js (Verbindung, Karten, Zeichnen, Töne)
-  kart/                           „Campus-Rallye“ (Arbeitstitel, Testversion, nicht in der Spielauswahl): index.html, spiel.js (3D-Strecke,
-                                  Fahrphysik, Neigen zum Lenken, Übungsgegner, Mehrspieler). Testlink: …/kart/
+  kart/                           „Kerker-Kart“ (Arbeitstitel, Testversion, nicht in der Spielauswahl): index.html, spiel.js (3D-Kerker,
+                                  Helden aus dem Verlies als Fahrer, Monster als Übungsgegner, Fahrphysik, Neigen zum Lenken, Mehrspieler),
+                                  KONZEPT.md (Ausbauplan in Paketen). Heldenwappen kommen aus verlies/bilder.js. Testlink: …/kart/
                                   Zusammen fahren: jedes Handy rechnet sein Kart selbst und schickt 15×/s seinen Stand an den Spielleiter,
-                                  der rechnet die Übungsgegner und verteilt alles. Zum Testen: ?auto (Kart fährt selbst), ?runden=1
+                                  der rechnet die Monster und verteilt alles. Zum Testen: ?auto (Kart fährt selbst), ?runden=1
   wuerfel/                        „Würfelpoker“: index.html, wuerfel-logic.js (Würfeln, Zettel, Punkte), wuerfel.js (Verbindung und Bildschirme)
   gleisgenossen/                  index.html, logic.js (Karte, Gleise, Zug, Preise), welt.js (3D-Welt mit Three.js),
                                   app.js (Startseite, Bedienleiste, Speichern), KONZEPT.md (Plan in drei Schritten)

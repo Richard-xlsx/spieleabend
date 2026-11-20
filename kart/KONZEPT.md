@@ -1,8 +1,8 @@
 # Kart-Rennen: Konzept für den großen Ausbau
 
-Stand: 19.11.2026. Bisher gebaut ist eine Campus-Strecke für 1 bis 8 Spieler mit Übungsgegnern. Es gibt vier Fahrzeuge und als einziges Extra den Espresso. Was hier steht, ist noch nicht gebaut.
+Stand: 20.11.2026. Paket 1 ist gebaut (Helden als Fahrer, Monster als Gegner, Kerker-Optik auf der bisherigen Streckenführung). Alles andere ist noch Plan.
 
-Arbeitstitel: **„Dungeons & Drifts“**. Er passt zu „Dungeons & Disappointments“. Andere Möglichkeiten: Kerkerkarren, Rumpelritt, Lorenrausch.
+Arbeitstitel: **„Kerker-Kart“**. „Kario Mart“ fällt weg: Das ist erkennbar der Name von Nintendos Spiel mit vertauschten Buchstaben, und die Seite ist öffentlich im Netz.
 
 ---
 
@@ -27,7 +27,7 @@ Die Rennen führen durch dieselben drei Gegenden wie das Verlies. Jede hat eigen
 | **Spinnengrotte** | leuchtende Pilze, Netze, grünes Licht | **Spinnenkönigin**: Sie seilt sich an wechselnden Stellen ab. Wer unter ihr durchfährt, wird kurz eingesponnen. | Schluchten, Pilzsprünge, Netztunnel |
 | **Glutschlund** | Lava, Obsidian, rotes Licht | **Glutdrache**: Er überfliegt die Strecke und brennt eine Spur auf die Fahrbahn. In Runde 3 steigt die Lava. | Geysire, sinkende Steine, einstürzende Brücke |
 
-Die Campus-Strecke bleibt als Bonusstrecke „Ausflug an die Uni“, oder sie fällt weg (siehe Fragen am Ende).
+Die Campus-Strecke fällt weg. Gefahren wird nur noch im Verlies.
 
 Damit man trotz der Dunkelheit gut sieht, ist die Fahrbahn hell, und an den Rändern stehen Fackeln und leuchtende Pilze. Nebel versteckt die Ferne, das spart auch Rechenleistung.
 
@@ -115,7 +115,7 @@ Jeder Held sitzt in seinem eigenen Gefährt und hat eine **Heldenkraft**, die zu
 | **Waldläufer** | Baumstamm-Renner | mittel | Wiese und Geröll bremsen ihn kaum |
 | **Magierin** | fliegender Teppich | leicht | schwebt: Pfützen und Krähenfüße wirken nicht, rutscht aber in Kurven |
 | **Heilerin** | Kräuterkarren | mittel | nach einem Treffer schneller wieder auf Tempo |
-| **Mönch** | gar keins, er rennt mit flatternder Kutte | leicht | beste Beschleunigung, etwas weniger Höchsttempo, lädt die Heldenkraft beim Driften doppelt |
+| **Mönch** | Rollkissen: Er sitzt im Schneidersitz auf einem Kissen, das auf einem runden Holzgestell rollt | leicht | beste Beschleunigung, etwas weniger Höchsttempo, lädt die Heldenkraft beim Driften doppelt |
 | **Nekromant** | rollender Sarg | mittel | ausgewogen |
 
 Die Werte gehen auf die vier Fahrzeugtypen zurück, die es schon gibt: Höchsttempo, Beschleunigung, Lenkung, Haftung und Gewicht. Jeder Held bekommt eine eigene Mischung davon.
@@ -251,8 +251,8 @@ Eine Lavawalze rollt hinter dem Feld her und wird immer schneller. Wer eingeholt
 ### 7.5 Schatzjagd (Arena)
 In einer runden Kerker-Arena ohne Ziel sammelt man 2 Minuten lang Gold. Wer getroffen wird, verliert die Hälfte seines Golds, und man kann es aufsammeln. Wer am Ende das meiste Gold hat, gewinnt.
 
-### 7.6 Geister
-Wer im Ziel oder ausgeschieden ist, schaut nicht nur zu. Er wird zum **Geist** und schwebt über der Strecke. Alle 8 Sekunden darf er einen **Spuk** fallen lassen, eine kleine Schleimpfütze oder ein Fass, auf einer Übersichtskarte per Antippen. So bleibt jeder bis zum letzten Fahrer dabei. Auch die Lehre aus dem Verlies-Konzept „Der Abend am Tisch“ lautet: Niemand soll untätig danebensitzen.
+### 7.6 Zuschauen
+Wer im Ziel oder ausgeschieden ist, schaut den anderen zu. Mit Antippen wechselt die Kamera zum nächsten Fahrer. Eingreifen kann man nicht, niemand wird von außen geärgert.
 
 ### 7.7 Spieleabend
 Das Kart-Rennen kommt in die Spielauswahl und in den gemeinsamen Spieleabend. Die Platzierungen fließen in die Abend-Wertung ein, wie bei den anderen Spielen.
@@ -285,21 +285,21 @@ Nach jedem Paket ist das Spiel spielbar, und du kannst es am Handy testen.
 
 | Paket | Inhalt | Ergebnis |
 |---|---|---|
-| **1** | Helden als Fahrer (8 Modelle, Gefährte, Fahrwerte), Monster als Übungsgegner, Auswahlbildschirm mit Heldenbildern | auf dem Campus mit Helden fahren |
+| **1** ✔ | Helden als Fahrer (8 Modelle, Gefährte, Fahrwerte), Monster als Übungsgegner, Auswahl mit Heldenwappen, Kerker-Optik auf der bisherigen Strecke | mit Helden durch den Kerker fahren |
 | **2** | Truhen und alle Extras, Treffer, Schutzzeit, Werfen nach hinten, Mimik-Truhen, Schütteln und Wischen | Rennen mit Extras, auch über mehrere Handys |
-| **3** | Welt **Kerker** aus Abschnitten mit Varianten: Fallgitter, Druckplatten, Lorenbahn, Troll-Trampolin, brüchige Wand; Knochenkönig mit Beben; Streckenvorschau | erste Dungeon-Strecke, jedes Rennen anders |
+| **3** | Kerker als Strecke aus Abschnitten mit Varianten: Fallgitter, Druckplatten, Lorenbahn, Troll-Trampolin, brüchige Wand; Knochenkönig mit Beben; Streckenvorschau | erste Dungeon-Strecke, jedes Rennen anders |
 | **4** | Heldenkräfte und Kraftleiste, Gold auf der Strecke | jeder Held spielt sich anders |
 | **5** | Welt **Spinnengrotte**: Pilzsprung über die Schlucht, Netztunnel, Spinnenkönigin, Absturz mit Fledermäusen | zweite Welt |
 | **6** | Welt **Glutschlund**: Geysire, sinkende Steine, einstürzende Brücke, Glutdrache, steigende Lava | dritte Welt |
-| **7** | Feldzug mit Siegerehrung, Rennflüche, Geister, Aufnahme in Spielauswahl und Spieleabend | fertiges Partyspiel |
+| **7** | Feldzug mit Siegerehrung, Rennflüche, Zuschauen, Aufnahme in Spielauswahl und Spieleabend | fertiges Partyspiel |
 | **8** | Flucht aus dem Glutschlund, Schatzjagd, Bardin und Hexe | zusätzliche Modi |
 
 ---
 
-## 10. Offene Fragen
+## 10. Entscheidungen (20.11.2026)
 
-1. **Name:** „Dungeons & Drifts“ oder ein anderer Name?
-2. **Campus:** Als Bonusstrecke behalten oder ganz in die Dungeon-Welt wechseln?
-3. **Mönch zu Fuß:** lustig oder lieber ein Gefährt (zum Beispiel ein Rollbrett)?
-4. **Geister:** Sollen Spieler, die schon im Ziel sind, die anderen ärgern dürfen, oder ist das zu gemein?
-5. **Reihenfolge:** Mit Paket 1 (Helden) anfangen oder mit Paket 2 (Extras), weil das am meisten Spaß bringt?
+1. **Name:** Arbeitstitel „Kerker-Kart“. „Kario Mart“ ist zu nah an Mario Kart.
+2. **Campus:** fällt weg, nur noch Verlies.
+3. **Mönch:** bekommt ein Gefährt, das Rollkissen.
+4. **Nach dem Ziel:** nur zuschauen, nicht ärgern.
+5. **Reihenfolge:** Paket 1 zuerst, zusammen mit der Kerker-Optik, damit man nicht mehr über den Campus fährt. Als Nächstes kommt Paket 2 (Extras).
