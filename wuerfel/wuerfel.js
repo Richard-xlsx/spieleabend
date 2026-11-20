@@ -58,11 +58,22 @@
   }
   function vonClient(c, m) {
     if (!m || !m.pid) return;
+    if (m.t === "live") {                 // Becher wird gerade geschüttelt: nur weiterreichen, nichts speichern
+      if (S.phase === "spiel" && V.darf(S, m.pid)) { an({ t: "live", d: m.d }, c); if (B3) B3.live(m.d); }
+      return;
+    }
     if (m.t === "hallo") conns.set(m.pid, c);
     const r = V.aktion(S, m.pid, m);
-    if (r.ok) S = r.S;
+    if (r.ok) { S = r.S; if (m.t === "wuerfeln" && m.bahn) bahnVerteilen(m.bahn, c); }
     else if (m.t !== "hallo") { try { c.send({ t: "fehler", text: r.fehler }); } catch (e) {} }
     geaendert();
+  }
+  // an alle Mitspieler (außer einem) schicken
+  function an(nachricht, ausser) { for (const [, c] of conns) if (c !== ausser) { try { c.send(nachricht); } catch (e) {} } }
+  // Die Flugbahn eines Wurfs geht vor dem neuen Spielstand raus, damit alle denselben Wurf abspielen
+  function bahnVerteilen(bahn, ausser) {
+    an({ t: "bahn", nr: S.wurfNr, d: bahn }, ausser === "selbst" ? null : ausser);
+    if (B3 && ausser !== "selbst") B3.bahn(S.wurfNr, bahn);
   }
   function geaendert() {
     S.online = [PID].concat([...conns.keys()]);
@@ -99,7 +110,9 @@
     c.on("data", m => {
       if (!m) return;
       if (m.t === "zustand") { S = m.s; ls.set("wp:kopie:" + code, S); render(); }
-      else if (m.t === "fehler") zeigeHinweis(m.text);
+      else if (m.t === "live") { if (B3) B3.live(m.d); }
+      else if (m.t === "bahn") { if (B3) B3.bahn(m.nr, m.d); }
+      else if (m.t === "fehler") { if (B3) B3.abbrechen(); zeigeHinweis(m.text); }
     });
     c.on("close", () => { if (hostConn === c) { hostConn = null; verloren(); } });
     c.on("error", () => {});
@@ -135,7 +148,11 @@
 
   // ---------- Aktionen ----------
   function tun(m) {
-    if (rolle === "host") { const r = V.aktion(S, PID, m); if (r.ok) { S = r.S; geaendert(); } else zeigeHinweis(r.fehler); }
+    if (rolle === "host") {
+      const r = V.aktion(S, PID, m);
+      if (r.ok) { S = r.S; if (m.t === "wuerfeln" && m.bahn) bahnVerteilen(m.bahn, "selbst"); geaendert(); }
+      else { if (B3 && m.t === "wuerfeln") B3.abbrechen(); zeigeHinweis(r.fehler); }
+    }
     else if (hostConn && hostConn.open) { try { hostConn.send(Object.assign({ pid: PID }, m)); } catch (e) {} }
     else zeigeHinweis("Keine Verbindung zum Spielleiter.");
   }
@@ -156,9 +173,33 @@
   }
   function wuerfeln() {
     if (!meinZug() || S.wurf >= 3) return;
+    if (B3 && B3.autoWurf()) return;     // 3D-Tisch: der Becher schüttelt sich selbst und kippt aus
+    if (B3 && B3.verdeckt()) return;
     gewaehlt = null;
     tun({ t: "wuerfeln", halten: S.halten, nr: S.wurfNr });
   }
+
+  // ---------- 3D-Tisch mit Becher (becher.js, lädt nach) ----------
+  let B3 = null;
+  function becherBereit() {
+    if (B3 || !window.BECHER) return;
+    B3 = window.BECHER;
+    B3.init({
+      werfen(d) {                          // Becher ausgekippt: Endlage und Bahn mitschicken, die Zahlen würfelt der Spielleiter
+        if (!meinZug() || S.wurf >= 3) { B3.abbrechen(); return; }
+        gewaehlt = null;
+        tun({ t: "wuerfeln", halten: S.halten, nr: S.wurfNr, lage: d.lage, bahn: d.bahn });
+      },
+      halten: i => halten(i),
+      live(d) {
+        if (rolle === "host") an({ t: "live", d });
+        else if (hostConn && hostConn.open) { try { hostConn.send({ t: "live", pid: PID, d }); } catch (e) {} }
+      },
+      anders: () => render()
+    });
+    render();
+  }
+  window.addEventListener("becher-bereit", becherBereit);
   function feldTippen(k) {
     if (!meinZug() || S.wurf === 0) return;
     const z = S.zettel[S.teilnehmer[S.dran]] || {};
@@ -197,6 +238,12 @@
     if (hinweis) h += `<div class="toast" role="status">${esc(hinweis)}</div>`;
     app.innerHTML = h;
     if (S) gesehenWurf = S.wurfNr;
+    const platz = document.getElementById("tischplatz");
+    if (B3 && platz) {
+      const mz = meinZug();
+      B3.einhaengen(platz);
+      B3.zustand(S, { meinZug: mz, kannWerfen: mz && S.wurf < 3 && !(S.wurf > 0 && S.halten.every(Boolean)), kannHalten: mz && S.wurf > 0 && S.wurf < 3 });
+    }
     binden();
   }
   setInterval(() => { if (rolle === "client" && offlineSeit) render(); }, 5000);
@@ -228,7 +275,7 @@
   }
   function regeln() {
     return `<ul class="regeln">
-      <li>Wer dran ist, würfelt bis zu <b>dreimal</b>. Würfel antippen hält sie fest, die anderen werden neu gewürfelt.</li>
+      <li>Wer dran ist, würfelt bis zu <b>dreimal</b>${B3 ? ": mit dem Finger auf dem Becher reiben, um ihn zu schütteln, dann nach oben wischen, um ihn auszukippen. Der Knopf „Würfeln“ geht auch" : ""}. Würfel antippen hält sie fest, die anderen werden neu gewürfelt.</li>
       <li>Danach muss ein freies Feld auf dem Zettel belegt werden: antippen, dann eintragen. Passt nichts, gibt es eben 0 Punkte.</li>
       <li><b>Oben</b> zählen nur die Augen der jeweiligen Zahl. Sind es oben zusammen mindestens ${V.BONUS_AB}, gibt es <b>${V.BONUS} Bonus</b>.</li>
       <li><b>Unten:</b> ${K.filter(c => !c.oben).map(c => `${c.name} (${c.info.replace(/^.*?: /, "")})`).join(", ")}.</li>
@@ -252,7 +299,7 @@
   }
 
   function zettel() {
-    const T_ = S.teilnehmer, dranP = S.teilnehmer[S.dran], zeigVorschlag = meinZug() && S.wurf > 0 && S.phase === "spiel";
+    const T_ = S.teilnehmer, dranP = S.teilnehmer[S.dran], zeigVorschlag = meinZug() && S.wurf > 0 && S.phase === "spiel" && !(B3 && B3.verdeckt());
     const kopf = `<tr><th></th>${T_.map(p => `<th class="${S.phase === "spiel" && p === dranP ? "dran" : ""} ${p === PID ? "ich" : ""}" title="${esc(sp(p).name)}"><span>${esc(sp(p).name)}</span></th>`).join("")}</tr>`;
     const zeile = c => {
       let h = `<tr><th class="kat" title="${esc(c.info)}">${c.name}<small>${esc(c.info.replace(/^.*?: /, ""))}</small></th>`;
@@ -279,22 +326,24 @@
 
   function bildschirmSpiel() {
     const host = rolle === "host", dranP = S.teilnehmer[S.dran], ende = S.phase === "ende", dabei = S.teilnehmer.includes(PID);
-    const mz = meinZug(), fuer = mz && dranP !== PID;
+    const mz = meinZug(), fuer = mz && dranP !== PID, vd = !!(B3 && !ende && B3.verdeckt());
     if (gewaehlt && (!mz || S.wurf === 0 || (S.zettel[dranP] || {})[gewaehlt] !== undefined)) gewaehlt = null;
     let zeile;
     if (ende) {
       const s = S.sieger || [];
       zeile = s.length > 1 ? `<span><b>Gleichstand</b> zwischen ${s.map(p => esc(sp(p).name)).join(" und ")}!</span>`
         : `<span><b>${s[0] === PID ? "Du gewinnst" : esc(sp(s[0]).name) + " gewinnt"}</b> mit ${V.wertung(S.zettel[s[0]]).gesamt} Punkten!</span>`;
-    } else if (mz) zeile = `<span><b>${fuer ? `Du würfelst für ${esc(sp(dranP).name)}` : "Du bist dran."}</b> ${S.wurf === 0 ? "Würfeln!" : S.wurf < 3 ? "Würfel antippen zum Festhalten, nochmal würfeln oder ein Feld wählen." : "Wähle ein Feld auf dem Zettel."}</span>`;
+    } else if (mz && vd) zeile = `<span><b>${fuer ? `Du würfelst für ${esc(sp(dranP).name)}` : "Du bist dran."}</b> Die Würfel rollen …</span>`;
+    else if (mz) zeile = `<span><b>${fuer ? `Du würfelst für ${esc(sp(dranP).name)}` : "Du bist dran."}</b> ${S.wurf === 0 ? (B3 ? "Schüttel den Becher!" : "Würfeln!") : S.wurf < 3 ? "Würfel antippen zum Festhalten, nochmal würfeln oder ein Feld wählen." : "Wähle ein Feld auf dem Zettel."}</span>`;
     else zeile = `<span>${esc(sp(dranP).name)} ist dran${online(dranP) ? "" : " (nicht verbunden)"}${S.wurf ? ` · ${S.wurf}. Wurf` : ""}.</span>`;
     const letzt = S.letzter && !ende ? `<p class="letzter">${S.letzter.pid === PID ? "Du" : esc(sp(S.letzter.pid).name)}: <b>${S.letzter.p}</b> bei ${katName(S.letzter.k)}</p>` : "";
-    const kannHalten = mz && S.wurf > 0 && S.wurf < 3, rollt = S.wurfNr !== gesehenWurf;
-    const feld = ende ? "" : `<div class="wuerfelfeld ${mz ? "meins" : ""}">${S.wuerfel.map((w, i) => `<button class="wuerfel ${S.halten[i] && S.wurf ? "gehalten" : ""} ${rollt && !S.halten[i] && w ? "rollt" : ""}" style="--i:${i}" data-w="${i}" ${kannHalten ? "" : "disabled"} aria-pressed="${!!S.halten[i]}" aria-label="Würfel ${i + 1}: ${w || "noch nicht gewürfelt"}${S.halten[i] ? ", festgehalten" : ""}">${wuerfelBild(w)}<small>${S.halten[i] && S.wurf ? "hält" : ""}</small></button>`).join("")}</div>`;
+    const kannHalten = mz && S.wurf > 0 && S.wurf < 3 && !vd, rollt = !B3 && S.wurfNr !== gesehenWurf;
+    const zeigW = (w, i) => vd && !(S.halten[i] && S.wurf) ? 0 : w;
+    const feld = ende ? "" : `${B3 ? `<div id="tischplatz" class="tischplatz"></div>` : ""}<div class="wuerfelfeld ${mz ? "meins" : ""} ${B3 ? "klein3d" : ""}">${S.wuerfel.map((w, i) => `<button class="wuerfel ${S.halten[i] && S.wurf ? "gehalten" : ""} ${rollt && !S.halten[i] && w ? "rollt" : ""}" style="--i:${i}" data-w="${i}" ${kannHalten ? "" : "disabled"} aria-pressed="${!!S.halten[i]}" aria-label="Würfel ${i + 1}: ${zeigW(w, i) || "noch nicht gewürfelt"}${S.halten[i] ? ", festgehalten" : ""}">${wuerfelBild(zeigW(w, i))}<small>${S.halten[i] && S.wurf ? "hält" : ""}</small></button>`).join("")}</div>`;
     const pk = gewaehlt ? V.punkte(gewaehlt, S.wuerfel) : 0;
     const knoepfe = mz && !ende ? `<div class="unten">
         ${gewaehlt ? `<button class="knopf" id="eintragen">${pk} ${pk === 1 ? "Punkt" : "Punkte"} bei ${katName(gewaehlt)} eintragen</button>` : ""}
-        ${S.wurf < 3 ? `<button class="knopf ${gewaehlt ? "zweit" : ""}" id="wuerfeln">${S.wurf === 0 ? "Würfeln" : `Nochmal würfeln (${3 - S.wurf} übrig)`}</button>` : gewaehlt ? "" : `<button class="knopf" disabled>Feld auf dem Zettel wählen</button>`}
+        ${S.wurf < 3 ? `<button class="knopf ${gewaehlt || B3 ? "zweit" : ""}" id="wuerfeln" ${vd && B3.modus === "kippen" ? "disabled" : ""}>${S.wurf === 0 ? "Würfeln" : `Nochmal würfeln (${3 - S.wurf} übrig)`}</button>` : gewaehlt ? "" : `<button class="knopf" disabled>${vd ? "Die Würfel rollen …" : "Feld auf dem Zettel wählen"}</button>`}
       </div>` : "";
     let endeBox = "";
     if (ende) {
@@ -350,5 +399,6 @@
     else if (name) clientStarten();
     else render();
   } else render();
+  becherBereit();
   window.__wp = { get S() { return S; }, get rolle() { return rolle; }, get verbunden() { return verbunden; }, PID, tun: params.get("test") ? tun : undefined };
 })();

@@ -110,16 +110,24 @@ button:focus-visible,input:focus-visible,a:focus-visible{outline:3px solid var(-
 .rang li.sieg b{color:var(--gelb)}
 details summary{cursor:pointer;font-weight:700}
 .link.inline{padding:0;display:inline;font-size:inherit}
+.tischplatz{width:100%;aspect-ratio:1/.92;border-radius:20px}
+.tisch3d{position:absolute;z-index:1;border-radius:20px;overflow:hidden;box-shadow:0 6px 18px rgba(0,0,0,.35);-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
+.tisch3d canvas{display:block;width:100%;height:auto}
+.tisch-tipp{position:absolute;left:50%;transform:translateX(-50%);top:8px;max-width:calc(100% - 20px);width:max-content;text-align:center;font:600 .8rem var(--fliess);color:var(--text);background:rgba(42,15,24,.82);border-radius:999px;padding:6px 12px;pointer-events:none}
+.wuerfelfeld.klein3d{padding:8px 14px 2px;gap:12px}
+.wuerfelfeld.klein3d .wbild{max-width:44px}
 @media (prefers-reduced-motion:reduce){.wuerfel.rollt .wbild,.zettel td.neu{animation:none}}
 </style>
 </head>
 <body>
 <div id="app"></div>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/","cannon-es":"https://cdn.jsdelivr.net/npm/cannon-es@0.20.0/dist/cannon-es.js"}}</script>
 <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <script src="../netz.js?v=2026-11-20a"></script>
 <script src="../abend.js?v=2026-11-20a" data-spiel="wuerfel"></script>
-<script src="wuerfel-logic.js?v=2026-11-20a"></script>
-<script src="wuerfel.js?v=2026-11-20a"></script>
+<script src="wuerfel-logic.js?v=2026-11-20b"></script>
+<script src="wuerfel.js?v=2026-11-20b"></script>
+<script type="module" src="becher.js?v=2026-11-20b"></script>
 </body>
 </html>

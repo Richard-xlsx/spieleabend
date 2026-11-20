@@ -55,7 +55,18 @@
       zettel: {}, letzter: null, sieger: [], aenderung: Date.now()
     };
   }
-  function zugBeginn(S) { S.wuerfel = [0, 0, 0, 0, 0]; S.halten = [false, false, false, false, false]; S.wurf = 0; }
+  function zugBeginn(S) { S.wuerfel = [0, 0, 0, 0, 0]; S.halten = [false, false, false, false, false]; S.wurf = 0; S.lage = null; }
+  // Wo die Würfel nach dem Wurf auf dem 3D-Tisch liegen: je Würfel [x, y, z, qx, qy, qz, qw] als ganze Zahlen
+  function lageUebernehmen(S, h, lage) {
+    if (!Array.isArray(lage)) return;
+    const alt = Array.isArray(S.lage) ? S.lage : [null, null, null, null, null];
+    S.lage = alt.slice(0, 5);
+    for (const l of lage) {
+      if (!Array.isArray(l) || l.length !== 8 || !l.every(x => typeof x === "number" && isFinite(x))) continue;
+      const i = l[0] | 0; if (i < 0 || i > 4 || h[i]) continue;
+      S.lage[i] = l.slice(1).map(x => Math.max(-9999, Math.min(9999, Math.round(x))));
+    }
+  }
   function partieStarten(S) {
     S.phase = "spiel"; S.spielNr += 1; S.runde = 1;
     S.beginner = (S.spielNr - 1) % S.teilnehmer.length; S.dran = S.beginner;
@@ -94,6 +105,7 @@
         if (S.wurf > 0 && h.every(Boolean)) return nein("Alle Würfel sind festgehalten.");
         S.halten = h;
         S.wuerfel = S.wuerfel.map((w, i) => h[i] ? w : 1 + Math.floor(zufall() * 6));
+        if (m.lage) lageUebernehmen(S, h, m.lage); else S.lage = null;
         S.wurf += 1; S.wurfNr += 1;
         break;
       }

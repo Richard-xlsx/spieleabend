@@ -25,7 +25,8 @@ Aufbau
                                   KONZEPT.md (Ausbauplan in Paketen). Heldenwappen kommen aus verlies/bilder.js. Testlink: …/kart/
                                   Zusammen fahren: jedes Handy rechnet sein Kart selbst und schickt 15×/s seinen Stand an den Spielleiter,
                                   der rechnet die Monster und verteilt alles. Zum Testen: ?auto (Kart fährt selbst), ?runden=1
-  wuerfel/                        „Würfelpoker“: index.html, wuerfel-logic.js (Würfeln, Zettel, Punkte), wuerfel.js (Verbindung und Bildschirme)
+  wuerfel/                        „Würfelpoker“: index.html, wuerfel-logic.js (Würfeln, Zettel, Punkte), wuerfel.js (Verbindung und Bildschirme),
+                                  becher.js (3D-Tisch mit Becher, three.js), physik.js (Becher- und Würfelphysik, cannon-es)
   gleisgenossen/                  index.html, logic.js (Karte, Gleise, Zug, Preise), welt.js (3D-Welt mit Three.js),
                                   app.js (Startseite, Bedienleiste, Speichern), KONZEPT.md (Plan in drei Schritten)
   _entwurf/                       Kartenentwürfe, wird nicht hochgeladen
@@ -139,6 +140,13 @@ Würfelpoker (vom 20.11.2026; 1 bis 8 Spieler, weitere schauen zu)
   Kleine Straße 30, Große Straße 40, Fünf gleiche 50, Chance (Summe). Nach 13 Runden gewinnt die höchste Summe.
   Gewürfelt wird auf dem Handy des Spielleiters. Ist der Spieler am Zug nicht verbunden, darf der Spielleiter für ihn würfeln
   oder ihn aus der Partie nehmen.
+  3D-Becher (seit 20.11.2026): Mit dem Finger auf dem Becher reiben schüttelt ihn (die Würfel klappern darin, echte Physik),
+  ein Wisch nach oben kippt ihn aus. Der Knopf „Würfeln“ schüttelt und kippt automatisch. Würfel auf dem Tisch antippen legt
+  sie in die Ablage hinten (festgehalten), nochmal antippen holt sie zurück. Die anderen sehen das Schütteln live
+  (Nachricht „live“, etwa 14 pro Sekunde) und denselben Wurf: Das werfende Handy rechnet den Wurf beim Loslassen komplett
+  voraus und schickt die Flugbahn (Nachricht „bahn“, 30 Bilder pro Sekunde) mit. Die Zahlen würfelt trotzdem der Spielleiter;
+  die Augen werden auf jedem Handy so auf den Würfel gedreht, dass die gewürfelte Zahl auf der oben liegenden Seite steht.
+  Die Endlage steht im Spielstand (S.lage), damit nach Neuladen alles am selben Platz liegt. Ohne WebGL bleibt das alte Würfelfeld.
 
 Dungeons & Disappointments (früher Verlies der Helden; 2 bis 6 Spieler; Stufe 1 und Ausbau mit Händler und 6 Rollen vom 13.11.2026, Kampfbühne, Karte, Talentbaum,
 Gegner-Eigenschaften, drei Ebenen und Schwierigkeitsstufen vom 14.11.2026)
