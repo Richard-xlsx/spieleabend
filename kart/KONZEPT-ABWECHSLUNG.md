@@ -291,3 +291,12 @@ Die Monster haben weiter ihr eigenes Gummiband. Es wirkt nur noch auf Monster, n
 - Außen fällt eine Böschung zum Boden ab. Mauern, Fackeln, Truhen, Gold und Deko werden mit angehoben. Die Kamera folgt den Hügeln ganz, Sprüngen nur gedämpft.
 - Anteil mit Höhen: im Kerker etwa die Hälfte der Runde, in Grotte und Glutschlund weniger, weil dort viel los ist. Mit den längeren Runden aus Paket 11 wird es mehr.
 
+**Paket 11 ist umgesetzt** (siehe `strecke.js`, „verlaengern“, und `spiel.js`, Abschnitt „Echte Gabelungen“):
+
+- Jede Welt hat jetzt **8 Abschnitte**. Die bisherigen 6 bleiben gleich, ein Teil der Runde rückt nach außen, und an beiden Nahtstellen kommt ein neuer Abschnitt mit einer **echten Gabelung** hinzu. Eine Runde ist 1.300 bis 1.470 m lang. Bots brauchen 52 bis 60 Sekunden, wer gut fährt und driftet, ist schneller.
+- **Gabelung:** zwei getrennte Wege mit eigenen Mauern, dazwischen eine Insel mit Gebäude und Schild (Zellentrakt, Stall, Wurzelwald, Schmiede …). Der **kurze Weg** ist gerade, auf ihm stehen Hindernisse (Rüstungen, Fässer, Tropfsteine, Kristalle, Obsidian). Der **lange Weg** schlägt Bögen (etwa 26 m länger, rund 1 Sekunde) und hat eine Truhenreihe, Gold und eine Schubrune.
+- Je neuem Abschnitt gibt es 2 Varianten (welcher Weg lang ist, welche Hindernisse). Die Minikarte zeigt beide Wege.
+- Monster wählen ihren Weg zufällig. Geschosse bleiben auf ihrem Weg, Teleport, Steine und Feuer landen nie auf der Insel.
+- **Rundenzahl** wählt der Spielleiter in der Lobby: 2, 3 oder 4 (Standard 3).
+- Noch nicht umgesetzt: Gabelungen, die sich im Rennen ändern (Runde 2 öffnet einen Weg, Runde 3 stürzt einer ein). Das passt zu Paket 13 (Ereignisse).
+

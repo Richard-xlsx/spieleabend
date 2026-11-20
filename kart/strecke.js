@@ -1,5 +1,5 @@
 // Kerker-Kart: Strecken aus Abschnitten.
-// Ein Rundkurs besteht aus 6 Abschnitten. Jeder Abschnitt hat feste Anfangs- und Endpunkte (Knoten) und 1 bis 3 Varianten.
+// Ein Rundkurs besteht aus 8 Abschnitten (6 eigene und 2 Gabelungen, siehe verlaengern). Jeder Abschnitt hat feste Anfangs- und Endpunkte (Knoten) und 1 bis 3 Varianten.
 // Vor jedem Rennen wird gewürfelt, welche Variante drankommt. Alle Handys bauen aus demselben Streckencode dieselbe Strecke.
 //
 // Eine Variante besteht aus Zwischenpunkten (x, z) und Dingen, die an Stellen des Abschnitts stehen.
@@ -132,10 +132,63 @@ const GLUT = [
   ] }
 ];
 
+// ---------- Längere Runden mit echten Gabelungen ----------
+// Jede Welt wird auseinandergezogen: Die Abschnitte von a bis b rücken um V weiter, und an beiden Nahtstellen kommt
+// ein neuer Abschnitt mit einer echten Gabelung hinzu (zwei getrennte Wege mit eigenen Mauern, dazwischen eine Insel).
+// Gabelungs-Varianten geben ihre Zwischenpunkte als [Anteil, Versatz quer] an, die echten Koordinaten entstehen hier.
+function verlaengern(knoten, abschnitte, a, b, V, gabelA, gabelB) {
+  const schieb = ([x, z]) => [x + V[0], z + V[1]];
+  const gabel = (g, P, Q) => {
+    const dx = Q[0] - P[0], dz = Q[1] - P[1], l = Math.hypot(dx, dz), px = -dz / l, pz = dx / l;
+    return { ...g, varianten: g.varianten.map(v => ({ ...v, punkte: v.punkte.map(([u, q]) => [Math.round(P[0] + dx * u + px * q), Math.round(P[1] + dz * u + pz * q)]) })) };
+  };
+  const kn = [], ab = [];
+  for (let i = 0; i < knoten.length; i++) {
+    const versch = i >= a && i <= b;
+    if (i === a) { ab.push(gabel(gabelA, knoten[a], schieb(knoten[a]))); kn.push(knoten[a]); }
+    if (i === b + 1) { ab.push(gabel(gabelB, schieb(knoten[i]), knoten[i])); kn.push(schieb(knoten[i])); }
+    kn.push(versch ? schieb(knoten[i]) : knoten[i]);
+    const A = abschnitte[i];
+    ab.push(versch ? { ...A, varianten: A.varianten.map(v => ({ ...v, punkte: v.punkte.map(schieb) })) } : A);
+  }
+  return { knoten: kn, abschnitte: ab };
+}
+// Eine Gabelungs-Variante: lang = Seite des langen Weges (+1/-1), kurz = Hindernisse auf dem kurzen Weg, insel = Schild auf der Insel
+const weg = (name, punkte, lang, kurz, insel, truhen = [.05]) => ({ name, punkte, truhen,
+  dinge: [{ art: "weggabel", von: .1, bis: .9, lang, kurz, insel }] });
+
+const KERKER_LANG = verlaengern(KERKER_KNOTEN, KERKER, 1, 3, [230, 0],
+  { name: "Zellentrakt", varianten: [
+    weg("Zellentrakt oder Wehrgang", [[.35, 12], [.68, -10]], 1, "ruestung", "ZELLENTRAKT"),
+    weg("Fässerlager oder Wehrgang", [[.4, -8], [.7, 8]], -1, "faesser", "FÄSSERLAGER")
+  ] },
+  { name: "Burghof", varianten: [
+    weg("Burghof oder Stall", [[.3, -10], [.65, 12]], 1, "faesser", "STALL"),
+    weg("Burghof oder Rüstkammer", [[.45, 10]], -1, "ruestung", "RÜSTKAMMER")
+  ] });
+const GROTTE_LANG = verlaengern(GROTTE_KNOTEN, GROTTE, 1, 3, [230, 0],
+  { name: "Wurzelwald", varianten: [
+    weg("Wurzeln oder Boden", [[.35, -12], [.7, 9]], 1, "tropfstein", "WURZELWALD"),
+    weg("Kristallgang oder Moospfad", [[.5, 10]], -1, "kristall", "KRISTALLE")
+  ] },
+  { name: "Wasserfall", varianten: [
+    weg("Hinter dem Wasserfall", [[.3, 10], [.65, -12]], -1, "tropfstein", "WASSERFALL"),
+    weg("Pilzinsel", [[.45, -10]], 1, "kristall", "PILZINSEL")
+  ] });
+const GLUT_LANG = verlaengern(GLUT_KNOTEN, GLUT, 1, 3, [180, 0],
+  { name: "Schmiede", varianten: [
+    weg("Schmiede oder Lavafall", [[.35, 10], [.7, -10]], 1, "obsidian", "SCHMIEDE"),
+    weg("Esse oder Schlackeweg", [[.5, -10]], -1, "obsidian", "ESSE")
+  ] },
+  { name: "Aschehang", varianten: [
+    weg("Obsidianbrücke oder Aschehang", [[.3, -12], [.68, 10]], -1, "obsidian", "ASCHEHANG"),
+    weg("Glutkammer", [[.5, 12]], 1, "obsidian", "GLUTKAMMER")
+  ] });
+
 export const WELTEN = {
-  kerker: { name: "Kerker", code: "KERKER", knoten: KERKER_KNOTEN, abschnitte: KERKER },
-  grotte: { name: "Spinnengrotte", code: "GROTTE", knoten: GROTTE_KNOTEN, abschnitte: GROTTE },
-  glut: { name: "Glutschlund", code: "GLUT", knoten: GLUT_KNOTEN, abschnitte: GLUT },
+  kerker: { name: "Kerker", code: "KERKER", knoten: KERKER_LANG.knoten, abschnitte: KERKER_LANG.abschnitte },
+  grotte: { name: "Spinnengrotte", code: "GROTTE", knoten: GROTTE_LANG.knoten, abschnitte: GROTTE_LANG.abschnitte },
+  glut: { name: "Glutschlund", code: "GLUT", knoten: GLUT_LANG.knoten, abschnitte: GLUT_LANG.abschnitte },
 };
 
 // Zufall mit Startwert (für alle Handys gleich)
@@ -149,10 +202,11 @@ export function planWuerfeln(welt, zufall = Math.random) {
 // Streckencode wie KERKER-1203-7F3A: Ziffern = Varianten, dahinter der Startwert
 export function planCode(p) { return (WELTEN[p.w] || WELTEN.kerker).code + "-" + p.v.join("") + "-" + p.s.toString(16).toUpperCase().padStart(4, "0"); }
 export function planAusCode(c) {
-  const m = /^([A-Z]+)-(\d{6})-([0-9A-F]{1,4})$/i.exec(String(c || "").trim());
+  const m = /^([A-Z]+)-(\d+)-([0-9A-F]{1,4})$/i.exec(String(c || "").trim());
   if (!m) return null;
   const w = Object.keys(WELTEN).find(k => WELTEN[k].code === m[1].toUpperCase()); if (!w) return null;
   const v = [...m[2]].map(Number);
+  if (v.length !== WELTEN[w].abschnitte.length) return null;
   if (v.some((x, i) => x >= WELTEN[w].abschnitte[i].varianten.length)) return null;
   return { w, v, s: parseInt(m[3], 16) };
 }
