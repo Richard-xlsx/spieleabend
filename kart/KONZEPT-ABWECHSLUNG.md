@@ -234,7 +234,7 @@ Nach jedem Paket ist das Spiel spielbar und am Handy testbar.
 | **12** | **Gleiten und Wasser:** Fledermausschwingen mit Aufwind, Schwimmabschnitte, treibende Schollen | mittel | neue Arten zu fahren |
 | **13** | **Ereignisse:** Zufallsereignisse, Runde für Runde, Leben am Rand, Hebel, Kronleuchter, Händler, Klänge | mittel | jedes Rennen erzählt etwas |
 | **14** | **Brücken über die eigene Strecke und die große Reise** | groß | neue Streckenformen und ein Finale |
-| **8** | Flucht aus dem Glutschlund und Schatzjagd (schon geplant) | mittel | weitere Modi |
+| ~~8~~ | ~~Flucht aus dem Glutschlund und Schatzjagd~~ – entfällt (Entscheidung 7) | – | – |
 
 Paket 9 bringt mit wenig Arbeit am meisten. Die Pakete 10 und 11 verändern das Fahrgefühl am stärksten.
 
@@ -262,6 +262,7 @@ Für das Spiel zu fünft ist das zweitrangig.
 4. **Reihenfolge:** zuerst Paket 9 (Ausgleich), dann die Strecken.
 5. **Abstand zum Vordermann:** wird nicht angezeigt.
 6. **Die große Reise:** noch offen.
+7. **Paket 8 (Flucht und Schatzjagd):** wird nicht gebraucht und entfällt.
 
 ## 8. Stand der Umsetzung
 
