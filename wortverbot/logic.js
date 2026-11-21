@@ -217,7 +217,131 @@
     "|Joghurt:Becher,Milch,Löffel,Kühlschrank,Frucht|Ketchup:Tomate,rot,Pommes,Flasche,Soße|Salz:streuen,würzen,salzig,weiß,Pfeffer" +
     "|Mehl:backen,Teig,weiß,Brot,Kuchen|Nutella:Schokolade,Brot,Nuss,Glas,süß|Pudding:Vanille,Schokolade,Dessert,süß,Löffel" +
     "|Torte:Kuchen,Sahne,Geburtstag,Stück,Hochzeit|Bonbon:süß,lutschen,Zucker,Papier,Hustenbonbon|Zuckerwatte:süß,Kirmes,rosa,Stab,flauschig" +
-    "|Gebrannte Mandeln:Kirmes,süß,Nüsse,Zucker,Weihnachtsmarkt|Riesenrad:drehen,hoch,Kirmes,Gondel,Aussicht|Autoscooter:Kirmes,stoßen,fahren,Auto,rempeln"
+    "|Gebrannte Mandeln:Kirmes,süß,Nüsse,Zucker,Weihnachtsmarkt|Riesenrad:drehen,hoch,Kirmes,Gondel,Aussicht|Autoscooter:Kirmes,stoßen,fahren,Auto,rempeln" +
+    "|Zebra:Streifen,schwarz,weiß,Pferd,Afrika|Känguru:springen,Beutel,Australien,hüpfen,Baby|Igel:Stacheln,Herbst,stechen,Garten,rollen" +
+    "|Wolf:heulen,Rudel,Mond,Wald,Rotkäppchen|Maus:klein,Käse,piepsen,Katze,grau|Schildkröte:Panzer,langsam,alt,Reptil,Kröte" +
+    "|Huhn:Ei,gackern,Hahn,Bauernhof,Federn|Schaf:Wolle,blöken,weiß,Herde,Lamm|Esel:grau,Ohren,störrisch,iah,tragen" +
+    "|Gorilla:Affe,groß,stark,schwarz,Brust|Wal:Meer,groß,Säugetier,blasen,Fontäne|Qualle:Meer,glibberig,brennen,durchsichtig,Strand" +
+    "|Mücke:stechen,summen,jucken,Sommer,Blut|Schnecke:langsam,Haus,Schleim,Salat,kriechen|Fledermaus:Nacht,fliegen,Höhle,hängen,Vampir" +
+    "|Taube:Vogel,gurren,Stadt,Frieden,grau|Hamster:Käfig,Backen,Laufrad,Haustier,Nagetier|Hamburger:Brötchen,Fleisch,Fast Food,Käse,McDonald's" +
+    "|Bratwurst:Grill,Senf,Wurst,Fleisch,Brötchen|Suppe:Löffel,heiß,Teller,Brühe,flüssig|Honig:Biene,süß,gelb,klebrig,Brot" +
+    "|Butter:Brot,Fett,schmieren,gelb,Milch|Erdbeere:rot,Frucht,Sommer,Kuchen,süß|Ananas:gelb,Frucht,Pizza,Hawaii,stachelig" +
+    "|Traube:Wein,grün,blau,Frucht,Rebe|Tomate:rot,Gemüse,Salat,Ketchup,Soße|Knoblauch:Vampir,riechen,Zehe,scharf,Atem" +
+    "|Waffel:Teig,Muster,Eisen,süß,Puderzucker|Gummibärchen:Haribo,bunt,süß,Bär,Fruchtgummi|Kaugummi:kauen,Blase,kleben,Minze,Mund" +
+    "|Limonade:süß,Zitrone,trinken,Sprudel,Getränk|Wein:rot,weiß,Traube,Alkohol,Glas|Kaffeemaschine:Kaffee,Bohnen,Küche,Tasse,Filter" +
+    "|Bügeleisen:Wäsche,Falten,heiß,glatt,Hemd|Rasierer:Bart,Haare,Gesicht,Klinge,Mann|Handtuch:abtrocknen,nass,Bad,Strand,Stoff" +
+    "|Kühlbox:kalt,Picknick,Camping,Getränke,Eis|Regal:Bücher,Bretter,Wand,IKEA,stellen|Tisch:essen,Beine,Stuhl,Platte,Möbel" +
+    "|Zaun:Garten,Grenze,Latten,Nachbar,Tor|Hammer:Nagel,schlagen,Werkzeug,Holz,klopfen|Säge:Holz,sägen,Werkzeug,Zähne,schneiden" +
+    "|Klebeband:kleben,Rolle,Tesa,Paket,durchsichtig|Steckdose:Strom,Stecker,Wand,Kabel,Elektrizität|Wäscheleine:Wäsche,trocknen,Klammer,aufhängen,Garten" +
+    "|Rasenmäher:Gras,mähen,Garten,laut,schneiden|Gartenzwerg:Garten,Mütze,rot,Figur,klein|Bagger:Schaufel,graben,Baustelle,gelb,Erde" +
+    "|Müllabfuhr:Müll,Tonne,Laster,abholen,orange|Pilot:Flugzeug,fliegen,Cockpit,Kapitän,Flughafen|Matrose:Schiff,Meer,Seemann,Hafen,Uniform" +
+    "|Metzger:Fleisch,Wurst,schneiden,Messer,Theke|Krankenschwester:Krankenhaus,Pflege,Arzt,Patient,Spritze|Postbote:Briefe,Post,Pakete,bringen,Fahrrad" +
+    "|Schauspieler:Film,Bühne,Rolle,spielen,Theater|Maler:malen,Pinsel,Farbe,Wand,Bild|Programmierer:Computer,Code,Software,tippen,Programm" +
+    "|Hausmeister:Schule,reparieren,Haus,Schlüssel,kümmern|Restaurant:essen,Kellner,Speisekarte,Tisch,bestellen|Kneipe:Bier,trinken,Theke,Wirt,Abend" +
+    "|Universität:studieren,Student,Vorlesung,Professor,Uni|Hafen:Schiffe,Meer,anlegen,Kai,Containern|Freizeitpark:Achterbahn,Karussell,Spaß,Eintritt,Fahrgeschäft" +
+    "|Stadion:Fußball,Zuschauer,Spiel,Tribüne,Fans|Kreuzung:Ampel,Straße,abbiegen,Verkehr,kreuzen|Bus:Haltestelle,fahren,Fahrer,Linie,Ticket" +
+    "|Motorrad:Helm,zwei,Räder,fahren,schnell|Kanu:paddeln,Fluss,Boot,Paddel,Wasser|Heißluftballon:Korb,fliegen,Luft,Feuer,Himmel" +
+    "|Seilbahn:Berg,Gondel,Seil,hoch,Ski|Navi:Weg,Auto,Karte,Route,abbiegen|Fußgängerzone:Stadt,laufen,Geschäfte,einkaufen,Innenstadt" +
+    "|Handball:Tor,werfen,Ball,Halle,Team|Golf:Schläger,Ball,Loch,Rasen,Abschlag|Reiten:Pferd,Sattel,Stall,Zügel,Turnier" +
+    "|Klettern:Wand,Seil,hoch,Berg,Halle|Schlittschuh:Eis,laufen,Kufen,Winter,Halle|Darts:Pfeile,werfen,Scheibe,Kneipe,Punkte" +
+    "|Kicker:Tischfußball,drehen,Stangen,Ball,Tor|Schiedsrichter:Pfeife,Spiel,Karte,Regeln,Fußball|Weltmeister:Titel,gewinnen,Turnier,beste,WM" +
+    "|Torwart:Tor,halten,Fußball,Handschuhe,Ball|Gitarrist:Gitarre,spielen,Band,Saiten,Musik|Trompete:blasen,Blech,laut,Instrument,Jazz" +
+    "|Mundharmonika:blasen,Mund,Instrument,Blues,klein|Chor:singen,Stimmen,Lied,Kirche,zusammen|Radio:hören,Sender,Musik,Moderator,Auto" +
+    "|Decke:Bett,warm,zudecken,schlafen,Kuscheln|Puppe:Spielzeug,Kind,Barbie,Haare,spielen|Murmel:Glas,Kugel,rollen,spielen,bunt" +
+    "|Brettspiel:Würfel,Figuren,Spielbrett,Monopoly,spielen|Mensch ärgere dich nicht:Würfel,Figuren,rausschmeißen,Brettspiel,ärgern|Fangen:rennen,Kinder,laufen,abklatschen,Spiel" +
+    "|Hüpfburg:springen,Luft,Kinder,hüpfen,aufblasbar|Kuscheltier:weich,Teddy,Kind,schlafen,Plüsch|Windel:Baby,wechseln,voll,Popo,Pampers" +
+    "|Zwillinge:zwei,gleich,Geschwister,Geburt,doppelt|Enkel:Oma,Opa,Familie,Kind,Großeltern|Taufe:Kirche,Baby,Wasser,Pate,Name" +
+    "|Junggesellenabschied:Hochzeit,feiern,Freunde,letzte,Party|Scheidung:Ehe,trennen,Anwalt,Gericht,verheiratet|Valentinstag:Liebe,Februar,Rosen,Herz,verliebt" +
+    "|Adventskalender:Türchen,Dezember,Schokolade,Weihnachten,öffnen|Weihnachtsmarkt:Glühwein,Buden,Dezember,Stände,Lebkuchen|Schneeflocke:Schnee,weiß,Winter,kalt,fallen" +
+    "|Tornado:Wind,Sturm,drehen,Wirbel,Amerika|Flut:Wasser,Meer,Ebbe,steigen,Überschwemmung|Mondfinsternis:Mond,Schatten,Erde,dunkel,Sonne" +
+    "|Komet:Schweif,Weltall,Stern,fliegen,Himmel|Fluss:Wasser,fließen,Ufer,Rhein,Strom|Welle:Meer,Wasser,surfen,hoch,Strand" +
+    "|Palme:Strand,Kokosnuss,Baum,Urlaub,Süden|Blatt:Baum,grün,Herbst,fallen,Papier|Feld:Bauer,Acker,Getreide,Weizen,Traktor" +
+    "|Rose:Blume,rot,Dornen,Liebe,duften|Unkraut:Garten,jäten,Pflanzen,wachsen,zupfen|Klee:Glück,vier,Blätter,Wiese,grün" +
+    "|Kastanie:Herbst,braun,Baum,sammeln,stachelig|Zahnspange:Zähne,Draht,gerade,Kieferorthopäde,Metall|Spritze:Arzt,Nadel,impfen,piksen,Medikament" +
+    "|Rollstuhl:Räder,sitzen,fahren,Behinderung,schieben|Glatze:Haare,Kopf,kahl,Mann,keine|Tattoo:Haut,Nadel,Bild,stechen,Farbe" +
+    "|Ring:Finger,Schmuck,Hochzeit,Gold,rund|Armbanduhr:Uhr,Handgelenk,Zeit,tragen,Zeiger|Parfüm:riechen,Duft,sprühen,Flasche,gut" +
+    "|Liegestuhl:Strand,liegen,Sonne,Urlaub,Pool|Luftmatratze:Wasser,aufblasen,liegen,schwimmen,Luft|Schnorchel:Luft,tauchen,Wasser,Rohr,atmen" +
+    "|Souvenir:Urlaub,Andenken,kaufen,Erinnerung,Mitbringsel|Reisebüro:Urlaub,buchen,Reise,Katalog,Flug|Hängebrücke:Seil,wackeln,Schlucht,Brücke,schwanken" +
+    "|Schatzkiste:Gold,Pirat,Schatz,Truhe,vergraben|Zaubertrank:Hexe,Kessel,trinken,Magie,brauen|Wahrsagerin:Zukunft,Karten,Kugel,vorhersagen,Hand" +
+    "|Troll:Brücke,hässlich,Märchen,groß,Höhle|Zombie:untot,Gehirn,langsam,Horror,lebendig|Ninja:Japan,schwarz,Kampf,Schwert,lautlos" +
+    "|Wikinger:Helm,Hörner,Schiff,Norden,Axt|Papst:Rom,Vatikan,Kirche,katholisch,weiß|Hofnarr:König,lustig,Mütze,Glöckchen,Witze" +
+    "|Steinzeit:Höhle,Mammut,Feuer,früher,Neandertaler|Mona Lisa:Bild,lächeln,Leonardo,Louvre,Gemälde|Freiheitsstatue:New York,Fackel,Amerika,grün,Statue" +
+    "|Berliner Mauer:Berlin,DDR,Grenze,Fall,1989|Lederhose:Bayern,Hose,Leder,Tracht,Oktoberfest|Kostüm:verkleiden,Fasching,anziehen,Maske,Karneval" +
+    "|Girlande:Party,aufhängen,bunt,Deko,Geburtstag|Pyjamaparty:übernachten,Freunde,Schlafanzug,Kinder,Nacht|Grillparty:Grill,Würstchen,Sommer,Garten,Freunde" +
+    "|Kochkurs:kochen,lernen,Rezept,Küche,Koch|Kochbuch:Rezepte,kochen,Buch,Küche,Seiten|Schneebesen:schlagen,Sahne,Küche,Rührbesen,Eier" +
+    "|Messer:schneiden,scharf,Klinge,Besteck,Gabel|Teller:essen,Geschirr,Tisch,Besteck,flach|Tiefkühlpizza:Pizza,gefroren,Ofen,Supermarkt,schnell" +
+    "|Fast Food:schnell,Burger,Pommes,ungesund,McDonald's|Vegetarier:Fleisch,kein,Gemüse,essen,vegan|Mittagsschlaf:schlafen,Mittag,Nickerchen,müde,kurz" +
+    "|Wollmütze:Kopf,Winter,warm,stricken,Mütze|Schuhe:Füße,laufen,Schnürsenkel,tragen,Paar|Gürtel:Hose,Schnalle,Leder,Bauch,halten" +
+    "|Nähmaschine:nähen,Stoff,Faden,Nadel,Kleid|Mülltrennung:Müll,gelber Sack,Recycling,sortieren,Tonne|Steuererklärung:Finanzamt,Steuern,Formular,Geld,Jahr" +
+    "|Sparschwein:sparen,Münzen,Geld,Schwein,Kind|Kasse:bezahlen,Supermarkt,Geld,Bon,Kassierer|Quittung:Bon,Kasse,bezahlen,Beleg,Papier" +
+    "|Paket:Post,verschicken,Karton,liefern,DHL|Bewerbung:Job,Lebenslauf,schreiben,Firma,Stelle|Kollege:Arbeit,Büro,zusammen,Firma,Team" +
+    "|Homeoffice:zu Hause,arbeiten,Laptop,Büro,Videokonferenz|Kaffeepause:Kaffee,Arbeit,Pause,Kollegen,kurz|Urlaubsantrag:Urlaub,Chef,frei,Formular,Tage" +
+    "|Ruhestand:Rente,alt,Arbeit,aufhören,Pension|Klassenfahrt:Schule,Ausflug,Lehrer,Reise,Jugendherberge|Radiergummi:Bleistift,löschen,Fehler,radieren,Gummi" +
+    "|Globus:Erde,Kugel,Weltkarte,drehen,Länder|Diktat:schreiben,Schule,Rechtschreibung,Lehrer,Fehler|Spickzettel:Prüfung,schummeln,Zettel,verstecken,Test" +
+    "|Ladekabel:Handy,Akku,laden,Stecker,Strom|Drohne:fliegen,Kamera,Fernsteuerung,Propeller,Luft|Fernbedienung:Fernseher,Knöpfe,umschalten,Sofa,Batterien" +
+    "|Podcast:hören,Folge,sprechen,Audio,Spotify|Influencer:Instagram,Follower,Werbung,YouTube,Social Media|Update:neu,Software,aktualisieren,Handy,Version" +
+    "|Einbrecher:Dieb,Haus,stehlen,Nacht,einbrechen|Fingerabdruck:Finger,Spur,Polizei,Verbrecher,Muster|Krimi:Mord,Detektiv,Buch,Tatort,Kommissar" +
+    "|Märchen:Es war einmal,Grimm,Prinzessin,erzählen,Geschichte|Aschenputtel:Schuh,Ball,Prinz,Märchen,Stiefmutter|Hänsel und Gretel:Hexe,Lebkuchenhaus,Wald,Märchen,Geschwister" +
+    "|Sternzeichen:Horoskop,Geburtstag,Widder,Löwe,Sterne|Schornsteinfeger:Glück,schwarz,Kamin,Ruß,Zylinder|Aberglaube:schwarze Katze,Freitag,Glück,Pech,glauben" +
+    "|Herz:schlagen,Liebe,Organ,Blut,rot|Knochen:Skelett,Hund,brechen,hart,Körper|Daumen:Finger,hoch,Hand,dick,Daumen drücken" +
+    "|Bauchnabel:Bauch,Loch,Nabelschnur,Mitte,Baby|Rülpsen:Bauch,Luft,laut,Bier,Mund|Schreien:laut,rufen,Stimme,brüllen,wütend" +
+    "|Applaus:klatschen,Hände,Publikum,Bühne,Beifall|Fernweh:Reise,weg,Sehnsucht,Urlaub,Ferne|Wut:sauer,böse,ärgern,rot,schreien" +
+    "|Peinlich:schämen,rot,Situation,unangenehm,Fremdschämen|Neugier:wissen,Fragen,neugierig,Katze,interessiert|Ordnung:aufräumen,Chaos,ordentlich,sauber,Platz" +
+    "|Verspätung:spät,Bahn,warten,Zug,pünktlich|Warteschlange:anstehen,warten,Schlange,Reihe,Kasse|Kater:Bier,Alkohol,Kopfschmerzen,Morgen,Katze" +
+    "|Dachboden:oben,Haus,Speicher,Kisten,staubig|Garage:Auto,parken,Tor,Haus,Werkzeug|Hochhaus:hoch,Stockwerke,Stadt,Aufzug,Wohnungen" +
+    "|Baumhaus:Baum,Holz,Kinder,klettern,Leiter|Denkmal:Statue,erinnern,Platz,Stein,Bronze|Spaziergang:laufen,Park,gehen,Hund,frische Luft" +
+    "|Senf:gelb,Wurst,scharf,Tube,Bratwurst|Zucker:süß,weiß,Würfel,Kaffee,backen|Reis:Körner,China,kochen,weiß,Sushi" +
+    "|Croissant:Frankreich,Hörnchen,Frühstück,Butter,Bäcker|Sahne:Kuh,Milch,schlagen,weiß,Kuchen|Mandarine:orange,schälen,Weihnachten,Frucht,klein" +
+    "|Karussell:drehen,Kirmes,Pferde,Kinder,Runde|Geisterbahn:gruseln,Kirmes,Angst,fahren,Monster|Losbude:Kirmes,ziehen,Gewinn,Niete,Preis" +
+    "|Panda:China,Bambus,schwarz,weiß,Bär|Flamingo:rosa,Bein,Vogel,stehen,Wasser|Pfau:Federn,Rad,bunt,Vogel,stolz" +
+    "|Strauß:Vogel,groß,laufen,Kopf,Sand|Specht:Baum,klopfen,Vogel,Schnabel,Loch|Möwe:Meer,Vogel,Strand,Pommes,kreischen" +
+    "|Ente:quaken,Teich,Vogel,schwimmen,Donald|Gans:Martinstag,Vogel,schnattern,Braten,weiß|Hirsch:Geweih,Wald,röhren,Reh,Jäger" +
+    "|Reh:Wald,Bambi,scheu,braun,Kitz|Wildschwein:Wald,Borsten,Hauer,Frischling,grunzen|Biber:Damm,Zähne,Holz,Fluss,nagen" +
+    "|Otter:Wasser,Fluss,schwimmen,Fisch,Fell|Robbe:Meer,Eis,Seehund,Flossen,Fisch|Eisbär:weiß,Nordpol,Eis,Bär,kalt" +
+    "|Faultier:langsam,hängen,Baum,schlafen,faul|Chamäleon:Farbe,wechseln,Zunge,Echse,tarnen|Skorpion:Stachel,giftig,Wüste,Schwanz,Zangen" +
+    "|Hummer:Meer,rot,Scheren,teuer,kochen|Krabbe:Strand,seitwärts,Scheren,Meer,Krebs|Libelle:Flügel,Wasser,Insekt,fliegen,schnell" +
+    "|Glühwürmchen:leuchten,Nacht,Käfer,Licht,Sommer|Raupe:Schmetterling,grün,Blatt,fressen,kriechen|Wespe:stechen,gelb,schwarz,Kuchen,Sommer" +
+    "|Hummel:dick,summen,Biene,pelzig,Blume|Pudel:Hund,Locken,Frisur,weiß,Rasse|Dackel:Hund,kurz,Beine,lang,Wurst" +
+    "|Kuckuck:Uhr,Vogel,Ei,rufen,Wald|Rabe:schwarz,Vogel,krächzen,Krähe,klug|Spatz:Vogel,klein,braun,Dach,piepsen" +
+    "|Nachtigall:singen,Vogel,Nacht,schön,Lied|Brokkoli:grün,Gemüse,Röschen,gesund,Baum|Spinat:grün,Popeye,Gemüse,Blätter,Eisen" +
+    "|Paprika:rot,gelb,grün,Gemüse,Schote|Mais:gelb,Kolben,Popcorn,Feld,Körner|Erbse:grün,klein,Schote,Prinzessin,Gemüse" +
+    "|Linsen:Suppe,Hülsenfrucht,klein,braun,Spätzle|Spätzle:Schwaben,Nudeln,Käse,Teig,Linsen|Knödel:Kloß,Kartoffel,Bayern,rund,Soße" +
+    "|Schnitzel:Fleisch,paniert,Wien,Pommes,klopfen|Currywurst:Wurst,Soße,Berlin,Pommes,Imbiss|Lasagne:Nudeln,Schichten,Italien,Käse,Ofen" +
+    "|Risotto:Reis,Italien,cremig,Parmesan,rühren|Taco:Mexiko,Fladen,Fleisch,scharf,knusprig|Nachos:Mexiko,Käse,Chips,Dip,Kino" +
+    "|Chips:knusprig,Kartoffel,Tüte,salzig,Sofa|Erdnuss:Nuss,Schale,Butter,Allergie,salzig|Toast:Brot,Toaster,Scheibe,knusprig,Frühstück" +
+    "|Sandwich:Brot,belegt,Scheiben,Käse,Schinken|Brot:Bäcker,Scheibe,backen,Mehl,Laib|Schinken:Schwein,Fleisch,Scheibe,Brot,Wurst" +
+    "|Würstchen:Wurst,Senf,heiß,Wiener,Grill|Fischstäbchen:Fisch,paniert,Käpt'n Iglu,Tiefkühl,Kinder|Muffin:Kuchen,klein,Schokolade,Förmchen,backen" +
+    "|Donut:Loch,süß,Glasur,Homer,rund|Keks:backen,Plätzchen,süß,knusprig,Dose|Plätzchen:Weihnachten,backen,Keks,Ausstecher,Teig" +
+    "|Zimtschnecke:Zimt,Schweden,Hefe,süß,gerollt|Apfelstrudel:Apfel,Österreich,Teig,Vanillesoße,Wien|Eiskaffee:Kaffee,Eis,Sahne,kalt,Sommer" +
+    "|Kakao:Schokolade,trinken,warm,Milch,braun|Milchshake:Milch,Eis,Strohhalm,süß,mixen|Smoothie:Obst,mixen,trinken,gesund,Mixer" +
+    "|Strohhalm:trinken,saugen,Plastik,Glas,Röhrchen|Thermoskanne:warm,Kaffee,Tee,halten,Flasche|Brotdose:Schule,Pause,essen,Box,Butterbrot" +
+    "|Kühlschrankmagnet:Magnet,Kühlschrank,Souvenir,kleben,Tür|Salzstreuer:Salz,streuen,Tisch,Pfeffer,Löcher|Korkenzieher:Wein,Flasche,öffnen,drehen,Korken" +
+    "|Dosenöffner:Dose,öffnen,Konserve,Küche,Werkzeug|Mixer:mixen,Küche,Smoothie,Messer,laut|Waffeleisen:Waffeln,backen,Teig,heiß,Herz" +
+    "|Eiswürfel:kalt,Wasser,gefroren,Getränk,Würfel|Gefriertruhe:kalt,einfrieren,Keller,Eis,Tiefkühl|Taschentuch:Nase,putzen,Schnupfen,Tempo,Papier" +
+    "|Klopapier:Toilette,Rolle,Papier,Hamsterkauf,weich|Wäschekorb:Wäsche,dreckig,Korb,Kleidung,sammeln|Staubwedel:Staub,putzen,Federn,wischen,Regal" +
+    "|Wischmopp:Boden,wischen,nass,Eimer,putzen|Kehrblech:Besen,Schaufel,fegen,Dreck,Boden|Spinnennetz:Spinne,Faden,kleben,Ecke,fangen" +
+    "|Mausefalle:Maus,Käse,fangen,schnappen,Falle|Bilderrahmen:Foto,Wand,Glas,aufhängen,Bild|Wanduhr:Zeit,Wand,ticken,Zeiger,hängen" +
+    "|Sanduhr:Sand,Zeit,umdrehen,Glas,rieseln|Kuckucksuhr:Schwarzwald,Vogel,Uhr,rufen,Holz|Schaukelstuhl:schaukeln,sitzen,Oma,Holz,wippen" +
+    "|Kamin:Feuer,Holz,warm,Wohnzimmer,Schornstein|Heizung:warm,Winter,Wärme,aufdrehen,Thermostat|Ventilator:Wind,kühl,Sommer,drehen,Luft" +
+    "|Klimaanlage:kalt,kühlen,Sommer,Luft,Auto|Rauchmelder:Rauch,Feuer,piepen,Decke,Alarm|Feuerlöscher:Feuer,löschen,rot,Schaum,Notfall" +
+    "|Erste Hilfe:Notfall,helfen,Verband,Unfall,Kurs|Notruf:112,anrufen,Hilfe,Polizei,Feuerwehr|Wetterhahn:Dach,Wind,Hahn,Richtung,drehen" +
+    "|Regenrinne:Dach,Wasser,Rinne,Regen,Laub|Gartenschlauch:Wasser,Garten,spritzen,gießen,grün|Planschbecken:Wasser,Kinder,Sommer,aufblasen,Garten" +
+    "|Swimmingpool:Wasser,schwimmen,Garten,Becken,Sommer|Rutschbahn:rutschen,Spielplatz,Kinder,runter,Wasser|Wippe:Spielplatz,auf,ab,zwei,Kinder" +
+    "|Klettergerüst:Spielplatz,klettern,Kinder,Stangen,hoch|Kettenkarussell:Kirmes,drehen,Ketten,fliegen,Sitze|Bauchredner:Puppe,sprechen,Mund,Stimme,Bühne" +
+    "|Jongleur:Bälle,werfen,Zirkus,fangen,Keulen|Seiltänzer:Seil,balancieren,Zirkus,hoch,Stange|Feuerspucker:Feuer,Mund,spucken,Zirkus,Fackel" +
+    "|Dompteur:Zirkus,Löwen,Peitsche,Tiere,Manege|Marionette:Fäden,Puppe,Theater,ziehen,Holz|Kasperle:Puppentheater,Krokodil,Kinder,Handpuppe,Theater" +
+    "|Comic:Bilder,Sprechblase,Heft,lesen,Superheld|Zeichentrickfilm:Disney,Film,gezeichnet,Kinder,animiert|Fernsehserie:Folgen,Staffel,schauen,Netflix,Fernsehen" +
+    "|Nachrichten:Tagesschau,Fernsehen,aktuell,Sprecher,Welt|Werbung:Pause,Fernsehen,kaufen,Produkt,Spot|Quizshow:Fragen,Kandidat,Fernsehen,gewinnen,Moderator" +
+    "|Kochshow:kochen,Fernsehen,Koch,Rezept,Studio|Talkshow:Gäste,reden,Fernsehen,Moderator,Sofa|Wetterkarte:Wetter,Karte,Sonne,Regen,Fernsehen" +
+    "|Kinokarte:Kino,Film,Ticket,Platz,kaufen|Premiere:erste,Film,roter Teppich,Stars,Aufführung|Roter Teppich:Stars,Premiere,laufen,Fotografen,rot" +
+    "|Autogramm:unterschreiben,Star,Fan,Name,Stift|Fan:Star,Verein,lieben,jubeln,Anhänger|Paparazzi:Fotografen,Stars,heimlich,Fotos,verfolgen" +
+    "|Oscar:Preis,Film,Hollywood,Statue,gold|Hollywood:Film,Stars,Los Angeles,Kino,Schild|Bestseller:Buch,verkauft,viel,Liste,beliebt" +
+    "|Hörbuch:hören,Buch,vorlesen,Sprecher,Audio|Gedicht:Reim,Vers,Strophe,Dichter,schreiben|Rätsel:lösen,raten,Frage,Antwort,knifflig" +
+    "|Puzzleteil:Puzzle,Teil,passen,fehlen,Bild|Zauberwort:bitte,Magie,sagen,Abrakadabra,höflich|Abrakadabra:Zauberer,Spruch,Magie,zaubern,Wort" +
+    "|Fluch:verfluchen,Hexe,böse,Zauber,Pech|Kobold:klein,grün,Pumuckl,frech,Gold|Gnom:klein,Zwerg,Garten,Erde,Mütze" +
+    "|Phönix:Vogel,Feuer,Asche,auferstehen,Harry Potter|Greif:Adler,Löwe,Fabelwesen,Flügel,Krallen|Zyklop:Auge,eins,Riese,Odysseus,Mythos" +
+    "|Medusa:Schlangen,Haare,Stein,Mythos,Blick|Herkules:stark,Held,Mythos,Griechenland,Aufgaben|Atlantis:versunken,Stadt,Meer,Legende,Insel" +
+    "|Schatzkarte:Kreuz,Schatz,Pirat,Weg,graben"
   ).split("|").map(z => { const [w, rest] = z.split(":"); return { w: w.trim(), tabu: rest.split(",").map(s => s.trim()) }; });
 
   const ZEITEN = [60, 90, 120];
