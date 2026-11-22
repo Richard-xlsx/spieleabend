@@ -1,7 +1,7 @@
 // Kerker-Kart (Arbeitstitel): Die Helden aus Dungeons & Disappointments fahren durch den Kerker.
 // Lenken durch Neigen des Handys im Querformat (wie ein Lenkrad) oder mit Tasten. Konzept: KONZEPT.md
 import * as THREE from "three";
-import { WELTEN, planWuerfeln, planCode, planAusCode, kontrollpunkte, rng } from "./strecke.js?v=2026-11-20q";
+import { WELTEN, planWuerfeln, planCode, planAusCode, kontrollpunkte, rng } from "./strecke.js?v=2026-11-22a";
 
 const $ = id => document.getElementById(id);
 const TEST_RUNDEN = +(new URLSearchParams(location.search).get("runden")) || 0;   // ?runden=1 zum Testen
@@ -1768,6 +1768,7 @@ class Kart {
     if (this.haken) maxV = st.maxV * 1.55;
     if (this.fluegel > 0) maxV = st.maxV * 1.6;
     if (ein.gas === false) maxV = 0; else if (this.dreher > 0) maxV = Math.min(maxV, st.maxV * .35);
+    if (ein.rueck && !this.luft) { maxV = -9; this.drift = 0; this.ladung = 0; }        // Rückwärtsgang (z. B. nach einer Wand)
     const schub = this.boost > 0 || this.haken || this.wind > 0 || this.fluegel > 0 ? 3 : (this.rwA || 1) * ( this.erholung > 0 && !(this.dreher > 0) ? 2.2 : 1);
     if (this.eis > 0) this.v *= Math.max(0, 1 - .45 * dt);         // eingefroren: schlittert ohne Antrieb
     else if (!this.luft) this.v += Math.max(-30 * dt, Math.min(st.accel * dt * schub, maxV - this.v));
@@ -1775,17 +1776,18 @@ class Kart {
     const lenk = this.eis > 0 ? 0 : ein.lenk * (this.netz > 0 ? .3 : 1) * (this.schlaf > 0 ? .45 : 1);
     this.s += (lenk - this.s) * Math.min(1, dt * (ein.direkt ? 30 : 9));
     // Drift
-    if (!this.drift && ein.drift && Math.abs(this.s) > .25 && this.v > 14 && !this.luft && !(this.eis > 0)) { this.drift = Math.sign(this.s); this.ladung = 0; }
+    if (!this.drift && ein.drift && !ein.rueck && Math.abs(this.s) > .25 && this.v > 14 && !this.luft && !(this.eis > 0)) { this.drift = Math.sign(this.s); this.ladung = 0; }
     if (this.drift && (!ein.drift || this.v < 9)) {
       if (this.ladung > 1.7) this.boost = Math.max(this.boost, 1.2); else if (this.ladung > .8) this.boost = Math.max(this.boost, .6);
       this.drift = 0; this.ladung = 0;
     }
     let s = this.s, wende = st.turn * (this.luft ? 1 : 1 + Math.abs(NEIG[this.idx]) * 2.5) * (boot ? .85 : 1);    // Steilkurve: lenkt sich leichter
-    if (this.drift) { s = this.drift * .6 + this.s * .5; wende *= st.drift; this.ladung += dt * (.6 + Math.abs(s) * .6); if (phase === "rennen") kraftLaden(this, dt * (this.typ === "moench" ? .05 : .025)); }
+    // Drift sanft: ohne Lenken nur leicht einschlagen, Gegenlenken richtet auf
+    if (this.drift) { s = this.drift * .32 + this.s * .45; wende *= 1 + (st.drift - 1) * .55; this.ladung += dt * (.6 + Math.abs(s) * .6); if (phase === "rennen") kraftLaden(this, dt * (this.typ === "moench" ? .05 : .025)); }
     let rate = -s * wende * Math.min(1, Math.max(Math.abs(this.v), 3) / 10) * (this.v < -.5 ? -1 : 1) * (this.luft && !this.gleit ? .35 : 1);   // auch langsam etwas lenkbar
     if (this.dreher > 0) rate = 0;                 // beim Dreher dreht sich nur das Modell (zeigen), Fahrtrichtung und Blick bleiben
     this.yaw += rate * dt;
-    const k = this.eis > 0 ? .5 : this.wind > 0 ? 16 : (this.drift ? 2.6 : st.grip) * (1 + Math.abs(NEIG[this.idx]) * 4) * (nass ? .55 : boot ? .5 : 1) * (this.glatt > 0 ? .3 : 1) * (fluch === "glatteis" ? .4 : 1);
+    const k = this.eis > 0 ? .5 : this.wind > 0 ? 16 : (this.drift ? 4.2 : st.grip) * (1 + Math.abs(NEIG[this.idx]) * 4) * (nass ? .55 : boot ? .5 : 1) * (this.glatt > 0 ? .3 : 1) * (fluch === "glatteis" ? .4 : 1);
     let diff = this.yaw - this.mh; diff = Math.atan2(Math.sin(diff), Math.cos(diff));
     this.mh += diff * (1 - Math.exp(-k * dt));
     if (this.dreher > 0) this.mh = this.mhFest;
@@ -2693,6 +2695,7 @@ function streckeStoss(k, alt, dt) {
     if (zu) {
       k.x = alt.x; k.z = alt.z; k.idx = alt.idx; k.prog = alt.prog; k.d = alt.d; k.v = -Math.max(3.5, Math.min(7, Math.abs(k.v) * .35)); k.drift = 0;
       if (k.bot || AUTO || k.fertig != null) { const q = punkt(k.idx, -seite * BR / 4); k.x = q.x; k.z = q.z; k.d = -seite * BR / 4; k.spur = k.d; }   // Monster nicht festhängen lassen
+      else umleiten(k, -seite, true);
       if (k.ich) { wackeln = Math.max(wackeln, .3); summen(60); }
     }
   }
@@ -3069,7 +3072,7 @@ function minikarte() {
 }
 
 // ---------- Eingabe ----------
-const ein = { lenk: 0, drift: false, extra: false, direkt: false };
+const ein = { lenk: 0, drift: false, extra: false, direkt: false, rueck: false };
 let steuerung = lager.lesen("kart:steuerung") || (matchMedia("(pointer:coarse)").matches ? "neigen" : "tasten");
 let neigung = 0, neigungDa = false;
 const tasten = { l: false, r: false };
@@ -3101,6 +3104,7 @@ const tastMap = { ArrowLeft: "l", a: "l", A: "l", ArrowRight: "r", d: "r", D: "r
 addEventListener("keydown", e => {
   if (tastMap[e.key]) tasten[tastMap[e.key]] = true;
   if (e.key === " " || e.key === "Shift") { ein.drift = true; e.preventDefault(); }
+  if (e.key === "s" || e.key === "S" || e.key === "Backspace") { ein.rueck = true; e.preventDefault(); }
   if (e.key === "e" || e.key === "E" || e.key === "ArrowUp") extraZuenden(e.key === "ArrowUp" ? "vorn" : undefined);
   if (e.key === "q" || e.key === "Q" || e.key === "ArrowDown") { extraZuenden("hinten"); e.preventDefault(); }
   if (e.key === "r" || e.key === "R" || e.key === "Enter") kraftZuenden();
@@ -3109,13 +3113,16 @@ addEventListener("keydown", e => {
 addEventListener("keyup", e => {
   if (tastMap[e.key]) tasten[tastMap[e.key]] = false;
   if (e.key === " " || e.key === "Shift") ein.drift = false;
+  if (e.key === "s" || e.key === "S" || e.key === "Backspace") ein.rueck = false;
 });
+addEventListener("blur", () => { ein.rueck = false; ein.drift = false; tasten.l = tasten.r = false; });
 function halten(el, an, aus) {
   const runter = ev => { ev.preventDefault(); el.classList.add("an"); an(); };
   const hoch = ev => { ev.preventDefault(); el.classList.remove("an"); aus && aus(); };
   el.addEventListener("pointerdown", runter); el.addEventListener("pointerup", hoch); el.addEventListener("pointercancel", hoch); el.addEventListener("pointerleave", hoch);
 }
 halten($("kdrift"), () => ein.drift = true, () => ein.drift = false);
+halten($("krueck"), () => ein.rueck = true, () => ein.rueck = false);
 halten($("kkraft"), () => kraftZuenden());
 // Extra-Knopf: antippen = Standard (Angriffe nach vorn, Fallen nach hinten), nach unten wischen = nach hinten, nach oben = nach vorn
 {
@@ -3575,6 +3582,15 @@ function sperreSetzen(e) {
     if (ich && ich.fertig == null) { melden(zu ? `Einsturz! Ein Weg bei „${W.insel}“ ist zu 💥` : `Das Gitter bei „${W.insel}“ ist offen! Abkürzung 🔓`, 2.2); klang(zu ? "knall" : "pling"); }
   }
 }
+// Wer zweimal kurz hintereinander gegen dieselbe Sperre fährt, wird auf den offenen Weg gesetzt (sonst kann man vor dem Gitter hängen bleiben)
+function umleiten(k, seite, mitte) {
+  k.yaw = k.mh = Math.atan2(TX[k.idx], TZ[k.idx]);                  // wieder in Fahrtrichtung
+  if (!(k.sperrBis > uhr)) { k.sperrBis = uhr + 3; return; }
+  k.sperrBis = 0;
+  const d = mitte ? seite * BR / 4 : WEG[k.idx] ? wegMitte(k.idx, seite) : seite * BR / 4, q = punkt(k.idx, d);
+  k.x = q.x; k.z = q.z; k.d = d; k.v = Math.max(k.v, 6); k.y = hoehe(k.idx, d);
+  if (k.ich) melden("Umgeleitet auf den offenen Weg ↪", 1.4);
+}
 // Zusammenstoß mit einer Sperre (aus streckeStoss)
 function sperreStoss(k, alt) {
   for (const W of wege) {
@@ -3584,6 +3600,7 @@ function sperreStoss(k, alt) {
     if (wegSeite(k.idx, k.d) !== W.zu) continue;
     k.x = alt.x; k.z = alt.z; k.idx = alt.idx; k.prog = alt.prog; k.d = alt.d; k.v = -Math.max(3.5, Math.min(7, Math.abs(k.v) * .35)); k.drift = 0;
     if (k.bot || AUTO) k.wegWahl = -W.zu;
+    umleiten(k, -W.zu);
     if (k.ich) { wackeln = Math.max(wackeln, .3); summen(60); if (!(k.sperrGemeldet > uhr)) { k.sperrGemeldet = uhr + 3; melden("Versperrt! Nimm den anderen Weg", 1.6); } }
   }
 }
@@ -4042,6 +4059,26 @@ function stossen() {
   }
 }
 
+// Festgefahren? Wer im Rennen 3 s kaum vorankommt, bekommt einen Hinweis; nach 7 s setzen ihn Fledermäuse zurück auf die Strecke
+function festPruefen(k, e, dt) {
+  if (k.absturz || k.lore || k.flug || k.pfad || k.luft || k.eis > 0 || k.netz > 0 || k.schlaf > 0 || k.dreher > 0 || k.kroete > 0) { k.festT = 0; return; }
+  if (e && e.rueck) k.rueckZuletzt = uhr;
+  if (k.ich) {                                                         // falsche Richtung?
+    const falsch = Math.cos(k.mh - Math.atan2(TX[k.idx], TZ[k.idx])) < -.3 && k.v > 5;
+    k.falschT = falsch ? (k.falschT || 0) + dt : 0;
+    if (k.falschT > 1.5 && !(k.falschGemeldet > uhr)) { k.falschGemeldet = uhr + 4; melden("Falsche Richtung! Umdrehen ↺", 1.6); }
+  }
+  if (k.festProg == null || k.prog > k.festProg + meter(4) || k.prog < k.festProg - meter(30)) { k.festProg = k.prog; k.festT = 0; k.festHinweis = false; return; }
+  if (uhr - (k.rueckZuletzt || -9) < 1.5) return;                     // fährt gerade selbst rückwärts
+  k.festT = (k.festT || 0) + dt;
+  if (k.ich && k.festT > 3 && !k.festHinweis) { k.festHinweis = true; melden(steuerung === "neigen" ? "Festgefahren? ↩ hält den Rückwärtsgang" : "Festgefahren? S oder ↩ = rückwärts", 2); }
+  if (k.festT > 7) {
+    let d = aufWeg(k.idx, k.d * .3, 1.5);
+    for (const W of wege) if (W.zu && WEG[k.idx] && vorab(k.idx, W.i0) <= W.n && wegSeite(k.idx, d) === W.zu) d = wegMitte(k.idx, -W.zu);
+    versetzen(k, k.idx, d, k.prog); k.v = 6; k.schonzeit = Math.max(k.schonzeit || 0, 1.5); k.festProg = k.prog; k.festT = 0; k.festHinweis = false;
+    if (k.ich) { melden("Fledermäuse setzen dich zurück auf die Strecke 🦇", 1.8); puff(k.x, k.y + 1, k.z, "#9A8F82"); }
+  }
+}
 function update(dt) {
   if (phase === "vorschau") {
     vorschauZeit -= dt;
@@ -4074,6 +4111,7 @@ function update(dt) {
     else if (k.flug) flugSchritt(k, dt);
     else if (k.pfad) pfadSchritt(k, dt, e);
     else { k.schritt(dt, e); if (rennt) streckeWirkung(k, dt, e); }
+    if (rennt && k.fertig == null) festPruefen(k, e, dt);
     // Runden
     const runde = Math.floor(k.prog / S);
     if (rennt && runde > k.runden.length && k.fertig == null && k.prog > 0) {
