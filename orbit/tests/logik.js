@@ -4,6 +4,9 @@ require(__dirname + '/../logic.js');
 require(__dirname + '/../missionen/funkfrequenz.js');
 require(__dirname + '/../missionen/schrotthaendler.js');
 require(__dirname + '/../missionen/reaktor.js');
+require(__dirname + '/../missionen/asteroid.js');
+require(__dirname + '/../missionen/kapseln.js');
+require(__dirname + '/../live.js');
 const R = window.RM, assert = require('assert');
 let t = 1000;
 const S = R.neu('ABCD', 'h', 'Host');
@@ -125,8 +128,9 @@ assert.strictEqual(k.mission.schritt, 'anleitung'); assert.strictEqual(k.mission
   assert.strictEqual(S.partie.schritt, 'wahl');
   const letzter = R.rangliste(S).filter(p => R.istDa(S, p)).pop();
   assert.strictEqual(S.partie.wahl.wer, letzter);
-  assert.deepStrictEqual(S.partie.wahl.optionen.slice().sort(), ['funkfrequenz', 'reaktor', 'schrotthaendler']);
-  if (letzter === 'h' || letzter === 'c') assert(R.aktion(S, letzter, { t: 'waehle', id: 'funkfrequenz' }, t).ok);
+  assert.strictEqual(S.partie.wahl.optionen.length, 3); assert(S.partie.wahl.optionen.every(id => R.MISSIONEN[id]));
+  S.partie.wahl.optionen = ['funkfrequenz'];   // der Test unten setzt Punkte wie bei Funkfrequenz
+if (letzter === 'h' || letzter === 'c') assert(R.aktion(S, letzter, { t: 'waehle', id: S.partie.wahl.optionen[0] }, t).ok);
   for (let i = 0; i < 50 && S.partie.schritt === 'wahl'; i++) { t += 200; R.takt(S, t); }
   assert.strictEqual(S.partie.schritt, 'wetten');
   // Wetten: Host setzt 5 auf sich, Clara (Gratiswette) tippt auf Host ohne Einsatz
@@ -163,6 +167,7 @@ assert.strictEqual(k.mission.schritt, 'anleitung'); assert.strictEqual(k.mission
   let schritte = 0;
   while (S.phase !== 'ende' && schritte++ < 20000) {
     t += 200; R.takt(S, t);
+    for (let k = 0; k < 6; k++) R.liveSchritt(S, t - 200 + k * 33, {});
     if (S.phase === 'mission' && S.mission.schritt === 'anleitung') R.aktion(S, 'h', { t: 'bereit' }, t);
     if (S.phase === 'brett' && S.partie.schritt === 'wuerfeln') R.aktion(S, 'h', { t: 'wurf' }, t);
     if (S.phase === 'brett' && S.partie.schritt === 'wahl' && S.partie.wahl.wer === 'h') R.aktion(S, 'h', { t: 'waehle', id: S.partie.wahl.optionen[0] }, t);

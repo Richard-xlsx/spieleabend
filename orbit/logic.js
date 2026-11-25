@@ -572,6 +572,26 @@
     return anders;
   }
 
+  // Live-Missionen: der Spielleiter rechnet 30-mal pro Sekunde (eingaben: { pid: { x, y, k } }); true bei Ereignissen
+  function liveSchritt(S, jetzt, eingaben) {
+    const b = S.mission;
+    if (S.phase !== "mission" || !b || b.schritt !== "spiel") return false;
+    const B = MISSIONEN[b.id];
+    if (!B || !B.live) return false;
+    const dt = b.liveZeit ? Math.min(0.05, Math.max(0, (jetzt - b.liveZeit) / 1000)) : 0;
+    b.liveZeit = jetzt;
+    const ctx = ctxVon(S), ein = {};
+    for (const p of b.tn) if (istDa(S, p) && eingaben && eingaben[p]) ein[p] = eingaben[p];
+    if (B.botEingabe) for (const p of b.tn) if (istBot(S, p)) ein[p] = B.botEingabe(b.d, p, ctx.rng, jetzt);
+    let anders = !!B.schritt(b.d, dt, ein, jetzt, ctx);
+    if (b.d.fertig) { werten(S, jetzt); anders = true; }
+    return anders;
+  }
+  function liveBild(S) {
+    const b = S.mission, B = b && MISSIONEN[b.id];
+    return S.phase === "mission" && b && b.schritt === "spiel" && B && B.live && B.bild ? B.bild(b.d) : null;
+  }
+
   function sicht(S, pid) {
     const v = kopie(S);
     if (v.mission && MISSIONEN[v.mission.id] && MISSIONEN[v.mission.id].sicht) v.mission.d = MISSIONEN[v.mission.id].sicht(v.mission.d, pid);
@@ -591,6 +611,6 @@
 
   W.RM = {
     MAX, FARBEN, ENERGIE, ZEIT, MISSIONEN, FELDER, FELD, WURMLOCH, N, START, PREIS, MAXKAUF, WURMPREIS, MAXWETTE, GRATIS, LAENGEN,
-    zufall, summe, neu, aktion, takt, sicht, stand, passend, anwesend, istBot, istDa, missionNeustart, kopie, mitspieler, rangliste, plaetze, faktor
+    zufall, summe, neu, aktion, takt, sicht, liveSchritt, liveBild, stand, passend, anwesend, istBot, istDa, missionNeustart, kopie, mitspieler, rangliste, plaetze, faktor
   };
 })();

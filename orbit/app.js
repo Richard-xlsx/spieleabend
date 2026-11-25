@@ -1,7 +1,7 @@
 // Orbit: Verbindung (Handy des Spielleiters ist der Server, PeerJS), Uhrabgleich, Bots und Bildschirme.
 // Regeln und Ablauf stehen in logic.js, die Missionen in missionen/*.js.
 (function () {
-  const R = window.RM, UI = window.ORBIT_UI || {}, B = window.ORBIT_BRETT;
+  const R = window.RM, UI = window.ORBIT_UI || {}, B = window.ORBIT_BRETT, LIVE = window.ORBIT_LIVE, SN = window.ORBIT_SENSOR;
   const app = document.getElementById("app");
   const PREFIX = "fmwob-";
   const ZEICHEN = "ABCDEFGHJKLMNPRSTUVWXYZ23456789";
@@ -77,6 +77,7 @@
   function vonClient(c, m) {
     if (!m || !m.pid) return;
     if (m.t === "ping") { try { c.send({ t: "pong", c: m.c, h: Date.now() }); } catch (e) {} return; }
+    if (m.t === "ein") { if (LIVE) LIVE.eingang(m.pid, m); return; }   // Live-Eingabe, 20-mal pro Sekunde
     if (m.t === "hallo") conns.set(m.pid, c);
     const r = R.aktion(S, m.pid, m, Date.now());
     if (!r.ok && r.fehler && m.t !== "hallo") { try { c.send({ t: "fehler", text: r.fehler }); } catch (e) {} }
@@ -90,6 +91,29 @@
   }
   // Takt: Zeiten, Bots und Missionsablauf laufen beim Spielleiter
   setInterval(() => { if (rolle === "host" && S && R.takt(S, Date.now())) geaendert(); }, 200);
+  // Live-Missionen: 30-mal pro Sekunde rechnen, jedes zweite Mal ein Bild an alle
+  const liveAktiv = () => !!(S && S.phase === "mission" && S.mission && S.mission.schritt === "spiel" && R.MISSIONEN[S.mission.id] && R.MISSIONEN[S.mission.id].live);
+  let liveTick = 0;
+  setInterval(() => {
+    if (rolle !== "host" || !liveAktiv() || !LIVE) return;
+    const jetzt = Date.now(), nr = S.mission.nr;
+    if (S.mission.tn.includes(PID)) LIVE.eigeneEingabe(PID, LIVE.eingabe(), jetzt);
+    const anders = R.liveSchritt(S, jetzt, LIVE.eingaben(jetzt));
+    if (++liveTick % 2 === 0 || anders) {
+      const b = R.liveBild(S);
+      if (b) {
+        const msg = { t: "live", nr, b, h: jetzt };
+        for (const c of conns.values()) { try { c.send(msg); } catch (e) {} }
+        LIVE.empfang(nr, b, jetzt);
+      }
+    }
+    if (anders) geaendert();
+  }, 33);
+  // Handys schicken ihre Steuerung 20-mal pro Sekunde
+  setInterval(() => {
+    if (rolle !== "client" || !liveAktiv() || !LIVE || !hostConn || !hostConn.open || !S.mission.tn.includes(PID)) return;
+    try { hostConn.send(Object.assign({ t: "ein", pid: PID, l: isFinite(besteLaufzeit) ? Math.round(besteLaufzeit) : 0 }, LIVE.eingabe())); } catch (e) {}
+  }, 50);
 
   // ---------- Mitspieler ----------
   function clientStarten() {
@@ -119,6 +143,7 @@
     c.on("data", m => {
       if (!m) return;
       if (m.t === "zustand") { S = m.s; ls.set("ob:kopie:" + code, S); render(); }
+      else if (m.t === "live") { if (LIVE) LIVE.empfang(m.nr, m.b, m.h); }
       else if (m.t === "pong") pong(m);
       else if (m.t === "fehler") zeigeHinweis(m.text);
     });
@@ -194,7 +219,8 @@
   const uhr = bis => `<span class="uhr" data-bis="${bis}">${Math.max(0, Math.ceil((bis - hostJetzt()) / 1000))}</span>`;
   const ctxUI = () => {
     const m = S.mission;
-    return { PID, S, esc, helm, uhr, tun, name: p => sp(p).name, dabei: !!(m && m.tn.includes(PID)), jetzt: hostJetzt, neu: () => { letztesHtml = ""; render(); } };
+    return { PID, S, esc, helm, uhr, tun, name: p => sp(p).name, dabei: !!(m && m.tn.includes(PID)), jetzt: hostJetzt, neu: () => { letztesHtml = ""; render(); },
+      nr: m && m.nr, farbe, anfang, laufzeit: rolle === "host" ? 0 : (isFinite(besteLaufzeit) ? besteLaufzeit : 100), host: rolle === "host" };
   };
   const ctxBrett = () => ({ S, PID, R, esc, helm, helmInnen: p => helmInnen(farbe(p), anfang(p)), name: p => sp(p).name, farbe, uhr, jetzt: hostJetzt, tun, host: rolle === "host", da });
 
@@ -225,8 +251,6 @@
   function zeitenAnzeigen() {
     const jetzt = hostJetzt();
     if (B && S && S.phase === "brett") B.bewegen(ctxBrett());
-    const m = S && S.phase === "mission" && S.mission;
-    if (m && m.schritt === "spiel" && UI[m.id] && UI[m.id].bewegen) UI[m.id].bewegen(m.d, ctxUI());
     document.querySelectorAll("[data-bis]").forEach(el => {
       const r = Math.max(0, Math.ceil((+el.dataset.bis - jetzt) / 1000));
       if (el.textContent !== String(r)) el.textContent = r;
@@ -239,6 +263,16 @@
     }
   }
   setInterval(zeitenAnzeigen, 100);
+  // Missionen mit Bewegung zeichnen bei jedem Bild des Bildschirms
+  let spielNr = null;
+  (function bild() {
+    const m = S && S.phase === "mission" && S.mission;
+    if (m && m.schritt === "spiel") {
+      if (spielNr !== m.nr) { spielNr = m.nr; if (SN) SN.nullen(); if (LIVE && rolle === "host") LIVE.leeren(); }
+      if (UI[m.id] && UI[m.id].bewegen) { try { UI[m.id].bewegen(m.d, ctxUI()); } catch (e) { console.error(e); } }
+    }
+    requestAnimationFrame(bild);
+  })();
 
   // Titelbild: Raumstation im Orbit um einen Ringplaneten
   function titelbild() {
@@ -259,7 +293,7 @@
   }
   function bildschirmStart() {
     return `<header class="titel">${titelbild()}<h1>Orbit</h1><p class="leise">Eine Raumstation als Spielbrett: würfeln, durch die Module ziehen, Energie sammeln und Sternkristalle kaufen. Nach jeder Runde eine Mission für alle, mal geheim, mal live, mal im Team.</p></header>
-      <p class="baustelle">Im Aufbau: Das Spielbrett steht, bisher gibt es drei Missionen (Funkfrequenz, Schrotthändler, Reaktor-Countdown). Weitere folgen.</p>
+      <p class="baustelle">Im Aufbau: Das Spielbrett steht, 5 von 14 Missionen sind fertig. Weitere folgen.</p>
       <label class="feld">Dein Name<input id="name" maxlength="20" value="${esc(name)}" autocomplete="nickname" placeholder="z. B. Richard"></label>
       <div class="karte-box"><h2>Neues Spiel</h2><p class="leise klein">Für 2 bis 8 Leute, jeder am eigenen Handy.</p>
         <button class="knopf" id="neu">Raum erstellen</button></div>
@@ -337,7 +371,7 @@
     const ui = UI[m.id], e = m.ergebnis || [];
     const platz = x => x.platz ? x.platz + "." : "–";
     return kopf + (ui && m.d ? `<details class="rueckblick"><summary>Letzter Durchgang</summary>${ui.html(m.d, ctxUI())}</details>` : "") +
-      `<div class="karte-box"><h2>Ergebnis</h2><ol class="ergebnis">${e.map(x => `<li class="${x.platz === 1 ? "erster" : ""} ${x.pid === PID ? "ich" : ""}"><span class="pl">${platz(x)}</span>${helm(x.pid)}<span class="nm">${esc(sp(x.pid).name)}<small>${x.wert === null ? "nicht dabei" : x.wert + " " + esc(M.einheit || "")}</small></span><span class="plus">+${x.energie}<i>⚡</i></span></li>`).join("")}</ol></div>
+      `<div class="karte-box"><h2>Ergebnis</h2><ol class="ergebnis">${e.map(x => `<li class="${x.platz === 1 ? "erster" : ""} ${x.pid === PID ? "ich" : ""}"><span class="pl">${platz(x)}</span>${helm(x.pid)}<span class="nm">${esc(sp(x.pid).name)}<small>${x.wert === null ? "nicht dabei" : String(x.wert).replace(".", ",") + " " + esc(M.einheit || "")}</small></span><span class="plus">+${x.energie}<i>⚡</i></span></li>`).join("")}</ol></div>
       ${wettErgebnis(m)}
       ${P ? (host ? `<div class="unten"><button class="knopf" id="weiter">Zurück zur Station (${uhr(m.bis)})</button></div>` : `<p class="leise mitte">Weiter zur Station in ${uhr(m.bis)} s</p>`)
         : host ? `<div class="unten"><button class="knopf" id="weiter">Zurück zur Crew</button></div>` : `<p class="leise mitte">${esc(sp(S.host).name)} geht weiter.</p>`}`;
@@ -365,7 +399,11 @@
     if ($("botWeg")) $("botWeg").onclick = () => tun({ t: "bot", dazu: false });
     if ($("nullen")) $("nullen").onclick = () => { if (confirm("Energie aller Spieler auf 0 setzen?")) tun({ t: "punkteNull" }); };
     if ($("verlassen")) $("verlassen").onclick = verlassen;
-    if ($("bereit")) $("bereit").onclick = () => tun({ t: "bereit" });
+    if ($("bereit")) $("bereit").onclick = () => {
+      const M = S && S.mission && R.MISSIONEN[S.mission.id];
+      if (SN && M && /Neigen/.test(M.eingabe || "") && SN.brauchtErlaubnis()) SN.erlauben();   // iOS fragt nur nach einem Tippen
+      tun({ t: "bereit" });
+    };
     if ($("weiter")) $("weiter").onclick = () => tun({ t: "weiter" });
     if ($("abbrechen")) $("abbrechen").onclick = () => { if (confirm("Mission abbrechen? Es gibt keine Energie.")) tun({ t: "abbrechen" }); };
     document.querySelectorAll("[data-farbe]").forEach(b => b.onclick = () => tun({ t: "farbe", n: +b.dataset.farbe }));

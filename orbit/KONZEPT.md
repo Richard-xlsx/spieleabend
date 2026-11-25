@@ -1,6 +1,6 @@
 # Orbit: Brettspiel mit Minispielen auf einer Raumstation (Konzept und Plan)
 
-Stand 25.11.2026. Schritt 1 bis 3 sind gebaut (Brett und die drei geheimen Missionen). Ordner `orbit/`, für 2 bis 8 Leute, jeder am eigenen Handy.
+Stand 25.11.2026. Schritt 1 bis 4 sind gebaut (Brett, drei geheime Missionen, Live-Technik, Asteroid und Rettungskapseln). Ordner `orbit/`, für 2 bis 8 Leute, jeder am eigenen Handy.
 
 Eine Raumstation ist das Spielbrett. Man würfelt, zieht durch die Module des Rings und sammelt **Energiezellen**. Mit
 Energie kauft man beim Händlerschiff **Sternkristalle**, und wer am Ende die meisten Kristalle hat, gewinnt. Nach jeder
@@ -39,7 +39,7 @@ hervorgehoben.
 Sternkristalle für je 20 Energie kaufen. Danach legt das Schiff ab und dockt mindestens 8 Module weiter weg an.
 
 ### Ablauf einer Runde
-1. **Würfeln:** Alle würfeln gleichzeitig mit zwei Würfeln durch Tippen (Schütteln folgt mit sensoren.js). Danach ziehen
+1. **Würfeln:** Alle würfeln gleichzeitig mit zwei Würfeln durch Tippen oder Schütteln. Danach ziehen
    die Helme nacheinander, wer hinten liegt, zuerst. Für Entscheidungen auf einem Feld hat man 10 Sekunden Zeit.
 2. **Missionswahl:** Wer gerade Letzter ist, wählt aus 3 Missionen, die zur Spielerzahl passen. Jede Mission kommt erst
    wieder dran, wenn alle anderen gespielt wurden.
@@ -169,5 +169,9 @@ Die Reihenfolge geht vom Einfachen zum Schweren. Schritt 4 baut die Live-Technik
 - Nach dem Missionsergebnis geht es nach 25 Sekunden von selbst zurück aufs Brett.
 - Schrotthändler: Übrige Credits zählen am Ende nicht. Wer bei Gleichstand leer ausgeht, zahlt auch nichts.
 - Reaktor-Countdown: Wer schon gesprungen ist, sieht man erst bei der Auflösung. Ein Sprung zählt mit dem Zeitstempel des Handys, der aber höchstens 1 Sekunde vor der Ankunft beim Spielleiter liegen darf.
+- Zerfallender Asteroid: Es zählt die Zeit auf dem Asteroiden. „Rammen“ gibt einen Stoß (alle 1,8 s). Ab 20 Sekunden schrumpft der ganze Asteroid, damit jede Runde nach etwa 30 bis 60 Sekunden endet (spätestens nach 90). Drohnen lassen alle 2,2 Sekunden Öl fallen.
+- Rettungskapseln: Ohne Auslöser kommt der Alarm nach 2,5 bis 6,5 Sekunden. Der Auslöser hat 9 Sekunden und 2 Testalarme. Der Alarm wird 0,4 Sekunden vorher angekündigt und erscheint auf allen Handys gleichzeitig. Beim Testalarm öffnen sich die Kapseln genauso, nur Farbe und Text sind anders.
+- Steuerung: Neigen mit Nullstellung zu Beginn jeder Mission, umschaltbar auf einen Daumen-Joystick (die Wahl merkt sich das Handy). Am Rechner gehen auch Pfeiltasten.
+- Live-Übertragung: Das Handy zeigt die anderen 0,1 Sekunden in der Vergangenheit, glatt zwischen zwei Bildern. Die eigene Figur wird nach vorn gerechnet.
 - Der Startwert einer Mission bleibt beim Spielleiter, damit niemand die Explosion vorausberechnen kann. Missionen, die ihn auf allen Handys brauchen (z. B. Gestaltwandler), geben ihn ausdrücklich frei.
 - Figuren sind Astronautenhelme mit Farbe und Anfangsbuchstaben.

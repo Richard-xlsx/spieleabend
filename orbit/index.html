@@ -272,6 +272,42 @@ button:focus-visible,input:focus-visible,a:focus-visible,summary:focus-visible{o
 .knopf.raus{background:var(--pink);color:#1A0610;font:900 1.5rem var(--display);padding:20px}
 .reaktorliste .fnr{width:2.6em}
 
+/* Live-Missionen: Arena und Steuerung */
+.arena-rahmen{width:min(100%,460px);margin:0 auto;aspect-ratio:1;border-radius:50%;background:radial-gradient(circle,#141B3D 0%,#0B1026 70%);box-shadow:inset 0 0 40px #000}
+.arena{width:100%;height:100%;display:block;touch-action:none}
+.steuerleiste{display:flex;gap:12px;align-items:center;justify-content:space-between}
+.daumenfeld{width:132px;height:132px;border-radius:50%;border:2px solid var(--linie);background:radial-gradient(circle,var(--flaeche2),var(--flaeche));position:relative;touch-action:none;flex:none;display:grid;place-items:center}
+.daumenfeld .knauf{width:56px;height:56px;border-radius:50%;background:var(--akzent);box-shadow:0 0 18px #2EC4B666;pointer-events:none;transition:transform .05s linear}
+.neigehinweis{display:flex;flex-direction:column;align-items:center;gap:6px;color:var(--leise);font-size:.85rem}
+.neigehinweis svg{width:40px;height:40px;animation:wackeln 2.4s ease-in-out infinite}
+@keyframes wackeln{0%,100%{transform:rotate(-12deg)}50%{transform:rotate(12deg)}}
+.aktionsknopf{appearance:none;border:0;flex:1;min-height:110px;border-radius:24px;background:var(--orange);color:#1A0A02;font:900 1.4rem var(--display);cursor:pointer;touch-action:manipulation;-webkit-user-select:none;user-select:none}
+.aktionsknopf.oel{background:#4B2FA8;color:var(--text)}
+.aktionsknopf.blitz{animation:blitz .3s ease-out}
+@keyframes blitz{from{transform:scale(.92);filter:brightness(1.5)}to{transform:scale(1)}}
+/* Rettungskapseln */
+.sirene{border-radius:18px;padding:16px;text-align:center;font:900 1.15rem var(--display);background:var(--flaeche);border:2px solid var(--linie);color:var(--leise)}
+.sirene[data-zustand="echt"]{background:#FF3B3B;border-color:#FF9C9C;color:#fff;animation:sirene .35s infinite alternate}
+.sirene[data-zustand="test"]{background:#FFB020;border-color:#FFE08A;color:#2A1A00;animation:sirene .35s infinite alternate}
+@keyframes sirene{from{filter:brightness(1)}to{filter:brightness(1.35)}}
+.missionsfeld.alarm-echt::before,.missionsfeld.alarm-test::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:50;background:#FF3B3B1f}
+.missionsfeld.alarm-test::before{background:#FFB0201f}
+.kapseln{display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:12px}
+.kapsel{appearance:none;position:relative;aspect-ratio:1;border-radius:24px;border:3px solid var(--linie);background:var(--flaeche);cursor:pointer;padding:10px;opacity:.55;transition:opacity .1s,transform .1s;touch-action:manipulation}
+.kapsel svg{width:100%;height:100%}
+.kapsel.offen{opacity:1;border-color:var(--text);transform:scale(1.03)}
+.kapsel.besetzt{opacity:1;border-color:var(--linie);background:#0A1030}
+.kapsel.mein{border-color:var(--gut);box-shadow:0 0 0 4px #7BD95744}
+.kapsel:disabled{cursor:default}
+.kapsel .insasse{position:absolute;inset:0;display:grid;place-items:center}
+.kapsel .insasse .helm{width:46%;height:46%}
+.ausloeser{background:var(--flaeche);border:1px solid var(--linie);border-radius:18px;padding:12px;display:flex;flex-direction:column;gap:10px}
+.zweier{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.alarmknopf{background:#FF3B3B;color:#fff}
+.testknopf{background:#FFB020;color:#2A1A00}
+.testknopf:disabled{opacity:.4}
+
+@media (prefers-reduced-motion:reduce){.neigehinweis svg,.sirene[data-zustand],.aktionsknopf.blitz{animation:none}}
 @media (prefers-reduced-motion:reduce){.reaktor.heiss .reaktor-glut,.reaktor .reaktor-ring,.reaktor.knall .reaktor-knall{animation:none}}
 @media (prefers-reduced-motion:reduce){.tb-puls,.tb-blink,.countdown.puls,.frequenz.an::after,.brett .meinring,.brett .haendlerring,.brett .hubpuls,.helm.riesig,.wuerfelknopf.rollt .wuerfel{animation:none}.brett .figur{transition:none}}
 </style>
@@ -282,11 +318,15 @@ button:focus-visible,input:focus-visible,a:focus-visible,summary:focus-visible{o
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <script src="../netz.js?v=2026-11-25a"></script>
 <script src="../abend.js?v=2026-11-25a" data-spiel="orbit"></script>
-<script src="logic.js?v=2026-11-25c"></script>
-<script src="missionen/funkfrequenz.js?v=2026-11-25c"></script>
-<script src="missionen/schrotthaendler.js?v=2026-11-25c"></script>
-<script src="missionen/reaktor.js?v=2026-11-25c"></script>
-<script src="brett.js?v=2026-11-25c"></script>
-<script src="app.js?v=2026-11-25c"></script>
+<script src="sensoren.js?v=2026-11-25d"></script>
+<script src="live.js?v=2026-11-25d"></script>
+<script src="logic.js?v=2026-11-25d"></script>
+<script src="missionen/funkfrequenz.js?v=2026-11-25d"></script>
+<script src="missionen/schrotthaendler.js?v=2026-11-25d"></script>
+<script src="missionen/reaktor.js?v=2026-11-25d"></script>
+<script src="missionen/asteroid.js?v=2026-11-25d"></script>
+<script src="missionen/kapseln.js?v=2026-11-25d"></script>
+<script src="brett.js?v=2026-11-25d"></script>
+<script src="app.js?v=2026-11-25d"></script>
 </body>
 </html>

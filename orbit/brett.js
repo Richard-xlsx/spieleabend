@@ -2,7 +2,9 @@
 // app.js ruft ORBIT_BRETT.html(c), .ende(c), .binden(c) und alle 100 ms .bewegen(c) auf.
 // c = { S, PID, R, esc, helm(p), helmInnen(p), name(p), farbe(p), uhr(bis), jetzt(), tun(m), host, da(p) }
 (function () {
-  const W = window, R = W.RM;
+  const W = window, R = W.RM, SN = W.ORBIT_SENSOR;
+  // Schütteln würfelt, solange der Würfelknopf zu sehen ist
+  if (SN) SN.beiSchuetteln(() => { const b = document.getElementById("wurf"); if (b && !b.disabled) b.click(); });
   const CX = 180, CY = 180, RING = 136;
   const FARBE = { L: "#C9D1E0", V: "#2EC4B6", M: "#FF7A2F", P: "#FF5C9A", T: "#A57BFF", B: "#4DA3FF", G: "#FFD23F", A: "#7BD957", W: "#4B2FA8" };
   const winkel = i => -Math.PI / 2 + i * 2 * Math.PI / R.N;
@@ -107,7 +109,8 @@
       const mein = P.wurf[c.PID];
       const reihe = R.mitspieler(S).map(p => `<li>${c.helm(p)}<span class="nm">${esc(c.name(p))}</span>${P.wurf[p] ? `<span class="wuerfelpaar">${wuerfel(P.wurf[p][0])}${wuerfel(P.wurf[p][1])}</span>` : `<span class="leise klein">${c.da(p) ? "würfelt …" : "offline"}</span>`}</li>`).join("");
       return kopf("Alle würfeln", P.bis) +
-        (ich && !mein ? `<button class="knopf wuerfelknopf" id="wurf">${wuerfel(5)}${wuerfel(2)}<span>Würfeln</span></button>` : "") +
+        (ich && !mein ? `<button class="knopf wuerfelknopf" id="wurf">${wuerfel(5)}${wuerfel(2)}<span>Würfeln</span></button>
+          <p class="leise klein mitte">Tippen oder Handy schütteln${SN && SN.brauchtErlaubnis() ? ` · <button class="link" id="schuettelnErlauben">Schütteln erlauben</button>` : ""}</p>` : "") +
         (ich && mein ? `<p class="mitte gross">Du hast <b>${wurfSumme(mein)}</b> gewürfelt.</p>` : "") +
         (!ich ? `<p class="mitte leise">${sp(c.PID).wartet ? "Du steigst in der nächsten Runde ein." : "Du schaust zu."}</p>` : "") +
         `<ul class="liste">${reihe}</ul>`;
@@ -213,6 +216,7 @@
 
   function binden(c) {
     const $ = id => document.getElementById(id);
+    if ($("schuettelnErlauben")) $("schuettelnErlauben").onclick = async () => { await SN.erlauben(); const b = $("schuettelnErlauben"); if (b) b.remove(); };
     if ($("wurf")) $("wurf").onclick = () => { $("wurf").disabled = true; $("wurf").classList.add("rollt"); c.tun({ t: "wurf" }); };
     document.querySelectorAll("[data-antwort]").forEach(b => b.onclick = () => { const w = b.dataset.antwort; c.tun({ t: "antwort", w: /^\d+$/.test(w) ? +w : w }); });
     document.querySelectorAll("[data-waehle]").forEach(b => b.onclick = () => c.tun({ t: "waehle", id: b.dataset.waehle }));

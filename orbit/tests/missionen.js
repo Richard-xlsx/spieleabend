@@ -6,6 +6,8 @@ if (!window.RM) {
   require(__dirname + '/../missionen/schrotthaendler.js');
   require(__dirname + '/../missionen/reaktor.js');
 }
+if (!window.ORBIT_MISSIONEN.asteroid) { require(__dirname + '/../missionen/asteroid.js'); require(__dirname + '/../missionen/kapseln.js'); }
+if (!window.ORBIT_LIVE) require(__dirname + '/../live.js');
 const R = window.RM, assert = require('assert');
 const ctx = (tn, aktiv) => ({ tn, aktiv: aktiv || tn, rng: Math.random });
 
@@ -140,4 +142,115 @@ const ctx = (tn, aktiv) => ({ tn, aktiv: aktiv || tn, rng: Math.random });
   const v = R.sicht(S, 'h');
   assert(!('seed' in v.mission), 'kein Startwert');
   assert(!('knall' in v.mission.d) && !('zufall' in v.mission.d));
+}
+
+// ---------- Zerfallender Asteroid ----------
+{
+  const A = R.MISSIONEN.asteroid, tn = ['a', 'b', 'c'];
+  const d = A.neu(tn, R.zufall(4));
+  const c = ctx(tn, tn);
+  // Rammen: der erste Zähler setzt nur den Stand, erst ein höherer stößt
+  A.schritt(d, 0.033, { a: { x: 1, y: 0, k: 5 } }, 0, c);
+  assert.strictEqual(d.sp.a.rammt, -9999);
+  A.schritt(d, 0.033, { a: { x: 1, y: 0, k: 6 } }, 0, c);
+  assert(d.sp.a.rammt > -9999 && d.sp.a.vx > 1, 'Stoß nach rechts');
+  // Zusammenstoß überträgt Schwung
+  const d2 = A.neu(['a', 'b'], R.zufall(1));
+  Object.assign(d2.sp.a, { x: -0.2, y: 0, vx: 1, vy: 0 }); Object.assign(d2.sp.b, { x: 0, y: 0, vx: 0, vy: 0 });
+  for (let i = 0; i < 8; i++) A.schritt(d2, 0.033, {}, 0, ctx(['a', 'b']));
+  assert(d2.sp.b.vx > 0.5 && d2.sp.a.vx < 0.4, 'b wird weggeschubst');
+  // Wer über den Rand rollt, wird zur Drohne; mit einem Übrigen endet es nach kurzem Nachlauf
+  Object.assign(d2.sp.b, { x: 0.5, y: 0, vx: 1.2 });
+  let anders = false;
+  for (let i = 0; i < 40 && d2.sp.b.drin; i++) anders = A.schritt(d2, 0.033, {}, 0, ctx(['a', 'b'])) || anders;
+  assert(!d2.sp.b.drin && anders && d2.endeBei !== null);
+  for (let i = 0; i < 60 && !d2.fertig; i++) A.schritt(d2, 0.033, { b: { x: 1, y: 0, k: 1 } }, 0, ctx(['a', 'b']));
+  assert(d2.fertig);
+  const w = A.wertung(d2); assert(w.a > w.b, 'Überlebender vorn');
+  // Drohne lässt Öl fallen
+  const d3 = A.neu(['a', 'b'], R.zufall(2)); d3.sp.b.drin = false; d3.sp.b.fiel = 0; d3.k.b = 0; d3.t = 5000;
+  A.schritt(d3, 0.033, { b: { x: 0, y: 0, k: 1 } }, 0, ctx(['a', 'b']));
+  assert.strictEqual(d3.oel.length, 1);
+  // Bild ist klein
+  assert(JSON.stringify(A.bild(d)).length < 900);
+  // Mit Bots über R.liveSchritt bis zum Ende
+  const S = R.neu('AST', 'h', 'Host'); S.online = ['h'];
+  R.aktion(S, 'h', { t: 'bot', dazu: true }, 0); R.aktion(S, 'h', { t: 'bot', dazu: true }, 0);
+  assert(R.aktion(S, 'h', { t: 'mission', id: 'asteroid' }, 0).ok);
+  let t = 0; R.aktion(S, 'h', { t: 'bereit' }, t); R.takt(S, t); t += 3600; R.takt(S, t);
+  assert.strictEqual(S.mission.schritt, 'spiel');
+  let i = 0;
+  while (S.mission.schritt === 'spiel' && i++ < 4000) { t += 33; R.liveSchritt(S, t, { h: { x: 0, y: 0, k: 0 } }); if (i % 6 === 0) R.takt(S, t); }
+  assert.strictEqual(S.mission.schritt, 'ergebnis', 'Asteroid endet');
+  assert(t < 95000);
+  console.log('Asteroid:', S.mission.ergebnis.map(e => `${e.pid} ${e.wert}s`).join(', '), '· Rand', S.mission.d.rand.reduce((a, b) => a + b, 0).toFixed(1));
+  assert.strictEqual(R.liveBild(S), null, 'nach dem Spiel kein Bild');
+  // Live-Puffer: glatt zwischen zwei Bildern
+  const L = window.ORBIT_LIVE;
+  L.empfang(1, { t: 0 }, 1000); L.empfang(1, { t: 100 }, 1100);
+  const z = L.zwischen(1, 1150); assert.strictEqual(z.a.t, 0); assert(Math.abs(z.f - 0.5) < 1e-9);
+  L.eingang('x', { x: 3, y: -0.5, k: 2, l: 120 }); assert.deepStrictEqual(L.eingaben(0).x, { x: 1, y: -0.5, k: 2 });
+  assert.strictEqual(L.verzoegerung(), 60);
+  L.eigeneEingabe('h', { x: 1, y: 0, k: 0 }, 1000);
+  assert(!L.eingaben(1030).h, 'Spielleiter verzögert'); assert(L.eingaben(1070).h);
+}
+
+// ---------- Rettungskapseln ----------
+{
+  const K = R.MISSIONEN.kapseln, tn = ['a', 'b', 'c', 'd'];
+  const d = K.neu(tn);
+  let t = 0;
+  K.start(d, t, ctx(tn));
+  assert.strictEqual(d.kapseln, 3); assert.strictEqual(d.ausloeser, null); assert.strictEqual(d.schritt, 'bereit');
+  assert.strictEqual(K.sicht(d, 'a').bis, 0, 'Zeitpunkt des Alarms geheim');
+  assert.strictEqual(K.aktion(d, 'a', { a: 'kapsel', k: 0, z: t }, t), 'Noch kein Alarm!');
+  t = d.bis; K.takt(d, t, ctx(tn));
+  assert.strictEqual(d.schritt, 'alarm'); const ab = d.signal.ab; assert.strictEqual(ab, t + 400);
+  assert.strictEqual(K.aktion(d, 'a', { a: 'kapsel', k: 0, z: ab - 50 }, ab - 50), 'Zu früh!');
+  assert.strictEqual(K.aktion(d, 'a', { a: 'kapsel', k: 0, z: ab + 400 }, ab + 500), true);
+  // b tippt dieselbe Kapsel mit früherem Zeitstempel, kommt aber später an → b bekommt sie, a muss neu wählen
+  assert.strictEqual(K.aktion(d, 'b', { a: 'kapsel', k: 0, z: ab + 300 }, ab + 700), true);
+  assert.strictEqual(d.belegt[0].pid, 'b');
+  assert.strictEqual(K.aktion(d, 'c', { a: 'kapsel', k: 0, z: ab + 600 }, ab + 700), 'Schon besetzt! Schnell eine andere!');
+  K.aktion(d, 'c', { a: 'kapsel', k: 1, z: ab + 650 }, ab + 700);
+  K.aktion(d, 'a', { a: 'kapsel', k: 2, z: ab + 800 }, ab + 850);
+  // d hat keine Kapsel; alle drei voll → nach der Nachfrist Auflösung
+  K.takt(d, ab + 900, ctx(tn)); assert.strictEqual(d.schritt, 'alarm');
+  K.takt(d, ab + 1600, ctx(tn)); assert.strictEqual(d.schritt, 'aufloesung');
+  assert.deepStrictEqual(d.verlauf[0].raus, ['d']); assert.strictEqual(d.verlauf[0].zeit.b, 300);
+  // Runde 2: d löst aus, Testalarm, c fällt darauf herein
+  t = ab + 1600 + 5000; K.takt(d, t, ctx(tn));
+  assert.strictEqual(d.runde, 2); assert.strictEqual(d.ausloeser, 'd'); assert.strictEqual(d.kapseln, 2);
+  assert.notStrictEqual(K.aktion(d, 'a', { a: 'alarm', art: 'echt' }, t), true, 'nur der Auslöser');
+  assert.strictEqual(K.aktion(d, 'd', { a: 'alarm', art: 'test' }, t), true);
+  assert.strictEqual(K.aktion(d, 'c', { a: 'kapsel', k: 0, z: t + 600 }, t + 650), true);
+  assert(d.falle.c);
+  assert.strictEqual(K.aktion(d, 'c', { a: 'kapsel', k: 0, z: t + 700 }, t + 750), 'Du bist beim Testalarm eingestiegen.');
+  K.takt(d, t + 2400, ctx(tn)); assert.strictEqual(d.signal, null);
+  K.aktion(d, 'd', { a: 'alarm', art: 'echt' }, t + 3000);
+  const ab2 = d.signal.ab;
+  K.aktion(d, 'a', { a: 'kapsel', k: 0, z: ab2 + 500 }, ab2 + 500); K.aktion(d, 'b', { a: 'kapsel', k: 1, z: ab2 + 450 }, ab2 + 500);
+  K.takt(d, ab2 + 1300, ctx(tn));
+  assert.deepStrictEqual(d.verlauf[1].raus, ['c']);
+  // Runde 3: a gegen b, eine Kapsel; Auslöser ist c (gerade raus)
+  t = ab2 + 1300 + 5000; K.takt(d, t, ctx(tn));
+  assert.strictEqual(d.ausloeser, 'c'); assert.strictEqual(d.kapseln, 1);
+  t += 9000; K.takt(d, t, ctx(tn)); assert.strictEqual(d.schritt, 'alarm', 'Auslöser trödelt → Alarm von selbst');
+  K.aktion(d, 'a', { a: 'kapsel', k: 0, z: d.signal.ab + 400 }, d.signal.ab + 400);
+  K.takt(d, d.signal.ab + 1200, ctx(tn)); assert.strictEqual(d.schritt, 'aufloesung');
+  K.takt(d, d.signal.ab + 7000, ctx(tn)); assert(d.fertig);
+  assert.deepStrictEqual(K.wertung(d), { a: 3, b: 2, c: 1, d: 0 });
+  // Mit Bots durchspielen
+  let auf = 0, test = 0;
+  for (let s = 1; s < 60; s++) {
+    const e = K.neu(tn); K.start(e, 0, ctx(tn)); const rng = R.zufall(s);
+    for (let j = 0; j < 2000 && !e.fertig; j++) {
+      const jetzt = j * 200;
+      for (const p of tn) { const m = K.bot(e, p, rng, jetzt); if (m) K.aktion(e, p, m, jetzt); }
+      K.takt(e, jetzt, { tn, aktiv: tn, rng });
+    }
+    assert(e.fertig, 'Bots spielen zu Ende'); auf++;
+    test += e.verlauf.reduce((n, v) => n + v.falle.length, 0);
+  }
+  console.log(`Rettungskapseln ok (${auf} Spiele, ${test}× auf Testalarm hereingefallen)`);
 }
