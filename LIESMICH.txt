@@ -30,6 +30,7 @@ Aufbau
                                   becher.js (3D-Tisch mit Becher, three.js), physik.js (Becher- und Würfelphysik, cannon-es)
   gleisgenossen/                  index.html, logic.js (Karte, Gleise, Zug, Preise), welt.js (3D-Welt mit Three.js),
                                   app.js (Startseite, Bedienleiste, Speichern), KONZEPT.md (Plan in drei Schritten)
+  rummel/                         „Rummel“, Minispiel-Party auf dem Jahrmarkt (noch nicht gebaut): KONZEPT.md (Ablauf, Buden, Technik, Pakete)
   _entwurf/                       Kartenentwürfe, wird nicht hochgeladen
 
 
