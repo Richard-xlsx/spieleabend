@@ -12,6 +12,8 @@
 //   „Einer gegen alle“: neu(tn, rng, einzelner) bekommt den Einzelnen (Alien-Feld, sonst Zufall), dazu
 //     ausgang(d) → "einzeln" | "crew" (wer gewonnen hat) und wertText(d, pid) → Text fürs Ergebnis.
 //   Live-Missionen: schritt(d, dt, ein, jetzt, ctx), bild(d), bildFuer(bild, d, pid) (optional: Geheimes entfernen).
+//   „Jeder für sich“ (Greifarm, Bordküche): Jedes Handy rechnet sein Spiel selbst, der Spielleiter sammelt Stände (missionen/solo.js).
+//   wertText(d, pid) geht bei jeder Mission (z. B. „keine Kugel im Feld“).
 //   ctx = { tn: Teilnehmer, aktiv: Teilnehmer, die gerade verbunden sind (Bots immer), bots, rng, einzelner }
 //
 // Phasen: "lobby" → "brett" (Runde: würfeln, ziehen, Missionswahl, wetten) → "mission" → "brett" … → "ende" (Siegerehrung).
@@ -167,7 +169,7 @@
       mit.sort((x, y) => B.besser === "niedrig" ? werte[x] - werte[y] : werte[y] - werte[x]);
       mit.forEach((p, i) => {
         const platz = i > 0 && werte[p] === werte[mit[i - 1]] ? ergebnis[i - 1].platz : i + 1;
-        ergebnis.push({ pid: p, wert: werte[p], platz, energie: (tabelle[platz - 1] || 1) * f });
+        ergebnis.push({ pid: p, wert: werte[p], text: B.wertText ? B.wertText(b.d, p) : null, platz, energie: (tabelle[platz - 1] || 1) * f });
       });
     }
     for (const p of b.tn) if (!mit.includes(p)) ergebnis.push({ pid: p, wert: null, platz: null, energie: 0 });

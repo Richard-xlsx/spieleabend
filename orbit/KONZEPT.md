@@ -1,6 +1,6 @@
 # Orbit: Brettspiel mit Minispielen auf einer Raumstation (Konzept und Plan)
 
-Stand 25.11.2026. Schritt 1 bis 6 sind gebaut (Brett, drei geheime Missionen, Live-Technik, Asteroid, Rettungskapseln, Terraforming, Ionenspur, Gestaltwandler und Alien im Frachtraum). Ordner `orbit/`, für 2 bis 8 Leute, jeder am eigenen Handy.
+Stand 25.11.2026. Schritt 1 bis 7 sind gebaut (Brett, drei geheime Missionen, Live-Technik, Asteroid, Rettungskapseln, Terraforming, Ionenspur, Gestaltwandler, Alien im Frachtraum, Planeten-Boule, Greifarm und Bordküche). Ordner `orbit/`, für 2 bis 8 Leute, jeder am eigenen Handy.
 
 Eine Raumstation ist das Spielbrett. Man würfelt, zieht durch die Module des Rings und sammelt **Energiezellen**. Mit
 Energie kauft man beim Händlerschiff **Sternkristalle**, und wer am Ende die meisten Kristalle hat, gewinnt. Nach jeder
@@ -127,6 +127,7 @@ Eingabe). Der Teil des Spielleiters kommt ohne Oberfläche aus und lässt sich d
 - **Alien im Frachtraum:** Der Spielleiter schickt jedem Handy ein eigenes Bild. Die Crew bekommt die Position des Aliens nur, solange es im Licht steht.
 - **Treibstoffkette:** Jedes Handy rechnet seinen Kanister selbst, und der Spielleiter reicht ihn ans nächste Handy weiter.
 - **Jeder für sich** (Greifarm, Bordküche): Jedes Handy rechnet selbst mit dem gleichen Startwert, und am Ende zählt nur das Ergebnis.
+  Gerechnet wird in festen Schritten (60 pro Sekunde) nach der abgeglichenen Uhr. Die Handys melden Zwischenstände, die alle sehen. Bots spielen dasselbe Spiel zu Beginn ohne Oberfläche durch, ihre Stände erscheinen dann nach und nach (missionen/solo.js).
 - **Uhrabgleich und Zeitstempel:** Jedes Handy pingt den Spielleiter 5-mal und merkt sich die kürzeste Laufzeit. Bei Rettungskapseln und Reaktor-Countdown entscheidet der Zeitstempel, nicht die Ankunft beim Spielleiter.
 - **Physik:** Asteroid, Planeten-Boule und Terraforming bekommen eine eigene einfache Kreisphysik. Für die Mondbasis wird planck.js über ein CDN geladen.
 - **Ausfall:**
@@ -181,3 +182,6 @@ Die Reihenfolge geht vom Einfachen zum Schweren. Schritt 4 baut die Live-Technik
 - Einer gegen alle: Das Alien ist, wer zuletzt auf dem Alien-Feld stand, sonst entscheidet der Zufall. Steht ein Alien bereit, ist bei der Missionswahl immer eine „Einer gegen alle“-Mission dabei.
 - Gestaltwandler: 30 Roboter fahren in sanften Kurven mit Pausen, gut die Hälfte ihrer Wege führt zu einer der 7 Konsolen. Das Alien lenkt mit dem Daumen (nicht mit Neigen) und sabotiert, indem es 2,5 Sekunden an einer Konsole bleibt; den Fortschritt sieht nur es selbst. Die Crew hat zusammen 2 Verdächtigungen (antippen, dann „Verdächtigen“). Bots in der Crew raten nur, wenn kein Mensch in der Crew ist. 90 Sekunden.
 - Alien im Frachtraum: Das Alien ist schneller als die Crew. Kisten werfen Schatten. Im Licht schmilzt der Schild in 2 Sekunden (bei zwei Lampen schneller); nach 2 Sekunden im Dunkeln lädt er langsam auf. Rennen macht Geräusche, die die Crew als Ringe in der Nähe sieht. Je größer die Crew, desto kürzer die Lampen. 8 Proviant gewinnen, nach 80 Sekunden gewinnt die Crew.
+- Planeten-Boule: Jeder hat 2 Kugeln, die zweite Runde geht rückwärts. Wischen: Richtung des Wischs ist die Wurfrichtung, die Länge die Kraft (ein Pfeil zeigt sie beim Wischen). Nur rollende Kugeln spüren die Schwerkraft, liegende bleiben liegen. Wer das Feld verlässt, ist weg. 15 Sekunden zum Zielen, sonst verfällt die Kugel. Es zählt die beste eigene Kugel (Abstand zum Mond), ohne Kugel im Feld wird man Letzter. Bots probieren 70 Würfe in Gedanken aus und werfen dann leicht ungenau.
+- Greifarm: 45 Sekunden, Greifer fährt per Neigen, Tippen lässt ihn herab. Was er unterwegs berührt, packt er; danach fährt er von selbst zur Luke. Die Griffstärke ist Glück, aber der n-te Griff ist bei allen gleich stark. Ist der Griff schwächer als das Teil schwer, rutscht es unterwegs heraus (über der Luke fällt es trotzdem hinein). Teile: Schraube 1, Antenne 2, Solarpaneel 3, Tank 5, Satellit 8, Goldbolzen 10 (klein und schnell).
+- Bordküche: Gehen mit einem Knopf zum Gedrückthalten, Balancieren durch Neigen (ohne Sensor mit dem Joystick). Die Becher treiben beim Losgehen nach hinten, beim Bremsen nach vorn, in Kurven nach außen und in der Lüftung zur Seite; Schwellen geben einen Stoß. 10 Punkte pro Becher plus 1 pro übrige Sekunde (60 Sekunden). Wer nicht ankommt, bekommt die Becher nur anteilig nach dem Weg.

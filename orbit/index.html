@@ -285,6 +285,17 @@ button:focus-visible,input:focus-visible,a:focus-visible,summary:focus-visible{o
 .aktionsknopf.saat{background:#8BD346;color:#0C2A05}
 .aktionsknopf[data-leer]{opacity:.35;filter:saturate(.3)}
 .arena-rahmen.eckig{border-radius:18px}
+.arena-rahmen.frei{aspect-ratio:auto;background:none;box-shadow:none;overflow:hidden}
+.arena-rahmen.frei .arena{height:auto}
+.greifrahmen{width:min(100%,calc((100vh - 300px) * 1.25),520px)}
+.kuechenrahmen{width:min(100%,calc((100vh - 300px) * .8),460px)}
+.boulerahmen{width:min(100%,calc((100vh - 290px) * .69),440px)}
+.aktionsknopf.greifen{background:#2EC4B6;color:#03201D}
+.aktionsknopf.gehen{background:#7BD957;color:#0C2A05;touch-action:none;-webkit-touch-callout:none}
+.aktionsknopf.gehen.gedrueckt{filter:brightness(1.25);transform:scale(.97)}
+.boulefeld.zielbar{cursor:crosshair}
+.bouledran{color:var(--akzent)}
+.punkteleiste small{font-size:.6rem;color:var(--leise);letter-spacing:-1px}
 .lenkknoepfe{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .gwtext{flex:1;margin:0;text-align:left}
 .verdachtleiste{display:flex;justify-content:center}
@@ -332,19 +343,23 @@ button:focus-visible,input:focus-visible,a:focus-visible,summary:focus-visible{o
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <script src="../netz.js?v=2026-11-25a"></script>
 <script src="../abend.js?v=2026-11-25a" data-spiel="orbit"></script>
-<script src="sensoren.js?v=2026-11-25f"></script>
-<script src="live.js?v=2026-11-25f"></script>
-<script src="logic.js?v=2026-11-25f"></script>
-<script src="missionen/funkfrequenz.js?v=2026-11-25f"></script>
-<script src="missionen/schrotthaendler.js?v=2026-11-25f"></script>
-<script src="missionen/reaktor.js?v=2026-11-25f"></script>
-<script src="missionen/asteroid.js?v=2026-11-25f"></script>
-<script src="missionen/kapseln.js?v=2026-11-25f"></script>
-<script src="missionen/terraforming.js?v=2026-11-25f"></script>
-<script src="missionen/ionenspur.js?v=2026-11-25f"></script>
-<script src="missionen/gestaltwandler.js?v=2026-11-25f"></script>
-<script src="missionen/frachtraum.js?v=2026-11-25f"></script>
-<script src="brett.js?v=2026-11-25f"></script>
-<script src="app.js?v=2026-11-25f"></script>
+<script src="sensoren.js?v=2026-11-25g"></script>
+<script src="live.js?v=2026-11-25g"></script>
+<script src="logic.js?v=2026-11-25g"></script>
+<script src="missionen/funkfrequenz.js?v=2026-11-25g"></script>
+<script src="missionen/schrotthaendler.js?v=2026-11-25g"></script>
+<script src="missionen/reaktor.js?v=2026-11-25g"></script>
+<script src="missionen/asteroid.js?v=2026-11-25g"></script>
+<script src="missionen/kapseln.js?v=2026-11-25g"></script>
+<script src="missionen/terraforming.js?v=2026-11-25g"></script>
+<script src="missionen/ionenspur.js?v=2026-11-25g"></script>
+<script src="missionen/gestaltwandler.js?v=2026-11-25g"></script>
+<script src="missionen/frachtraum.js?v=2026-11-25g"></script>
+<script src="missionen/solo.js?v=2026-11-25g"></script>
+<script src="missionen/greifarm.js?v=2026-11-25g"></script>
+<script src="missionen/bordkueche.js?v=2026-11-25g"></script>
+<script src="missionen/boule.js?v=2026-11-25g"></script>
+<script src="brett.js?v=2026-11-25g"></script>
+<script src="app.js?v=2026-11-25g"></script>
 </body>
 </html>

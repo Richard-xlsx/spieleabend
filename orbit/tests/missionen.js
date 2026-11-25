@@ -9,6 +9,7 @@ if (!window.RM) {
 if (!window.ORBIT_MISSIONEN.asteroid) { require(__dirname + '/../missionen/asteroid.js'); require(__dirname + '/../missionen/kapseln.js'); }
 if (!window.ORBIT_MISSIONEN.terraforming) { require(__dirname + '/../missionen/terraforming.js'); require(__dirname + '/../missionen/ionenspur.js'); }
 if (!window.ORBIT_MISSIONEN.gestaltwandler) { require(__dirname + '/../missionen/gestaltwandler.js'); require(__dirname + '/../missionen/frachtraum.js'); }
+if (!window.ORBIT_MISSIONEN.greifarm) { require(__dirname + '/../missionen/solo.js'); require(__dirname + '/../missionen/greifarm.js'); require(__dirname + '/../missionen/bordkueche.js'); require(__dirname + '/../missionen/boule.js'); }
 if (!window.ORBIT_LIVE) require(__dirname + '/../live.js');
 const R = window.RM, assert = require('assert');
 const ctx = (tn, aktiv) => ({ tn, aktiv: aktiv || tn, rng: Math.random });
@@ -568,4 +569,142 @@ function liveLauf(id, bots, ein, einzelner) {
     assert(o.length === 3 && o.some(id => R.MISSIONEN[id].art === 'Einer gegen alle'), 'Alien-Mission zur Wahl: ' + o);
   }
   console.log('Einer gegen alle auf dem Brett ok');
+}
+
+// ---------- Jeder für sich: Ablauf beim Spielleiter ----------
+function soloLauf(id, bots, mensch) {
+  const S = R.neu('S' + id, 'h', 'Host'); S.online = ['h'];
+  for (let i = 0; i < bots; i++) R.aktion(S, 'h', { t: 'bot', dazu: true }, 0);
+  assert(R.aktion(S, 'h', { t: 'mission', id }, 0).ok);
+  let t = 0; R.aktion(S, 'h', { t: 'bereit' }, t); R.takt(S, t); t += 3600; R.takt(S, t);
+  assert.strictEqual(S.mission.schritt, 'spiel');
+  const d = S.mission.d;
+  assert(d.rs > 0 && d.start === t, 'Startwert und Startzeit');
+  assert(R.sicht(S, 'h').mission.d.bp === undefined, 'Bot-Läufe bleiben beim Spielleiter');
+  let i = 0;
+  while (S.mission.schritt === 'spiel' && i++ < 1000) { t += 200; if (mensch) mensch(S, t); R.takt(S, t); }
+  assert.strictEqual(S.mission.schritt, 'ergebnis', id + ' endet');
+  return { S, t };
+}
+{
+  const G = R.MISSIONEN.greifarm, H = G.hilfe;
+  // Gleicher Startwert, gleicher Schrott
+  const a = H.neu(42), b = H.neu(42);
+  assert.deepStrictEqual(a.teile.map(t => [t.typ, t.x]), b.teile.map(t => [t.typ, t.x]), 'gleicher Schrott auf allen Handys');
+  assert.strictEqual(a.teile.length, 12);
+  // Fahren mit Neigen
+  a.schritt({ x: 1, g: 0 }, 0.5); assert(a.x > 0.2 + 0.4, 'Greifarm fährt nach rechts');
+  // Greifen: ein Teil genau darunter legen, Griff stark genug
+  const sim = H.neu(7); sim.teile = [{ id: 99, typ: 2, x: 0.2, y: 0.9, vx: 0, vy: 0, a: 0, da: 0 }]; sim.rngG = () => 1;
+  sim.schritt({ x: 0, g: 1 }, 1 / 60); assert.strictEqual(sim.zust, 'runter');
+  let n = 0; while (sim.zust !== 'fahren' && n++ < 2000) sim.schritt({ x: 0, g: 1 }, 1 / 60);
+  assert.strictEqual(sim.punkte, H.TEILE[2].wert, 'Solarpaneel in der Luke');
+  assert.strictEqual(sim.beute.length, 1); assert.strictEqual(sim.teile.length, 1, 'neues Teil treibt herein');
+  // Schwacher Griff: der Satellit rutscht unterwegs heraus
+  const s2 = H.neu(7); s2.teile = [{ id: 98, typ: 4, x: 0.5, y: 1.2, vx: 0, vy: 0, a: 0, da: 0 }]; s2.x = 0.5; s2.rngG = () => 0;
+  s2.schritt({ x: 0, g: 1 }, 1 / 60); n = 0; while (s2.zust !== 'fahren' && n++ < 3000) s2.schritt({ x: 0, g: 1 }, 1 / 60);
+  assert.strictEqual(s2.punkte, 0, 'rausgerutscht'); assert.strictEqual(s2.teile.length, 1, 'Satellit treibt wieder im Feld');
+  assert(s2.meldung && s2.meldung.schlecht);
+  // Leer greifen: nichts darunter
+  const s3 = H.neu(7); s3.teile = []; s3.schritt({ x: 0, g: 1 }, 1 / 60); n = 0; while (s3.zust !== 'fahren' && n++ < 3000) s3.schritt({ x: 0, g: 1 }, 1 / 60);
+  assert.strictEqual(s3.punkte, 0); assert.strictEqual(s3.q, null);
+  // Ende nach 45 s, danach nimmt der Greifer nichts mehr
+  const s4 = H.neu(9); n = 0; while (!s4.ende() && n++ < 10000) s4.schritt({ x: 0, g: 0 }, 1 / 60);
+  assert(Math.abs(s4.t - H.DAUER) < 20, 'Ende nach 45 s');
+  // Bots fangen etwas, aber nicht alles
+  const werte = [1, 2, 3, 4, 5].map(s => H.botLauf(s * 1001, 'bot1').wert);
+  assert(werte.every(w => w >= 5 && w <= 120), 'Bot-Greifarm: ' + werte);
+  // Ablauf: Bots melden nach und nach, der Mensch meldet sein Ergebnis
+  const { S } = soloLauf('greifarm', 2, (S, t) => { if (t > S.mission.d.start + 20000 && S.mission.d.erg.h === undefined) { R.aktion(S, 'h', { t: 'b', a: 'stand', wert: 7 }, t); R.aktion(S, 'h', { t: 'b', a: 'ende', wert: 9999 }, t); } });
+  const e = S.mission.ergebnis;
+  assert.strictEqual(e.find(x => x.pid === 'h').wert, 600, 'Ergebnis wird begrenzt');
+  assert(e.filter(x => x.pid !== 'h').every(x => x.wert > 0), 'Bots haben gespielt');
+  assert(R.aktion(S, 'h', { t: 'b', a: 'stand', wert: 1 }, 0).ok === false);
+  // Ohne Meldung des Menschen endet die Mission nach der Zeit, sein letzter Stand zählt
+  const r2 = soloLauf('greifarm', 1, (S, t) => { if (t < S.mission.d.start + 1000) R.aktion(S, 'h', { t: 'b', a: 'stand', wert: 4 }, t); });
+  assert(r2.t - r2.S.mission.ergebnis.length >= 3600 + H.DAUER + H.NACHSPIEL, 'wartet bis zum Ende');
+  assert.strictEqual(r2.S.mission.ergebnis.find(x => x.pid === 'h').wert, 4, 'letzter Stand zählt');
+  console.log('Greifarm ok');
+}
+{
+  const K = R.MISSIONEN.bordkueche, H = K.hilfe;
+  const st = H.strecke(5), st2 = H.strecke(5);
+  assert.deepStrictEqual(st.teile, st2.teile, 'gleiche Strecke auf allen Handys');
+  assert(st.teile.some(t => t.k > 0) && st.teile.some(t => t.k < 0), 'Kurven nach links und rechts');
+  assert(st.luft.length >= 2 && st.stoesse.length >= 2, 'Lüftungen und Schwellen');
+  // Stehen bleiben: Becher bleiben auf dem Tablett
+  const a = H.neu(5); for (let i = 0; i < 300; i++) a.schritt({ x: 0, y: 0, gehen: false }, 1 / 60);
+  assert.strictEqual(a.becher.length, 5); assert.strictEqual(a.s, 0);
+  // Neigen schiebt die Becher
+  const mx = s => s.becher.reduce((q, b) => q + b.x, 0) / s.becher.length;
+  const x0 = mx(a); for (let i = 0; i < 30; i++) a.schritt({ x: 1, y: 0, gehen: false }, 1 / 60);
+  assert(mx(a) > x0 + 0.1, 'Neigen nach rechts schiebt die Becher nach rechts');
+  // Losgehen schiebt die Becher nach hinten (unten)
+  const b = H.neu(5), my0 = b.becher.reduce((q, c) => q + c.y, 0);
+  for (let i = 0; i < 40; i++) b.schritt({ x: 0, y: 0, gehen: true }, 1 / 60);
+  assert(b.becher.reduce((q, c) => q + c.y, 0) > my0 + 0.2, 'beim Losgehen treiben die Becher nach hinten'); assert(b.v > 1);
+  // Vollgas ohne Ausgleich: Becher weg
+  const c = H.neu(5); while (!c.ende()) c.schritt({ x: 0, y: 0, gehen: true }, 1 / 60);
+  assert(c.becher.length < 3, 'Vollgas ohne Balancieren kostet Becher');
+  // Bots kommen an, Punkte = 10 pro Becher + Restsekunden
+  for (let s = 1; s <= 4; s++) {
+    const sim = H.neu(s * 333), steuer = H.botSteuer(s * 333, 'bot1');
+    while (!sim.ende()) sim.schritt(steuer(sim), 1 / 60);
+    assert(sim.angekommen, 'Bot kommt an');
+    assert.strictEqual(sim.punkte, sim.becher.length * H.PUNKTE + (sim.becher.length ? Math.ceil((H.DAUER - sim.t) / 1000) : 0));
+    assert(sim.punkte > 20, 'Bot-Punkte ' + sim.punkte);
+  }
+  // Zeit um: Becher zählen nur anteilig
+  const z = H.neu(5); while (!z.ende()) z.schritt({ x: 0, y: 0, gehen: false }, 1 / 60);
+  assert.strictEqual(z.punkte, 0);
+  soloLauf('bordkueche', 3, (S, t) => { if (t > S.mission.d.start + 30000) R.aktion(S, 'h', { t: 'b', a: 'ende', wert: 55 }, t); });
+  console.log('Bordküche ok');
+}
+{
+  const B = R.MISSIONEN.boule, H = B.hilfe;
+  for (let s = 0; s < 50; s++) {
+    const f = H.feld(R.zufall(s));
+    assert(f.pl.length >= 2, 'mindestens 2 Planeten');
+    for (const p of f.pl) {
+      assert(Math.hypot(p.x - f.mond.x, p.y - f.mond.y) > p.r + H.MR + 0.2, 'Planet nicht am Mond');
+      assert(Math.hypot(p.x - H.START.x, p.y - H.START.y) > p.r + 0.5, 'Planet nicht am Start');
+    }
+  }
+  const tn = ['a', 'b'], d = B.neu(tn, R.zufall(1)), ctx = { tn, aktiv: tn, rng: R.zufall(2) };
+  assert.deepStrictEqual(d.reihe, ['a', 'b', 'b', 'a'], 'zweite Runde rückwärts');
+  B.start(d, 0, ctx);
+  assert.strictEqual(d.dran, 'a');
+  assert.notStrictEqual(B.aktion(d, 'b', { a: 'wurf', w: -1.5, s: 0.5 }, 0), true, 'nur wer dran ist');
+  assert.strictEqual(B.aktion(d, 'a', { a: 'wurf', w: -Math.PI / 2, s: 0.5 }, 0), true);
+  let t = 0; while (d.phase === 'rollt' && t < 10000) { t += 33; B.schritt(d, 0.033, {}, t, ctx); }
+  assert.strictEqual(d.dran, 'b', 'nach dem Rollen ist b dran');
+  assert(d.k.length <= 1 && d.k.every(k => k.vx === 0 && k.vy === 0), 'Kugel liegt');
+  // Schwerkraft lenkt ab: gleicher Wurf mit und ohne Planeten
+  const bahn = pl => { const w = { k: [{ id: 1, p: 'a', x: 0, y: 1.3, vx: 0, vy: -2 }], pl, mond: { x: 5, y: 5 } }; for (let i = 0; i < 60; i++) H.physik(w, 1 / 60); return w.k[0]; };
+  const ohne = bahn([]), mit = bahn([{ x: 0.35, y: 0.3, r: 0.12 }]);
+  assert(Math.abs(ohne.x) < 1e-9 && mit.x > 0.03, 'Planet zieht die Kugel zu sich');
+  // Liegende Kugeln spüren keine Schwerkraft
+  const lieg = { k: [{ id: 1, p: 'a', x: 0.3, y: 0.3, vx: 0, vy: 0 }], pl: [{ x: 0.5, y: 0.3, r: 0.12 }], mond: { x: 5, y: 5 } };
+  H.physik(lieg, 1 / 60); assert.strictEqual(lieg.k[0].x, 0.3);
+  // Wegschießen: eine schnelle Kugel stößt eine liegende aus dem Feld
+  const stoss = { k: [{ id: 1, p: 'a', x: 0, y: -1.2, vx: 0, vy: 0 }, { id: 2, p: 'b', x: 0, y: 0, vx: 0, vy: -3.3 }], pl: [], mond: { x: 5, y: 5 } };
+  let raus = []; for (let i = 0; i < 200; i++) raus = raus.concat(H.physik(stoss, 1 / 60).raus);
+  assert(raus.some(k => k.p === 'a'), 'Kugel von a fliegt aus dem Feld');
+  // Ganze Runde mit Bots; der Host wirft nie und verliert seine Kugeln
+  const S = liveLauf('boule', 3);
+  const e = S.mission.ergebnis, h = e.find(x => x.pid === 'h');
+  assert.strictEqual(h.wert, 999); assert.strictEqual(h.text, 'keine Kugel im Feld');
+  assert(e.filter(x => x.pid !== 'h').every(x => x.wert < 999 && /cm zum Mond/.test(x.text)), 'Bots haben Kugeln im Feld');
+  assert.strictEqual(S.mission.d.verfallen, 2, 'zwei Kugeln des Hosts verfallen');
+  // Bots treffen ordentlich: meist näher als 40 cm
+  let gut = 0;
+  for (let s = 0; s < 6; s++) {
+    const dd = B.neu(['x', 'y'], R.zufall(s + 10)), cc = { tn: ['x', 'y'], aktiv: ['x', 'y'], rng: R.zufall(s) };
+    B.start(dd, 0, cc); dd.t = 2000; dd.seit = 0;
+    const m = B.bot(dd, 'x', cc.rng, 0); B.aktion(dd, 'x', m, 0);
+    let tt = 0; while (dd.phase === 'rollt' && tt < 10000) { tt += 33; B.schritt(dd, 0.033, {}, tt, cc); }
+    const w = H.bester(dd, 'x'); if (w !== null && w < 0.4) gut++;
+  }
+  assert(gut >= 4, 'Bot-Würfe gut: ' + gut + '/6');
+  console.log('Planeten-Boule ok');
 }

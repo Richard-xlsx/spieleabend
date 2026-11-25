@@ -36,10 +36,11 @@ Aufbau
                                   Nachzügler; Mission mit Anleitung → Countdown → Spiel → Ergebnis, Energie je Platz, Bots), brett.js (Zeichnung
                                   der Station und Rundenschritte am Handy), app.js (Verbindung, Uhrabgleich per Ping, Bildschirme), sensoren.js (Neigen,
                                   Schütteln, Daumen-Joystick, Lenkknöpfe), live.js (Eingaben sammeln, Bilder verteilen und glätten),
-                                  missionen/*.js (je Mission ein Teil für den Spielleiter und einer fürs Handy), tests/logik.js und
-                                  tests/missionen.js (node). Fertig: Schritt 1 bis 6, Missionen Funkfrequenz, Schrotthändler, Reaktor-Countdown,
-                                  Zerfallender Asteroid, Rettungskapseln, Terraforming, Ionenspur, Gestaltwandler, Alien im Frachtraum.
-                                  Testlinks: …/orbit/?partie=kurz (sofort Partie mit 3 Bots), …/orbit/?bots=3, …/orbit/?mission=funkfrequenz (auch schrotthaendler, reaktor, asteroid, kapseln, terraforming, ionenspur, gestaltwandler, frachtraum; mit &alien=ich ist man selbst das Alien)
+                                  missionen/*.js (je Mission ein Teil für den Spielleiter und einer fürs Handy; solo.js: gemeinsamer Teil für
+                                  „Jeder für sich“), tests/logik.js und tests/missionen.js (node). Fertig: Schritt 1 bis 7, Missionen Funkfrequenz,
+                                  Schrotthändler, Reaktor-Countdown, Zerfallender Asteroid, Rettungskapseln, Terraforming, Ionenspur, Gestaltwandler,
+                                  Alien im Frachtraum, Planeten-Boule, Greifarm, Bordküche.
+                                  Testlinks: …/orbit/?partie=kurz (sofort Partie mit 3 Bots), …/orbit/?bots=3, …/orbit/?mission=funkfrequenz (auch schrotthaendler, reaktor, asteroid, kapseln, terraforming, ionenspur, gestaltwandler, frachtraum, boule, greifarm, bordkueche; mit &alien=ich ist man selbst das Alien)
   _entwurf/                       Kartenentwürfe, wird nicht hochgeladen
 
 
