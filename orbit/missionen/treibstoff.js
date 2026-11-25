@@ -136,6 +136,7 @@
     if (!k) return;
     const r = wurf(k, { w, v });
     weg.set(schluessel(k), Object.assign({ w, t0: performance.now(), f: k.f, luke: k.luke, s: k.s }, r));
+    if (c.klang) { if (r.art === "weiter") { c.klang("wurf"); if (r.leck) c.klang("leck"); } else c.klang(r.art === "wand" ? "fehler" : "tipp"); }
     c.tun({ t: "b", a: "wisch", id: k.id, w, v });
   }
 
@@ -170,8 +171,10 @@
       cv.addEventListener("pointercancel", () => { zug = null; });
     },
     bewegen(d, c) {
-      if (zuletzt.nr !== c.nr) { zuletzt = { nr: c.nr }; weg = new Map(); zug = null; }
+      if (zuletzt.nr !== c.nr) { zuletzt = { nr: c.nr, da: new Set() }; weg = new Map(); zug = null; }
       const jetzt = c.jetzt(), now = performance.now();
+      // Klang, wenn ein Kanister bei mir ankommt
+      for (const k of bei(d, c.PID)) if (k.ab <= jetzt && !zuletzt.da.has(schluessel(k))) { zuletzt.da.add(schluessel(k)); if (c.klang && k.ab > jetzt - 400) c.klang("plopp"); }
       // Tanks beider Teams und die Kette (wer gerade wie viele Kanister hat)
       const tk = document.getElementById("tanks");
       if (tk) {

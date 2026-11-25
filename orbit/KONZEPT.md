@@ -1,6 +1,6 @@
 # Orbit: Brettspiel mit Minispielen auf einer Raumstation (Konzept und Plan)
 
-Stand 25.11.2026. Schritt 1 bis 8 sind gebaut, alle 14 Missionen sind spielbar. Es fehlt noch der Feinschliff (Schritt 9). Ordner `orbit/`, für 2 bis 8 Leute, jeder am eigenen Handy.
+Stand 25.11.2026. Alle 9 Schritte sind gebaut, alle 14 Missionen sind spielbar. Offen ist nur die Abstimmung von Energie, Feldern und Wischtempo nach einem echten Testabend. Ordner `orbit/`, für 2 bis 8 Leute, jeder am eigenen Handy.
 
 Eine Raumstation ist das Spielbrett. Man würfelt, zieht durch die Module des Rings und sammelt **Energiezellen**. Mit
 Energie kauft man beim Händlerschiff **Sternkristalle**, und wer am Ende die meisten Kristalle hat, gewinnt. Nach jeder
@@ -111,6 +111,7 @@ orbit/
   app.js          Verbindung (PeerJS wie die anderen Spiele), Bildschirme, Brett-Zeichnung, Uhrabgleich
   sensoren.js     Erlaubnis, Nullstellung, Neigen, Schütteln, Wischen, Daumen-Ersatz
   live.js         gemeinsame Technik für Live-Missionen: Eingaben sammeln, Takt beim Spielleiter, Zustand verteilen, glätten
+  klang.js        Synthesizer-Klänge (Web Audio, keine Tondateien), Ton an/aus wird im Handy gespeichert
   missionen/*.js  eine Datei pro Mission
 ```
 Jede Mission hat einen Teil für den Spielleiter (Regeln, Ablauf, Ergebnis) und einen Teil für jedes Handy (Anzeige und
@@ -159,7 +160,7 @@ Nach jedem Schritt wird getestet, hochgeladen und ist online spielbar.
 | **6. Einer gegen alle** | **Gestaltwandler**, **Alien im Frachtraum** | |
 | **7. Geschick** | **Planeten-Boule**, **Greifarm**, **Bordküche** | |
 | **8. Teams** | **Treibstoffkette**, **Mondbasis** | Alle 14 Missionen sind fertig, und der Hinweis „im Aufbau“ fällt weg. |
-| **9. Feinschliff** | Synthesizer-Klänge, Abstimmung von Energie und Feldern nach einem Testabend, Anleitungsbilder, LIESMICH | |
+| **9. Feinschliff** | Synthesizer-Klänge, Abstimmung von Energie und Feldern nach einem Testabend, Anleitungsbilder, LIESMICH | Gebaut bis auf die Abstimmung, die einen echten Testabend braucht. |
 
 Die Reihenfolge geht vom Einfachen zum Schweren. Schritt 4 baut die Live-Technik, auf der die Schritte 5 bis 8 aufsetzen.
 
@@ -189,3 +190,5 @@ Die Reihenfolge geht vom Einfachen zum Schweren. Schritt 4 baut die Live-Technik
 - Teams heißen „Komet“ und „Nebel“. Siegerteam je 8 Energie, das andere je 2, bei Gleichstand alle 5. Eine Wette auf jemanden aus dem Siegerteam gewinnt.
 - Treibstoffkette: Jeder Kanister braucht 6 Würfe, das Team reicht ihn reihum (auch mehrmals), damit kleine und große Teams gleich viel Arbeit haben. Höchstens 2 Kanister pro Person sind unterwegs. Es zählt der Treibstoff pro Person. Zu schnelles Wischen (mehr als etwa 2,3 Bildschirmbreiten pro Sekunde) gibt ein Leck, ein Wurf neben die Luke kostet 6 Liter. Wer nicht verbunden ist, reicht nach 1,5 Sekunden von selbst weiter. 60 Sekunden.
 - Mondbasis: Mondschwerkraft (1,62). Die Teams setzen abwechselnd, beide Teams bekommen dieselben Bauteile (7 pro Team, zuerst ein Wohnmodul). Ziehen mit dem Finger, Drehen in Achtelschritten, 15 Sekunden pro Teil. Fällt etwas herunter, verliert das Team, das zuletzt gesetzt hat. Steht der Turm danach noch, verliert im Mondbeben das Team, dessen Teil zuerst fällt.
+- Klänge: Jedes Handy spielt sie selbst, abgeleitet aus dem Spielstand (Würfeln, Schritte auf dem Brett, Energie, Kristall, Countdown, Sieg oder nicht, Siegerehrung) und aus der eigenen Eingabe in den Missionen. Knopf oben rechts schaltet den Ton aus (Speicher „ob:ton“).
+- Anleitungsbilder: In der Anleitung jeder Mission zeigt ein kleines, bewegtes Handy die Steuerung (Tippen, Neigen, Daumen, Wischen, Ziehen und Mischformen). Bei „Bewegung reduzieren“ steht es still.

@@ -836,3 +836,21 @@ else {
   assert(teile.reduce((a, b) => a + b, 0) / teile.length >= 4, 'Bots bauen ordentlich: ' + teile);
   console.log(`Mondbasis ok (Bauteile je Runde: ${teile.join(', ')}; ${aus.join('')}: K gekippt, B im Beben, = überstanden)`);
 }
+
+// ---------- Klänge: jeder Name, den das Spiel abspielt, gibt es im Synthesizer ----------
+{
+  const fs = require('fs');
+  if (!window.addEventListener) window.addEventListener = () => {};
+  require(__dirname + '/../klang.js');
+  const da = window.ORBIT_KLANG.namen;
+  const quellen = ['app.js'].concat(fs.readdirSync(__dirname + '/../missionen').map(f => 'missionen/' + f));
+  const benutzt = new Set();
+  for (const q of quellen) {
+    const t = fs.readFileSync(__dirname + '/../' + q, 'utf8');
+    for (const m of t.matchAll(/(?:K\.spiel|c\.klang)\(([^)]*)\)/g)) for (const n of m[1].matchAll(/(?<!=== )"([a-z]+)"/g)) benutzt.add(n[1]);
+  }
+  const fehlt = [...benutzt].filter(n => !da.includes(n));
+  assert(!fehlt.length, 'Klänge fehlen: ' + fehlt);
+  window.ORBIT_KLANG.spiel('tipp');   // ohne Audio im node: darf nichts werfen
+  console.log(`Klänge ok (${benutzt.size} benutzt, ${da.length} im Synthesizer)`);
+}

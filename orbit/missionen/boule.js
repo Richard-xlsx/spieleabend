@@ -185,6 +185,7 @@
         const dd = c.S.mission && c.S.mission.d;
         if (l < 20 || !dd || dd.phase !== "zielen" || dd.dran !== c.PID) return;
         gezielt = dd.zug;
+        if (c.klang) c.klang("wurf");
         c.tun({ t: "b", a: "wurf", w: Math.atan2(dy, dx), s: Math.min(1, l / (r.width * 0.6)) });
         c.neu();
       };

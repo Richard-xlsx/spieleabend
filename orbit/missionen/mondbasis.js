@@ -209,7 +209,8 @@
   const BREITE = 5.4, HOCH = 6.6;
   let ich = { zug: -2, x: 0, r: 0 }, zieh = null, sichtOben = 4.9;
   const meinZug = c => { const d = c.S.mission && c.S.mission.d; return d && d.phase === "zielen" && d.dran === c.PID && ich.zug === d.zug ? d : null; };
-  const loslassen = c => { const d = meinZug(c); if (!d) return; ich.zug = -3; c.tun({ t: "b", a: "los", x: ich.x, r: ich.r }); };
+  const loslassen = c => { const d = meinZug(c); if (!d) return; ich.zug = -3; if (c.klang) c.klang("wurf"); c.tun({ t: "b", a: "los", x: ich.x, r: ich.r }); };
+  let hoeren = {};   // für Klänge: was zuletzt war
   const drehen = () => { ich.r = (ich.r + 1) % 8; };
   W.addEventListener("keydown", e => {
     if (!document.getElementById("mondfeld") || /INPUT|TEXTAREA/.test(e.target.tagName)) return;
@@ -277,6 +278,14 @@
       cv.addEventListener("pointerup", ende); cv.addEventListener("pointercancel", ende);
     },
     bewegen(d, c) {
+      if (c.klang) {
+        const h = { nr: c.nr, dran: d.phase === "zielen" && d.dran === c.PID ? d.zug : null, phase: d.phase };
+        if (hoeren.nr === c.nr) {
+          if (h.dran != null && h.dran !== hoeren.dran) c.klang("dran");
+          if (h.phase !== hoeren.phase) { if (h.phase === "beben") c.klang("beben"); else if (h.phase === "ende") c.klang(d.verlierer === -1 ? "sieg" : "krach"); }
+        }
+        hoeren = h;
+      }
       const cv = document.getElementById("mondfeld");
       if (!cv) return;
       const dpr = Math.min(2, W.devicePixelRatio || 1), px = Math.round(cv.clientWidth * dpr), ph = Math.round(px * HOCH / BREITE);

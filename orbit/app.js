@@ -2,6 +2,7 @@
 // Regeln und Ablauf stehen in logic.js, die Missionen in missionen/*.js.
 (function () {
   const R = window.RM, UI = window.ORBIT_UI || {}, B = window.ORBIT_BRETT, LIVE = window.ORBIT_LIVE, SN = window.ORBIT_SENSOR;
+  const K = window.ORBIT_KLANG || { spiel() {}, an: false, umschalten() { return false; } };
   const app = document.getElementById("app");
   const PREFIX = "fmwob-";
   const ZEICHEN = "ABCDEFGHJKLMNPRSTUVWXYZ23456789";
@@ -219,7 +220,7 @@
   const ctxUI = () => {
     const m = S.mission;
     return { PID, S, esc, helm, uhr, tun, name: p => sp(p).name, dabei: !!(m && m.tn.includes(PID)), jetzt: hostJetzt, neu: () => { letztesHtml = ""; render(); },
-      nr: m && m.nr, farbe, anfang, laufzeit: rolle === "host" ? 0 : (isFinite(besteLaufzeit) ? besteLaufzeit : 100), host: rolle === "host" };
+      nr: m && m.nr, farbe, anfang, klang: K.spiel, laufzeit: rolle === "host" ? 0 : (isFinite(besteLaufzeit) ? besteLaufzeit : 100), host: rolle === "host" };
   };
   const ctxBrett = () => ({ S, PID, R, esc, helm, helmInnen: p => helmInnen(farbe(p), anfang(p)), name: p => sp(p).name, farbe, uhr, jetzt: hostJetzt, tun, host: rolle === "host", da });
 
@@ -229,7 +230,40 @@
     if (rolle === "client" && !verbunden) return S ? "Verbindung zum Spielleiter weg, verbinde neu …" : (fehlerText || (window.ABEND && ABEND.aktiv ? "" : "Verbinde mit Raum " + code + " …"));
     return "";
   }
+  // Klänge: aus dem Unterschied zwischen altem und neuem Stand (gilt für Spielleiter und Mitspieler gleich)
+  let vorher = null;
+  function klaenge() {
+    if (!S) return;
+    const P = S.partie, m = S.mission, ich = S.spieler[PID] || {}, z = P && P.zug;
+    const jetzt = {
+      phase: S.phase, ps: P && P.schritt, wurf: !!(P && P.wurf && P.wurf[PID]), zug: z ? z.pid + ":" + z.start : "",
+      energie: ich.energie || 0, kristalle: ich.kristalle || 0, ms: m ? m.nr + ":" + m.schritt : "",
+      wahl: !!(P && P.wahl && P.wahl.wer === PID && !P.wahl.gewaehlt), frage: !!(z && z.pid === PID && z.frage)
+    };
+    const v = vorher; vorher = jetzt;
+    if (!v) return;
+    if (jetzt.wurf && !v.wurf) K.spiel("wuerfel");
+    if (jetzt.zug && jetzt.zug !== v.zug && S.phase === "brett") {
+      // Schritte über das Brett, im Takt der Figur
+      const n = z.pfad.length, takt = R.ZEIT ? R.ZEIT.schritt : 280;
+      for (let i = 1; i <= n; i++) { const t = z.start + i * takt - hostJetzt(); if (t > -100) setTimeout(() => K.spiel("schritt"), Math.max(0, t)); }
+    }
+    if (jetzt.kristalle > v.kristalle) K.spiel("kristall");
+    else if (jetzt.energie > v.energie && jetzt.phase === v.phase && jetzt.ms === v.ms) K.spiel("energie");
+    else if (jetzt.energie < v.energie && jetzt.phase === v.phase && jetzt.phase === "brett") K.spiel("verlust");
+    if ((jetzt.wahl && !v.wahl) || (jetzt.frage && !v.frage)) K.spiel("dran");
+    else if (jetzt.ps !== v.ps && (jetzt.ps === "wahl" || jetzt.ps === "wetten")) K.spiel("glocke");
+    if (jetzt.phase === "ende" && v.phase !== "ende") K.spiel("fanfare");
+    if (jetzt.ms !== v.ms && m) {
+      if (m.schritt === "anleitung") K.spiel("auftakt");
+      else if (m.schritt === "ergebnis" && m.tn.includes(PID)) {
+        const e = (m.ergebnis || []).find(x => x.pid === PID);
+        K.spiel(e && e.platz === 1 ? "sieg" : "ende");
+      }
+    }
+  }
   function render() {
+    klaenge();
     const st = statusZeile(), ueb = rolle === "client" && S && offlineSeit && Date.now() - offlineSeit > 20000;
     let h = `<div class="status" ${st ? "" : "hidden"}><span>${esc(st)}</span>${ueb ? `<button class="klein" id="uebernehmen">Spielleitung übernehmen</button>` : ""}</div>`;
     if (!rolle) h += code ? bildschirmName() : bildschirmStart();
@@ -258,7 +292,7 @@
     const cd = document.getElementById("countdown");
     if (cd) {
       const r = Math.ceil((+cd.dataset.ende - jetzt) / 1000), t = r > 3 ? "" : r >= 1 ? String(r) : "Los!";
-      if (cd.textContent !== t) { cd.textContent = t; cd.classList.remove("puls"); void cd.offsetWidth; cd.classList.add("puls"); }
+      if (cd.textContent !== t) { cd.textContent = t; cd.classList.remove("puls"); void cd.offsetWidth; cd.classList.add("puls"); if (t) K.spiel(t === "Los!" ? "los" : "tick"); }
     }
   }
   setInterval(zeitenAnzeigen, 100);
@@ -354,7 +388,7 @@
     if (!M) return kopf + `<p class="leise mitte">Diese Mission kennt dein Handy noch nicht. Bitte neu laden.</p>` + abbrechen;
     if (m.schritt === "anleitung") {
       const offen = m.tn.filter(p => !m.bereit[p] && da(p));
-      return kopf + `<div class="karte-box"><div class="chips"><span>${esc(M.art)}</span><span>${esc(M.eingabe)}</span></div>
+      return kopf + `<div class="karte-box"><div class="anleitungskopf">${gestenBild(M.eingabe)}<div class="chips"><span>${esc(M.art)}</span><span>${esc(M.eingabe)}</span></div></div>
           <ul class="regeln">${M.anleitung.map(z => `<li>${z}</li>`).join("")}</ul></div>
         ${m.teams ? teamZeilen(m) : `<div class="helmreihe">${m.tn.map(p => `<span class="${m.bereit[p] ? "" : "blass"}" title="${esc(sp(p).name)}">${helm(p)}</span>`).join("")}</div>`}
         <p class="leise mitte klein">${offen.length ? `Warte auf ${offen.map(p => esc(sp(p).name)).join(", ")} · Start spätestens in ${uhr(m.bis)} s` : "Alle bereit."}</p>
@@ -373,6 +407,21 @@
       ${wettErgebnis(m)}
       ${P ? (host ? `<div class="unten"><button class="knopf" id="weiter">Zurück zur Station (${uhr(m.bis)})</button></div>` : `<p class="leise mitte">Weiter zur Station in ${uhr(m.bis)} s</p>`)
         : host ? `<div class="unten"><button class="knopf" id="weiter">Zurück zur Crew</button></div>` : `<p class="leise mitte">${esc(sp(S.host).name)} geht weiter.</p>`}`;
+  }
+  // Anleitungsbild: ein Handy mit der Bewegung, die man in der Mission macht (je nach Eingabe, bewegt sich in Schleife)
+  function gestenBild(eingabe) {
+    const e = eingabe || "", teile = [];
+    const neigen = /Neigen/.test(e), daumen = /Daumen/.test(e), wischen = /Wischen/.test(e), ziehen = /Ziehen/.test(e);
+    const lr = /links\/rechts/.test(e), tippen = /Tippen/.test(e) && !lr;
+    let bild = "";
+    if (daumen) bild += `<circle cx="${neigen ? 32 : 40}" cy="58" r="11" fill="none" stroke="#9AA7D1" stroke-width="2"/><circle class="gb-knauf" cx="${neigen ? 32 : 40}" cy="58" r="5.5" fill="#2EC4B6"/>`;
+    if (wischen) bild += `<path d="M40 64V22" stroke="#2EC4B6" stroke-width="3" stroke-dasharray="3 5" stroke-linecap="round" opacity=".5"/><circle class="gb-wisch" cx="40" cy="64" r="6" fill="#EAF2FF"/>`;
+    if (ziehen) bild += `<rect class="gb-zieh" x="33" y="28" width="14" height="9" rx="2" fill="#FFD23F"/><circle class="gb-zieh" cx="40" cy="44" r="6" fill="#EAF2FF"/><rect x="22" y="62" width="36" height="4" rx="2" fill="#9AA7D1"/>`;
+    if (lr) bild += `<circle class="gb-tipp" cx="28" cy="52" r="6" fill="#EAF2FF"/><circle class="gb-tipp zwei" cx="52" cy="52" r="6" fill="#EAF2FF"/>`;
+    if (tippen) bild += `<circle class="gb-ring" cx="${neigen ? 50 : 40}" cy="${neigen ? 60 : 44}" r="6" fill="none" stroke="#EAF2FF" stroke-width="2"/><circle class="gb-tipp" cx="${neigen ? 50 : 40}" cy="${neigen ? 60 : 44}" r="6" fill="#EAF2FF"/>`;
+    if (neigen && !tippen && !daumen) bild += `<circle class="gb-kugel" cx="40" cy="44" r="6" fill="#FF7A2F"/>`;
+    teile.push(`<g class="${neigen ? "gb-neigen" : ""}"><rect x="18" y="8" width="44" height="72" rx="8" fill="#141B3D" stroke="#EAF2FF" stroke-width="2.4"/><rect x="34" y="12" width="12" height="2.4" rx="1.2" fill="#2A3568"/>${bild}</g>`);
+    return `<svg class="gestenbild" viewBox="0 0 80 88" role="img" aria-label="So steuerst du: ${esc(e)}">${teile.join("")}</svg>`;
   }
   // Teams: ausgelost, mit Helmen (blass, wer noch nicht bereit ist)
   function teamZeilen(m) {
@@ -432,6 +481,16 @@
     const fertig = () => { if (b) { b.textContent = "Kopiert"; setTimeout(() => { b.textContent = "Link kopieren"; }, 1500); } };
     try { navigator.clipboard.writeText(link()).then(fertig, () => prompt("Link kopieren:", link())); } catch (e) { prompt("Link kopieren:", link()); }
   }
+
+  app.addEventListener("pointerdown", e => { if (e.target.closest && e.target.closest(".missionsfeld button, .steuerleiste button")) K.spiel("tipp"); }, { passive: true });
+  // Ton an/aus: fester Knopf oben rechts, bleibt beim Neuzeichnen stehen
+  (function tonKnopf() {
+    const b = document.createElement("button");
+    b.className = "tonknopf"; b.type = "button";
+    const zeigen = () => { b.textContent = K.an ? "🔊" : "🔇"; b.setAttribute("aria-label", K.an ? "Ton ausschalten" : "Ton einschalten"); b.setAttribute("aria-pressed", String(!K.an)); };
+    b.onclick = () => { K.umschalten(); zeigen(); };
+    zeigen(); document.body.appendChild(b);
+  })();
 
   // ---------- Start ----------
   if (typeof Peer === "undefined") { app.innerHTML = `<div class="mitte"><p>Die Verbindungsbibliothek konnte nicht geladen werden. Bitte Internetverbindung prüfen und neu laden.</p></div>`; return; }
