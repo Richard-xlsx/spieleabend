@@ -9,7 +9,10 @@
 //     neu(tn, rng) → d, start(d, jetzt, ctx), aktion(d, pid, m, jetzt, ctx) → true|"Fehlertext",
 //     takt(d, jetzt, ctx) → true bei Änderung (setzt d.fertig = true am Ende), wertung(d) → { pid: Wert|null },
 //     sicht(d, pid) → Kopie ohne Geheimnisse, bot(d, pid, rng, jetzt) → Aktion oder null }
-//   ctx = { tn: Teilnehmer, aktiv: Teilnehmer, die gerade verbunden sind (Bots immer), rng }
+//   „Einer gegen alle“: neu(tn, rng, einzelner) bekommt den Einzelnen (Alien-Feld, sonst Zufall), dazu
+//     ausgang(d) → "einzeln" | "crew" (wer gewonnen hat) und wertText(d, pid) → Text fürs Ergebnis.
+//   Live-Missionen: schritt(d, dt, ein, jetzt, ctx), bild(d), bildFuer(bild, d, pid) (optional: Geheimes entfernen).
+//   ctx = { tn: Teilnehmer, aktiv: Teilnehmer, die gerade verbunden sind (Bots immer), bots, rng, einzelner }
 //
 // Phasen: "lobby" → "brett" (Runde: würfeln, ziehen, Missionswahl, wetten) → "mission" → "brett" … → "ende" (Siegerehrung).
 // Aus der Lobby kann der Spielleiter auch eine einzelne Mission ohne Brett starten (zum Üben).
@@ -115,39 +118,58 @@
 
   function ctxVon(S) {
     const b = S.mission;
-    return { tn: b.tn, aktiv: b.tn.filter(p => istDa(S, p)), rng: zufall(b.seed + (b.zug = (b.zug || 0) + 1)), einzelner: b.einzelner || null };
+    return { tn: b.tn, aktiv: b.tn.filter(p => istDa(S, p)), bots: b.tn.filter(p => istBot(S, p)), rng: zufall(b.seed + (b.zug = (b.zug || 0) + 1)), einzelner: b.einzelner || null };
   }
 
-  function missionStarten(S, id, jetzt, tnVorgabe) {
+  const EINER = "Einer gegen alle";
+  function missionStarten(S, id, jetzt, tnVorgabe, einzelnerVorgabe) {
     const B = MISSIONEN[id];
     if (!B) return "Diese Mission gibt es nicht.";
     const tn = (tnVorgabe || anwesend(S)).slice(0, MAX);
     if (tn.length < (B.ab || 1)) return `${B.name} braucht mindestens ${B.ab} Mitspieler.`;
     S.missionNr += 1;
     const seed = (S.seed + S.missionNr * 7919) >>> 0;
-    S.mission = { id, nr: S.missionNr, tn, seed, schritt: "anleitung", bis: jetzt + ZEIT.anleitung, bereit: {}, d: B.neu(tn, zufall(seed)), ergebnis: null };
-    if (S.partie) Object.assign(S.mission, { partie: true, faktor: faktor(S), einzelner: S.partie.alien && tn.includes(S.partie.alien) ? S.partie.alien : null });
+    // Einer gegen alle: wer auf dem Alien-Feld stand, sonst der Zufall
+    let einzelner = null;
+    if (B.art === EINER) {
+      const P = S.partie;
+      if (einzelnerVorgabe && tn.includes(einzelnerVorgabe)) einzelner = einzelnerVorgabe;
+      else if (P && P.alien && tn.includes(P.alien)) einzelner = P.alien;
+      else einzelner = tn[Math.floor(zufall(seed + 1)() * tn.length)];
+      if (P && P.alien === einzelner) P.alien = null;
+    }
+    S.mission = { id, nr: S.missionNr, tn, seed, einzelner, schritt: "anleitung", bis: jetzt + ZEIT.anleitung, bereit: {}, d: B.neu(tn, zufall(seed), einzelner), ergebnis: null };
+    if (S.partie) Object.assign(S.mission, { partie: true, faktor: faktor(S) });
     S.phase = "mission";
     return null;
   }
   // Nach einer Übernahme: laufende Mission von vorn (die Geheimnisse des alten Spielleiters sind weg)
   function missionNeustart(S, jetzt) {
     if (S.phase !== "mission" || !S.mission || S.mission.schritt === "ergebnis") return;
-    const { id, tn, partie } = S.mission; S.missionNr -= 1;
-    if (missionStarten(S, id, jetzt, partie ? tn : null)) { S.mission = null; if (S.partie) { S.phase = "brett"; rundeEnde(S, jetzt); } else S.phase = "lobby"; }
+    const { id, tn, partie, einzelner } = S.mission; S.missionNr -= 1;
+    if (missionStarten(S, id, jetzt, partie ? tn : null, einzelner)) { S.mission = null; if (S.partie) { S.phase = "brett"; rundeEnde(S, jetzt); } else S.phase = "lobby"; }
   }
 
   // Platzierung mit Gleichstand (1, 1, 3 …) und Energie je Platz
   function werten(S, jetzt) {
     const b = S.mission, B = MISSIONEN[b.id], werte = B.wertung(b.d) || {}, f = b.faktor || 1;
     const mit = b.tn.filter(p => werte[p] !== null && werte[p] !== undefined);
-    const tabelle = ENERGIE_FUER(b.tn.length);
-    mit.sort((x, y) => B.besser === "niedrig" ? werte[x] - werte[y] : werte[y] - werte[x]);
     const ergebnis = [];
-    mit.forEach((p, i) => {
-      const platz = i > 0 && werte[p] === werte[mit[i - 1]] ? ergebnis[i - 1].platz : i + 1;
-      ergebnis.push({ pid: p, wert: werte[p], platz, energie: (tabelle[platz - 1] || 1) * f });
-    });
+    if (B.art === EINER && B.ausgang) {
+      // Gewinnt der Einzelne, bekommt er 15 Energie, gewinnt die Crew, bekommt jeder aus der Crew 6
+      const einzeln = B.ausgang(b.d) === "einzeln", e = b.einzelner;
+      const sieg = p => (p === e) === einzeln;
+      mit.sort((x, y) => (sieg(y) - sieg(x)) || ((y === e) - (x === e)));
+      for (const p of mit) ergebnis.push({ pid: p, wert: werte[p], text: B.wertText ? B.wertText(b.d, p) : null, platz: sieg(p) ? 1 : 2,
+        energie: sieg(p) ? (p === e ? 15 : 6) * f : 0, rolle: p === e ? "einzeln" : "crew" });
+    } else {
+      const tabelle = ENERGIE_FUER(b.tn.length);
+      mit.sort((x, y) => B.besser === "niedrig" ? werte[x] - werte[y] : werte[y] - werte[x]);
+      mit.forEach((p, i) => {
+        const platz = i > 0 && werte[p] === werte[mit[i - 1]] ? ergebnis[i - 1].platz : i + 1;
+        ergebnis.push({ pid: p, wert: werte[p], platz, energie: (tabelle[platz - 1] || 1) * f });
+      });
+    }
     for (const p of b.tn) if (!mit.includes(p)) ergebnis.push({ pid: p, wert: null, platz: null, energie: 0 });
     for (const e of ergebnis) if (S.spieler[e.pid]) {
       S.spieler[e.pid].energie += e.energie;
@@ -312,6 +334,11 @@
     let frei = pool.filter(id => !P.zyklus.includes(id));
     if (!frei.length) { P.zyklus = []; frei = pool; }
     for (let i = frei.length - 1; i > 0; i--) { const j = Math.floor(zahl(S) * (i + 1)); [frei[i], frei[j]] = [frei[j], frei[i]]; }
+    // Wartet ein Alien vom Alien-Feld, ist eine „Einer gegen alle“-Mission dabei (wenn es eine passende gibt)
+    if (P.alien && istDa(S, P.alien) && !frei.slice(0, 3).some(id => MISSIONEN[id].art === EINER)) {
+      const e = pool.filter(id => MISSIONEN[id].art === EINER && !frei.slice(0, 2).includes(id));
+      if (e.length) frei = frei.slice(0, 2).concat(e[Math.floor(zahl(S) * e.length)]);
+    }
     const r = rangliste(S).filter(p => istDa(S, p));
     P.schritt = "wahl"; P.seit = jetzt; P.bis = jetzt + ZEIT.wahl;
     P.wahl = { wer: r[r.length - 1] || null, optionen: frei.slice(0, 3) };
@@ -502,7 +529,7 @@
         if (!host) return { ok: false, fehler: "Nur der Spielleiter wählt die Mission." };
         if (S.phase !== "lobby") return { ok: false, fehler: "Es läuft schon etwas." };
         farbenPruefen(S);
-        const f = missionStarten(S, m.id, jetzt);
+        const f = missionStarten(S, m.id, jetzt, null, m.einzelner);
         return f ? { ok: false, fehler: f } : { ok: true };
       }
       case "bereit": {
@@ -591,6 +618,11 @@
     const b = S.mission, B = b && MISSIONEN[b.id];
     return S.phase === "mission" && b && b.schritt === "spiel" && B && B.live && B.bild ? B.bild(b.d) : null;
   }
+  // Das Bild für einen Spieler (manche Missionen verstecken etwas, z. B. das Alien im Frachtraum)
+  function liveBildFuer(S, bild, pid) {
+    const b = S.mission, B = b && MISSIONEN[b.id];
+    return bild && B && B.bildFuer ? B.bildFuer(bild, b.d, pid) : bild;
+  }
 
   function sicht(S, pid) {
     const v = kopie(S);
@@ -611,6 +643,6 @@
 
   W.RM = {
     MAX, FARBEN, ENERGIE, ZEIT, MISSIONEN, FELDER, FELD, WURMLOCH, N, START, PREIS, MAXKAUF, WURMPREIS, MAXWETTE, GRATIS, LAENGEN,
-    zufall, summe, neu, aktion, takt, sicht, liveSchritt, liveBild, stand, passend, anwesend, istBot, istDa, missionNeustart, kopie, mitspieler, rangliste, plaetze, faktor
+    zufall, summe, neu, aktion, takt, sicht, liveSchritt, liveBild, liveBildFuer, stand, passend, anwesend, istBot, istDa, missionNeustart, kopie, mitspieler, rangliste, plaetze, faktor
   };
 })();

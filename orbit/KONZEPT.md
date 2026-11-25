@@ -1,6 +1,6 @@
 # Orbit: Brettspiel mit Minispielen auf einer Raumstation (Konzept und Plan)
 
-Stand 25.11.2026. Schritt 1 bis 5 sind gebaut (Brett, drei geheime Missionen, Live-Technik, Asteroid, Rettungskapseln, Terraforming und Ionenspur). Ordner `orbit/`, für 2 bis 8 Leute, jeder am eigenen Handy.
+Stand 25.11.2026. Schritt 1 bis 6 sind gebaut (Brett, drei geheime Missionen, Live-Technik, Asteroid, Rettungskapseln, Terraforming, Ionenspur, Gestaltwandler und Alien im Frachtraum). Ordner `orbit/`, für 2 bis 8 Leute, jeder am eigenen Handy.
 
 Eine Raumstation ist das Spielbrett. Man würfelt, zieht durch die Module des Rings und sammelt **Energiezellen**. Mit
 Energie kauft man beim Händlerschiff **Sternkristalle**, und wer am Ende die meisten Kristalle hat, gewinnt. Nach jeder
@@ -124,6 +124,7 @@ Eingabe). Der Teil des Spielleiters kommt ohne Oberfläche aus und lässt sich d
   - Die eigene Figur wird auf dem Handy vorausberechnet, damit die Steuerung nicht hinterherhinkt.
   - Die Eingabe des Spielleiters wird um die mittlere Laufzeit der anderen verzögert, damit er keinen Vorteil hat.
 - **Gestaltwandler:** Das Gewusel der Roboter entsteht auf jedem Handy gleich aus einem gemeinsamen Startwert. Nur die Position des Aliens wird verschickt.
+- **Alien im Frachtraum:** Der Spielleiter schickt jedem Handy ein eigenes Bild. Die Crew bekommt die Position des Aliens nur, solange es im Licht steht.
 - **Treibstoffkette:** Jedes Handy rechnet seinen Kanister selbst, und der Spielleiter reicht ihn ans nächste Handy weiter.
 - **Jeder für sich** (Greifarm, Bordküche): Jedes Handy rechnet selbst mit dem gleichen Startwert, und am Ende zählt nur das Ergebnis.
 - **Uhrabgleich und Zeitstempel:** Jedes Handy pingt den Spielleiter 5-mal und merkt sich die kürzeste Laufzeit. Bei Rettungskapseln und Reaktor-Countdown entscheidet der Zeitstempel, nicht die Ankunft beim Spielleiter.
@@ -177,3 +178,6 @@ Die Reihenfolge geht vom Einfachen zum Schweren. Schritt 4 baut die Live-Technik
 - Figuren sind Astronautenhelme mit Farbe und Anfangsbuchstaben.
 - Terraforming: Der Planet ist ein Raster aus etwa 530 Feldern. Saatkapseln erscheinen alle 5 Sekunden (höchstens 2 liegen herum), man hat höchstens eine Saatbombe auf Vorrat. Es zählt der Anteil am Planeten in Prozent.
 - Ionenspur: Lenken mit zwei Knöpfen (gedrückt halten), Neigen lenkt hier nicht. Alle starten nahe der Mitte und fliegen nach außen; in den ersten 2,5 Sekunden langsamer, danach langsam schneller. Alle 2 bis 5 Sekunden hat die Spur eine kurze Lücke. Die eigene Spur wird nach 0,3 Sekunden gefährlich. Es zählt die Zeit im Flug; mit Bots dauert eine Runde etwa 10 bis 25 Sekunden.
+- Einer gegen alle: Das Alien ist, wer zuletzt auf dem Alien-Feld stand, sonst entscheidet der Zufall. Steht ein Alien bereit, ist bei der Missionswahl immer eine „Einer gegen alle“-Mission dabei.
+- Gestaltwandler: 30 Roboter fahren in sanften Kurven mit Pausen, gut die Hälfte ihrer Wege führt zu einer der 7 Konsolen. Das Alien lenkt mit dem Daumen (nicht mit Neigen) und sabotiert, indem es 2,5 Sekunden an einer Konsole bleibt; den Fortschritt sieht nur es selbst. Die Crew hat zusammen 2 Verdächtigungen (antippen, dann „Verdächtigen“). Bots in der Crew raten nur, wenn kein Mensch in der Crew ist. 90 Sekunden.
+- Alien im Frachtraum: Das Alien ist schneller als die Crew. Kisten werfen Schatten. Im Licht schmilzt der Schild in 2 Sekunden (bei zwei Lampen schneller); nach 2 Sekunden im Dunkeln lädt er langsam auf. Rennen macht Geräusche, die die Crew als Ringe in der Nähe sieht. Je größer die Crew, desto kürzer die Lampen. 8 Proviant gewinnen, nach 80 Sekunden gewinnt die Crew.

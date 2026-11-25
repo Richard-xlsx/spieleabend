@@ -8,6 +8,7 @@
 //   ORBIT_SENSOR.daumen(el)      macht el zum Joystick
 //   ORBIT_SENSOR.wischen(el, fn) fn({ dx, dy, v }) nach einem Wisch
 //   ORBIT_SENSOR.lenkknopf(el, −1|1), knopfRichtung() → { x, y: 0 } nur aus Lenkknöpfen und Pfeiltasten
+//   ORBIT_SENSOR.daumenRichtung() → { x, y } nur aus Joystick und Pfeiltasten
 (function () {
   const W = window;
   const MAXGRAD = 22, TOT = 0.08;
@@ -58,6 +59,12 @@
   }
   // Lenkknöpfe (links/rechts gedrückt halten), am Rechner auch Pfeiltasten. Ohne Neigung und Joystick.
   const knoepfe = new Map();   // pointerId → −1 | 1
+  // Nur Joystick und Pfeiltasten (Gestaltwandler: feine Steuerung mit dem Daumen)
+  function daumenRichtung() {
+    const t = { x: tasten.r - tasten.l, y: tasten.u - tasten.o };
+    if (t.x || t.y) { const l = Math.hypot(t.x, t.y); return { x: t.x / l, y: t.y / l }; }
+    return begrenzen(daumenWert);
+  }
   function knopfRichtung() {
     let x = tasten.r - tasten.l;
     for (const v of knoepfe.values()) x += v;
@@ -133,7 +140,7 @@
   }
 
   W.ORBIT_SENSOR = {
-    erlauben, brauchtErlaubnis, nullen, neigung, richtung, knopfRichtung, lenkknopf, hatNeigung, beiSchuetteln, daumen, wischen, setzeModus,
+    erlauben, brauchtErlaubnis, nullen, neigung, richtung, knopfRichtung, daumenRichtung, lenkknopf, hatNeigung, beiSchuetteln, daumen, wischen, setzeModus,
     get modus() { return aktuellerModus(); }, get erlaubt() { return erlaubt; }
   };
 })();

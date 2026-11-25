@@ -54,9 +54,9 @@
   // Aktionsknopf (Rammen, Öl …): ein Zähler, damit kein Druck verloren geht
   let k = 0;
   L.druck = () => { k += 1; };
-  // art "knopf": nur Lenkknöpfe und Pfeiltasten (Ionenspur), sonst Neigen oder Daumen
+  // art "knopf": nur Lenkknöpfe und Pfeiltasten (Ionenspur), "daumen": nur Joystick (Gestaltwandler), sonst Neigen oder Daumen
   L.eingabe = art => {
-    const SN = W.ORBIT_SENSOR, r = !SN ? { x: 0, y: 0 } : art === "knopf" ? SN.knopfRichtung() : SN.richtung();
+    const SN = W.ORBIT_SENSOR, r = !SN ? { x: 0, y: 0 } : art === "knopf" ? SN.knopfRichtung() : art === "daumen" ? SN.daumenRichtung() : SN.richtung();
     return { x: Math.round(r.x * 100) / 100, y: Math.round(r.y * 100) / 100, k };
   };
 })();

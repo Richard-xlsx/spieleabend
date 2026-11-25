@@ -102,9 +102,8 @@
     if (++liveTick % 2 === 0 || anders) {
       const b = R.liveBild(S);
       if (b) {
-        const msg = { t: "live", nr, b, h: jetzt };
-        for (const c of conns.values()) { try { c.send(msg); } catch (e) {} }
-        LIVE.empfang(nr, b, jetzt);
+        for (const [pid, c] of conns) { try { c.send({ t: "live", nr, b: R.liveBildFuer(S, b, pid), h: jetzt }); } catch (e) {} }
+        LIVE.empfang(nr, R.liveBildFuer(S, b, PID), jetzt);
       }
     }
     if (anders) geaendert();
@@ -195,7 +194,7 @@
     const s = R.neu(code, PID, name);
     hostStarten(s);
     for (let i = 0; i < bots; i++) R.aktion(S, PID, { t: "bot", dazu: true }, Date.now());
-    if (mission) R.aktion(S, PID, { t: "mission", id: mission }, Date.now());
+    if (mission) R.aktion(S, PID, { t: "mission", id: mission, einzelner: params.get("alien") === "ich" ? PID : undefined }, Date.now());
     else if (partie) R.aktion(S, PID, { t: "partie", laenge: R.LAENGEN[partie] ? partie : "kurz" }, Date.now());
     geaendert();
   }
@@ -293,7 +292,7 @@
   }
   function bildschirmStart() {
     return `<header class="titel">${titelbild()}<h1>Orbit</h1><p class="leise">Eine Raumstation als Spielbrett: würfeln, durch die Module ziehen, Energie sammeln und Sternkristalle kaufen. Nach jeder Runde eine Mission für alle, mal geheim, mal live, mal im Team.</p></header>
-      <p class="baustelle">Im Aufbau: Das Spielbrett steht, 7 von 14 Missionen sind fertig. Weitere folgen.</p>
+      <p class="baustelle">Im Aufbau: Das Spielbrett steht, 9 von 14 Missionen sind fertig. Weitere folgen.</p>
       <label class="feld">Dein Name<input id="name" maxlength="20" value="${esc(name)}" autocomplete="nickname" placeholder="z. B. Richard"></label>
       <div class="karte-box"><h2>Neues Spiel</h2><p class="leise klein">Für 2 bis 8 Leute, jeder am eigenen Handy.</p>
         <button class="knopf" id="neu">Raum erstellen</button></div>
@@ -371,10 +370,16 @@
     const ui = UI[m.id], e = m.ergebnis || [];
     const platz = x => x.platz ? x.platz + "." : "–";
     return kopf + (ui && m.d ? `<details class="rueckblick"><summary>Letzter Durchgang</summary>${ui.html(m.d, ctxUI())}</details>` : "") +
-      `<div class="karte-box"><h2>Ergebnis</h2><ol class="ergebnis">${e.map(x => `<li class="${x.platz === 1 ? "erster" : ""} ${x.pid === PID ? "ich" : ""}"><span class="pl">${platz(x)}</span>${helm(x.pid)}<span class="nm">${esc(sp(x.pid).name)}<small>${x.wert === null ? "nicht dabei" : String(x.wert).replace(".", ",") + " " + esc(M.einheit || "")}</small></span><span class="plus">+${x.energie}<i>⚡</i></span></li>`).join("")}</ol></div>
+      `<div class="karte-box"><h2>Ergebnis</h2>${einerSatz(e)}<ol class="ergebnis">${e.map(x => `<li class="${x.platz === 1 ? "erster" : ""} ${x.pid === PID ? "ich" : ""}"><span class="pl">${platz(x)}</span>${helm(x.pid)}<span class="nm">${esc(sp(x.pid).name)}<small>${x.wert === null ? "nicht dabei" : x.text ? esc(x.text) : String(x.wert).replace(".", ",") + " " + esc(M.einheit || "")}</small></span><span class="plus">+${x.energie}<i>⚡</i></span></li>`).join("")}</ol></div>
       ${wettErgebnis(m)}
       ${P ? (host ? `<div class="unten"><button class="knopf" id="weiter">Zurück zur Station (${uhr(m.bis)})</button></div>` : `<p class="leise mitte">Weiter zur Station in ${uhr(m.bis)} s</p>`)
         : host ? `<div class="unten"><button class="knopf" id="weiter">Zurück zur Crew</button></div>` : `<p class="leise mitte">${esc(sp(S.host).name)} geht weiter.</p>`}`;
+  }
+  // Einer gegen alle: wer hat gewonnen?
+  function einerSatz(e) {
+    const ein = e.find(x => x.rolle === "einzeln");
+    if (!ein) return "";
+    return `<p class="einersatz ${ein.platz === 1 ? "alien" : "crew"}">${ein.platz === 1 ? `${esc(sp(ein.pid).name)} gewinnt als Alien!` : "Die Crew gewinnt!"}</p>`;
   }
   function wettErgebnis(m) {
     if (!m.wetten || !m.wetten.length) return "";

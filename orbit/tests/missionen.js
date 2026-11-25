@@ -8,6 +8,7 @@ if (!window.RM) {
 }
 if (!window.ORBIT_MISSIONEN.asteroid) { require(__dirname + '/../missionen/asteroid.js'); require(__dirname + '/../missionen/kapseln.js'); }
 if (!window.ORBIT_MISSIONEN.terraforming) { require(__dirname + '/../missionen/terraforming.js'); require(__dirname + '/../missionen/ionenspur.js'); }
+if (!window.ORBIT_MISSIONEN.gestaltwandler) { require(__dirname + '/../missionen/gestaltwandler.js'); require(__dirname + '/../missionen/frachtraum.js'); }
 if (!window.ORBIT_LIVE) require(__dirname + '/../live.js');
 const R = window.RM, assert = require('assert');
 const ctx = (tn, aktiv) => ({ tn, aktiv: aktiv || tn, rng: Math.random });
@@ -257,10 +258,10 @@ const ctx = (tn, aktiv) => ({ tn, aktiv: aktiv || tn, rng: Math.random });
 }
 
 // Live-Mission mit Bots über R.liveSchritt zu Ende spielen (h ist ein Mensch, der nichts tut)
-function liveLauf(id, bots, ein) {
+function liveLauf(id, bots, ein, einzelner) {
   const S = R.neu('L' + id, 'h', 'Host'); S.online = ['h'];
   for (let i = 0; i < bots; i++) R.aktion(S, 'h', { t: 'bot', dazu: true }, 0);
-  assert(R.aktion(S, 'h', { t: 'mission', id }, 0).ok);
+  assert(R.aktion(S, 'h', { t: 'mission', id, einzelner }, 0).ok);
   let t = 0; R.aktion(S, 'h', { t: 'bereit' }, t); R.takt(S, t); t += 3600; R.takt(S, t);
   assert.strictEqual(S.mission.schritt, 'spiel');
   let i = 0;
@@ -363,4 +364,208 @@ function liveLauf(id, bots, ein) {
     assert(JSON.stringify(R.sicht(S, 'h')).length < 40000);
   }
   console.log('Ionenspur ok, Runden', dauer.map(x => Math.round(x / 1000) + ' s').join(', '));
+}
+
+// ---------- Gestaltwandler ----------
+{
+  const G = R.MISSIONEN.gestaltwandler, H = G.hilfe, tn = ['a', 'b', 'c'], rng = R.zufall(6), c = { tn, aktiv: tn, bots: [], rng };
+  const d = G.neu(tn, rng, 'b');
+  assert.strictEqual(d.einzelner, 'b');
+  // Die Wege der Roboter sind auf jedem Handy gleich und bleiben in der Halle
+  const p1 = H.plaene(d.rs), p2 = H.plaene(d.rs);
+  assert.deepStrictEqual(H.roboter(p1, 7, 12345), H.roboter(p2, 7, 12345));
+  assert.notDeepStrictEqual(H.roboter(H.plaene(d.rs + 1), 7, 12345), H.roboter(p1, 7, 12345));
+  let drin = true, besucht = H.KONSOLEN.map(() => 0), proben = 0;
+  for (let t = 0; t < H.DAUER; t += 250) {
+    proben++;
+    const nah = H.KONSOLEN.map(() => false);
+    for (let r = 0; r < H.ROBOTER; r++) {
+      const q = H.roboter(p1, r, t);
+      if (Math.abs(q.x) > 0.9 || Math.abs(q.y) > 0.9) drin = false;
+      H.KONSOLEN.forEach((k, i) => { if (Math.hypot(k[0] - q.x, k[1] - q.y) < H.KR) nah[i] = true; });
+    }
+    nah.forEach((x, i) => { if (x) besucht[i]++; });
+  }
+  assert(drin, 'Roboter bleiben in der Halle');
+  assert(besucht.every(n => n / proben > 0.5), 'an jeder Konsole steht meistens ein Roboter: ' + besucht.map(n => Math.round(n / proben * 100) + '%'));
+  // Alien bewegt sich mit dem Daumen
+  G.start(d, 0, c);
+  d.a.x = -0.5; d.a.y = 0.5;
+  for (let i = 0; i < 30; i++) G.schritt(d, 0.033, { b: { x: 1, y: 0 } }, 0, c);
+  assert(d.a.x > -0.3 && Math.abs(d.a.y - 0.5) < 1e-9, 'nach rechts: ' + d.a.x);
+  assert(Math.hypot(d.a.vx, d.a.vy) <= 0.34, 'nicht schneller als ein flotter Roboter');
+  // Sabotage: 2,5 s an der Konsole in der Mitte; wer vorher weggeht, fängt von vorn an
+  Object.assign(d.a, { x: 0.02, y: 0.01, vx: 0, vy: 0 });
+  for (let i = 0; i < 50; i++) G.schritt(d, 0.033, {}, 0, c);
+  assert.strictEqual(d.am, 3); assert(d.fort > 1500 && !d.sabotiert.length);
+  Object.assign(d.a, { x: 0.4, y: 0.4 }); G.schritt(d, 0.033, {}, 0, c);
+  assert.strictEqual(d.am, -1); assert.strictEqual(d.fort, 0);
+  Object.assign(d.a, { x: 0.02, y: 0.01 });
+  for (let i = 0; i < 80; i++) G.schritt(d, 0.033, {}, 0, c);
+  assert.deepStrictEqual(d.sabotiert.map(s => s.k), [3], 'Mitte sabotiert');
+  for (let i = 0; i < 80; i++) G.schritt(d, 0.033, {}, 0, c);
+  assert.strictEqual(d.sabotiert.length, 1, 'dieselbe Konsole zählt nur einmal');
+  // Was die Crew sieht: keinen Fortschritt
+  Object.assign(d.a, { x: 0.86, y: 0 }); for (let i = 0; i < 20; i++) G.schritt(d, 0.033, {}, 0, c);
+  assert.strictEqual(d.am, 4);
+  assert.strictEqual(G.sicht(d, 'a').am, -1); assert.strictEqual(G.sicht(d, 'b').am, 4);
+  const b = G.bild(d);
+  assert(b.f > 0 && G.bildFuer(b, d, 'b').f === b.f && G.bildFuer(b, d, 'a').f === 0 && G.bildFuer(b, d, 'a').k === -1);
+  assert.deepStrictEqual(G.bildFuer(b, d, 'c').a, b.a, 'die Position des Aliens sehen alle');
+  // Verdächtigungen: zusammen 2
+  assert.strictEqual(G.aktion(d, 'b', { a: 'verdacht', z: 3 }), 'Du bist das Alien.');
+  assert.strictEqual(G.aktion(d, 'a', { a: 'verdacht', z: 5 }), true);
+  assert.deepStrictEqual(d.harmlos, [5]);
+  assert.strictEqual(G.aktion(d, 'c', { a: 'verdacht', z: 5 }), 'Dieser Roboter ist schon überprüft.');
+  assert.strictEqual(G.aktion(d, 'c', { a: 'verdacht', z: 9 }), true);
+  assert.strictEqual(G.aktion(d, 'a', { a: 'verdacht', z: H.ALIEN }), 'Ihr habt keine Verdächtigung mehr.');
+  assert(!d.ende);
+  // Noch zwei Sabotagen → das Alien gewinnt (nach der Enthüllung)
+  for (const k of [0, 6]) { Object.assign(d.a, { x: H.KONSOLEN[k][0] * 0.95, y: H.KONSOLEN[k][1] * 0.95 }); for (let i = 0; i < 80; i++) G.schritt(d, 0.033, {}, 0, c); }
+  assert.strictEqual(d.sabotiert.length, 3); assert.strictEqual(d.ende.art, 'sabotage'); assert(!d.fertig);
+  for (let i = 0; i < 120; i++) G.schritt(d, 0.033, {}, 0, c);
+  assert(d.fertig); assert.strictEqual(G.ausgang(d), 'einzeln');
+  assert.strictEqual(G.wertText(d, 'b'), 'Alien · 3 von 3 Konsolen sabotiert');
+  // Treffer: die Crew gewinnt
+  const e = G.neu(tn, rng, 'a'); G.start(e, 0, c);
+  assert.strictEqual(G.aktion(e, 'c', { a: 'verdacht', z: H.ALIEN }), true);
+  assert.strictEqual(e.ende.art, 'erwischt'); assert.strictEqual(G.ausgang(e), 'crew');
+  assert.strictEqual(G.wertText(e, 'c'), 'Crew · hat das Alien entlarvt');
+  // Ganze Mission über den Spielleiter: der Mensch ist das Alien und steht still → Zeit um, die Crew gewinnt je 6
+  const S = liveLauf('gestaltwandler', 3, null, 'h');
+  const m = S.mission, eg = m.ergebnis;
+  assert.strictEqual(m.einzelner, 'h'); assert.strictEqual(m.d.ende.art, 'zeit');
+  assert(Math.abs(m.d.t - H.DAUER - H.ENTHUELLUNG) < 100);
+  assert.deepStrictEqual(eg.map(x => x.energie), [6, 6, 6, 0]); assert.strictEqual(eg[3].pid, 'h'); assert.strictEqual(eg[3].rolle, 'einzeln');
+  assert(eg.slice(0, 3).every(x => x.platz === 1 && x.rolle === 'crew')); assert.strictEqual(eg[3].platz, 2);
+  // Bots in der Crew raten nur, wenn kein Mensch in der Crew ist
+  const S2 = liveLauf('gestaltwandler', 3, null, 'bot1');
+  assert.strictEqual(S2.mission.d.verdacht.length, 0, 'mit Mensch in der Crew raten Bots nicht');
+  // Bot als Alien gegen eine Bot-Crew: beide Seiten gewinnen mal
+  let alien = 0;
+  for (let s = 1; s <= 12; s++) {
+    const T = R.neu('G' + s, 'h', 'Host'); T.online = ['h']; T.seed = s * 131;
+    for (let i = 0; i < 3; i++) R.aktion(T, 'h', { t: 'bot', dazu: true }, 0);
+    R.aktion(T, 'h', { t: 'mission', id: 'gestaltwandler', einzelner: 'bot1' }, 0);
+    let t = 0; R.aktion(T, 'h', { t: 'bereit' }, t); R.takt(T, t); t += 3600; R.takt(T, t);
+    T.mission.d.botsRaten = true;   // als wäre h nicht da
+    for (let i = 0; i < 6000 && T.mission.schritt === 'spiel'; i++) { t += 33; R.liveSchritt(T, t, {}); if (i % 6 === 0) R.takt(T, t); }
+    assert.strictEqual(T.mission.schritt, 'ergebnis');
+    if (T.mission.ergebnis.find(x => x.pid === 'bot1').platz === 1) alien++;
+  }
+  assert(alien > 0 && alien < 12, 'Bot-Alien gewinnt ' + alien + ' von 12');
+  console.log('Gestaltwandler ok, Bot-Alien gewinnt', alien, 'von 12');
+}
+
+// ---------- Alien im Frachtraum ----------
+{
+  const F = R.MISSIONEN.frachtraum, H = F.hilfe, tn = ['a', 'b', 'c'], rng = R.zufall(8), c = { tn, aktiv: tn, rng };
+  const d = F.neu(tn, rng, 'c');
+  F.start(d, 0, c);
+  assert.strictEqual(d.proviant.length, 3);
+  assert(d.sp.c.y < -0.5 && d.sp.a.y > 0.5, 'Alien oben, Crew unten');
+  // Kisten halten auf
+  const s = { x: -0.8, y: -0.47, vx: 1, vy: 0 };
+  for (let i = 0; i < 30; i++) { s.x += s.vx * 0.033; H.kollision(s, 0.05); }
+  assert(s.x <= -0.62 - 0.05 + 1e-6, 'vor der Kiste gestoppt: ' + s.x);
+  // Licht: im Kegel ja, dahinter nein, hinter einer Kiste nein
+  Object.assign(d.sp.a, { x: 0, y: 0.6, w: -Math.PI / 2 }); Object.assign(d.sp.b, { x: 0.9, y: 0.9, w: 0 });
+  assert.strictEqual(H.lampen(d, 0.6, 0.9 - 0.4 * 0 + 0.0), 0, 'b leuchtet zur Wand');
+  assert.strictEqual(H.lampen(d, 0, 0.25), 1, 'a leuchtet nach oben');
+  assert.strictEqual(H.lampen(d, 0, 0.9), 0, 'nicht hinter a');
+  assert.strictEqual(H.lampen(d, 0.03, 0.65), 1, 'direkt neben a ist es hell');
+  Object.assign(d.sp.a, { x: 0, y: 0.4, w: -Math.PI / 2 });
+  assert.strictEqual(H.lampen(d, 0, -0.25), 0, 'die Kiste in der Mitte wirft Schatten');
+  assert(H.verdeckt(0, 0.4, 0, -0.25) && !H.verdeckt(0.5, 0.2, 0.5, -0.2));
+  // Im Licht schmilzt der Schild, das Bild zeigt das Alien der Crew nur dann
+  Object.assign(d.sp.c, { x: 0.8, y: -0.3, vx: 0, vy: 0 });
+  F.schritt(d, 0.033, {}, 0, c);
+  let b = F.bild(d);
+  assert.strictEqual(b.l, 0); assert.strictEqual(F.bildFuer(b, d, 'a').p[2], null); assert(F.bildFuer(b, d, 'c').p[2]);
+  assert.strictEqual(F.sicht(d, 'a').sp.c, null); assert(F.sicht(d, 'c').sp.c);
+  Object.assign(d.sp.a, { x: 0.8, y: 0.3, w: -Math.PI / 2, vx: 0, vy: 0 });
+  for (let i = 0; i < 30; i++) F.schritt(d, 0.033, {}, 0, c);
+  b = F.bild(d);
+  assert(b.l === 1 && d.schild < 0.6 && d.schild > 0.4, 'Schild nach 1 s im Licht: ' + d.schild);
+  assert(F.bildFuer(b, d, 'a').p[2], 'im Licht sieht die Crew das Alien');
+  // Schatten lädt nach 2 s langsam wieder auf
+  Object.assign(d.sp.c, { x: -0.8, y: -0.8 }); const vor = d.schild;
+  for (let i = 0; i < 120; i++) F.schritt(d, 0.033, {}, 0, c);
+  assert(d.schild > vor && d.schild < vor + 0.2, 'lädt auf: ' + vor + ' → ' + d.schild);
+  // Rennen macht Geräusche, Schleichen nicht
+  const g0 = d.geraeusche.length;
+  for (let i = 0; i < 20; i++) F.schritt(d, 0.033, { c: { x: 0.4, y: 0 } }, 0, c);
+  assert.strictEqual(d.geraeusche.length, g0, 'schleichen ist leise');
+  for (let i = 0; i < 30; i++) F.schritt(d, 0.033, { c: { x: 0, y: 1 } }, 0, c);
+  assert(d.geraeusche.length > g0, 'rennen ist laut');
+  // Fressen: Blitz und neuer Proviant
+  const q = d.proviant[0]; Object.assign(d.sp.c, { x: q.x, y: q.y, vx: 0, vy: 0 });
+  Object.assign(d.sp.a, { x: -0.9, y: 0.9, w: Math.PI }); Object.assign(d.sp.b, { x: -0.9, y: 0.85, w: Math.PI });
+  F.schritt(d, 0.033, {}, 0, c);
+  assert.strictEqual(d.gefressen, 1); assert.strictEqual(d.proviant.length, 2); assert.strictEqual(d.blitze.length, 1);
+  for (let i = 0; i < 45; i++) F.schritt(d, 0.033, {}, 0, c);
+  assert.strictEqual(d.proviant.length, 3, 'Nachschub');
+  // 8 Proviant → das Alien gewinnt
+  while (d.gefressen < H.ZIEL) { const p = d.proviant[0]; Object.assign(d.sp.c, { x: p.x, y: p.y, vx: 0, vy: 0 }); F.schritt(d, 0.033, {}, 0, c); if (!d.proviant.length) for (let i = 0; i < 45; i++) F.schritt(d, 0.033, {}, 0, c); }
+  assert.strictEqual(d.ende.art, 'satt');
+  for (let i = 0; i < 100; i++) F.schritt(d, 0.033, {}, 0, c);
+  assert(d.fertig); assert.strictEqual(F.ausgang(d), 'einzeln');
+  // Leerer Schild → die Crew gewinnt
+  const e = F.neu(tn, rng, 'a'); F.start(e, 0, c);
+  Object.assign(e.sp.a, { x: 0.8, y: -0.2 }); Object.assign(e.sp.b, { x: 0.8, y: 0.3, w: -Math.PI / 2 }); Object.assign(e.sp.c, { x: 0.7, y: 0.3, w: -Math.PI / 2 });
+  for (let i = 0; i < 60 && !e.ende; i++) F.schritt(e, 0.033, {}, 0, c);
+  assert.strictEqual(e.ende.art, 'erwischt'); assert(e.t < 1500, 'zwei Lampen: schnell erwischt ' + e.t);
+  assert.strictEqual(F.ausgang(e), 'crew');
+  // Über den Spielleiter: der Mensch ist Crew und steht still, die Bots spielen
+  let alien = 0, dauer = 0;
+  for (let s = 1; s <= 10; s++) {
+    const T = R.neu('F' + s, 'h', 'Host'); T.online = ['h']; T.seed = s * 71;
+    for (let i = 0; i < 3; i++) R.aktion(T, 'h', { t: 'bot', dazu: true }, 0);
+    R.aktion(T, 'h', { t: 'mission', id: 'frachtraum', einzelner: 'bot2' }, 0);
+    let t = 0; R.aktion(T, 'h', { t: 'bereit' }, t); R.takt(T, t); t += 3600; R.takt(T, t);
+    for (let i = 0; i < 6000 && T.mission.schritt === 'spiel'; i++) { t += 33; R.liveSchritt(T, t, { h: { x: 0, y: 0, k: 0 } }); if (i % 6 === 0) R.takt(T, t); }
+    assert.strictEqual(T.mission.schritt, 'ergebnis');
+    const eg = T.mission.ergebnis, a = eg.find(x => x.pid === 'bot2');
+    if (a.platz === 1) { alien++; assert.strictEqual(a.energie, 15); assert(eg.filter(x => x.pid !== 'bot2').every(x => x.energie === 0)); }
+    else assert(eg.filter(x => x.pid !== 'bot2').every(x => x.energie === 6 && x.platz === 1));
+    dauer += T.mission.d.t;
+    assert(JSON.stringify(R.sicht(T, 'h')).length < 20000);
+  }
+  assert(alien > 0 && alien < 10, 'Bot-Alien gewinnt ' + alien + ' von 10');
+  console.log('Frachtraum ok, Bot-Alien gewinnt', alien, 'von 10, Ø', Math.round(dauer / 10000), 's');
+}
+
+// ---------- Einer gegen alle auf dem Brett: Alien-Feld und Missionswahl ----------
+{
+  const S = R.neu('E', 'h', 'Host'); S.online = ['h'];
+  for (let i = 0; i < 3; i++) R.aktion(S, 'h', { t: 'bot', dazu: true }, 0);
+  assert(R.aktion(S, 'h', { t: 'partie', laenge: 'kurz' }, 0).ok);
+  S.partie.alien = 'bot2';
+  // Wer auf dem Alien-Feld stand, wird das Alien, danach ist das Feld verbraucht
+  S.partie.gewaehlt = 'frachtraum'; S.partie.schritt = 'wetten'; S.partie.bis = 0; S.partie.wetten = {};
+  R.takt(S, 1);
+  assert.strictEqual(S.phase, 'mission'); assert.strictEqual(S.mission.einzelner, 'bot2'); assert.strictEqual(S.mission.d.einzelner, 'bot2');
+  assert.strictEqual(S.partie.alien, null);
+  // Ohne Alien-Feld: Zufall, aber immer einer aus der Runde
+  const zahl = {};
+  for (let s = 0; s < 40; s++) {
+    const T = R.neu('E' + s, 'h', 'Host'); T.online = ['h']; T.seed = s * 13;
+    for (let i = 0; i < 3; i++) R.aktion(T, 'h', { t: 'bot', dazu: true }, 0);
+    R.aktion(T, 'h', { t: 'mission', id: 'gestaltwandler' }, 0);
+    zahl[T.mission.einzelner] = (zahl[T.mission.einzelner] || 0) + 1;
+  }
+  assert.strictEqual(Object.keys(zahl).length, 4, 'jeder kann das Alien sein: ' + JSON.stringify(zahl));
+  // Missionswahl: mit wartendem Alien ist eine „Einer gegen alle“-Mission dabei
+  for (let s = 0; s < 30; s++) {
+    const T = R.neu('W' + s, 'h', 'Host'); T.online = ['h']; T.seed = s * 17;
+    for (let i = 0; i < 3; i++) R.aktion(T, 'h', { t: 'bot', dazu: true }, 0);
+    R.aktion(T, 'h', { t: 'partie', laenge: 'kurz' }, 0);
+    T.partie.alien = 'bot1';
+    T.partie.reihe = []; T.partie.schritt = 'ziehen'; T.partie.zug = null;
+    let t = 0; for (let i = 0; i < 40 && T.partie.schritt !== 'wahl'; i++) { t += 2000; R.takt(T, t); }
+    assert.strictEqual(T.partie.schritt, 'wahl', 'Wahl erreicht');
+    const o = T.partie.wahl.optionen;
+    assert(o.length === 3 && o.some(id => R.MISSIONEN[id].art === 'Einer gegen alle'), 'Alien-Mission zur Wahl: ' + o);
+  }
+  console.log('Einer gegen alle auf dem Brett ok');
 }
