@@ -396,14 +396,16 @@
     </g>
   </svg>`;
   const wahlKnoepfe = (id, werte, an, text) => `<div class="wahl" id="${id}">${werte.map(w => `<button data-v="${w}" class="${String(w) === String(an) ? "an" : ""}">${text(w)}</button>`).join("")}</div>`;
-  const ARTEN_WAHL = ["nein", "ja"], artenText = w => w === "ja" ? "Mit Zeichnen & Pantomime" : "Nur Erklären";
+  const modusText = w => WV.MODUS_NAME[w];
+  const modusLang = { erklaeren: "nur Erklären", pantomime: "nur Pantomime", gemischt: "Erklären, Zeichnen und Pantomime im Wechsel" };
+  const modusHinweis = `<p class="leise klein" id="modushinweis">Gemischt: Erklären, Zeichnen und Pantomime im Wechsel.</p>`;
   function bildschirmStart() {
-    return `<header class="titel">${TITELBILD}<h1 class="wortmarke"><span class="silber">Reden ist Silber,</span> <span class="gold">Umschreiben ist Gold</span></h1><p class="leise">Zwei Teams. Erklär deinem Team Begriffe, ohne die verbotenen Wörter zu sagen. Das andere Team liest mit und drückt den Summer.</p></header>
+    return `<header class="titel">${TITELBILD}<h1 class="wortmarke"><span class="silber">Reden ist Silber,</span> <span class="gold">Umschreiben ist Gold</span></h1><p class="leise">Zwei Teams. Erklär deinem Team Begriffe, ohne die verbotenen Wörter zu sagen, oder spiel sie als Pantomime vor. Das andere Team liest mit und drückt den Summer.</p></header>
       <label class="feld">Dein Name<input id="name" maxlength="20" value="${esc(name)}" autocomplete="nickname" placeholder="z. B. Richard"></label>
       <div class="karte"><h2>Neues Spiel</h2>
         <p class="leise klein">Zeit pro Zug</p>${wahlKnoepfe("wZeit", WV.ZEITEN, 90, w => w + " s")}
         <p class="leise klein">Jeder ist dran</p>${wahlKnoepfe("wDurch", WV.DURCHGAENGE, 1, w => w + "×")}
-        <p class="leise klein">Runden</p>${wahlKnoepfe("wArt", ARTEN_WAHL, "nein", artenText)}
+        <p class="leise klein">Spielart</p>${wahlKnoepfe("wArt", WV.MODI, "erklaeren", modusText)}${modusHinweis}
         <button class="knopf" id="neu">Raum erstellen</button></div>
       <div class="karte"><h2>Mitspielen</h2>
         <label class="feld">Raumcode<input id="code" maxlength="4" autocapitalize="characters" placeholder="z. B. K7M2"></label>
@@ -415,12 +417,17 @@
       <label class="feld">Dein Name<input id="name" maxlength="20" value="${esc(name)}" autocomplete="nickname" placeholder="z. B. Lena"></label>
       <button class="knopf" id="mitspielen">Mitspielen</button>`;
   }
-  const regeln = () => `<div class="karte"><h2>So geht's</h2><ul class="regeln">
+  const regeln = () => WV.modus(S) === "pantomime" ? `<div class="karte"><h2>So geht's</h2><ul class="regeln">
+      <li>Die Teams sind abwechselnd dran. Einer spielt einen Begriff vor, sein Team ruft laut, was es meint.</li>
+      <li>Nur mit Händen, Gesicht und Körper: <b>kein Wort, kein Geräusch</b>, keine Buchstaben in die Luft malen, nicht auf Dinge im Raum zeigen.</li>
+      <li>Das andere Team sieht den Begriff mit. Spricht der Spieler oder macht Geräusche, tippt es auf <b>Erwischt</b>: ein Punkt für sie.</li>
+      <li>Erraten bringt einen Punkt, Überspringen kostet nichts.</li>
+      <li>Tipp: Begriff lesen, Handy vor dich legen und loslegen. Zum Weitertippen kurz hinschauen.</li></ul></div>` : `<div class="karte"><h2>So geht's</h2><ul class="regeln">
       <li>Die Teams sind abwechselnd dran. Einer erklärt, sein Team ruft laut, was es meint.</li>
       <li>Der Erklärer darf den Begriff und die <b>verbotenen Wörter</b> nicht sagen, auch keine Teile davon. Kein Zeigen, kein Englisch.</li>
       <li>Das andere Team sieht die Karte mit. Fällt ein verbotenes Wort, tippt es auf <b>Erwischt</b>: ein Punkt für sie.</li>
       <li>Erraten bringt einen Punkt, Überspringen kostet nichts.</li>
-      ${S.gemischt ? `<li>Die Runden wechseln: <b>Erklären, Zeichnen, Pantomime</b>. Beim Zeichnen keine Buchstaben, bei der Pantomime kein Wort.</li>` : ""}</ul></div>`;
+      ${WV.modus(S) === "gemischt" ? `<li>Die Runden wechseln: <b>Erklären, Zeichnen, Pantomime</b>. Beim Zeichnen keine Buchstaben, bei der Pantomime kein Wort.</li>` : ""}</ul></div>`;
   function bildschirmLobby() {
     const host = rolle === "host";
     const anz = t => WV.mitglieder(S, t).filter(online).length;
@@ -435,8 +442,8 @@
         <p class="leise klein">${host ? "Tipp auf einen Namen, um ihn ins andere Team zu schieben." : "Tipp auf deinen Namen, um das Team zu wechseln."}</p>
         ${host ? `<button class="knopf zweit" id="mischen">Teams auslosen</button>` : ""}</div>
       <div class="karte"><h2>Einstellungen</h2>
-        ${host ? `<p class="leise klein">Zeit pro Zug</p>${wahlKnoepfe("eZeit", WV.ZEITEN, S.zeit, w => w + " s")}<p class="leise klein">Jeder ist dran</p>${wahlKnoepfe("eDurch", WV.DURCHGAENGE, S.durchgaenge, w => w + "×")}<p class="leise klein">Runden</p>${wahlKnoepfe("eArt", ARTEN_WAHL, S.gemischt ? "ja" : "nein", artenText)}`
-          : `<p class="leise">${S.zeit} Sekunden pro Zug · jeder ist ${S.durchgaenge}× dran · ${S.gemischt ? "Erklären, Zeichnen und Pantomime" : "nur Erklären"}</p>`}</div>
+        ${host ? `<p class="leise klein">Zeit pro Zug</p>${wahlKnoepfe("eZeit", WV.ZEITEN, S.zeit, w => w + " s")}<p class="leise klein">Jeder ist dran</p>${wahlKnoepfe("eDurch", WV.DURCHGAENGE, S.durchgaenge, w => w + "×")}<p class="leise klein">Spielart</p>${wahlKnoepfe("eArt", WV.MODI, WV.modus(S), modusText)}${modusHinweis}`
+          : `<p class="leise">${S.zeit} Sekunden pro Zug · jeder ist ${S.durchgaenge}× dran · ${modusLang[WV.modus(S)]}</p>`}</div>
       ${regeln()}
       ${host ? `<div class="unten"><button class="knopf" id="start" ${bereit ? "" : "disabled"}>${bereit ? "Spiel starten" : "Jedes Team braucht zwei …"}</button></div>`
         : `<p class="leise mitte">Warte, bis ${esc(sp(S.host).name)} das Spiel startet.</p>`}
@@ -505,7 +512,7 @@
     const top = o => Object.keys(o).filter(p => S.spieler[p]).sort((x, y) => o[y] - o[x]).slice(0, 3);
     return `<header class="titel"><p class="etikett">Endstand</p><h1>${sieger === null ? "Unentschieden!" : teamName(sieger) + " gewinnen"}</h1></header>
       ${stand()}
-      ${top(erklaert).length ? `<div class="karte"><h2>Am meisten erklärt</h2><ol class="rang">${top(erklaert).map((p, i) => `<li><span class="platz">${i + 1}</span><span class="n">${esc(sp(p).name)}</span><b>${erklaert[p]}</b></li>`).join("")}</ol></div>` : ""}
+      ${top(erklaert).length ? `<div class="karte"><h2>${WV.modus(S) === "pantomime" ? "Am meisten vorgespielt" : "Am meisten erklärt"}</h2><ol class="rang">${top(erklaert).map((p, i) => `<li><span class="platz">${i + 1}</span><span class="n">${esc(sp(p).name)}</span><b>${erklaert[p]}</b></li>`).join("")}</ol></div>` : ""}
       ${top(erwischt).length ? `<div class="karte"><h2>Am schärfsten aufgepasst</h2><ol class="rang">${top(erwischt).map((p, i) => `<li><span class="platz">${i + 1}</span><span class="n">${esc(sp(p).name)}</span><b>${erwischt[p]}×</b></li>`).join("")}</ol></div>` : ""}
       ${rueckblick()}
       ${host() ? `<div class="unten"><button class="knopf" id="nochmal">Nochmal spielen</button></div>` : `<p class="leise mitte">${esc(sp(S.host).name)} kann eine neue Runde starten.</p>`}
@@ -521,9 +528,9 @@
       w.querySelectorAll("button").forEach(x => x.classList.remove("an")); b.classList.add("an");
       if (w.id === "eZeit") tun({ t: "einstellungen", zeit: +b.dataset.v });
       if (w.id === "eDurch") tun({ t: "einstellungen", durchgaenge: +b.dataset.v });
-      if (w.id === "eArt") tun({ t: "einstellungen", gemischt: b.dataset.v === "ja" });
+      if (w.id === "eArt") tun({ t: "einstellungen", modus: b.dataset.v });
     }));
-    if ($("neu")) $("neu").onclick = () => { if (nameAus()) neuesSpiel({ zeit: +gewaehlt("wZeit"), durchgaenge: +gewaehlt("wDurch"), gemischt: gewaehlt("wArt") === "ja" }); };
+    if ($("neu")) $("neu").onclick = () => { if (nameAus()) neuesSpiel({ zeit: +gewaehlt("wZeit"), durchgaenge: +gewaehlt("wDurch"), modus: gewaehlt("wArt") }); };
     if ($("beitreten")) $("beitreten").onclick = () => {
       if (!nameAus()) return;
       const c = ($("code").value || "").toUpperCase().replace(/[^A-Z0-9]/g, ""); if (c.length !== 4) { $("code").focus(); return; }

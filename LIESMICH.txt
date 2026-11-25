@@ -86,9 +86,12 @@ Umschreiben (früher Wortverbot; ab 4 Spielern in zwei Teams, Füchse und Eulen)
   als Akzent und Silber als zweiter Farbe, Titelbild Silbermedaille (durchgestrichenes Wort) und Goldmedaille (Sprechblase).
   Neue Mitspieler kommen ins kleinere Team; in der Lobby schiebt der Spielleiter per Tipp um oder lost aus, jeder kann sich
   selbst umsetzen. Jedes Team braucht mindestens zwei. Die Teams sind abwechselnd dran; im Team wird reihum erklärt (wer nicht
-  da ist, wird übersprungen). Zeit 60, 90 oder 120 s; jeder ist 1× oder 2× dran. „Mit Zeichnen & Pantomime“ wechselt je Runde
-  (beide Teams einmal) Erklären, Zeichnen, Pantomime und spielt dann mindestens drei Runden.
-  Der Erklärer tippt „Los“, sieht die Karte (Begriff und 5 verbotene Wörter, 315 Karten in KARTEN) und tippt „Richtig“ (+1 fürs
+  da ist, wird übersprungen). Zeit 60, 90 oder 120 s; jeder ist 1× oder 2× dran. Spielart (S.modus): „Erklären“, „Pantomime“
+  (jeder Zug ist Pantomime) oder „Gemischt“ (wechselt je Runde, also beide Teams einmal, Erklären, Zeichnen, Pantomime und spielt
+  dann mindestens drei Runden). Ältere Spielstände mit „gemischt: ja/nein“ liest WV.modus() weiter.
+  Pantomime zieht aus eigenen Begriffen (395 in PANTOMIME: Tätigkeiten, Sport, Berufe, Tiere, Figuren, Szenen, Winter und Feste,
+  eigener Stapel stapelP), Erklären und Zeichnen aus KARTEN.
+  Der Erklärer tippt „Los“, sieht die Karte (Begriff und 5 verbotene Wörter, 1000 Karten in KARTEN) und tippt „Richtig“ (+1 fürs
   eigene Team) oder „Überspringen“ (0). Das andere Team sieht die Karte mit und tippt „Erwischt“ (+1 fürs andere Team); das
   ratende Team sieht die Karte nicht (WV.sicht). Nach jedem Tipp 0,7 s Sperre, damit ein Doppeltipp nicht die nächste Karte
   nimmt. Im Rückblick vor dem nächsten Zug können Erklärer oder Spielleiter Vertipper ändern (richtig → übersprungen → erwischt).

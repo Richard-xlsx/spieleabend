@@ -1,7 +1,7 @@
 // Wortverbot: Spielregeln ohne Netzwerk und ohne Oberfläche (window.WV).
 // Zwei Teams. Reihum erklärt einer seinem Team Begriffe, ohne die verbotenen Wörter zu sagen; die Uhr läuft.
 // Das andere Team sieht die Karte mit und tippt auf „Erwischt“, wenn ein verbotenes Wort fällt.
-// Auf Wunsch wechseln sich Runden mit Erklären, Zeichnen und Pantomime ab.
+// Modus: nur Erklären, nur Pantomime (eigene Begriffe in PANTOMIME) oder gemischt (Erklären, Zeichnen und Pantomime im Wechsel).
 // Die Karte steht nur beim Spielleiter im Zustand; mit sicht() bekommt das ratende Team eine Fassung ohne Karte.
 // Phasen: lobby → bereit (Erklärer tippt auf „Los“) → spielen → bereit (mit Rückblick auf den letzten Zug) … → ende
 (function () {
@@ -344,10 +344,60 @@
     "|Schatzkarte:Kreuz,Schatz,Pirat,Weg,graben"
   ).split("|").map(z => { const [w, rest] = z.split(":"); return { w: w.trim(), tabu: rest.split(",").map(s => s.trim()) }; });
 
+  // Pantomime: eigene Begriffe, die man gut vorspielen kann (Tätigkeiten, Sport, Berufe, Tiere, Figuren, Szenen), getrennt mit „|“
+  const PANTOMIME = (
+    "Zähne putzen|Haare föhnen|Krawatte binden|Schuhe binden|Fenster putzen|Staubsaugen|Wäsche bügeln|Wäsche aufhängen|Geschirr spülen|" +
+    "Zwiebeln schneiden|Pfannkuchen wenden|Teig kneten|Pizza belegen|Kaffee kochen|Brot schmieren|Ei aufschlagen|Einkaufswagen schieben|" +
+    "Rasen mähen|Blumen gießen|Unkraut jäten|Schnee schippen|Auto waschen|Reifen wechseln|Koffer packen|Bett beziehen|Wecker ausschalten|" +
+    "Verschlafen|Schminken|Rasieren|Nägel lackieren|Duschen|Windeln wechseln|Kinderwagen schieben|Baby in den Schlaf wiegen|Geschenk einpacken|" +
+    "Brief schreiben|Selfie machen|Telefonieren|Nachricht tippen|Fernbedienung suchen|Kerzen auspusten|Luftballon aufblasen|Kaugummiblase|" +
+    "Spaghetti essen|Eis schlecken|Suppe auslöffeln|Mit Stäbchen essen|In eine Zitrone beißen|Scharfes Essen|Heiße Kartoffel|Glühbirne wechseln|" +
+    "Bild aufhängen|Schrank aufbauen|Nagel einschlagen|Wand streichen|Tapezieren|Müll rausbringen|Hund ausführen|Katze streicheln|Fische füttern|" +
+    "Brille putzen|Kontaktlinse suchen|Schlüssel suchen|Tür aufschließen|Kaugummi unterm Schuh|Spinne im Bad|Mücke jagen|Fliege fangen|" +
+    "Niesen|Gähnen|Schnarchen|Schluckauf|Schlafwandeln|Albtraum|Muskelkater|Hexenschuss|Zahnschmerzen|Sonnenbrand|Mückenstich|Gänsehaut|" +
+    "Lampenfieber|Verliebt sein|Langeweile|Ungeduld|Höhenangst|Seekrank|Kopfschmerzen|Frieren|Schwitzen|Kitzeln|Lachkrampf|" +
+    "Bowling|Golf|Tennis|Tischtennis|Boxen|Gewichtheben|Seilspringen|Hula-Hoop|Yoga|Surfen|Skifahren|Snowboarden|Schlittschuhlaufen|Rudern|" +
+    "Kanu fahren|Tauchen|Brustschwimmen|Turmspringen|Klettern|Reiten|Fechten|Bogenschießen|Basketball|Volleyball|Elfmeter|Kugelstoßen|" +
+    "Speerwerfen|Hochsprung|Hürdenlauf|Billard|Darts|Angeln|Eishockey|Handstand|Purzelbaum|Radfahren|Rollschuh fahren|Skateboard fahren|" +
+    "Trampolin springen|Limbo|Tauziehen|Sackhüpfen|Eierlauf|Schneeballschlacht|Schneemann bauen|Sandburg bauen|Drachen steigen lassen|" +
+    "Wandern|Joggen|Liegestütze|Kopfball|Curling|Minigolf|Federball|Bungee-Sprung|Fallschirmspringen|Wasserski|Rodeo|" +
+    "Friseur|Zahnarzt|Feuerwehrmann|Verkehrspolizist|Dirigent|Pilot|Kellner|Koch|Maler|Bauarbeiter|Gärtner|Fotograf|Zauberer|Clown|Bäcker|" +
+    "Fischer|Holzfäller|Schornsteinfeger|Postbote|Taxifahrer|Busfahrer|Chirurg|Tierarzt|Bademeister|Schiedsrichter|Ballerina|DJ|Rockstar|" +
+    "Opernsängerin|Bodybuilder|Model auf dem Laufsteg|Astronaut|Detektiv|Kassiererin|Straßenmusiker|Wahrsagerin|Jongleur|Seiltänzerin|" +
+    "Dompteur|Bauchredner|Imker|Butler|Nachrichtensprecher|Barkeeper|Einweiser am Flughafen|Melken|" +
+    "Affe|Elefant|Pinguin|Känguru|Giraffe|Krokodil|Schlange|Hase|Frosch|Huhn|Kuh|Pferd|Esel|Schwein|Gorilla|Bär|Eichhörnchen|Specht|" +
+    "Flamingo|Krake|Robbe|Hai|Schmetterling|Raupe|Spinne|Schnecke|Biene|Fledermaus|Eule|Truthahn|Delfin|Löwe|Faultier|Kamel|Igel|Maulwurf|" +
+    "Storch|Krebs|Papagei|Pfau|Seepferdchen|Qualle|Dinosaurier|Hund|Katze|" +
+    "Gitarre spielen|Schlagzeug spielen|Klavier spielen|Geige spielen|Trompete spielen|Harfe spielen|Akkordeon spielen|Triangel|Querflöte|" +
+    "Kontrabass|Dudelsack|Luftgitarre|Karaoke|Mundharmonika|" +
+    "Roboter|Zombie|Vampir|Mumie|Gespenst|Hexe auf dem Besen|Superheld|Marionette|Statue|Ritter|Pirat|Cowboy|Meerjungfrau|Riese|Zwerg|" +
+    "Drache|Einhorn|Werwolf|Hase aus dem Hut|Prinzessin auf der Erbse|Dornröschen|Rotkäppchen|Froschkönig|Rapunzel|Aschenputtel|Pinocchio|" +
+    "Weihnachtsmann|Osterhase|Außerirdischer|Geist aus der Flasche|" +
+    "Achterbahn|Karussell|Autoscooter|Riesenrad|Geisterbahn|Heiratsantrag|Hochzeitstanz|Kindergeburtstag|Stau|Einparken|Tanken|" +
+    "Turbulenzen|Bus verpassen|Im Aufzug stecken|Auf Glatteis ausrutschen|Stromausfall|Die Tür klemmt|Zelt aufbauen|Lagerfeuer|" +
+    "Marshmallows grillen|Grillen|Picknick|Sonnenbaden|Eincremen|Schatzsuche|Verstecken spielen|Blinde Kuh|Seifenblasen|Papierflieger|" +
+    "Kartenhaus bauen|Puzzle legen|Schach spielen|Würfeln|Rubbellos|Kino mit Popcorn|Gruselfilm|Shoppen|Kleider anprobieren|Rolltreppe|" +
+    "Drehtür|Unsichtbare Wand|Gegen den Wind laufen|Moonwalk|Breakdance|Tango|Walzer|Polonaise|Bauchtanz|Cocktail mixen|Sekt öffnen|" +
+    "Bier zapfen|Anstoßen|Weinprobe|Hypnose|Meditation|Massage|" +
+    "Weihnachtsbaum schmücken|Plätzchen backen|Schlitten fahren|Rentier|Lichterkette entwirren|Glühwein trinken|Adventskranz anzünden|" +
+    "Eisstockschießen|Silvesterrakete|Wunderkerze|Schneeengel|Kamin anzünden|Geschenke auspacken|Ostereier suchen|Ostereier bemalen|" +
+    "Kürbis schnitzen|Laternenumzug|Kamelle werfen|Konfetti werfen|Torte ins Gesicht|" +
+    "Regenschirm|Fernglas|Taschenlampe|Bohrmaschine|Kettensäge|Leiter|Schubkarre|Fegen|Nähmaschine|Stricken|Lasso|Lupe|Kopfhörer|VR-Brille|" +
+    "Spiegel|Rucksack|Hängematte|Schaukel|Wippe|Rutsche|Fliegenklatsche|Fahrradpumpe|Korkenzieher|Dosenöffner|Zahnseide|Mikroskop|Bagger|" +
+    "Presslufthammer|Rasensprenger|Feuerlöscher|Wasserpistole|Jo-Jo|Bumerang|Frisbee|Schnorchel"
+  ).split("|").map(w => ({ w: w.trim(), tabu: [] }));
+
   const ZEITEN = [60, 90, 120];
   const DURCHGAENGE = [1, 2];
   const ARTEN = ["erklaeren", "zeichnen", "pantomime"];
   const ART_NAME = { erklaeren: "Erklären", zeichnen: "Zeichnen", pantomime: "Pantomime" };
+  const MODI = ["erklaeren", "pantomime", "gemischt"];
+  const MODUS_NAME = { erklaeren: "Erklären", pantomime: "Pantomime", gemischt: "Gemischt" };
+  // Ältere Spielstände kennen nur „gemischt: ja/nein“
+  const modus = S => MODI.includes(S.modus) ? S.modus : S.gemischt ? "gemischt" : "erklaeren";
+  // Pantomime zieht aus eigenen Begriffen, Erklären und Zeichnen aus den Karten
+  const stapelName = art => art === "pantomime" ? "stapelP" : "stapel";
+  const vorrat = art => art === "pantomime" ? PANTOMIME : KARTEN;
   const TEAMS = [{ name: "Füchse", zeichen: "🦊" }, { name: "Eulen", zeichen: "🦉" }];
   const MAX_PUNKTE = 4000;
   const kopie = x => JSON.parse(JSON.stringify(x));
@@ -358,10 +408,10 @@
       v: 1, spiel: "wortverbot", code, epoch: 0, host: hostPid, phase: "lobby",
       zeit: ZEITEN.includes(+einst.zeit) ? +einst.zeit : 90,
       durchgaenge: DURCHGAENGE.includes(+einst.durchgaenge) ? +einst.durchgaenge : 1,
-      gemischt: !!einst.gemischt,
+      modus: MODI.includes(einst.modus) ? einst.modus : einst.gemischt ? "gemischt" : "erklaeren",
       spieler: { [hostPid]: { name: hostName } }, reihenfolge: [hostPid], team: { [hostPid]: 0 },
       punkte: [0, 0], zug: -1, zuege: 0, dran: [0, 0], erklaerer: null, teamDran: 0, art: "erklaeren",
-      rest: null, k: 0, karte: null, karten: [], stapel: [], verlauf: [], weg: 0, aenderung: Date.now()
+      rest: null, k: 0, karte: null, karten: [], stapel: [], stapelP: [], verlauf: [], weg: 0, aenderung: Date.now()
     };
   }
 
@@ -393,15 +443,18 @@
     if (S.zug >= S.zuege) { S.phase = "ende"; S.erklaerer = null; return; }
     S.teamDran = S.zug % 2;
     const runde = Math.floor(S.zug / 2);
-    S.art = S.gemischt ? ARTEN[runde % 3] : "erklaeren";
+    const m = modus(S);
+    S.art = m === "gemischt" ? ARTEN[runde % 3] : m;
     S.erklaerer = erklaererWaehlen(S, S.teamDran);
     S.phase = "bereit";
   }
   function karteZiehen(S) {
-    let frei = KARTEN.map((_, i) => i).filter(i => !S.stapel.includes(i));
-    if (!frei.length) { S.stapel = []; frei = KARTEN.map((_, i) => i); }
+    const liste = vorrat(S.art), n = stapelName(S.art);
+    if (!Array.isArray(S[n])) S[n] = [];
+    let frei = liste.map((_, i) => i).filter(i => !S[n].includes(i));
+    if (!frei.length) { S[n] = []; frei = liste.map((_, i) => i); }
     const i = frei[Math.floor(Math.random() * frei.length)];
-    S.stapel.push(i); S.karte = i; S.k += 1;
+    S[n].push(i); S.karte = i; S.k += 1;
   }
   function zugBeenden(S) {
     S.verlauf.push({ zug: S.zug, team: S.teamDran, erklaerer: S.erklaerer, art: S.art, karten: S.karten });
@@ -410,7 +463,7 @@
     zaehlen(S);
   }
   function karteErledigt(S, e, von) {
-    const eintrag = { w: KARTEN[S.karte].w, e };
+    const eintrag = { w: vorrat(S.art)[S.karte].w, e };
     if (von) eintrag.von = von;
     S.karten.push(eintrag);
     karteZiehen(S);
@@ -450,7 +503,8 @@
         if (!istHost || S.phase !== "lobby") return nein("Nur der Spielleiter stellt das Spiel ein.");
         if (ZEITEN.includes(+m.zeit)) S.zeit = +m.zeit;
         if (DURCHGAENGE.includes(+m.durchgaenge)) S.durchgaenge = +m.durchgaenge;
-        if (typeof m.gemischt === "boolean") S.gemischt = m.gemischt;
+        if (MODI.includes(m.modus)) { S.modus = m.modus; delete S.gemischt; }
+        else if (typeof m.gemischt === "boolean") { S.modus = m.gemischt ? "gemischt" : "erklaeren"; delete S.gemischt; }
         break;
       case "team": {
         if (S.phase !== "lobby") return nein("Teams nur vor dem Spiel ändern.");
@@ -473,7 +527,7 @@
         const a = mitglieder(S, 0).filter(p => da(S, p)).length, b = mitglieder(S, 1).filter(p => da(S, p)).length;
         if (a < 2 || b < 2) return nein("Jedes Team braucht mindestens zwei.");
         // Jeder ist mindestens durchgaenge-mal dran; gemischt mindestens drei Runden, damit jede Art einmal vorkommt
-        S.zuege = 2 * Math.max(Math.max(a, b) * S.durchgaenge, S.gemischt ? 3 : 1);
+        S.zuege = 2 * Math.max(Math.max(a, b) * S.durchgaenge, modus(S) === "gemischt" ? 3 : 1);
         S.zug = -1; S.verlauf = []; S.punkte = [0, 0]; S.karten = [];
         S.dran = [Math.floor(Math.random() * a), Math.floor(Math.random() * b)];
         naechsterZug(S);
@@ -530,7 +584,7 @@
 
   // Neuer Spielleiter: Die Karte kannte nur der alte, also den laufenden Zug beenden
   function uebernahme(S0) {
-    const S = kopie(S0); S.epoch += 1; S.stapel = S.stapel || [];
+    const S = kopie(S0); S.epoch += 1; S.stapel = S.stapel || []; S.stapelP = S.stapelP || [];
     if (S.phase === "spielen") { S.karte = null; zugBeenden(S); }
     return S;
   }
@@ -539,8 +593,8 @@
   function sicht(S, pid) {
     const v = Object.assign({}, S);
     const darf = pid === S.erklaerer || (S.team[pid] !== undefined && S.team[pid] !== S.teamDran);
-    v.karte = S.karte != null && darf ? (S.art === "erklaeren" ? KARTEN[S.karte] : { w: KARTEN[S.karte].w, tabu: [] }) : null;
-    v.stapel = undefined;
+    v.karte = S.karte != null && darf ? (S.art === "erklaeren" ? KARTEN[S.karte] : { w: vorrat(S.art)[S.karte].w, tabu: [] }) : null;
+    v.stapel = undefined; v.stapelP = undefined;
     return v;
   }
 
@@ -557,5 +611,5 @@
     return aus;
   }
 
-  window.WV = { KARTEN, ZEITEN, DURCHGAENGE, ARTEN, ART_NAME, TEAMS, MAX_PUNKTE, neu, tick, aktion, sicht, uebernahme, striche, mitglieder, zaehlen };
+  window.WV = { KARTEN, PANTOMIME, ZEITEN, DURCHGAENGE, ARTEN, ART_NAME, MODI, MODUS_NAME, modus, TEAMS, MAX_PUNKTE, neu, tick, aktion, sicht, uebernahme, striche, mitglieder, zaehlen };
 })();
