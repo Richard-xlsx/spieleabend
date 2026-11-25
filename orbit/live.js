@@ -55,7 +55,10 @@
   let k = 0;
   L.druck = () => { k += 1; };
   // art "knopf": nur Lenkknöpfe und Pfeiltasten (Ionenspur), "daumen": nur Joystick (Gestaltwandler), sonst Neigen oder Daumen
+  // art "eigen": die Mission liefert ihre Steuerung selbst (L.steuerung, z. B. Mondbasis: Lage und Drehung des Bauteils)
+  L.steuerung = null;
   L.eingabe = art => {
+    if (art === "eigen") { const e = L.steuerung ? L.steuerung() : { x: 0, y: 0 }; return { x: e.x, y: e.y, k }; }
     const SN = W.ORBIT_SENSOR, r = !SN ? { x: 0, y: 0 } : art === "knopf" ? SN.knopfRichtung() : art === "daumen" ? SN.daumenRichtung() : SN.richtung();
     return { x: Math.round(r.x * 100) / 100, y: Math.round(r.y * 100) / 100, k };
   };

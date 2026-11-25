@@ -10,6 +10,11 @@ if (!window.ORBIT_MISSIONEN.asteroid) { require(__dirname + '/../missionen/aster
 if (!window.ORBIT_MISSIONEN.terraforming) { require(__dirname + '/../missionen/terraforming.js'); require(__dirname + '/../missionen/ionenspur.js'); }
 if (!window.ORBIT_MISSIONEN.gestaltwandler) { require(__dirname + '/../missionen/gestaltwandler.js'); require(__dirname + '/../missionen/frachtraum.js'); }
 if (!window.ORBIT_MISSIONEN.greifarm) { require(__dirname + '/../missionen/solo.js'); require(__dirname + '/../missionen/greifarm.js'); require(__dirname + '/../missionen/bordkueche.js'); require(__dirname + '/../missionen/boule.js'); }
+if (!window.ORBIT_MISSIONEN.treibstoff) {
+  require(__dirname + '/../missionen/treibstoff.js'); require(__dirname + '/../missionen/mondbasis.js');
+  // planck.js kommt im Browser vom CDN; in node: npm install planck@1.4.2 (oder NODE_PATH), sonst wird die Mondbasis übersprungen
+  try { window.planck = require('planck'); } catch (e) { window.planck = null; }
+}
 if (!window.ORBIT_LIVE) require(__dirname + '/../live.js');
 const R = window.RM, assert = require('assert');
 const ctx = (tn, aktiv) => ({ tn, aktiv: aktiv || tn, rng: Math.random });
@@ -707,4 +712,127 @@ function soloLauf(id, bots, mensch) {
   }
   assert(gut >= 4, 'Bot-Würfe gut: ' + gut + '/6');
   console.log('Planeten-Boule ok');
+}
+
+// ---------- Teams: Auslosen und Energie ----------
+{
+  for (let n = 4; n <= 8; n++) {
+    const tn = Array.from({ length: n }, (_, i) => 'p' + i), t = R.teamsLosen(tn, R.zufall(n));
+    assert.strictEqual(t[0].length, Math.ceil(n / 2)); assert.strictEqual(t[1].length, Math.floor(n / 2));
+    assert.deepStrictEqual(t[0].concat(t[1]).sort(), tn.slice().sort(), 'jeder in genau einem Team');
+  }
+  assert.strictEqual(R.passend(3).some(b => b.art === 'Teams'), false, 'Teams erst ab 4');
+  assert.strictEqual(R.passend(4).filter(b => b.art === 'Teams').length, 2);
+  console.log('Teams ok');
+}
+
+// ---------- Treibstoffkette ----------
+function teamLauf(id, bots, mensch, schritte) {
+  const S = R.neu('T' + id, 'h', 'Host'); S.online = ['h'];
+  for (let i = 0; i < bots; i++) R.aktion(S, 'h', { t: 'bot', dazu: true }, 0);
+  assert(R.aktion(S, 'h', { t: 'mission', id }, 0).ok);
+  const m = S.mission;
+  assert(m.teams && m.teams[0].length + m.teams[1].length === bots + 1, 'Teams ausgelost');
+  let t = 0; R.aktion(S, 'h', { t: 'bereit' }, t); R.takt(S, t); t += 3600; R.takt(S, t);
+  assert.strictEqual(S.mission.schritt, 'spiel');
+  let i = 0;
+  while (S.mission.schritt === 'spiel' && i++ < (schritte || 2000)) { t += 33; if (mensch) mensch(S, t); if (S.mission.schritt !== 'spiel') break; if (R.MISSIONEN[id].live) R.liveSchritt(S, t, { h: { x: 0, y: 0, k: 0 } }); if (i % 6 === 0) R.takt(S, t); }
+  assert.strictEqual(S.mission.schritt, 'ergebnis', id + ' endet');
+  // Siegerteam je 8, das andere je 2, Gleichstand je 5
+  const e = S.mission.ergebnis, sieger = S.mission.sieger;
+  for (const x of e) {
+    const team = m.teams[0].includes(x.pid) ? 0 : 1;
+    assert.strictEqual(x.team, team);
+    assert.strictEqual(x.energie, sieger === -1 ? 5 : team === sieger ? 8 : 2, 'Energie für ' + x.pid);
+    assert.strictEqual(x.platz, sieger === -1 || team === sieger ? 1 : 2);
+  }
+  return { S, t };
+}
+{
+  const B = R.MISSIONEN.treibstoff, H = B.hilfe;
+  const k = { luke: 0.5 }, hoch = -Math.PI / 2;
+  { const r = H.wurf(k, { w: hoch, v: 1.5 }); assert(r.art === 'weiter' && r.leck === 0, 'ruhig und gerade: kein Leck'); }
+  const hastig = H.wurf(k, { w: hoch, v: 4 });
+  assert(hastig.art === 'weiter' && hastig.leck > 20, 'zu hastig: Leck ' + hastig.leck);
+  assert.strictEqual(H.wurf(k, { w: hoch + 0.5, v: 1.5 }).art, 'wand', 'schräg: gegen die Wand');
+  assert.strictEqual(H.wurf(k, { w: 0, v: 1.5 }).art, 'wand', 'zur Seite: gegen die Wand');
+  assert.strictEqual(H.wurf(k, { w: hoch, v: 0.2 }).art, 'schwach');
+  assert.strictEqual(H.wurf({ luke: 0.75 }, { w: Math.atan2(-H.CY, 0.25), v: 1.5 }).art, 'weiter', 'schräg auf eine Luke rechts');
+  // Ablauf: 2 gegen 2
+  const tn = ['a', 'b', 'c', 'd'], teams = [['a', 'b'], ['c', 'd']], c = { tn, aktiv: tn, rng: R.zufall(3) };
+  const d = B.neu(tn, R.zufall(1), null, teams);
+  B.start(d, 0, c);
+  assert.deepStrictEqual(d.k.map(x => [x.t, x.p]), [[0, 'a'], [1, 'c']], 'je ein Kanister beim Ersten');
+  assert.deepStrictEqual(H.pfad(d, 0), ['a', 'b', 'a', 'b', 'a', 'b'], 'Weg: 6 Würfe reihum');
+  const k1 = d.k[0], gerade = kk => ({ t: 'b', a: 'wisch', id: kk.id, w: Math.atan2(-H.CY, kk.luke - H.CX), v: 1.2 });
+  assert.notStrictEqual(B.aktion(d, 'b', gerade(k1), 400), true, 'nur wer den Kanister hat');
+  assert.notStrictEqual(B.aktion(d, 'a', gerade(k1), 0), true, 'erst wenn er angekommen ist');
+  assert.strictEqual(B.aktion(d, 'a', gerade(k1), 400), true);
+  assert.strictEqual(k1.p, 'b'); assert.strictEqual(k1.f, 100); assert.strictEqual(k1.ab, 400 + H.FLUG);
+  assert.strictEqual(d.k.filter(x => x.t === 0).length, 2, 'Nachschub beim Ersten');
+  assert.notStrictEqual(B.aktion(d, 'b', gerade(k1), 500), true, 'noch im Flug');
+  // Leck und Fehlwurf
+  let t = 2000;
+  B.aktion(d, 'b', Object.assign(gerade(k1), { v: 4 }), t); assert(k1.f < 80 && k1.p === 'a', 'Leck beim hastigen Wurf');
+  t += 1000; const f = k1.f; B.aktion(d, 'a', Object.assign(gerade(k1), { w: 0 }), t); assert.strictEqual(k1.f, f - 6); assert.strictEqual(k1.p, 'a', 'Fehlwurf bleibt liegen');
+  for (let i = 0; i < 4; i++) { t += 1000; assert.strictEqual(B.aktion(d, k1.p, gerade(k1), t), true); }
+  assert.strictEqual(d.voll[0], 1); assert.strictEqual(d.tank[0], f - 6, 'nach 6 Würfen in der Rakete');
+  assert(!d.k.includes(k1));
+  // Abwesende reichen von selbst weiter
+  const k2 = d.k.find(x => x.t === 1); B.takt(d, t, { tn, aktiv: ['a', 'b', 'd'] }); assert.strictEqual(k2.p, 'd', 'c ist weg, der Kanister geht weiter');
+  // Ganze Runde: 4 Bots und ein Mensch, der ruhig und genau wischt
+  const runde = teamLauf('treibstoff', 4, (S, tt) => {
+    const dd = S.mission.d; if (!dd.start || tt >= dd.bis) return;
+    const kk = H.bei(dd, 'h')[0];
+    if (kk && kk.ab <= tt - 300) R.aktion(S, 'h', gerade(kk), tt);
+  });
+  const e = runde.S.mission.ergebnis, dd = runde.S.mission.d;
+  assert(e.every(x => x.wert > 0 && /l pro Person/.test(x.text)), 'alle Teams tanken');
+  const pro = [0, 1].map(tt => H.proKopf(dd, tt));
+  assert(pro.every(x => x > 150 && x < 2000), 'plausible Mengen: ' + pro);
+  assert.strictEqual(R.sicht(runde.S, 'h').mission.d.bp, undefined, 'Bot-Pläne bleiben beim Spielleiter');
+  console.log(`Treibstoffkette ok (l pro Person: ${pro.join(' / ')}, Kanister ${dd.voll.join(' / ')}, leer ${dd.leer.join(' / ')})`);
+}
+
+// ---------- Mondbasis ----------
+if (!window.planck) console.log('Mondbasis übersprungen (planck fehlt: npm install planck@1.4.2)');
+else {
+  const B = R.MISSIONEN.mondbasis, H = B.hilfe;
+  const teams = [['a', 'b'], ['c', 'd']], tn = ['a', 'b', 'c', 'd'];
+  const p = H.plan(teams, R.zufall(4));
+  assert.strictEqual(p.length, 2 * H.JE_TEAM);
+  assert(p.every((z, i) => z.team === i % 2), 'Teams abwechselnd');
+  assert(p.every((z, i) => i % 2 === 0 || z.typ === p[i - 1].typ), 'beide Teams bekommen dieselben Teile');
+  assert.deepStrictEqual(p.slice(0, 4).map(z => z.pid), ['a', 'c', 'b', 'd'], 'im Team reihum');
+  assert.strictEqual(p[0].typ, 0, 'zuerst ein Wohnmodul');
+  // Wer das Teil neben die Plattform setzt, bringt den Turm zum Kippen
+  const c = { tn, aktiv: tn, rng: R.zufall(2) }, d = B.neu(tn, R.zufall(4), null, teams);
+  B.start(d, 0, c);
+  assert.strictEqual(d.dran, 'a');
+  assert.notStrictEqual(B.aktion(d, 'c', { a: 'los', x: 0, r: 0 }), true, 'nur wer dran ist');
+  assert.strictEqual(B.aktion(d, 'a', { a: 'los', x: 0, r: 0 }), true);
+  let t = 0;
+  while (d.phase === 'faellt' && t < 10000) { t += 33; B.schritt(d, 0.033, {}, t, c); }
+  assert.strictEqual(d.dran, 'c', 'nach dem Fallen ist Team Nebel dran');
+  assert(Math.abs(d.top - 0.5) < 0.05, 'Wohnmodul liegt auf der Plattform: ' + d.top);
+  // Steuerung über die Live-Eingabe: x −1…1, Drehung in Achteln
+  B.schritt(d, 0.033, { c: { x: 1, y: 2 / 8 } }, t, c);
+  assert.strictEqual(d.halt.x, H.XMAX); assert.strictEqual(d.halt.r, 2);
+  assert.strictEqual(B.aktion(d, 'c', { a: 'los', x: 9, r: 0 }), true);
+  assert.strictEqual(d.halt.x, H.XMAX, 'nicht weiter als bis zum Rand');
+  while (d.phase !== 'ende' && t < 20000) { t += 33; B.schritt(d, 0.033, {}, t, c); }
+  // Ein Wohnmodul mit der Mitte 1,7 m weit draußen kippt herunter (Plattform bis 1,4 m)
+  assert.strictEqual(d.verlierer, 1, 'Team Nebel hat den Turm kippen lassen');
+  assert.strictEqual(B.ausgang(d), 0); assert.strictEqual(d.schuld, 'c');
+  assert.strictEqual(B.wertText(d, 'c'), 'hat den Turm zum Kippen gebracht');
+  // Bilder sind klein und ohne Welt
+  const bild = B.bild(d); assert.strictEqual(bild.k.length, 2); assert(JSON.stringify(R.kopie(d)).length < 4000);
+  // Ganze Runden mit Bots: wie lange halten die Türme?
+  const teile = [], aus = [];
+  for (let s = 0; s < 4; s++) {
+    const r = teamLauf('mondbasis', 4, null, 12000);
+    const dd = r.S.mission.d; teile.push(dd.teile.length); aus.push(dd.verlierer === -1 ? '=' : dd.teile.length >= dd.plan.length ? 'B' : 'K');
+  }
+  assert(teile.reduce((a, b) => a + b, 0) / teile.length >= 4, 'Bots bauen ordentlich: ' + teile);
+  console.log(`Mondbasis ok (Bauteile je Runde: ${teile.join(', ')}; ${aus.join('')}: K gekippt, B im Beben, = überstanden)`);
 }

@@ -13,8 +13,10 @@
 //     ausgang(d) → "einzeln" | "crew" (wer gewonnen hat) und wertText(d, pid) → Text fürs Ergebnis.
 //   Live-Missionen: schritt(d, dt, ein, jetzt, ctx), bild(d), bildFuer(bild, d, pid) (optional: Geheimes entfernen).
 //   „Jeder für sich“ (Greifarm, Bordküche): Jedes Handy rechnet sein Spiel selbst, der Spielleiter sammelt Stände (missionen/solo.js).
+//   „Teams“: Die Teams werden ausgelost (RM.TEAMNAMEN), neu(tn, rng, null, teams) bekommt [[pid …], [pid …]], dazu
+//     ausgang(d) → 0 | 1 (Siegerteam) | -1 (Gleichstand). Sieger bekommen je 8 Energie, die anderen je 2 (Gleichstand: je 5).
 //   wertText(d, pid) geht bei jeder Mission (z. B. „keine Kugel im Feld“).
-//   ctx = { tn: Teilnehmer, aktiv: Teilnehmer, die gerade verbunden sind (Bots immer), bots, rng, einzelner }
+//   ctx = { tn: Teilnehmer, aktiv: Teilnehmer, die gerade verbunden sind (Bots immer), bots, rng, einzelner, teams }
 //
 // Phasen: "lobby" → "brett" (Runde: würfeln, ziehen, Missionswahl, wetten) → "mission" → "brett" … → "ende" (Siegerehrung).
 // Aus der Lobby kann der Spielleiter auch eine einzelne Mission ohne Brett starten (zum Üben).
@@ -116,19 +118,28 @@
   }
 
   // Missionen, die mit n Teilnehmern gehen
-  const passend = n => Object.values(MISSIONEN).filter(b => n >= (b.ab || 1));
+  // (verfuegbar(): z. B. braucht die Mondbasis planck.js vom CDN)
+  const passend = n => Object.values(MISSIONEN).filter(b => n >= (b.ab || 1) && (!b.verfuegbar || b.verfuegbar()));
 
   function ctxVon(S) {
     const b = S.mission;
-    return { tn: b.tn, aktiv: b.tn.filter(p => istDa(S, p)), bots: b.tn.filter(p => istBot(S, p)), rng: zufall(b.seed + (b.zug = (b.zug || 0) + 1)), einzelner: b.einzelner || null };
+    return { tn: b.tn, aktiv: b.tn.filter(p => istDa(S, p)), bots: b.tn.filter(p => istBot(S, p)), rng: zufall(b.seed + (b.zug = (b.zug || 0) + 1)), einzelner: b.einzelner || null, teams: b.teams || null };
   }
 
-  const EINER = "Einer gegen alle";
+  const EINER = "Einer gegen alle", TEAMS = "Teams", TEAMNAMEN = ["Komet", "Nebel"];
+  // Teams auslosen: gemischt und halbiert, bei ungerader Zahl ist das erste Team größer
+  function teamsLosen(tn, rng) {
+    const a = tn.slice();
+    for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+    const h = Math.ceil(a.length / 2);
+    return [a.slice(0, h), a.slice(h)];
+  }
   function missionStarten(S, id, jetzt, tnVorgabe, einzelnerVorgabe) {
     const B = MISSIONEN[id];
     if (!B) return "Diese Mission gibt es nicht.";
     const tn = (tnVorgabe || anwesend(S)).slice(0, MAX);
     if (tn.length < (B.ab || 1)) return `${B.name} braucht mindestens ${B.ab} Mitspieler.`;
+    if (B.verfuegbar && !B.verfuegbar()) return `${B.name} konnte nicht geladen werden. Bitte die Seite neu laden.`;
     S.missionNr += 1;
     const seed = (S.seed + S.missionNr * 7919) >>> 0;
     // Einer gegen alle: wer auf dem Alien-Feld stand, sonst der Zufall
@@ -140,7 +151,8 @@
       else einzelner = tn[Math.floor(zufall(seed + 1)() * tn.length)];
       if (P && P.alien === einzelner) P.alien = null;
     }
-    S.mission = { id, nr: S.missionNr, tn, seed, einzelner, schritt: "anleitung", bis: jetzt + ZEIT.anleitung, bereit: {}, d: B.neu(tn, zufall(seed), einzelner), ergebnis: null };
+    const teams = B.art === TEAMS ? teamsLosen(tn, zufall(seed + 2)) : null;
+    S.mission = { id, nr: S.missionNr, tn, seed, einzelner, teams, schritt: "anleitung", bis: jetzt + ZEIT.anleitung, bereit: {}, d: B.neu(tn, zufall(seed), einzelner, teams), ergebnis: null };
     if (S.partie) Object.assign(S.mission, { partie: true, faktor: faktor(S) });
     S.phase = "mission";
     return null;
@@ -164,6 +176,14 @@
       mit.sort((x, y) => (sieg(y) - sieg(x)) || ((y === e) - (x === e)));
       for (const p of mit) ergebnis.push({ pid: p, wert: werte[p], text: B.wertText ? B.wertText(b.d, p) : null, platz: sieg(p) ? 1 : 2,
         energie: sieg(p) ? (p === e ? 15 : 6) * f : 0, rolle: p === e ? "einzeln" : "crew" });
+    } else if (B.art === TEAMS && B.ausgang && b.teams) {
+      // Das Siegerteam bekommt je 8 Energie, das andere je 2, bei Gleichstand alle 5
+      const sieger = B.ausgang(b.d), team = p => (b.teams[0].includes(p) ? 0 : 1);
+      const platz = p => (sieger === -1 || team(p) === sieger ? 1 : 2);
+      mit.sort((x, y) => (platz(x) - platz(y)) || (team(x) - team(y)) || (B.besser === "niedrig" ? werte[x] - werte[y] : werte[y] - werte[x]));
+      for (const p of mit) ergebnis.push({ pid: p, wert: werte[p], text: B.wertText ? B.wertText(b.d, p) : null, platz: platz(p),
+        energie: (sieger === -1 ? 5 : platz(p) === 1 ? 8 : 2) * f, team: team(p) });
+      b.sieger = sieger;
     } else {
       const tabelle = ENERGIE_FUER(b.tn.length);
       mit.sort((x, y) => B.besser === "niedrig" ? werte[x] - werte[y] : werte[y] - werte[x]);
@@ -644,7 +664,7 @@
   }
 
   W.RM = {
-    MAX, FARBEN, ENERGIE, ZEIT, MISSIONEN, FELDER, FELD, WURMLOCH, N, START, PREIS, MAXKAUF, WURMPREIS, MAXWETTE, GRATIS, LAENGEN,
+    MAX, FARBEN, ENERGIE, ZEIT, MISSIONEN, TEAMNAMEN, teamsLosen, FELDER, FELD, WURMLOCH, N, START, PREIS, MAXKAUF, WURMPREIS, MAXWETTE, GRATIS, LAENGEN,
     zufall, summe, neu, aktion, takt, sicht, liveSchritt, liveBild, liveBildFuer, stand, passend, anwesend, istBot, istDa, missionNeustart, kopie, mitspieler, rangliste, plaetze, faktor
   };
 })();

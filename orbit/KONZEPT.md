@@ -1,6 +1,6 @@
 # Orbit: Brettspiel mit Minispielen auf einer Raumstation (Konzept und Plan)
 
-Stand 25.11.2026. Schritt 1 bis 7 sind gebaut (Brett, drei geheime Missionen, Live-Technik, Asteroid, Rettungskapseln, Terraforming, Ionenspur, Gestaltwandler, Alien im Frachtraum, Planeten-Boule, Greifarm und Bordküche). Ordner `orbit/`, für 2 bis 8 Leute, jeder am eigenen Handy.
+Stand 25.11.2026. Schritt 1 bis 8 sind gebaut, alle 14 Missionen sind spielbar. Es fehlt noch der Feinschliff (Schritt 9). Ordner `orbit/`, für 2 bis 8 Leute, jeder am eigenen Handy.
 
 Eine Raumstation ist das Spielbrett. Man würfelt, zieht durch die Module des Rings und sammelt **Energiezellen**. Mit
 Energie kauft man beim Händlerschiff **Sternkristalle**, und wer am Ende die meisten Kristalle hat, gewinnt. Nach jeder
@@ -125,11 +125,12 @@ Eingabe). Der Teil des Spielleiters kommt ohne Oberfläche aus und lässt sich d
   - Die Eingabe des Spielleiters wird um die mittlere Laufzeit der anderen verzögert, damit er keinen Vorteil hat.
 - **Gestaltwandler:** Das Gewusel der Roboter entsteht auf jedem Handy gleich aus einem gemeinsamen Startwert. Nur die Position des Aliens wird verschickt.
 - **Alien im Frachtraum:** Der Spielleiter schickt jedem Handy ein eigenes Bild. Die Crew bekommt die Position des Aliens nur, solange es im Licht steht.
-- **Treibstoffkette:** Jedes Handy rechnet seinen Kanister selbst, und der Spielleiter reicht ihn ans nächste Handy weiter.
+- **Treibstoffkette:** Jedes Handy rechnet seinen Wurf selbst vor (gleiche Funktion wie beim Spielleiter), der Spielleiter prüft ihn und reicht den Kanister ans nächste Handy weiter.
+- **Teams:** Der Spielleiter lost die Teams beim Start der Mission aus (bei ungerader Zahl ist Team Komet größer). Die Mission sagt nur, welches Team gewinnt.
 - **Jeder für sich** (Greifarm, Bordküche): Jedes Handy rechnet selbst mit dem gleichen Startwert, und am Ende zählt nur das Ergebnis.
   Gerechnet wird in festen Schritten (60 pro Sekunde) nach der abgeglichenen Uhr. Die Handys melden Zwischenstände, die alle sehen. Bots spielen dasselbe Spiel zu Beginn ohne Oberfläche durch, ihre Stände erscheinen dann nach und nach (missionen/solo.js).
 - **Uhrabgleich und Zeitstempel:** Jedes Handy pingt den Spielleiter 5-mal und merkt sich die kürzeste Laufzeit. Bei Rettungskapseln und Reaktor-Countdown entscheidet der Zeitstempel, nicht die Ankunft beim Spielleiter.
-- **Physik:** Asteroid, Planeten-Boule und Terraforming bekommen eine eigene einfache Kreisphysik. Für die Mondbasis wird planck.js über ein CDN geladen.
+- **Physik:** Asteroid, Planeten-Boule und Terraforming bekommen eine eigene einfache Kreisphysik. Für die Mondbasis wird planck.js 1.4.2 über ein CDN geladen (nur der Spielleiter rechnet; lädt es nicht, wird die Mondbasis nicht angeboten).
 - **Ausfall:**
   - Verlässt der Spielleiter das Spiel, übernimmt ein anderes Handy wie bei den anderen Spielen.
   - Eine laufende Mission wird abgebrochen und neu gestartet, der Stand auf dem Brett bleibt erhalten.
@@ -185,3 +186,6 @@ Die Reihenfolge geht vom Einfachen zum Schweren. Schritt 4 baut die Live-Technik
 - Planeten-Boule: Jeder hat 2 Kugeln, die zweite Runde geht rückwärts. Wischen: Richtung des Wischs ist die Wurfrichtung, die Länge die Kraft (ein Pfeil zeigt sie beim Wischen). Nur rollende Kugeln spüren die Schwerkraft, liegende bleiben liegen. Wer das Feld verlässt, ist weg. 15 Sekunden zum Zielen, sonst verfällt die Kugel. Es zählt die beste eigene Kugel (Abstand zum Mond), ohne Kugel im Feld wird man Letzter. Bots probieren 70 Würfe in Gedanken aus und werfen dann leicht ungenau.
 - Greifarm: 45 Sekunden, Greifer fährt per Neigen, Tippen lässt ihn herab. Was er unterwegs berührt, packt er; danach fährt er von selbst zur Luke. Die Griffstärke ist Glück, aber der n-te Griff ist bei allen gleich stark. Ist der Griff schwächer als das Teil schwer, rutscht es unterwegs heraus (über der Luke fällt es trotzdem hinein). Teile: Schraube 1, Antenne 2, Solarpaneel 3, Tank 5, Satellit 8, Goldbolzen 10 (klein und schnell).
 - Bordküche: Gehen mit einem Knopf zum Gedrückthalten, Balancieren durch Neigen (ohne Sensor mit dem Joystick). Die Becher treiben beim Losgehen nach hinten, beim Bremsen nach vorn, in Kurven nach außen und in der Lüftung zur Seite; Schwellen geben einen Stoß. 10 Punkte pro Becher plus 1 pro übrige Sekunde (60 Sekunden). Wer nicht ankommt, bekommt die Becher nur anteilig nach dem Weg.
+- Teams heißen „Komet“ und „Nebel“. Siegerteam je 8 Energie, das andere je 2, bei Gleichstand alle 5. Eine Wette auf jemanden aus dem Siegerteam gewinnt.
+- Treibstoffkette: Jeder Kanister braucht 6 Würfe, das Team reicht ihn reihum (auch mehrmals), damit kleine und große Teams gleich viel Arbeit haben. Höchstens 2 Kanister pro Person sind unterwegs. Es zählt der Treibstoff pro Person. Zu schnelles Wischen (mehr als etwa 2,3 Bildschirmbreiten pro Sekunde) gibt ein Leck, ein Wurf neben die Luke kostet 6 Liter. Wer nicht verbunden ist, reicht nach 1,5 Sekunden von selbst weiter. 60 Sekunden.
+- Mondbasis: Mondschwerkraft (1,62). Die Teams setzen abwechselnd, beide Teams bekommen dieselben Bauteile (7 pro Team, zuerst ein Wohnmodul). Ziehen mit dem Finger, Drehen in Achtelschritten, 15 Sekunden pro Teil. Fällt etwas herunter, verliert das Team, das zuletzt gesetzt hat. Steht der Turm danach noch, verliert im Mondbeben das Team, dessen Teil zuerst fällt.

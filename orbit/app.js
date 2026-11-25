@@ -292,7 +292,6 @@
   }
   function bildschirmStart() {
     return `<header class="titel">${titelbild()}<h1>Orbit</h1><p class="leise">Eine Raumstation als Spielbrett: würfeln, durch die Module ziehen, Energie sammeln und Sternkristalle kaufen. Nach jeder Runde eine Mission für alle, mal geheim, mal live, mal im Team.</p></header>
-      <p class="baustelle">Im Aufbau: Das Spielbrett steht, 12 von 14 Missionen sind fertig. Weitere folgen.</p>
       <label class="feld">Dein Name<input id="name" maxlength="20" value="${esc(name)}" autocomplete="nickname" placeholder="z. B. Richard"></label>
       <div class="karte-box"><h2>Neues Spiel</h2><p class="leise klein">Für 2 bis 8 Leute, jeder am eigenen Handy.</p>
         <button class="knopf" id="neu">Raum erstellen</button></div>
@@ -357,7 +356,7 @@
       const offen = m.tn.filter(p => !m.bereit[p] && da(p));
       return kopf + `<div class="karte-box"><div class="chips"><span>${esc(M.art)}</span><span>${esc(M.eingabe)}</span></div>
           <ul class="regeln">${M.anleitung.map(z => `<li>${z}</li>`).join("")}</ul></div>
-        <div class="helmreihe">${m.tn.map(p => `<span class="${m.bereit[p] ? "" : "blass"}" title="${esc(sp(p).name)}">${helm(p)}</span>`).join("")}</div>
+        ${m.teams ? teamZeilen(m) : `<div class="helmreihe">${m.tn.map(p => `<span class="${m.bereit[p] ? "" : "blass"}" title="${esc(sp(p).name)}">${helm(p)}</span>`).join("")}</div>`}
         <p class="leise mitte klein">${offen.length ? `Warte auf ${offen.map(p => esc(sp(p).name)).join(", ")} · Start spätestens in ${uhr(m.bis)} s` : "Alle bereit."}</p>
         ${dabei && !m.bereit[PID] ? `<div class="unten"><button class="knopf" id="bereit">Bereit</button></div>` : ""}${abbrechen}`;
     }
@@ -370,10 +369,19 @@
     const ui = UI[m.id], e = m.ergebnis || [];
     const platz = x => x.platz ? x.platz + "." : "–";
     return kopf + (ui && m.d ? `<details class="rueckblick"><summary>Letzter Durchgang</summary>${ui.html(m.d, ctxUI())}</details>` : "") +
-      `<div class="karte-box"><h2>Ergebnis</h2>${einerSatz(e)}<ol class="ergebnis">${e.map(x => `<li class="${x.platz === 1 ? "erster" : ""} ${x.pid === PID ? "ich" : ""}"><span class="pl">${platz(x)}</span>${helm(x.pid)}<span class="nm">${esc(sp(x.pid).name)}<small>${x.wert === null ? "nicht dabei" : x.text ? esc(x.text) : String(x.wert).replace(".", ",") + " " + esc(M.einheit || "")}</small></span><span class="plus">+${x.energie}<i>⚡</i></span></li>`).join("")}</ol></div>
+      `<div class="karte-box"><h2>Ergebnis</h2>${einerSatz(e)}${teamSatz(m)}<ol class="ergebnis">${e.map(x => `<li class="${x.platz === 1 ? "erster" : ""} ${x.pid === PID ? "ich" : ""}"><span class="pl">${platz(x)}</span>${helm(x.pid)}<span class="nm">${esc(sp(x.pid).name)}<small>${x.wert === null ? "nicht dabei" : x.text ? esc(x.text) : String(x.wert).replace(".", ",") + " " + esc(M.einheit || "")}</small></span><span class="plus">+${x.energie}<i>⚡</i></span></li>`).join("")}</ol></div>
       ${wettErgebnis(m)}
       ${P ? (host ? `<div class="unten"><button class="knopf" id="weiter">Zurück zur Station (${uhr(m.bis)})</button></div>` : `<p class="leise mitte">Weiter zur Station in ${uhr(m.bis)} s</p>`)
         : host ? `<div class="unten"><button class="knopf" id="weiter">Zurück zur Crew</button></div>` : `<p class="leise mitte">${esc(sp(S.host).name)} geht weiter.</p>`}`;
+  }
+  // Teams: ausgelost, mit Helmen (blass, wer noch nicht bereit ist)
+  function teamZeilen(m) {
+    return `<div class="teamzeilen">${m.teams.map((t, i) => `<div class="teamzeile team${i} ${t.includes(PID) ? "meins" : ""}"><b>Team ${R.TEAMNAMEN[i]}${t.includes(PID) ? " (du)" : ""}</b>
+      <div class="helmreihe">${t.map(p => `<span class="${m.bereit[p] ? "" : "blass"}" title="${esc(sp(p).name)}">${helm(p)}</span>`).join("")}</div></div>`).join("")}</div>`;
+  }
+  function teamSatz(m) {
+    if (!m.teams || m.sieger === undefined) return "";
+    return `<p class="einersatz teamsatz team${m.sieger}">${m.sieger === -1 ? "Gleichstand!" : `Team ${R.TEAMNAMEN[m.sieger]} gewinnt!`}</p>`;
   }
   // Einer gegen alle: wer hat gewonnen?
   function einerSatz(e) {
