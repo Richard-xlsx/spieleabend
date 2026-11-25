@@ -73,14 +73,16 @@
   function brettSvg(c) {
     const S = c.S, P = S.partie;
     const kacheln = Array.from(R.FELDER).map((k, i) => {
-      const [x, y] = punkt(i, RING), h = i === P.haendler;
+      const [x, y] = punkt(i, RING), h = R.schiffe(P).includes(i);
       return `<g class="modul" transform="translate(${f1(x)} ${f1(y)})">${h ? `<circle r="19" class="haendlerring"/>` : ""}<circle r="14" fill="${FARBE[k]}" stroke="#060A1C" stroke-width="2"/><use href="#ic-${k}" x="-9" y="-9" width="18" height="18"/></g>`;
     }).join("");
     const [wa, wb] = [punkt(8, RING - 14), punkt(24, RING - 14)];
     const speichen = [4, 12, 20, 28].map(i => { const [a, b] = punkt(i, 58), [x, y] = punkt(i, RING - 16); return `<path d="M${f1(a)} ${f1(b)}L${f1(x)} ${f1(y)}"/>`; }).join("");
     // Händlerschiff außen am Ring, quer zur Laufrichtung
-    const [sx, sy] = punkt(P.haendler, RING + 27), grad = winkel(P.haendler) * 180 / Math.PI + 90;
-    const schiff = `<g class="schiff" transform="translate(${f1(sx)} ${f1(sy)}) rotate(${f1(grad)})"><path d="M-15 2l5-7h20l5 7-5 4h-20z" fill="#FFD23F" stroke="#060A1C" stroke-width="1.8" stroke-linejoin="round"/><path d="M-5-5l2-5h6l2 5" fill="#9AA7D1" stroke="#060A1C" stroke-width="1.6"/><circle cx="-6" cy="1" r="1.6" fill="#060A1C"/><circle cx="0" cy="1" r="1.6" fill="#060A1C"/><circle cx="6" cy="1" r="1.6" fill="#060A1C"/></g>`;
+    const schiff = R.schiffe(P).map(hm => { const [sx, sy] = punkt(hm, RING + 27), grad = winkel(hm) * 180 / Math.PI + 90; return `<g class="schiff" transform="translate(${f1(sx)} ${f1(sy)}) rotate(${f1(grad)})"><path d="M-15 2l5-7h20l5 7-5 4h-20z" fill="#FFD23F" stroke="#060A1C" stroke-width="1.8" stroke-linejoin="round"/><path d="M-5-5l2-5h6l2 5" fill="#9AA7D1" stroke="#060A1C" stroke-width="1.6"/><circle cx="-6" cy="1" r="1.6" fill="#060A1C"/><circle cx="0" cy="1" r="1.6" fill="#060A1C"/><circle cx="6" cy="1" r="1.6" fill="#060A1C"/></g>`; }).join("");
+    // Wählt jemand gerade die Schrittzahl, sind die möglichen Ziele markiert
+    const zw = P.zug && P.zug.frage && P.zug.frage.art === "schritte" ? P.zug : null;
+    const ziele = zw ? zw.frage.optionen.map(n => { const [x, y] = punkt((zw.von + n) % R.N, RING); return `<g class="zielmarke" transform="translate(${f1(x)} ${f1(y)})"><circle r="18"/><text y="-22">${n}</text></g>`; }).join("") : "";
     const orte = figurOrte(c);
     const reihenfolge = Object.keys(orte).sort((a, b) => (orte[a][2] - orte[b][2]) || ((a === c.PID) - (b === c.PID)));
     const final = P.runde >= P.runden;
@@ -95,7 +97,7 @@
       <text x="${CX}" y="${CY - 18}" class="hubklein">RUNDE</text>
       <text x="${CX}" y="${CY + 12}" class="hubgross">${P.runde}<tspan class="hubvon">/${P.runden}</tspan></text>
       <text x="${CX}" y="${CY + 32}" class="hubklein ${final ? "doppelt" : ""}">${final ? "DOPPELT" : schritt.toUpperCase()}</text>
-      ${kacheln}${schiff}
+      ${kacheln}${schiff}${ziele}
       ${reihenfolge.map(p => figur(c, p, orte[p])).join("")}
     </svg>`;
   }
@@ -120,12 +122,23 @@
       const danach = P.reihe.length ? `<p class="leise klein mitte">Danach: ${P.reihe.map(p => esc(c.name(p))).join(", ")}</p>` : "";
       if (!z) return kopf("Ziehen") + `<p class="mitte leise">Wer hinten liegt, zieht zuerst.</p>` + danach;
       const feld = z.feld ? R.FELD[z.feld] : null, meins = z.pid === c.PID;
-      let h = `<div class="zugkarte">${c.helm(z.pid)}<div><b>${meins ? "Du ziehst" : esc(c.name(z.pid)) + " zieht"} ${z.wurf} Module</b>
-        ${feld ? `<p class="feldzeile">${feldIcon(z.feld, 20)}<span><b>${esc(feld.name)}</b>${z.text ? ": " + esc(z.text) : ""}</span></p>` : `<p class="leise klein">unterwegs …</p>`}
+      const w = P.wurf[z.pid], titel = z.wurf == null ? `${meins ? "Du hast" : esc(c.name(z.pid)) + " hat"} ${Array.isArray(w) ? w.join(" und ") : w} gewürfelt` : `${meins ? "Du ziehst" : esc(c.name(z.pid)) + " zieht"} ${z.wurf} Module`;
+      let h = `<div class="zugkarte">${c.helm(z.pid)}<div><b>${titel}</b>
+        ${feld ? `<p class="feldzeile">${feldIcon(z.feld, 20)}<span><b>${esc(feld.name)}</b>${z.text ? ": " + esc(z.text) : ""}</span></p>` : `<p class="leise klein">${z.wurf == null ? "wählt: ein Würfel oder beide" : "unterwegs …"}</p>`}
         ${z.text2 ? `<p class="feldzeile">${kristall()}<span>${esc(z.text2)}</span></p>` : ""}</div></div>`;
       const fr = z.frage;
       if (fr && meins) {
         const k = [];
+        if (fr.art === "schritte") {
+          h += `<p class="mitte">Ziehst du mit <b>einem Würfel</b> oder mit <b>beiden</b>?</p>`;
+          const wurf = P.wurf[c.PID] || [], summe = fr.optionen[fr.optionen.length - 1];
+          for (const n of fr.optionen) {
+            const ziel = (z.von + n) % R.N, typ = R.FELDER[ziel], vorbei = Array.from({ length: n }, (_, i) => (z.von + i + 1) % R.N).some(m => R.schiffe(P).includes(m));
+            const art = n === summe && fr.optionen.length > 1 ? "beide Würfel" : wurf[0] === wurf[1] && n === wurf[0] ? "ein Würfel" : `Würfel ${n}`;
+            k.push(`<button class="knopf zweit wahlknopf schrittknopf" data-antwort="${n}">${feldIcon(typ, 26)}<span><b>${n} Module</b> · ${art}</span><small>${esc(R.FELD[typ].name)}${vorbei ? " · am Händler vorbei" : ""}</small></button>`);
+          }
+          return kopf("Wie weit ziehst du?", fr.bis) + h + `<div class="knoepfe">${k.join("")}</div>`;
+        }
         if (fr.art === "kauf") {
           for (let n = 1; n <= fr.optionen; n++) k.push(`<button class="knopf" data-antwort="${n}">${n === 1 ? "1 Kristall" : n + " Kristalle"} für ${n * R.PREIS} ⚡</button>`);
           k.push(`<button class="knopf zweit" data-antwort="nein">Nichts kaufen</button>`);
@@ -162,8 +175,8 @@
       const abgegeben = tn.filter(p => P.wetten[p]).length;
       let h = kopf("Wetten", P.bis) + `<div class="missionskarte"><div><small>Nächste Mission</small><b>${esc(M.name)}</b><p class="leise klein">${esc(M.kurz)}</p></div></div>`;
       if (!ich) return h + `<p class="mitte leise">Die anderen wetten.</p>`;
-      const maxE = Math.min(R.MAXWETTE, sp(c.PID).energie);
-      h += `<p class="mitte">Wer gewinnt? Richtig getippt gibt den <b>doppelten Einsatz</b>.${gratis ? ` <span class="gratis">Gratiswette: richtig getippt +${R.GRATIS} ⚡</span>` : ""}</p>
+      const maxE = Math.min(R.MAXWETTE, sp(c.PID).energie), q = R.wettQuote(P.gewaehlt);
+      h += `<p class="mitte">Wer gewinnt? Richtig getippt gibt <b>${q.text}</b>${q.leicht ? " (hier gewinnt ein ganzes Team)" : ""}.${gratis ? ` <span class="gratis">Gratiswette: richtig getippt +${q.gratis} ⚡</span>` : ""}</p>
         <div class="tipps" role="group" aria-label="Tipp">${tn.map(p => `<button class="tippknopf ${tipp === p ? "an" : ""}" data-tipp="${esc(p)}" aria-pressed="${tipp === p}">${c.helm(p)}<small>${p === c.PID ? "ich" : esc(c.name(p))}</small></button>`).join("")}</div>
         <div class="einsaetze" role="group" aria-label="Einsatz">${Array.from({ length: R.MAXWETTE + 1 }, (_, n) => `<button class="einsatz ${einsatz === n ? "an" : ""}" data-einsatz="${n}" ${n > maxE ? "disabled" : ""} aria-pressed="${einsatz === n}">${n}</button>`).join("")}<span class="leise klein">⚡ Einsatz</span></div>
         <div class="reihe"><button class="knopf" id="wetteab" ${tipp ? "" : "disabled"}>${mein && mein.auf ? "Wette ändern" : "Wette abgeben"}</button><button class="knopf zweit" id="ohnewette">Ohne Wette</button></div>
@@ -187,8 +200,10 @@
   }
   function legende() {
     return `<details class="legende"><summary>Was die Module machen</summary><ul>${Object.keys(R.FELD).map(k => `<li>${feldIcon(k)}<span><b>${R.FELD[k].name}</b> ${k === "L" ? "Hier starten alle." : R.FELD[k].text}</span></li>`).join("")}
-      <li>${kristall()}<span><b>Händlerschiff</b> Wer vorbeizieht oder darauf landet, kauft bis zu ${R.MAXKAUF} Sternkristalle für je ${R.PREIS} Energie. Danach legt es ab.</span></li></ul>
-      <p class="leise klein">In der letzten Runde zählen Felder und Mission doppelt. Am Ende gibt es drei Bonus-Kristalle. Es gewinnt, wer die meisten Kristalle hat, bei Gleichstand entscheidet die Energie.</p></details>`;
+      <li>${kristall()}<span><b>Händlerschiffe</b> Zwei Schiffe docken an. Wer an einem vorbeizieht oder darauf landet, kauft bis zu ${R.MAXKAUF} Sternkristalle für je ${R.PREIS} Energie. Sie bleiben eine Runde und fliegen dann weiter.</span></li></ul>
+      <p class="leise klein">Nach dem Würfeln ziehst du mit einem Würfel oder mit beiden. In der letzten Runde zählen Felder und Mission doppelt.
+        Am Ende gibt es drei Bonus-Kristalle: Missionsheld (meiste Energie aus Missionen), Bester Tipper (meiste Energie aus Wetten) und Comeback (die meisten Plätze aufgeholt).
+        Es gewinnt, wer die meisten Kristalle hat, bei Gleichstand entscheidet die Energie.</p></details>`;
   }
 
   function html(c) {

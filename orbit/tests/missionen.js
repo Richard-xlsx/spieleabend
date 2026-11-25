@@ -322,7 +322,7 @@ function liveLauf(id, bots, ein, einzelner) {
   const I = R.MISSIONEN.ionenspur, tn = ['a', 'b'], rng = R.zufall(4), c = { tn, rng };
   const setze = (d, p, x, y, w) => Object.assign(d.sp[p], { x, y, w, spur: [[x, y]], luecke: 1e9, offen: false });
   // Geradeaus gegen die Wand
-  let d = I.neu(tn, rng);
+  let d = I.neu(tn, rng); d.laeufe = 1;
   setze(d, 'a', 0.8, 0, 0); setze(d, 'b', -0.5, -0.5, Math.PI / 2);
   let i = 0; while (d.sp.a.drin && i++ < 100) I.schritt(d, 0.033, {}, 0, c);
   assert(!d.sp.a.drin && d.sp.b.drin, 'a fliegt gegen die Wand'); assert(d.sp.a.fiel > 500 && d.sp.a.fiel < 1500, 'Wand nach ' + d.sp.a.fiel);
@@ -331,12 +331,12 @@ function liveLauf(id, bots, ein, einzelner) {
   assert(d.t - d.endeBei < 50, 'Nachlauf');
   let w = I.wertung(d); assert(w.b > w.a);
   // Quer durch eine fremde Spur
-  d = I.neu(tn, rng);
+  d = I.neu(tn, rng); d.laeufe = 1;
   setze(d, 'b', -0.6, 0, 0); setze(d, 'a', 0, -0.75, Math.PI / 2);
   for (let k = 0; k < 200 && d.sp.a.drin; k++) I.schritt(d, 0.033, {}, 0, c);
   assert(!d.sp.a.drin, 'a stößt gegen b\'s Spur'); assert(Math.abs(d.sp.a.y) < 0.05, 'genau an der Spur: ' + d.sp.a.y);
   // … mit Lücke kommt man durch
-  d = I.neu(tn, rng);
+  d = I.neu(tn, rng); d.laeufe = 1;
   setze(d, 'b', -0.6, 0, 0); setze(d, 'a', 0, -0.75, Math.PI / 2);
   for (let k = 0; k < 200 && d.sp.a.drin && d.sp.a.y < 0.5; k++) {
     if (d.sp.b.luecke > 1e8 && d.sp.b.x > -0.04) d.sp.b.luecke = d.t;   // Lücke genau dort, wo a kreuzt
@@ -344,32 +344,43 @@ function liveLauf(id, bots, ein, einzelner) {
   }
   assert(d.sp.a.drin, 'durch die Lücke geschlüpft'); assert(d.sp.b.spur.includes(null), 'Lücke steht in der Spur');
   // Eigene Spur: im Kreis fliegen
-  d = I.neu(tn, rng);
+  d = I.neu(tn, rng); d.laeufe = 1;
   setze(d, 'a', 0, 0, 0); setze(d, 'b', -0.8, -0.8, Math.PI / 2);
   for (let k = 0; k < 200 && d.sp.a.drin; k++) I.schritt(d, 0.033, { a: { x: 1 } }, 0, c);
   assert(!d.sp.a.drin, 'gegen die eigene Spur'); assert(d.sp.a.fiel > 1500 && d.sp.a.fiel < 4500, 'nach ein, zwei Runden: ' + d.sp.a.fiel);
   // Frontal
-  d = I.neu(tn, rng);
+  d = I.neu(tn, rng); d.laeufe = 1;
   setze(d, 'a', -0.3, 0, 0); setze(d, 'b', 0.3, 0, Math.PI);
   for (let k = 0; k < 60 && d.sp.a.drin; k++) I.schritt(d, 0.033, {}, 0, c);
   assert(!d.sp.a.drin && !d.sp.b.drin && d.sp.a.fiel === d.sp.b.fiel, 'beide gleichzeitig raus');
   assert(d.fertig || d.endeBei === d.t);
   // Bild: nur das Ende der Spur; Sicht ohne Raster
-  d = I.neu(tn, rng);
+  d = I.neu(tn, rng); d.laeufe = 1;
   for (let k = 0; k < 90; k++) I.schritt(d, 0.033, { a: { x: 0.3 }, b: { x: -0.3 } }, 0, c);
   const b = I.bild(d);
   assert(b.s[0][1].length <= 30 && b.s[0][0] + b.s[0][1].length === d.sp.a.spur.length);
   const v = I.sicht(d); assert(!v.belegt && !v.zeit && v.sp.a.spur.length);
   assert(I.botEingabe(d, 'b', rng).x !== undefined); assert(!('botLenk' in I.sicht(d)));
+  // Drei Läufe: Pause, neu aufstellen, Zeiten addieren
+  d = I.neu(tn, rng);
+  setze(d, 'a', 0.8, 0, 0); setze(d, 'b', -0.5, -0.5, Math.PI / 2);
+  for (let k = 0; k < 400 && d.lauf === 1; k++) I.schritt(d, 0.033, {}, 0, c);
+  assert.strictEqual(d.lauf, 2, 'nach der Pause kommt Lauf 2'); assert(d.summe.b > d.summe.a && d.summe.a > 500);
+  assert(d.sp.a.drin && d.sp.b.drin && d.t < 100 && d.belegt.every(x => !x), 'alles neu aufgestellt');
+  const nachLauf1 = I.wertung(d);
+  while (!d.fertig) I.schritt(d, 0.033, {}, 0, c);
+  assert.strictEqual(d.lauf, 3); const w3 = I.wertung(d);
+  assert(w3.a > nachLauf1.a && w3.b > nachLauf1.b, 'Zeiten addiert');
+  assert(I.bild(d).l === 3);
   // Mit Bots: endet, Bots halten länger durch als einer, der nur geradeaus fliegt
   const dauer = [];
   for (const nb of [1, 3, 5]) {
     const S = liveLauf('ionenspur', nb);
-    const e = S.mission.ergebnis; dauer.push(S.mission.d.t);
+    const e = S.mission.ergebnis; dauer.push(S.mission.d.uhr); assert.strictEqual(S.mission.d.lauf, 3);
     assert.strictEqual(e[e.length - 1].pid, 'h', 'geradeaus fliegen reicht nicht');
     assert(JSON.stringify(R.sicht(S, 'h')).length < 40000);
   }
-  console.log('Ionenspur ok, Runden', dauer.map(x => Math.round(x / 1000) + ' s').join(', '));
+  console.log('Ionenspur ok, 3 Läufe dauern', dauer.map(x => Math.round(x / 1000) + ' s').join(', '));
 }
 
 // ---------- Gestaltwandler ----------
@@ -853,4 +864,21 @@ else {
   assert(!fehlt.length, 'Klänge fehlen: ' + fehlt);
   window.ORBIT_KLANG.spiel('tipp');   // ohne Audio im node: darf nichts werfen
   console.log(`Klänge ok (${benutzt.size} benutzt, ${da.length} im Synthesizer)`);
+}
+
+// ---------- Funkfrequenz: jede Frequenz nur einmal ----------
+{
+  const F = R.MISSIONEN.funkfrequenz, tn = ['a', 'b', 'c'], d = F.neu(tn), cx = { aktiv: tn };
+  F.start(d, 0);
+  assert.strictEqual(F.aktion(d, 'a', { a: 'frequenz', f: 15 }), true);
+  F.aktion(d, 'b', { a: 'frequenz', f: 15 }); F.aktion(d, 'c', { a: 'frequenz', f: 9 });
+  F.takt(d, 1, cx); assert.strictEqual(d.verlauf[0].sieger, 'c', 'die 15 stört sich, die 9 gewinnt');
+  assert.deepStrictEqual(d.benutzt, { a: [15], b: [15], c: [9] });
+  F.takt(d, 99999, cx); assert.strictEqual(d.dg, 2);
+  assert.match(String(F.aktion(d, 'a', { a: 'frequenz', f: 15 })), /schon benutzt/);
+  assert.strictEqual(F.aktion(d, 'a', { a: 'frequenz', f: 14 }), true);
+  // Bots nehmen nie eine benutzte Frequenz
+  const rng = R.zufall(3);
+  for (let i = 0; i < 300; i++) { const m = F.bot(d, 'b', () => 0); const z = F.bot(d, 'c', rng); if (m) assert(m.f !== 15); if (z) assert(z.f !== 9); }
+  console.log('Funkfrequenz: jede Frequenz nur einmal ok');
 }

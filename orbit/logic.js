@@ -29,7 +29,9 @@
     { name: "Türkis", f: "#2EC4B6" }, { name: "Orange", f: "#FF7A2F" }, { name: "Gelb", f: "#FFD23F" }, { name: "Pink", f: "#FF5C9A" },
     { name: "Grün", f: "#7BD957" }, { name: "Violett", f: "#A57BFF" }, { name: "Himmel", f: "#4DA3FF" }, { name: "Silber", f: "#C9D1E0" }
   ];
-  const ENERGIE = [10, 7, 5, 4, 3, 2, 1, 1];
+  // Energie je Platz, nach Zahl der Teilnehmer gestaffelt: Der Abstand zwischen Erstem und Letztem bleibt groß,
+  // auch wenn nur zwei oder drei mitspielen
+  const ENERGIE = { 2: [10, 3], 3: [10, 6, 2], 4: [10, 7, 4, 2], 5: [10, 7, 5, 3, 1], 6: [10, 7, 5, 3, 2, 1], 7: [10, 7, 5, 4, 3, 2, 1], 8: [10, 7, 5, 4, 3, 2, 1, 1] };
   const ZEIT = {
     anleitung: 30000, countdown: 3500, ergebnis: 25000,
     wuerfeln: 20000, wuerfelPause: 1500, schritt: 280, frage: 10000, zugEnde: 1600, botDenkt: 1300, wahl: 20000, wetten: 20000
@@ -51,7 +53,7 @@
     W: { name: "Wurmloch", text: "Für 5 Energie auf die andere Seite" }
   };
   const WURMLOCH = { 8: 24, 24: 8 };
-  const START = 10, PREIS = 20, MAXKAUF = 3, WURMPREIS = 5, MAXWETTE = 5, GRATIS = 8;
+  const START = 10, PREIS = 20, MAXKAUF = 3, WURMPREIS = 5, MAXWETTE = 5, GRATIS = 8, GRATIS_LEICHT = 5;
   const LAENGEN = { kurz: 5, normal: 8, lang: 12 };
 
   // Zufall mit Startwert (mulberry32): gleicher Startwert → gleiche Folge auf jedem Handy
@@ -201,7 +203,12 @@
     S.gespielt.push(b.id);
     if (S.partie && b.partie) wettenAuszahlen(S, ergebnis.filter(e => e.platz === 1).map(e => e.pid));
   }
-  const ENERGIE_FUER = n => n === 2 ? [10, 5] : ENERGIE;
+  const ENERGIE_FUER = n => ENERGIE[Math.max(2, Math.min(8, n))];
+  // Wetten: doppelter Einsatz zurück; bei Teams und „Einer gegen alle“ (fast ein Münzwurf) nur das Anderthalbfache
+  function wettQuote(id) {
+    const B = MISSIONEN[id], leicht = !!(B && (B.art === TEAMS || B.art === EINER));
+    return { leicht, gewinn: e => leicht ? e + Math.ceil(e / 2) : 2 * e, gratis: leicht ? GRATIS_LEICHT : GRATIS, text: leicht ? "das Anderthalbfache" : "den doppelten Einsatz" };
+  }
 
   // ---------- Partie auf dem Brett ----------
   const faktor = S => (S.partie && S.partie.runde >= S.partie.runden ? 2 : 1);
@@ -223,16 +230,18 @@
   function log(S, text) { const P = S.partie; P.log.push(text); if (P.log.length > 8) P.log.splice(0, P.log.length - 8); }
   const nm = (S, p) => (S.spieler[p] ? S.spieler[p].name : "?");
 
+  // Statistik für die Bonus-Kristalle: tief = schlechtester Platz nach einer Runde (für „Comeback“)
+  const neueStat = () => ({ mission: 0, wette: 0, tief: 0, kapseln: 0, weg: 0 });
   function partieStarten(S, runden, jetzt) {
     const tn = anwesend(S);
     if (tn.length < 2) return "Eine Partie braucht mindestens 2 Leute. Nimm Bots dazu.";
     farbenPruefen(S);
     for (const p in S.spieler) { const sp = S.spieler[p]; sp.energie = START; sp.kristalle = 0; delete sp.wartet; }
     for (const p of S.reihenfolge) if (!tn.includes(p) && S.spieler[p]) S.spieler[p].wartet = true;
-    S.partie = { runde: 0, runden, schritt: "", bis: 0, seit: jetzt, pos: {}, haendler: 0, wurf: {}, reihe: [], zug: null, wahl: null, gewaehlt: null,
+    S.partie = { runde: 0, runden, schritt: "", bis: 0, seit: jetzt, pos: {}, haendler: 0, haendler2: 16, wurf: {}, reihe: [], zug: null, wahl: null, gewaehlt: null,
       wetten: {}, gratis: {}, alien: null, zyklus: [], stat: {}, log: [], ehrung: null, endstand: null };
-    for (const p of tn) { S.partie.pos[p] = 0; S.partie.stat[p] = { mission: 0, kapseln: 0, weg: 0 }; }
-    S.partie.haendler = 4 + Math.floor(zahl(S) * 24);
+    for (const p of tn) { S.partie.pos[p] = 0; S.partie.stat[p] = neueStat(); }
+    S.partie.haendler = 4 + Math.floor(zahl(S) * 12); S.partie.haendler2 = S.partie.haendler + 16;   // zwei Schiffe, gegenüber
     S.phase = "brett"; S.mission = null; S.gespielt = []; S.letzte = null;
     neueRunde(S, jetzt);
     return null;
@@ -244,13 +253,14 @@
       const sp = S.spieler[p];
       if (!sp || !sp.wartet || !istDa(S, p) || mitspieler(S).length >= MAX) continue;
       delete sp.wartet; sp.energie = schnitt; sp.kristalle = 0;
-      P.pos[p] = 0; P.stat[p] = { mission: 0, kapseln: 0, weg: 0 };
+      P.pos[p] = 0; P.stat[p] = neueStat();
       log(S, `${sp.name} steigt mit ${schnitt} Energie ein.`);
     }
   }
   function neueRunde(S, jetzt) {
     const P = S.partie;
     P.runde += 1;
+    if (P.runde > 1) haendlerWeiter(S);   // die Händlerschiffe bleiben eine Runde und fliegen dann weiter
     nachzueglerRein(S);
     Object.assign(P, { schritt: "wuerfeln", bis: jetzt + ZEIT.wuerfeln, seit: jetzt, wurf: {}, reihe: [], zug: null, wahl: null, gewaehlt: null, wetten: {} });
     log(S, P.runde >= P.runden ? `Letzte Runde ${P.runde}: Felder und Mission zählen doppelt!` : `Runde ${P.runde} von ${P.runden}`);
@@ -260,9 +270,16 @@
   const summe = w => Array.isArray(w) ? w[0] + w[1] : (w | 0);
 
   // Ein Zug: laufen → Feld (vielleicht mit Frage) → Händler (Frage) → fertig
+  // Mit zwei Würfeln wählt man: einen der beiden Würfel oder die Summe
   function zugStarten(S, p, jetzt) {
-    const P = S.partie, w = summe(P.wurf[p]) || 2, von = P.pos[p];
-    P.zug = { pid: p, wurf: w, von, pfad: Array.from({ length: w }, (_, i) => (von + i + 1) % N), start: jetzt, stufe: "laufen", frage: null, text: "" };
+    const P = S.partie, w = P.wurf[p], von = P.pos[p];
+    P.zug = { pid: p, wurf: null, von, pfad: [], start: jetzt, stufe: "wahl", frage: null, text: "" };
+    if (Array.isArray(w)) frage(P.zug, "schritte", jetzt, schrittOptionen(w));
+    else losLaufen(P.zug, summe(w) || 2, jetzt);
+  }
+  const schrittOptionen = w => [...new Set([w[0], w[1], w[0] + w[1]])].sort((a, b) => a - b);
+  function losLaufen(z, n, jetzt) {
+    z.wurf = n; z.pfad = Array.from({ length: n }, (_, i) => (z.von + i + 1) % N); z.start = jetzt; z.stufe = "laufen"; z.frage = null;
   }
   function frage(z, art, jetzt, optionen) { z.frage = { art, seit: jetzt, bis: jetzt + ZEIT.frage, optionen: optionen || null }; }
   function feldWirkung(S, z, jetzt) {
@@ -294,7 +311,7 @@
   }
   function haendlerPruefen(S, z, jetzt) {
     const P = S.partie, sp = S.spieler[z.pid];
-    if (!z.handel && z.pfad.includes(P.haendler)) {
+    if (!z.handel && schiffe(P).some(h => z.pfad.includes(h))) {
       z.handel = true;
       const k = Math.min(MAXKAUF, Math.floor(sp.energie / PREIS));
       if (k > 0) { z.stufe = "handel"; frage(z, "kauf", jetzt, k); return; }
@@ -302,19 +319,33 @@
     }
     z.stufe = "fertig"; z.ende = jetzt + ZEIT.zugEnde;
   }
+  // Zwei Händlerschiffe; ein Zug kauft höchstens einmal, auch wenn er an beiden vorbeikommt
+  const schiffe = P => P.haendler2 == null ? [P.haendler] : [P.haendler, P.haendler2];
+  const abstand = (a, b) => Math.min(Math.abs(a - b), N - Math.abs(a - b));
+  // Jedes Schiff fliegt mindestens 8 Module weit, die beiden bleiben mindestens 8 Module auseinander
   function haendlerWeiter(S) {
-    const P = S.partie, alt = P.haendler;
-    let neu = alt;
-    for (let i = 0; i < 50; i++) {
-      neu = 1 + Math.floor(zahl(S) * (N - 1));
-      const ab = Math.min(Math.abs(neu - alt), N - Math.abs(neu - alt));
-      if (ab >= 8) break;
+    const P = S.partie;
+    for (const k of ["haendler", "haendler2"]) {
+      if (P[k] == null) continue;
+      const alt = P[k], anderes = k === "haendler" ? P.haendler2 : P.haendler;
+      let neu = alt;
+      for (let i = 0; i < 80; i++) {
+        neu = 1 + Math.floor(zahl(S) * (N - 1));
+        if (abstand(neu, alt) >= 8 && (anderes == null || abstand(neu, anderes) >= 8)) break;
+      }
+      P[k] = neu;
     }
-    P.haendler = neu;
   }
   // Antwort auf eine Frage im Zug (von Spieler, Bot oder bei Zeitablauf w = undefined → Vorgabe)
   function antworten(S, w, jetzt) {
     const P = S.partie, z = P.zug, fr = z.frage, p = z.pid, sp = S.spieler[p], f = faktor(S);
+    if (fr.art === "schritte") {
+      if (w !== undefined && !fr.optionen.includes(w)) return;                        // ungültig: weiter warten
+      const n = w === undefined ? fr.optionen[fr.optionen.length - 1] : w;               // ohne Antwort: beide Würfel
+      log(S, `${sp.name} zieht ${n} Module${fr.optionen.length > 1 && n !== fr.optionen[fr.optionen.length - 1] ? " (nur ein Würfel)" : ""}.`);
+      losLaufen(z, n, jetzt);
+      return;
+    }
     if (fr.art === "pirat") {
       const ziel = fr.optionen.includes(w) ? w : fr.optionen.slice().sort((a, b) => S.spieler[b].energie - S.spieler[a].energie)[0];
       const v = Math.min(S.spieler[ziel].energie, 5 * f);
@@ -329,8 +360,8 @@
     } else if (fr.art === "kauf") {
       const k = Math.min(fr.optionen, Math.floor(sp.energie / PREIS), w === undefined || w === "ja" ? MAXKAUF : Math.max(0, w | 0));
       if (k > 0) {
-        sp.energie -= k * PREIS; sp.kristalle += k; haendlerWeiter(S);
-        z.text2 = `Kauft ${k === 1 ? "einen Sternkristall" : k + " Sternkristalle"} für ${k * PREIS} Energie. Das Händlerschiff legt ab.`;
+        sp.energie -= k * PREIS; sp.kristalle += k;
+        z.text2 = `Kauft ${k === 1 ? "einen Sternkristall" : k + " Sternkristalle"} für ${k * PREIS} Energie.`;
       } else z.text2 = "Kauft keinen Kristall";
       log(S, `${sp.name}: ${z.text2}`);
       z.frage = null; z.stufe = "fertig"; z.ende = jetzt + ZEIT.zugEnde;
@@ -343,12 +374,25 @@
   function botAntwort(S, z) {
     const fr = z.frage;
     if (fr.art === "kauf") return fr.optionen;
+    if (fr.art === "schritte") return botSchritte(S, z);
     if (fr.art === "pirat") return fr.optionen.slice().sort((a, b) => S.spieler[b].energie - S.spieler[a].energie)[0];
     if (fr.art === "teleporter") return zahl(S) < 0.5 ? fr.optionen[Math.floor(zahl(S) * fr.optionen.length)] : "nein";
     if (fr.art === "wurmloch") return zahl(S) < 0.5 ? "ja" : "nein";
     return undefined;
   }
 
+  // Bot wählt die Schrittzahl mit dem besten Ziel: Händler erreichen, gute Felder, schlechte meiden
+  const FELDWERT = { V: 3, M: -3, G: 2, P: 4, B: 2, A: 2, T: 0, W: 1, L: 0 };
+  function botSchritte(S, z) {
+    const P = S.partie, sp = S.spieler[z.pid];
+    const wert = n => {
+      let v = FELDWERT[FELDER[(z.von + n) % N]] || 0;
+      const vorbei = Array.from({ length: n }, (_, i) => (z.von + i + 1) % N).some(m => schiffe(P).includes(m));
+      if (vorbei && sp.energie >= PREIS) v += 10 + 5 * Math.min(MAXKAUF, Math.floor(sp.energie / PREIS));
+      return v + n * 0.3 + zahl(S) * 1.5;   // weiter ist meist besser; etwas Zufall
+    };
+    return z.frage.optionen.slice().sort((a, b) => wert(b) - wert(a))[0];
+  }
   function wahlStarten(S, jetzt) {
     const P = S.partie, da = mitspieler(S).filter(p => istDa(S, p));
     let pool = passend(da.length).map(b => b.id);
@@ -398,15 +442,17 @@
     const P = S.partie, b = S.mission, liste = [];
     for (const p in P.wetten) {
       const w = P.wetten[p]; if (!w.auf || !S.spieler[p]) continue;
-      const richtig = sieger.includes(w.auf), gratis = !!w.gratis;
-      const gewinn = richtig ? 2 * (w.einsatz | 0) + (gratis ? GRATIS : 0) : 0;
+      const richtig = sieger.includes(w.auf), gratis = !!w.gratis, q = wettQuote(b.id);
+      const gewinn = richtig ? q.gewinn(w.einsatz | 0) + (gratis ? q.gratis : 0) : 0;
       S.spieler[p].energie += gewinn;
+      if (P.stat[p]) P.stat[p].wette += gewinn - (w.einsatz | 0);
       liste.push({ pid: p, auf: w.auf, einsatz: w.einsatz | 0, gratis, richtig, gewinn });
     }
     b.wetten = liste; P.wetten = {};
   }
   function rundeEnde(S, jetzt) {
     const P = S.partie;
+    for (const e of plaetze(S)) if (P.stat[e.pid]) P.stat[e.pid].tief = Math.max(P.stat[e.pid].tief || 0, e.platz);
     S.phase = "brett"; P.wahl = null; P.gewaehlt = null; P.zug = null;
     if (P.runde >= P.runden) partieEnde(S); else neueRunde(S, jetzt);
   }
@@ -419,10 +465,12 @@
       for (const p of pids) S.spieler[p].kristalle += 1;
       return { titel, text, pids, wert: max };
     };
+    // Comeback: vom schlechtesten Platz nach einer Runde bis zum Platz vor den Boni am weitesten nach oben
+    const vorher = Object.fromEntries(plaetze(S).map(e => [e.pid, e.platz]));
     P.ehrung = [
       bonus("Missionsheld", "meiste Energie aus Missionen", p => P.stat[p].mission),
-      bonus("Glückskind", "meiste Versorgungskapseln", p => P.stat[p].kapseln),
-      bonus("Weltenbummler", "meiste gezogene Module", p => P.stat[p].weg)
+      bonus("Bester Tipper", "meiste Energie aus Wetten", p => P.stat[p].wette),
+      bonus("Comeback", "Plätze aufgeholt", p => (P.stat[p].tief || 0) - vorher[p])
     ];
     P.endstand = plaetze(S);
     P.schritt = "ende"; P.zug = null; P.wahl = null;
@@ -664,7 +712,7 @@
   }
 
   W.RM = {
-    MAX, FARBEN, ENERGIE, ZEIT, MISSIONEN, TEAMNAMEN, teamsLosen, FELDER, FELD, WURMLOCH, N, START, PREIS, MAXKAUF, WURMPREIS, MAXWETTE, GRATIS, LAENGEN,
-    zufall, summe, neu, aktion, takt, sicht, liveSchritt, liveBild, liveBildFuer, stand, passend, anwesend, istBot, istDa, missionNeustart, kopie, mitspieler, rangliste, plaetze, faktor
+    MAX, FARBEN, ENERGIE, ENERGIE_FUER, wettQuote, schrittOptionen, ZEIT, MISSIONEN, TEAMNAMEN, teamsLosen, FELDER, FELD, WURMLOCH, N, START, PREIS, MAXKAUF, WURMPREIS, MAXWETTE, GRATIS, GRATIS_LEICHT, LAENGEN,
+    zufall, summe, schiffe, neu, aktion, takt, sicht, liveSchritt, liveBild, liveBildFuer, stand, passend, anwesend, istBot, istDa, missionNeustart, kopie, mitspieler, rangliste, plaetze, faktor
   };
 })();

@@ -38,7 +38,8 @@ Aufbau
                                   klang.js (Synthesizer-Klänge, Knopf oben rechts schaltet den Ton aus), sensoren.js (Neigen,
                                   Schütteln, Daumen-Joystick, Lenkknöpfe), live.js (Eingaben sammeln, Bilder verteilen und glätten),
                                   missionen/*.js (je Mission ein Teil für den Spielleiter und einer fürs Handy; solo.js: gemeinsamer Teil für
-                                  „Jeder für sich“), tests/logik.js und tests/missionen.js (node). Fertig: alle 9 Schritte (14 Missionen, Klänge, Anleitungsbilder; Abstimmung nach dem ersten Testabend steht noch aus), Missionen Funkfrequenz,
+                                  „Jeder für sich“), tests/logik.js und tests/missionen.js (node). Fertig: alle 9 Schritte (14 Missionen, Klänge, Anleitungsbilder; Abstimmung nach dem ersten Testabend steht noch aus; überarbeitet nach Bot-Simulation: zwei Händlerschiffe, Würfelwahl,
+                                  Boni Missionsheld/Bester Tipper/Comeback, Energie je Platz nach Spielerzahl, Funkfrequenz mit Einmal-Frequenzen, Ionenspur mit 3 Läufen), Missionen Funkfrequenz,
                                   Schrotthändler, Reaktor-Countdown, Zerfallender Asteroid, Rettungskapseln, Terraforming, Ionenspur, Gestaltwandler,
                                   Alien im Frachtraum, Planeten-Boule, Greifarm, Bordküche, Treibstoffkette, Mondbasis (planck.js vom CDN; für node-Tests npm install planck@1.4.2).
                                   Testlinks: …/orbit/?partie=kurz (sofort Partie mit 3 Bots), …/orbit/?bots=3, …/orbit/?mission=funkfrequenz (auch schrotthaendler, reaktor, asteroid, kapseln, terraforming, ionenspur, gestaltwandler, frachtraum, boule, greifarm, bordkueche, treibstoff, mondbasis; mit &alien=ich ist man selbst das Alien)

@@ -75,7 +75,7 @@ Object.assign(S2.mission.d, { fertig: true, punkte: { a: 5, b: 5, c: 1 }, dabei:
 R.takt(S2, 0);
 console.log(S2.mission.ergebnis.map(x => [x.pid, x.platz, x.energie]).join(' | '));
 assert.deepStrictEqual(S2.mission.ergebnis.map(x => x.platz), [1, 1, 3]);
-assert.deepStrictEqual(S2.mission.ergebnis.map(x => x.energie), [10, 10, 5]);
+assert.deepStrictEqual(S2.mission.ergebnis.map(x => x.energie), [10, 10, 2]);   // bei 3 Leuten: 10, 6, 2
 // Übernahme-Neustart aus Sicht-Kopie
 R.aktion(S2, 'a', { t: 'weiter' }, 0); R.aktion(S2, 'a', { t: 'mission', id: 'funkfrequenz' }, 0);
 const k = R.sicht(S2, 'b'); k.seed = 5; R.missionNeustart(k, 50);
@@ -102,6 +102,7 @@ assert.strictEqual(k.mission.schritt, 'anleitung'); assert.strictEqual(k.mission
   // Sicht: kein Zufallszustand
   assert(!('rs' in R.sicht(S, 'c')) && !('seed' in R.sicht(S, 'c')));
   // Händler: Clara landet auf dem Händler mit genug Energie und kauft
+  S.partie.haendler2 = null;   // für die Einzeltests nur ein Schiff
   S.partie.reihe = ['c']; S.partie.wurf.c = 3; S.partie.pos.c = 0; S.partie.haendler = 3; S.spieler.c.energie = 45;
   t += 2000; R.takt(S, t); assert.strictEqual(S.partie.zug.pid, 'c');
   t += 3 * 280 + 300; R.takt(S, t);
@@ -109,7 +110,24 @@ assert.strictEqual(k.mission.schritt, 'anleitung'); assert.strictEqual(k.mission
   assert.strictEqual(S.partie.zug.frage.art, 'kauf'); assert.strictEqual(S.spieler.c.energie, 48); assert.strictEqual(S.partie.zug.frage.optionen, 2);
   assert(!R.aktion(S, 'h', { t: 'antwort', w: 'ja' }, t).ok, 'nur wer dran ist');
   assert(R.aktion(S, 'c', { t: 'antwort', w: 1 }, t).ok);
-  assert.strictEqual(S.spieler.c.kristalle, 1); assert.strictEqual(S.spieler.c.energie, 28); assert.notStrictEqual(S.partie.haendler, 3);
+  assert.strictEqual(S.spieler.c.kristalle, 1); assert.strictEqual(S.spieler.c.energie, 28); assert.strictEqual(S.partie.haendler, 3, 'Händler bleibt die Runde über');
+  // Würfelwahl: mit zwei Würfeln ein Würfel oder beide
+  t += 2000; R.takt(S, t); assert.strictEqual(S.partie.zug, null);
+  S.partie.reihe = ['c']; S.partie.wurf.c = [2, 5]; S.partie.pos.c = 0;
+  t += 10; R.takt(S, t);
+  assert.strictEqual(S.partie.zug.frage.art, 'schritte'); assert.deepStrictEqual(S.partie.zug.frage.optionen, [2, 5, 7]);
+  assert.strictEqual(S.partie.zug.stufe, 'wahl'); assert.strictEqual(S.partie.zug.wurf, null);
+  R.aktion(S, 'c', { t: 'antwort', w: 4 }, t); assert.strictEqual(S.partie.zug.frage.art, 'schritte', 'falsche Zahl zählt nicht');
+  R.aktion(S, 'c', { t: 'antwort', w: 2 }, t);
+  t += 2 * 280 + 300; R.takt(S, t);
+  assert.strictEqual(S.partie.pos.c, 2, 'nur ein Würfel');
+  assert.deepStrictEqual(R.schrittOptionen([4, 4]), [4, 8], 'Pasch: ein Würfel oder beide');
+  // ohne Antwort: beide Würfel
+  t += 2000; for (let i = 0; i < 20 && S.partie.zug; i++) { t += 2000; R.takt(S, t); }
+  S.partie.reihe = ['c']; S.partie.wurf.c = [1, 3]; S.partie.pos.c = 0; S.partie.haendler = 30;
+  t += 10; R.takt(S, t); t += 10001; R.takt(S, t);
+  assert.strictEqual(S.partie.zug.wurf, 4); t += 4 * 280 + 300; R.takt(S, t); assert.strictEqual(S.partie.pos.c, 4);
+  S.partie.haendler = 3; S.partie.pos.c = 3; S.spieler.c.energie = 28;   // zurück auf den Stand vor der Würfelwahl
   // Pirat: Host landet auf 10, Zeit läuft ab → klaut dem Reichsten
   t += 2000; R.takt(S, t); assert.strictEqual(S.partie.zug, null);
   S.partie.reihe = ['h']; S.partie.wurf.h = 4; S.partie.pos.h = 6; S.partie.haendler = 30; S.spieler.bot1.energie = 30;
@@ -180,7 +198,9 @@ if (letzter === 'h' || letzter === 'c') assert(R.aktion(S, letzter, { t: 'waehle
   assert.strictEqual(S.phase, 'ende', 'Partie endet');
   assert.strictEqual(S.partie.runde, 5);
   assert.strictEqual(S.partie.ehrung.length, 3);
-  assert(S.partie.ehrung.every(e => e.pids.length >= 1));
+  assert.deepStrictEqual(S.partie.ehrung.map(e => e.titel), ['Missionsheld', 'Bester Tipper', 'Comeback']);
+  assert(S.partie.ehrung[0].pids.length >= 1);
+  for (const e of S.partie.ehrung) assert(e.pids.length === 0 || e.wert > 0, 'Bonus nur für mehr als 0');
   const es = S.partie.endstand;
   assert.strictEqual(es[0].platz, 1);
   for (let i = 1; i < es.length; i++) { const a = S.spieler[es[i - 1].pid], b = S.spieler[es[i].pid]; assert(a.kristalle > b.kristalle || (a.kristalle === b.kristalle && a.energie >= b.energie)); }
@@ -194,4 +214,30 @@ if (letzter === 'h' || letzter === 'c') assert(R.aktion(S, letzter, { t: 'waehle
   assert.strictEqual(k.partie.schritt, 'wahl', 'nach Übernahme geht es weiter');
 }
 require(__dirname + '/missionen.js');
+// ---------- Energie je Platz, Wettquoten, Boni ----------
+{
+  assert.deepStrictEqual(R.ENERGIE_FUER(2), [10, 3]); assert.deepStrictEqual(R.ENERGIE_FUER(4), [10, 7, 4, 2]); assert.strictEqual(R.ENERGIE_FUER(8).length, 8);
+  for (let n = 2; n <= 8; n++) { const e = R.ENERGIE_FUER(n); assert.strictEqual(e.length, n); assert(e.every((x, i) => !i || x <= e[i - 1])); }
+  const q = R.wettQuote('funkfrequenz'), qt = R.wettQuote('treibstoff'), qe = R.wettQuote('gestaltwandler');
+  assert(!q.leicht && q.gewinn(5) === 10 && q.gratis === 8);
+  assert(qt.leicht && qe.leicht && qt.gewinn(5) === 8 && qt.gewinn(1) === 2 && qt.gewinn(0) === 0 && qt.gratis === 5);
+  // Comeback und Bester Tipper
+  let t = 0;
+  const S = R.neu('B', 'h', 'H'); for (let i = 0; i < 3; i++) R.aktion(S, 'h', { t: 'bot', dazu: true }, t);
+  S.online = ['h']; R.aktion(S, 'h', { t: 'partie', laenge: 'kurz' }, t);
+  const P = S.partie, ps = Object.keys(S.spieler);
+  P.stat.h.tief = 4; P.stat.h.wette = 6; P.stat[ps[1]].wette = 3;
+  S.spieler.h.kristalle = 5;   // von Platz 4 auf Platz 1
+  R.aktion(S, 'h', { t: 'beenden' }, t);
+  const eh = Object.fromEntries(P.ehrung.map(e => [e.titel, e]));
+  assert.deepStrictEqual(eh['Bester Tipper'].pids, ['h']); assert.strictEqual(eh['Bester Tipper'].wert, 6);
+  assert.deepStrictEqual(eh.Comeback.pids, ['h']); assert.strictEqual(eh.Comeback.wert, 3);
+  // Händler fliegt zu Beginn der nächsten Runde weiter
+  const S3 = R.neu('C', 'h', 'H'); R.aktion(S3, 'h', { t: 'bot', dazu: true }, 0); S3.online = ['h']; R.aktion(S3, 'h', { t: 'partie', laenge: 'kurz' }, 0);
+  const h0 = S3.partie.haendler; let tt = 0;
+  while (S3.partie.runde < 2 && tt < 3e6) { tt += 200; R.takt(S3, tt); R.liveSchritt(S3, tt, {}); if (S3.phase === 'brett' && S3.partie.schritt === 'wuerfeln') R.aktion(S3, 'h', { t: 'wurf' }, tt); if (S3.phase === 'mission' && S3.mission.schritt === 'anleitung') R.aktion(S3, 'h', { t: 'bereit' }, tt); }
+  assert.strictEqual(S3.partie.runde, 2); const ab = Math.abs(S3.partie.haendler - h0);
+  assert(Math.min(ab, R.N - ab) >= 8, 'Händler weit weg geflogen');
+  console.log('Energie, Wettquoten, Boni, Händler ok');
+}
 console.log('alle Tests ok');

@@ -1,5 +1,6 @@
 // Mission „Funkfrequenz“: Jeder wählt geheim eine Frequenz von 1 bis 15. Wer allein auf der höchsten Frequenz sendet,
-// wird gehört und bekommt so viele Punkte, wie die Frequenz hoch ist. Drei Durchgänge.
+// wird gehört und bekommt so viele Punkte, wie die Frequenz hoch ist. Drei Durchgänge; jede Frequenz darf man nur
+// einmal benutzen (wer welche schon verbraucht hat, sehen alle).
 (function () {
   const W = typeof window !== "undefined" ? window : globalThis;
   const M = W.ORBIT_MISSIONEN = W.ORBIT_MISSIONEN || {};
@@ -12,6 +13,7 @@
     const allein = Object.keys(zahl).filter(f => zahl[f] === 1).map(Number);
     const f = allein.length ? Math.max(...allein) : 0;
     const sieger = f ? Object.keys(d.wahl).find(p => d.wahl[p] === f) : null;
+    for (const p in d.wahl) d.benutzt[p].push(d.wahl[p]);
     if (sieger) d.punkte[sieger] += f;
     d.verlauf.push({ dg: d.dg, wahl: Object.assign({}, d.wahl), sieger, f });
   }
@@ -23,15 +25,17 @@
       "Jeder wählt geheim eine Frequenz von <b>1 bis 15</b>.",
       "Wer <b>allein</b> auf der höchsten Frequenz sendet, wird gehört und bekommt so viele Punkte, wie die Frequenz hoch ist.",
       "Senden mehrere auf derselben Frequenz, stören sie sich gegenseitig und gehen leer aus.",
-      `${DG} Durchgänge mit je ${WAHL / 1000} Sekunden. Die meisten Punkte gewinnen.`
+      `${DG} Durchgänge mit je ${WAHL / 1000} Sekunden. <b>Jede Frequenz darfst du nur einmal benutzen.</b> Welche die anderen schon verbraucht haben, siehst du.`,
+      "Die meisten Punkte gewinnen."
     ],
-    neu(tn) { return { tn, dg: 0, schritt: "warten", bis: 0, wahl: {}, dabei: {}, verlauf: [], punkte: Object.fromEntries(tn.map(p => [p, 0])), fertig: false }; },
+    neu(tn) { return { tn, dg: 0, schritt: "warten", bis: 0, wahl: {}, dabei: {}, verlauf: [], punkte: Object.fromEntries(tn.map(p => [p, 0])), benutzt: Object.fromEntries(tn.map(p => [p, []])), fertig: false }; },
     start(d, jetzt) { naechster(d, jetzt); },
     aktion(d, pid, m) {
       if (m.a !== "frequenz") return "?";
       if (d.schritt !== "wahl") return "Gerade wird nicht gesendet.";
       const f = m.f | 0;
       if (f < 1 || f > MAXF) return "?";
+      if (d.benutzt[pid] && d.benutzt[pid].includes(f)) return `Frequenz ${f} hast du schon benutzt.`;
       d.wahl[pid] = f; d.dabei[pid] = true;
       return true;
     },
@@ -54,7 +58,11 @@
     // Bots senden nach ein paar Sekunden, eher hoch, aber nicht immer 15
     bot(d, pid, rng) {
       if (d.schritt !== "wahl" || d.wahl[pid] || rng() > 0.08) return null;
-      return { t: "b", a: "frequenz", f: Math.max(1, Math.min(MAXF, Math.ceil(MAXF * Math.pow(rng(), 0.55)))) };
+      // Bots senden eher hoch; benutzte Frequenzen fallen weg, dann nehmen sie die nächstgelegene freie
+      const frei = Array.from({ length: MAXF }, (_, i) => i + 1).filter(f => !d.benutzt[pid].includes(f));
+      if (!frei.length) return null;
+      const f = Math.max(1, Math.min(MAXF, Math.ceil(MAXF * Math.pow(rng(), 0.55))));
+      return { t: "b", a: "frequenz", f: frei.slice().sort((a, b) => Math.abs(a - f) - Math.abs(b - f))[0] };
     }
   };
 
@@ -63,21 +71,27 @@
   const U = W.ORBIT_UI = W.ORBIT_UI || {};
   let gewaehlt = null, gewaehltDg = 0;   // sofort anzeigen, bevor der Spielleiter antwortet
 
+  // Wer welche Frequenzen schon verbraucht hat
+  function verbraucht(d, c) {
+    if (!d.benutzt || !d.tn.some(p => d.benutzt[p].length)) return "";
+    return `<div class="karte-box verbraucht"><h3>Schon verbraucht</h3><ul>${d.tn.map(p => `<li>${c.helm(p)}<span class="nm">${p === c.PID ? "du" : c.esc(c.name(p))}</span><span class="fz">${d.benutzt[p].slice().sort((a, b) => b - a).map(f => `<b>${f}</b>`).join("") || "–"}</span></li>`).join("")}</ul></div>`;
+  }
   U.funkfrequenz = {
     html(d, c) {
       const punkte = `<div class="punkteleiste">${d.tn.map(p => `<span class="${p === c.PID ? "ich" : ""}">${c.helm(p)}<b>${d.punkte[p]}</b></span>`).join("")}</div>`;
       if (d.schritt === "wahl") {
         if (gewaehltDg !== d.dg) { gewaehlt = null; gewaehltDg = d.dg; }
         const mein = d.wahl[c.PID] || gewaehlt;
+        const weg = (d.benutzt && d.benutzt[c.PID]) || [];
         const knoepfe = Array.from({ length: MAXF }, (_, i) => i + 1).map(f =>
-          `<button class="frequenz ${mein === f ? "an" : ""}" data-frequenz="${f}" ${c.dabei ? "" : "disabled"} aria-pressed="${mein === f}"><span>${f}</span></button>`).join("");
+          `<button class="frequenz ${mein === f ? "an" : ""} ${weg.includes(f) ? "benutzt" : ""}" data-frequenz="${f}" ${c.dabei && !weg.includes(f) ? "" : "disabled"} aria-pressed="${mein === f}" ${weg.includes(f) ? `aria-label="${f}, schon benutzt"` : ""}><span>${f}</span></button>`).join("");
         const gesendet = d.gesendet || [];
         return `<div class="missionskopf"><span class="etikett">Durchgang ${d.dg} von ${DG}</span>${c.uhr(d.bis)}</div>
           <p class="mitte">${c.dabei ? (mein ? `Du sendest auf <b>${mein}</b>. Du kannst noch wechseln.` : "Wähle deine Frequenz.") : "Du hörst zu."}</p>
           <div class="frequenzen" role="group" aria-label="Frequenz wählen">${knoepfe}</div>
           <p class="leise mitte klein">Gesendet: ${gesendet.length} von ${d.tn.length}</p>
           <div class="helmreihe">${d.tn.map(p => `<span class="${gesendet.includes(p) ? "" : "blass"}">${c.helm(p)}</span>`).join("")}</div>
-          ${punkte}`;
+          ${punkte}${verbraucht(d, c)}`;
       }
       if (d.schritt === "aufloesung" || d.fertig) {
         const v = d.verlauf[d.verlauf.length - 1];
@@ -93,7 +107,7 @@
           <p class="mitte gross">${v.sieger ? `${c.helm(v.sieger)} <b>${v.sieger === c.PID ? "Du wirst" : c.esc(c.name(v.sieger)) + " wird"} gehört!</b>` : "<b>Nur Rauschen.</b> Niemand sendet allein."}</p>
           <ol class="aufloesung">${reihen}</ol>
           ${still.length ? `<p class="leise klein mitte">Nicht gesendet: ${still.map(p => c.esc(c.name(p))).join(", ")}</p>` : ""}
-          ${punkte}`;
+          ${punkte}${d.fertig ? "" : verbraucht(d, c)}`;
       }
       return "";
     },

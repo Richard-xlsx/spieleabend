@@ -10,7 +10,7 @@
   const G = 128, ZG = 2 / G, BREIT = 0.013, EIGEN = 300;  // Belegungsraster für Zusammenstöße; eigene Spur zählt nach 300 ms
   const PUNKT = 0.025, ENDE = 30;                         // Abstand der Spurpunkte, so viele Punkte gehen pro Bild mit
   const LUECKE = 280, LUECKEAB = 2200, LUECKEZU = 2600;   // Lücke: Dauer, frühestens/zusätzlich zufällig danach
-  const NACHLAUF = 1000, DAUER = 120000;
+  const NACHLAUF = 1000, DAUER = 120000, LAEUFE = 3, PAUSE = 3500;   // drei Läufe, die Zeiten werden addiert
   const TAU = Math.PI * 2;
   const laenge = (x, y) => Math.hypot(x, y);
   const r3 = v => Math.round(v * 1000) / 1000;
@@ -35,6 +35,18 @@
     return b > 0 && (b !== i + 1 || d.zeit[k] < d.t - EIGEN);
   }
 
+  // Alle starten nahe der Mitte und fliegen nach außen auseinander
+  function aufstellen(tn, rng) {
+    const sp = {};
+    tn.forEach((p, i) => {
+      const w = i / tn.length * TAU + rng() * 0.3, r = 0.2;
+      const x = Math.cos(w) * r, y = Math.sin(w) * r;
+      sp[p] = { x, y, w: w + (rng() - 0.5) * 0.5, drin: true, fiel: null, spur: [[r3(x), r3(y)]], weg: 0, luecke: LUECKEAB + rng() * LUECKEZU, offen: false };
+    });
+    return sp;
+  }
+  const flugzeit = (d, p) => { const s = d.sp[p]; return s.fiel === null ? d.t : s.fiel; };
+
   M.ionenspur = {
     id: "ionenspur", name: "Ionenspur", art: "Arena", ab: 2, eingabe: "Tippen links/rechts", besser: "hoch", einheit: "Sekunden",
     live: true, lenkung: "knopf",
@@ -44,23 +56,26 @@
       "Halte <b>links</b> oder <b>rechts</b> gedrückt, um zu lenken. Am Rechner gehen auch die Pfeiltasten.",
       "Wer gegen eine Spur oder die Wand fliegt, scheidet aus. Auch die eigene Spur ist gefährlich.",
       "Ab und zu hat die Spur eine <b>Lücke</b>, durch die man schlüpfen kann. Es wird mit der Zeit schneller.",
-      "Es zählt, wie lange du durchhältst."
+      `Es gibt <b>${LAEUFE} Läufe</b>. Es zählt, wie lange du insgesamt durchhältst.`
     ],
     neu(tn, rng) {
-      const sp = {};
-      tn.forEach((p, i) => {
-        // Alle starten nahe der Mitte und fliegen nach außen auseinander
-        const w = i / tn.length * TAU + rng() * 0.3, r = 0.2;
-        const x = Math.cos(w) * r, y = Math.sin(w) * r;
-        sp[p] = { x, y, w: w + (rng() - 0.5) * 0.5, drin: true, fiel: null, spur: [[r3(x), r3(y)]], weg: 0, luecke: LUECKEAB + rng() * LUECKEZU, offen: false };
-      });
-      return { tn, t: 0, sp, belegt: new Array(G * G).fill(0), zeit: new Array(G * G).fill(0), endeBei: null, fertig: false };
+      return { tn, t: 0, sp: aufstellen(tn, rng), belegt: new Array(G * G).fill(0), zeit: new Array(G * G).fill(0), endeBei: null, fertig: false,
+        lauf: 1, laeufe: LAEUFE, pause: 0, summe: Object.fromEntries(tn.map(p => [p, 0])), letzter: null, uhr: 0 };
     },
     start() {},
     aktion() { return "?"; },
     takt() { return false; },
     schritt(d, dt, ein, jetzt, ctx) {
       if (d.fertig || dt <= 0) return false;
+      d.uhr += dt * 1000;
+      // Pause zwischen zwei Läufen, danach alles neu aufstellen
+      if (d.pause > 0) {
+        d.pause -= dt * 1000;
+        if (d.pause > 0) return false;
+        d.pause = 0; d.lauf += 1; d.t = 0; d.endeBei = null;
+        d.sp = aufstellen(d.tn, ctx.rng); d.belegt.fill(0); d.zeit.fill(0);
+        return true;
+      }
       d.t += dt * 1000;
       let anders = false;
       const v = tempo(d.t), raus = [];
@@ -110,11 +125,19 @@
       }
       const uebrig = d.tn.filter(p => d.sp[p].drin).length;
       if (d.endeBei === null && (uebrig === 0 || (d.tn.length > 1 && uebrig <= 1))) { d.endeBei = d.t + (uebrig ? NACHLAUF : 0); anders = true; }
-      if ((d.endeBei !== null && d.t >= d.endeBei) || d.t >= DAUER) { d.fertig = true; anders = true; }
+      if ((d.endeBei !== null && d.t >= d.endeBei) || d.t >= DAUER) {
+        // Lauf vorbei: Zeiten gutschreiben, dann Pause oder Schluss
+        d.letzter = {};
+        for (const p of d.tn) { const z = flugzeit(d, p); d.letzter[p] = Math.round(z / 100) / 10; d.summe[p] += z; }
+        if (d.lauf < (d.laeufe || LAEUFE)) d.pause = PAUSE; else d.fertig = true;
+        anders = true;
+      }
       return anders;
     },
+    // Summe aller Läufe (der laufende zählt schon mit)
     wertung(d) {
-      return Object.fromEntries(d.tn.map(p => { const s = d.sp[p]; return [p, Math.round((s.fiel === null ? d.t : s.fiel) / 100) / 10]; }));
+      const zaehlt = !d.fertig && !d.pause;
+      return Object.fromEntries(d.tn.map(p => [p, Math.round((d.summe[p] + (zaehlt ? flugzeit(d, p) : 0)) / 100) / 10]));
     },
     // Bild: Kopf jedes Schiffs und nur das Ende der Spur (ab Punkt-Nummer a)
     bild(d) {
@@ -122,7 +145,8 @@
         t: Math.round(d.t),
         p: d.tn.map(p => { const s = d.sp[p]; return [r3(s.x), r3(s.y), r3(s.w), s.drin ? 1 : 0, s.fiel === null ? -1 : Math.round(s.fiel), s.offen ? 1 : 0]; }),
         s: d.tn.map(p => { const sp = d.sp[p].spur, a = Math.max(0, sp.length - ENDE); return [a, sp.slice(a)]; }),
-        e: d.endeBei !== null ? 1 : 0
+        e: d.endeBei !== null ? 1 : 0,
+        l: d.lauf, z: d.pause > 0 ? Math.ceil(d.pause / 1000) : 0
       };
     },
     // Das Raster bleibt beim Spielleiter
@@ -194,9 +218,12 @@
       g.strokeStyle = "#5B6BB0"; g.lineWidth = 3 * dpr; g.strokeRect(m - sk, m - sk, sk * 2, sk * 2);
       const z = L.zwischen(c.nr, c.jetzt());
       if (!z) { g.fillStyle = "#9AA7D1"; g.font = `${14 * dpr}px Inter, sans-serif`; g.textAlign = "center"; g.fillText("Verbinde …", m, m); return; }
-      if (spurNr !== c.nr || d !== letzterStand) { einlesen(c.nr, d.tn.map(p => [0, (d.sp[p] && d.sp[p].spur) || []])); letzterStand = d; }
-      einlesen(c.nr, z.b.s); if (z.letztes) einlesen(c.nr, z.letztes.b.s);
-      const A = z.a, B = z.b, f = z.f, t = L.mix(A.t, B.t, f), ich = d.tn.indexOf(c.PID), letzt = z.letztes;
+      // Jeder Lauf hat eigene Spuren; Bilder aus dem vorigen Lauf werden nicht gemischt
+      const lauf = z.b.l || 1, key = c.nr + ":" + lauf;
+      if ((spurNr !== key || d !== letzterStand) && (d.lauf || 1) === lauf) { einlesen(key, d.tn.map(p => [0, (d.sp[p] && d.sp[p].spur) || []])); letzterStand = d; }
+      einlesen(key, z.b.s); if (z.letztes && (z.letztes.b.l || 1) === lauf) einlesen(key, z.letztes.b.s);
+      const A = (z.a.l || 1) === lauf ? z.a : z.b, B = z.b, f = A === B ? 1 : z.f, t = L.mix(A.t, B.t, f), ich = d.tn.indexOf(c.PID);
+      const letzt = z.letztes && (z.letztes.b.l || 1) === lauf ? z.letztes : null;
       const X = x => m + x * sk;
       // Köpfe: andere glatt zwischen zwei Bildern, der eigene nach vorn gerechnet
       const koepfe = d.tn.map((p, i) => {
@@ -242,8 +269,22 @@
       }
       const uebrig = koepfe.filter(k => k && k.drin).length;
       g.fillStyle = "#EAF2FF"; g.font = `800 ${14 * dpr}px "Exo 2", Inter, sans-serif`; g.textBaseline = "top";
-      g.textAlign = "left"; g.fillText(`${Math.floor(t / 1000)} s`, 12 * dpr, 10 * dpr);
+      g.textAlign = "left"; g.fillText(`Lauf ${lauf}/${d.laeufe || 3} · ${Math.floor(t / 1000)} s`, 12 * dpr, 10 * dpr);
       g.textAlign = "right"; g.fillText(`${uebrig} im Flug`, S - 12 * dpr, 10 * dpr);
+      // Pause zwischen den Läufen: Zwischenstand
+      if (B.z) {
+        g.fillStyle = "rgba(7,11,30,.82)"; g.fillRect(0, 0, S, S);
+        g.fillStyle = "#EAF2FF"; g.textAlign = "center"; g.textBaseline = "middle";
+        g.font = `900 ${22 * dpr}px "Exo 2", Inter, sans-serif`; g.fillText(`Lauf ${lauf + 1} in ${B.z} s`, m, S * 0.22);
+        g.font = `700 ${13 * dpr}px Inter, sans-serif`; g.fillStyle = "#9AA7D1"; g.fillText("Gesamtzeit bisher", m, S * 0.33);
+        const liste = d.tn.map(p => [p, (d.summe && d.summe[p]) || 0]).sort((a, b) => b[1] - a[1]);
+        liste.forEach(([p, ms], i) => {
+          const y = S * 0.42 + i * 22 * dpr;
+          g.fillStyle = c.farbe(p); g.textAlign = "right"; g.font = `800 ${14 * dpr}px "Exo 2", Inter, sans-serif`;
+          g.fillText(c.name(p), m - 8 * dpr, y);
+          g.fillStyle = "#EAF2FF"; g.textAlign = "left"; g.fillText(`${(ms / 1000).toFixed(1).replace(".", ",")} s`, m + 8 * dpr, y);
+        });
+      }
     }
   };
 })();

@@ -87,6 +87,18 @@ button:focus-visible,input:focus-visible,a:focus-visible,summary:focus-visible{o
 
 .missionstitel{display:flex;flex-direction:column;gap:4px;text-align:center;padding-top:4px}
 .missionstitel h1{font-size:1.6rem;color:var(--akzent)}
+.zielmarke circle{fill:none;stroke:#EAF2FF;stroke-width:2.5;stroke-dasharray:4 3;animation:zielDreh 3s linear infinite;transform-box:fill-box;transform-origin:center}
+.zielmarke text{fill:#EAF2FF;font:800 11px var(--display);text-anchor:middle}
+@keyframes zielDreh{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.zielmarke circle{animation:none}}
+.frequenz.benutzt:disabled{opacity:.3;text-decoration:line-through}
+.verbraucht h3{margin:0 0 6px;font-size:.9rem;color:var(--leise)}
+.verbraucht ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.verbraucht li{display:flex;align-items:center;gap:8px}
+.verbraucht .helm{width:24px;height:24px}
+.verbraucht .nm{flex:1;font-size:.9rem}
+.verbraucht .fz{display:flex;gap:4px}
+.verbraucht .fz b{min-width:26px;text-align:center;border:1px solid var(--linie);border-radius:6px;padding:1px 4px;font-size:.85rem}
 .tonknopf{position:fixed;top:calc(8px + env(safe-area-inset-top));right:8px;z-index:30;width:40px;height:40px;border-radius:999px;border:1px solid var(--linie);background:var(--flaeche);color:var(--text);font-size:1.1rem;line-height:1;padding:0;cursor:pointer;opacity:.85}
 .tonknopf:focus-visible{outline:2px solid var(--akzent);outline-offset:2px}
 .anleitungskopf{display:flex;align-items:center;gap:14px;margin-bottom:10px}
@@ -396,27 +408,27 @@ button:focus-visible,input:focus-visible,a:focus-visible,summary:focus-visible{o
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <script src="../netz.js?v=2026-11-25a"></script>
 <script src="../abend.js?v=2026-11-25a" data-spiel="orbit"></script>
-<script src="sensoren.js?v=2026-11-25i"></script>
-<script src="live.js?v=2026-11-25i"></script>
-<script src="klang.js?v=2026-11-25i"></script>
-<script src="logic.js?v=2026-11-25i"></script>
-<script src="missionen/funkfrequenz.js?v=2026-11-25i"></script>
-<script src="missionen/schrotthaendler.js?v=2026-11-25i"></script>
-<script src="missionen/reaktor.js?v=2026-11-25i"></script>
-<script src="missionen/asteroid.js?v=2026-11-25i"></script>
-<script src="missionen/kapseln.js?v=2026-11-25i"></script>
-<script src="missionen/terraforming.js?v=2026-11-25i"></script>
-<script src="missionen/ionenspur.js?v=2026-11-25i"></script>
-<script src="missionen/gestaltwandler.js?v=2026-11-25i"></script>
-<script src="missionen/frachtraum.js?v=2026-11-25i"></script>
-<script src="missionen/solo.js?v=2026-11-25i"></script>
-<script src="missionen/greifarm.js?v=2026-11-25i"></script>
-<script src="missionen/bordkueche.js?v=2026-11-25i"></script>
-<script src="missionen/boule.js?v=2026-11-25i"></script>
+<script src="sensoren.js?v=2026-11-25j"></script>
+<script src="live.js?v=2026-11-25j"></script>
+<script src="klang.js?v=2026-11-25j"></script>
+<script src="logic.js?v=2026-11-25j"></script>
+<script src="missionen/funkfrequenz.js?v=2026-11-25j"></script>
+<script src="missionen/schrotthaendler.js?v=2026-11-25j"></script>
+<script src="missionen/reaktor.js?v=2026-11-25j"></script>
+<script src="missionen/asteroid.js?v=2026-11-25j"></script>
+<script src="missionen/kapseln.js?v=2026-11-25j"></script>
+<script src="missionen/terraforming.js?v=2026-11-25j"></script>
+<script src="missionen/ionenspur.js?v=2026-11-25j"></script>
+<script src="missionen/gestaltwandler.js?v=2026-11-25j"></script>
+<script src="missionen/frachtraum.js?v=2026-11-25j"></script>
+<script src="missionen/solo.js?v=2026-11-25j"></script>
+<script src="missionen/greifarm.js?v=2026-11-25j"></script>
+<script src="missionen/bordkueche.js?v=2026-11-25j"></script>
+<script src="missionen/boule.js?v=2026-11-25j"></script>
 <script src="https://cdn.jsdelivr.net/npm/planck@1.4.2/dist/planck.min.js"></script>
-<script src="missionen/treibstoff.js?v=2026-11-25i"></script>
-<script src="missionen/mondbasis.js?v=2026-11-25i"></script>
-<script src="brett.js?v=2026-11-25i"></script>
-<script src="app.js?v=2026-11-25i"></script>
+<script src="missionen/treibstoff.js?v=2026-11-25j"></script>
+<script src="missionen/mondbasis.js?v=2026-11-25j"></script>
+<script src="brett.js?v=2026-11-25j"></script>
+<script src="app.js?v=2026-11-25j"></script>
 </body>
 </html>

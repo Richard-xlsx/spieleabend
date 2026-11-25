@@ -35,18 +35,22 @@ Eine Raumstation im Orbit um einen fremden Planeten, retro-futuristisch wie ein 
 starten. Alle beginnen an der Luftschleuse mit 10 Energiezellen. Jedes Handy zeigt die ganze Station, der eigene Helm ist
 hervorgehoben.
 
-**Händlerschiff:** Es dockt an einem Modul des Rings an. Wer daran vorbeizieht oder darauf landet, darf bis zu 3
-Sternkristalle für je 20 Energie kaufen. Danach legt das Schiff ab und dockt mindestens 8 Module weiter weg an.
+**Händlerschiffe:** Zwei Schiffe docken an gegenüberliegenden Modulen des Rings an. Wer an einem vorbeizieht oder darauf
+landet, darf bis zu 3 Sternkristalle für je 20 Energie kaufen (höchstens einmal pro Zug). Die Schiffe bleiben eine ganze
+Runde und docken zu Beginn der nächsten mindestens 8 Module weiter weg an.
 
 ### Ablauf einer Runde
 1. **Würfeln:** Alle würfeln gleichzeitig mit zwei Würfeln durch Tippen oder Schütteln. Danach ziehen
-   die Helme nacheinander, wer hinten liegt, zuerst. Für Entscheidungen auf einem Feld hat man 10 Sekunden Zeit.
+   die Helme nacheinander, wer hinten liegt, zuerst. Wer dran ist, wählt: mit einem der beiden Würfel oder mit beiden
+   ziehen (die Ziele sind auf dem Brett markiert). Für jede Entscheidung hat man 10 Sekunden Zeit, ohne Antwort zählen beide Würfel.
 2. **Missionswahl:** Wer gerade Letzter ist, wählt aus 3 Missionen, die zur Spielerzahl passen. Jede Mission kommt erst
    wieder dran, wenn alle anderen gespielt wurden.
 3. **Wetten:** Jeder darf bis zu 5 Energie auf den Sieger der gewählten Mission setzen, auch auf sich selbst. Wer richtig
-   liegt, bekommt den doppelten Einsatz. Die Wetten der anderen bleiben bis zum Ergebnis verdeckt.
+   liegt, bekommt den doppelten Einsatz. Bei Teams und „Einer gegen alle“ gewinnt eine ganze Gruppe, dort gibt es nur das
+   Anderthalbfache (aufgerundet) und für die Gratiswette 5 statt 8. Die Wetten der anderen bleiben bis zum Ergebnis verdeckt.
 4. **Mission** und danach **Energie:**
-   - Jeder gegen jeden: Platz 1 bis 7 bekommt 10, 7, 5, 4, 3, 2 und 1 Energie.
+   - Jeder gegen jeden: Die Energie je Platz hängt von der Zahl der Teilnehmer ab, damit Missionen auch zu zweit zählen:
+     2 → 10, 3 · 3 → 10, 6, 2 · 4 → 10, 7, 4, 2 · 5 → 10, 7, 5, 3, 1 · 6 → 10, 7, 5, 3, 2, 1 · 7 → 10, 7, 5, 4, 3, 2, 1 · 8 → 10, 7, 5, 4, 3, 2, 1, 1.
    - Teams: Das Siegerteam bekommt je 8 Energie, das andere Team je 2.
    - Einer gegen alle: Gewinnt der Einzelne, bekommt er 15 Energie. Gewinnen die anderen, bekommen sie je 6.
 
@@ -67,8 +71,11 @@ Sternkristalle für je 20 Energie kaufen. Danach legt das Schiff ab und dockt mi
 - **Letzte Runde:** Alle Felder und die Mission zählen doppelt.
 - **Siegerehrung:** Zum Schluss gibt es 3 Bonus-Kristalle:
   - „Missionsheld“ für die meiste Energie aus Missionen
-  - „Glückskind“ für die meisten Versorgungskapseln
-  - „Weltenbummler“ für die meisten gezogenen Module
+  - „Bester Tipper“ für die meiste Energie aus Wetten (Gewinn minus Einsatz)
+  - „Comeback“ für die meisten aufgeholten Plätze (schlechtester Platz nach einer Runde bis zum Platz vor den Boni)
+
+  Ein Bonus geht nur an jemanden mit einem Wert über 0, bei Gleichstand an alle Besten. Früher gab es „Glückskind“
+  (Versorgungskapseln) und „Weltenbummler“ (gezogene Module); beides war reines Würfelglück.
 
   Es gewinnt, wer die meisten Kristalle hat, bei Gleichstand entscheidet die Energie.
 - **Nachzügler:** Wer später kommt, schaut zu und steigt in der nächsten Runde mit dem Durchschnitt an Energie ein.
@@ -83,11 +90,11 @@ Jedes Bewegungsspiel zeigt den Hinweis „Handy gut festhalten“, und niemand m
 | Mission | Art | Eingabe | ab | Worum es geht |
 |---|---|---|---|---|
 | **Schrotthändler** | geheim | Tippen | 2 | Fünf seltene Ersatzteile (3, 4, 6, 8 und 12 Punkte, in zufälliger Reihenfolge) werden versteigert, und jeder bietet geheim aus 30 Credits für alle Teile. Bei Gleichstand bekommt keiner das Teil. |
-| **Funkfrequenz** | geheim | Tippen | 3 | Jeder wählt geheim eine Frequenz von 1 bis 15. Wer allein auf der höchsten Frequenz sendet, wird gehört und bekommt so viele Punkte. Es geht über drei Durchgänge. |
+| **Funkfrequenz** | geheim | Tippen | 3 | Jeder wählt geheim eine Frequenz von 1 bis 15. Wer allein auf der höchsten Frequenz sendet, wird gehört und bekommt so viele Punkte. Es geht über drei Durchgänge, jede Frequenz darf man nur einmal benutzen. |
 | **Reaktor-Countdown** | geheim | Tippen | 2 | Die Punkte steigen, solange man am Reaktor bleibt, immer schneller. Man kann jederzeit in die Rettungskapsel springen. Wer bei der Explosion (nach 3 bis 18 Sekunden) noch drin ist, bekommt 0. Wer als Letzter vorher springt, bekommt 25 Bonuspunkte. Drei Durchgänge. |
 | **Zerfallender Asteroid** | Arena | Neigen | 2 | Der Asteroid bröckelt, und man schubst die anderen ins All. Wer abtreibt, wird zur Drohne und lässt Ölflecken fallen, auf denen man rutscht. |
 | **Terraforming** | Arena | Neigen | 2 | Jeder begrünt den Planeten in seiner Farbe und darf die Flächen der anderen übermalen. Saatbomben helfen, und nach 60 Sekunden gewinnt die größte Fläche. |
-| **Ionenspur** | Arena | Tippen links/rechts | 2 | Jeder zieht eine leuchtende Spur hinter sich her. Wer gegen eine Spur fliegt, scheidet aus. |
+| **Ionenspur** | Arena | Tippen links/rechts | 2 | Jeder zieht eine leuchtende Spur hinter sich her. Wer gegen eine Spur fliegt, scheidet aus. Drei Läufe, die Zeiten werden addiert. |
 | **Rettungskapseln** | Arena | Tippen | 3 | Wenn der Alarm losgeht, schnell eine Kapsel antippen, es gibt immer eine zu wenig. Wer raus ist, löst den nächsten Alarm aus und darf dabei täuschen. |
 | **Gestaltwandler** | Einer gegen alle | Daumen | 3 | Ein Alien versteckt sich unter 30 Wartungsrobotern und muss 3 Konsolen sabotieren. Die Crew beobachtet das Gewusel und hat 2 Verdächtigungen. |
 | **Alien im Frachtraum** | Einer gegen alle | Neigen | 3 | Das Alien schleicht unsichtbar durch den dunklen Frachtraum und sammelt Punkte. Die Crew sucht es mit Helmlampen. |
@@ -192,3 +199,6 @@ Die Reihenfolge geht vom Einfachen zum Schweren. Schritt 4 baut die Live-Technik
 - Mondbasis: Mondschwerkraft (1,62). Die Teams setzen abwechselnd, beide Teams bekommen dieselben Bauteile (7 pro Team, zuerst ein Wohnmodul). Ziehen mit dem Finger, Drehen in Achtelschritten, 15 Sekunden pro Teil. Fällt etwas herunter, verliert das Team, das zuletzt gesetzt hat. Steht der Turm danach noch, verliert im Mondbeben das Team, dessen Teil zuerst fällt.
 - Klänge: Jedes Handy spielt sie selbst, abgeleitet aus dem Spielstand (Würfeln, Schritte auf dem Brett, Energie, Kristall, Countdown, Sieg oder nicht, Siegerehrung) und aus der eigenen Eingabe in den Missionen. Knopf oben rechts schaltet den Ton aus (Speicher „ob:ton“).
 - Anleitungsbilder: In der Anleitung jeder Mission zeigt ein kleines, bewegtes Handy die Steuerung (Tippen, Neigen, Daumen, Wischen, Ziehen und Mischformen). Bei „Bewegung reduzieren“ steht es still.
+- Überarbeitung nach der Durchsicht (Bot-Simulation, 70 Partien): Die Bonus-Kristalle haben vorher in 30 bis 50 % der Partien den Sieger bestimmt, zwei davon waren Würfelglück; am Ende blieben 32 bis 42 Energie pro Person ungenutzt, weil man selten am einen Händlerschiff vorbeikam. Neu: Boni für Wetten und Comeback, zwei Händlerschiffe, die eine Runde bleiben (danach 15 bis 30 % und 26 bis 34 Energie übrig, 1,1 bis 3 gekaufte Kristalle pro Person statt 0,7 bis 1,9), Würfelwahl, Energie je Platz nach Spielerzahl, niedrigere Quote für Gruppenwetten.
+- Funkfrequenz: Jede Frequenz darf man nur einmal benutzen; wer welche verbraucht hat, sehen alle.
+- Ionenspur: 3 Läufe mit je 3,5 Sekunden Pause (Zwischenstand), die Flugzeiten werden addiert.
