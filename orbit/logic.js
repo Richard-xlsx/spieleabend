@@ -575,6 +575,8 @@
   function sicht(S, pid) {
     const v = kopie(S);
     if (v.mission && MISSIONEN[v.mission.id] && MISSIONEN[v.mission.id].sicht) v.mission.d = MISSIONEN[v.mission.id].sicht(v.mission.d, pid);
+    // Der Startwert der Mission bleibt beim Spielleiter, außer die Mission braucht ihn auf allen Handys
+    if (v.mission && !(MISSIONEN[v.mission.id] && MISSIONEN[v.mission.id].seedFuerAlle)) delete v.mission.seed;
     // Wetten der anderen bleiben verdeckt, bis die Mission ausgewertet ist
     if (v.partie && v.partie.wetten) for (const p in v.partie.wetten) if (p !== pid) v.partie.wetten[p] = { verdeckt: true };
     delete v.seed; delete v.rs;

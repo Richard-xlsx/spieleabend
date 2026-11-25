@@ -2,6 +2,8 @@
 global.window = {};
 require(__dirname + '/../logic.js');
 require(__dirname + '/../missionen/funkfrequenz.js');
+require(__dirname + '/../missionen/schrotthaendler.js');
+require(__dirname + '/../missionen/reaktor.js');
 const R = window.RM, assert = require('assert');
 let t = 1000;
 const S = R.neu('ABCD', 'h', 'Host');
@@ -35,7 +37,6 @@ assert.deepStrictEqual(v.mission.d.wahl, { c1: 15 });
 assert(v.mission.d.gesendet.includes('h'));
 assert(!('seed' in v));
 d().wahl.bot1 = 9; d().wahl.bot2 = 9; d().dabei.bot1 = d().dabei.bot2 = true;
-R.MISSIONEN.funkfrequenz.bot = botAlt;
 R.takt(S, t);
 assert.strictEqual(d().schritt, 'aufloesung');
 assert.strictEqual(d().verlauf[0].sieger, null);
@@ -46,6 +47,7 @@ R.aktion(S, 'c1', { t: 'b', a: 'frequenz', f: 3 }, t);
 d().wahl.bot1 = 5; d().wahl.bot2 = 5;
 R.takt(S, t);
 assert.strictEqual(d().verlauf[1].sieger, 'h'); assert.strictEqual(d().punkte.h, 12);
+R.MISSIONEN.funkfrequenz.bot = botAlt;
 // Durchgang 3: Zeit läuft ab, Clara offline (kein Warten), Bots wählen via bot()
 t += 7100; R.takt(S, t); assert.strictEqual(d().dg, 3);
 S.online = ['h'];
@@ -123,7 +125,7 @@ assert.strictEqual(k.mission.schritt, 'anleitung'); assert.strictEqual(k.mission
   assert.strictEqual(S.partie.schritt, 'wahl');
   const letzter = R.rangliste(S).filter(p => R.istDa(S, p)).pop();
   assert.strictEqual(S.partie.wahl.wer, letzter);
-  assert.deepStrictEqual(S.partie.wahl.optionen, ['funkfrequenz']);
+  assert.deepStrictEqual(S.partie.wahl.optionen.slice().sort(), ['funkfrequenz', 'reaktor', 'schrotthaendler']);
   if (letzter === 'h' || letzter === 'c') assert(R.aktion(S, letzter, { t: 'waehle', id: 'funkfrequenz' }, t).ok);
   for (let i = 0; i < 50 && S.partie.schritt === 'wahl'; i++) { t += 200; R.takt(S, t); }
   assert.strictEqual(S.partie.schritt, 'wetten');
@@ -139,7 +141,7 @@ assert.strictEqual(k.mission.schritt, 'anleitung'); assert.strictEqual(k.mission
   assert.strictEqual(S.spieler.h.energie, vorH - 5);
   assert(S.partie.wetten.c.gratis && !S.partie.gratis.c);
   // Mission: Host gewinnt
-  const M = S.mission; M.schritt = 'spiel'; R.MISSIONEN.funkfrequenz.start(M.d, t);
+  const M = S.mission; M.schritt = 'spiel';
   Object.assign(M.d, { fertig: true, punkte: { h: 20, c: 3, bot1: 1, bot2: 0 }, dabei: { h: 1, c: 1, bot1: 1, bot2: 1 } });
   const eH = S.spieler.h.energie, eC = S.spieler.c.energie;
   R.takt(S, t);
@@ -165,7 +167,9 @@ assert.strictEqual(k.mission.schritt, 'anleitung'); assert.strictEqual(k.mission
     if (S.phase === 'brett' && S.partie.schritt === 'wuerfeln') R.aktion(S, 'h', { t: 'wurf' }, t);
     if (S.phase === 'brett' && S.partie.schritt === 'wahl' && S.partie.wahl.wer === 'h') R.aktion(S, 'h', { t: 'waehle', id: S.partie.wahl.optionen[0] }, t);
     if (S.phase === 'brett' && S.partie.schritt === 'wetten' && !S.partie.wetten.h) R.aktion(S, 'h', { t: 'wette', auf: 'bot1', einsatz: 2 }, t);
-    if (S.phase === 'mission' && S.mission.schritt === 'spiel' && S.mission.d.schritt === 'wahl' && !S.mission.d.wahl.h) R.aktion(S, 'h', { t: 'b', a: 'frequenz', f: 1 + (t % 15) }, t);
+    if (S.phase === 'mission' && S.mission.schritt === 'spiel' && S.mission.id === 'schrotthaendler' && S.mission.d.schritt === 'gebot' && S.mission.d.gebote.h === undefined) R.aktion(S, 'h', { t: 'b', a: 'gebot', g: t % 9 }, t);
+    if (S.phase === 'mission' && S.mission.schritt === 'spiel' && S.mission.id === 'reaktor' && S.mission.d.schritt === 'laeuft' && t - S.mission.d.start > 6000) R.aktion(S, 'h', { t: 'b', a: 'raus', z: t - 300 }, t);
+    if (S.phase === 'mission' && S.mission.schritt === 'spiel' && S.mission.id === 'funkfrequenz' && S.mission.d.schritt === 'wahl' && !S.mission.d.wahl.h) R.aktion(S, 'h', { t: 'b', a: 'frequenz', f: 1 + (t % 15) }, t);
     for (const p in S.spieler) assert(S.spieler[p].energie >= 0, 'Energie nie negativ');
   }
   assert.strictEqual(S.phase, 'ende', 'Partie endet');
@@ -184,4 +188,5 @@ assert.strictEqual(k.mission.schritt, 'anleitung'); assert.strictEqual(k.mission
   for (let i = 0; i < 300 && k.partie.schritt !== 'wahl'; i++) { t += 200; R.takt(k, t); R.aktion(k, 'c', { t: 'wurf' }, t); }
   assert.strictEqual(k.partie.schritt, 'wahl', 'nach Übernahme geht es weiter');
 }
+require(__dirname + '/missionen.js');
 console.log('alle Tests ok');

@@ -194,7 +194,7 @@
   const uhr = bis => `<span class="uhr" data-bis="${bis}">${Math.max(0, Math.ceil((bis - hostJetzt()) / 1000))}</span>`;
   const ctxUI = () => {
     const m = S.mission;
-    return { PID, S, esc, helm, uhr, tun, name: p => sp(p).name, dabei: !!(m && m.tn.includes(PID)) };
+    return { PID, S, esc, helm, uhr, tun, name: p => sp(p).name, dabei: !!(m && m.tn.includes(PID)), jetzt: hostJetzt, neu: () => { letztesHtml = ""; render(); } };
   };
   const ctxBrett = () => ({ S, PID, R, esc, helm, helmInnen: p => helmInnen(farbe(p), anfang(p)), name: p => sp(p).name, farbe, uhr, jetzt: hostJetzt, tun, host: rolle === "host", da });
 
@@ -225,6 +225,8 @@
   function zeitenAnzeigen() {
     const jetzt = hostJetzt();
     if (B && S && S.phase === "brett") B.bewegen(ctxBrett());
+    const m = S && S.phase === "mission" && S.mission;
+    if (m && m.schritt === "spiel" && UI[m.id] && UI[m.id].bewegen) UI[m.id].bewegen(m.d, ctxUI());
     document.querySelectorAll("[data-bis]").forEach(el => {
       const r = Math.max(0, Math.ceil((+el.dataset.bis - jetzt) / 1000));
       if (el.textContent !== String(r)) el.textContent = r;
@@ -257,7 +259,7 @@
   }
   function bildschirmStart() {
     return `<header class="titel">${titelbild()}<h1>Orbit</h1><p class="leise">Eine Raumstation als Spielbrett: würfeln, durch die Module ziehen, Energie sammeln und Sternkristalle kaufen. Nach jeder Runde eine Mission für alle, mal geheim, mal live, mal im Team.</p></header>
-      <p class="baustelle">Im Aufbau: Das Spielbrett steht, bisher gibt es eine Mission („Funkfrequenz“). Weitere folgen.</p>
+      <p class="baustelle">Im Aufbau: Das Spielbrett steht, bisher gibt es drei Missionen (Funkfrequenz, Schrotthändler, Reaktor-Countdown). Weitere folgen.</p>
       <label class="feld">Dein Name<input id="name" maxlength="20" value="${esc(name)}" autocomplete="nickname" placeholder="z. B. Richard"></label>
       <div class="karte-box"><h2>Neues Spiel</h2><p class="leise klein">Für 2 bis 8 Leute, jeder am eigenen Handy.</p>
         <button class="knopf" id="neu">Raum erstellen</button></div>

@@ -236,6 +236,43 @@ button:focus-visible,input:focus-visible,a:focus-visible,summary:focus-visible{o
 .bonus .helme{display:flex;gap:2px}
 .bonus .helm{width:28px;height:28px}
 .bonus .kr{font:900 1rem var(--display);color:var(--gelb);display:flex;align-items:center;gap:3px}
+/* Schrotthändler */
+.auktion{display:flex;align-items:center;gap:14px;justify-content:center;background:var(--flaeche);border:1px solid var(--linie);border-radius:18px;padding:10px 14px}
+.auktion h3{margin:0;font:800 1.2rem var(--display)}
+.auktion .wert{margin:2px 0 0;font:900 1.5rem var(--display);color:var(--gelb)}
+.teil{width:40px;height:40px;flex:none}
+.teil.gross{width:76px;height:76px}
+.gebotsfeld{display:flex;flex-direction:column;gap:10px}
+.stepper{display:flex;align-items:center;justify-content:center;gap:8px}
+.stepper output{font:900 2.6rem/1 var(--display);min-width:2.2em;text-align:center;color:var(--akzent)}
+.rund{appearance:none;width:48px;height:48px;border-radius:50%;border:2px solid var(--linie);background:var(--flaeche2);color:var(--text);font:800 1rem var(--display);cursor:pointer;touch-action:manipulation}
+.schnell{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+.chipknopf{appearance:none;border:1px solid var(--linie);background:var(--flaeche);color:var(--text);border-radius:999px;padding:8px 14px;font:600 .9rem var(--fliess);cursor:pointer}
+.teilereihe{list-style:none;margin:0;padding:0;display:flex;gap:6px;justify-content:center}
+.teilereihe li{display:flex;flex-direction:column;align-items:center;gap:2px;border:1px solid var(--linie);border-radius:12px;padding:4px 6px;min-width:48px}
+.teilereihe .teil{width:30px;height:30px}
+.teilereihe b{font:800 .9rem var(--display);color:var(--gelb)}
+.teilereihe small{font-size:.65rem;color:var(--leise)}
+.teilereihe .jetzt{border-color:var(--akzent);background:#2EC4B61a}
+.teilereihe .vorbei{opacity:.45}
+.punkteleiste .credits{font-size:.7rem;color:var(--leise)}
+/* Reaktor-Countdown */
+.reaktor{width:min(220px,60vw);height:auto;display:block;margin:0 auto}
+.reaktor .reaktor-knall{opacity:0;transform-origin:100px 100px}
+.reaktor.aus .reaktor-glut{fill:#26305E}.reaktor.aus .reaktor-kern{fill:#3A4680}.reaktor.aus .reaktor-ring{stroke:#2A3568}
+.reaktor.heiss .reaktor-glut{animation:glut .5s infinite alternate ease-in-out;transform-origin:100px 100px}
+.reaktor.heiss .reaktor-ring{animation:dreh 2s linear infinite;transform-origin:100px 100px}
+.reaktor.drinnen .reaktor-ring{animation:dreh 3s linear infinite;transform-origin:100px 100px}
+.reaktor.knall .reaktor-knall{opacity:1;animation:knall .6s ease-out}
+.reaktor.knall .reaktor-glut,.reaktor.knall .reaktor-kern{opacity:0}
+@keyframes glut{from{transform:scale(.92);fill:#FFD23F}to{transform:scale(1.06);fill:#FF7A2F}}
+@keyframes dreh{to{transform:rotate(360deg)}}
+@keyframes knall{from{transform:scale(.2)}to{transform:scale(1)}}
+.reaktorwert{font:900 3.4rem/1 var(--display);color:var(--gelb);margin:0;text-shadow:0 0 24px #FFD23F55}
+.knopf.raus{background:var(--pink);color:#1A0610;font:900 1.5rem var(--display);padding:20px}
+.reaktorliste .fnr{width:2.6em}
+
+@media (prefers-reduced-motion:reduce){.reaktor.heiss .reaktor-glut,.reaktor .reaktor-ring,.reaktor.knall .reaktor-knall{animation:none}}
 @media (prefers-reduced-motion:reduce){.tb-puls,.tb-blink,.countdown.puls,.frequenz.an::after,.brett .meinring,.brett .haendlerring,.brett .hubpuls,.helm.riesig,.wuerfelknopf.rollt .wuerfel{animation:none}.brett .figur{transition:none}}
 </style>
 </head>
@@ -245,9 +282,11 @@ button:focus-visible,input:focus-visible,a:focus-visible,summary:focus-visible{o
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <script src="../netz.js?v=2026-11-25a"></script>
 <script src="../abend.js?v=2026-11-25a" data-spiel="orbit"></script>
-<script src="logic.js?v=2026-11-25b"></script>
-<script src="missionen/funkfrequenz.js?v=2026-11-25b"></script>
-<script src="brett.js?v=2026-11-25b"></script>
-<script src="app.js?v=2026-11-25b"></script>
+<script src="logic.js?v=2026-11-25c"></script>
+<script src="missionen/funkfrequenz.js?v=2026-11-25c"></script>
+<script src="missionen/schrotthaendler.js?v=2026-11-25c"></script>
+<script src="missionen/reaktor.js?v=2026-11-25c"></script>
+<script src="brett.js?v=2026-11-25c"></script>
+<script src="app.js?v=2026-11-25c"></script>
 </body>
 </html>

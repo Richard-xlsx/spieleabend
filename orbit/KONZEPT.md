@@ -1,6 +1,6 @@
 # Orbit: Brettspiel mit Minispielen auf einer Raumstation (Konzept und Plan)
 
-Stand 25.11.2026. Schritt 1 und 2 sind gebaut (Brett und erste Mission). Ordner `orbit/`, für 2 bis 8 Leute, jeder am eigenen Handy.
+Stand 25.11.2026. Schritt 1 bis 3 sind gebaut (Brett und die drei geheimen Missionen). Ordner `orbit/`, für 2 bis 8 Leute, jeder am eigenen Handy.
 
 Eine Raumstation ist das Spielbrett. Man würfelt, zieht durch die Module des Rings und sammelt **Energiezellen**. Mit
 Energie kauft man beim Händlerschiff **Sternkristalle**, und wer am Ende die meisten Kristalle hat, gewinnt. Nach jeder
@@ -82,9 +82,9 @@ Jedes Bewegungsspiel zeigt den Hinweis „Handy gut festhalten“, und niemand m
 
 | Mission | Art | Eingabe | ab | Worum es geht |
 |---|---|---|---|---|
-| **Schrotthändler** | geheim | Tippen | 2 | Fünf seltene Ersatzteile werden versteigert, und jeder bietet geheim mit einem festen Budget. Bei Gleichstand bekommt keiner das Teil. |
+| **Schrotthändler** | geheim | Tippen | 2 | Fünf seltene Ersatzteile (3, 4, 6, 8 und 12 Punkte, in zufälliger Reihenfolge) werden versteigert, und jeder bietet geheim aus 30 Credits für alle Teile. Bei Gleichstand bekommt keiner das Teil. |
 | **Funkfrequenz** | geheim | Tippen | 3 | Jeder wählt geheim eine Frequenz von 1 bis 15. Wer allein auf der höchsten Frequenz sendet, wird gehört und bekommt so viele Punkte. Es geht über drei Durchgänge. |
-| **Reaktor-Countdown** | geheim | Tippen | 2 | Die Energie steigt, solange man am Reaktor bleibt. Man kann jederzeit in die Rettungskapsel springen. Wer bei der Explosion noch drin ist, bekommt 0. Wer als Letzter vorher springt, bekommt einen Bonus. |
+| **Reaktor-Countdown** | geheim | Tippen | 2 | Die Punkte steigen, solange man am Reaktor bleibt, immer schneller. Man kann jederzeit in die Rettungskapsel springen. Wer bei der Explosion (nach 3 bis 18 Sekunden) noch drin ist, bekommt 0. Wer als Letzter vorher springt, bekommt 25 Bonuspunkte. Drei Durchgänge. |
 | **Zerfallender Asteroid** | Arena | Neigen | 2 | Der Asteroid bröckelt, und man schubst die anderen ins All. Wer abtreibt, wird zur Drohne und lässt Ölflecken fallen, auf denen man rutscht. |
 | **Terraforming** | Arena | Neigen | 2 | Jeder begrünt den Planeten in seiner Farbe und darf die Flächen der anderen übermalen. Saatbomben helfen, und nach 60 Sekunden gewinnt die größte Fläche. |
 | **Ionenspur** | Arena | Tippen links/rechts | 2 | Jeder zieht eine leuchtende Spur hinter sich her. Wer gegen eine Spur fliegt, scheidet aus. |
@@ -167,4 +167,7 @@ Die Reihenfolge geht vom Einfachen zum Schweren. Schritt 4 baut die Live-Technik
 - Zwei Würfel und bis zu 3 Kristalle pro Händlerbesuch: Mit einem Würfel kam man in Simulationen kaum am Händler vorbei.
 - Ohne Entscheidung in 10 Sekunden gilt: Kristalle kaufen, beim Piraten den Reichsten bestehlen, nicht tauschen, nicht springen.
 - Nach dem Missionsergebnis geht es nach 25 Sekunden von selbst zurück aufs Brett.
+- Schrotthändler: Übrige Credits zählen am Ende nicht. Wer bei Gleichstand leer ausgeht, zahlt auch nichts.
+- Reaktor-Countdown: Wer schon gesprungen ist, sieht man erst bei der Auflösung. Ein Sprung zählt mit dem Zeitstempel des Handys, der aber höchstens 1 Sekunde vor der Ankunft beim Spielleiter liegen darf.
+- Der Startwert einer Mission bleibt beim Spielleiter, damit niemand die Explosion vorausberechnen kann. Missionen, die ihn auf allen Handys brauchen (z. B. Gestaltwandler), geben ihn ausdrücklich frei.
 - Figuren sind Astronautenhelme mit Farbe und Anfangsbuchstaben.
