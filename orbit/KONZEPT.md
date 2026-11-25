@@ -1,6 +1,6 @@
 # Orbit: Brettspiel mit Minispielen auf einer Raumstation (Konzept und Plan)
 
-Stand 25.11.2026. Noch nicht gebaut. Ordner `orbit/`, für 2 bis 8 Leute, jeder am eigenen Handy.
+Stand 25.11.2026. Schritt 1 und 2 sind gebaut (Brett und erste Mission). Ordner `orbit/`, für 2 bis 8 Leute, jeder am eigenen Handy.
 
 Eine Raumstation ist das Spielbrett. Man würfelt, zieht durch die Module des Rings und sammelt **Energiezellen**. Mit
 Energie kauft man beim Händlerschiff **Sternkristalle**, und wer am Ende die meisten Kristalle hat, gewinnt. Nach jeder
@@ -35,17 +35,17 @@ Eine Raumstation im Orbit um einen fremden Planeten, retro-futuristisch wie ein 
 starten. Alle beginnen an der Luftschleuse mit 10 Energiezellen. Jedes Handy zeigt die ganze Station, der eigene Helm ist
 hervorgehoben.
 
-**Händlerschiff:** Es dockt an einem Modul des Rings an. Wer daran vorbeizieht oder darauf landet, darf für 20 Energie
-einen Sternkristall kaufen. Danach legt das Schiff ab und dockt woanders an.
+**Händlerschiff:** Es dockt an einem Modul des Rings an. Wer daran vorbeizieht oder darauf landet, darf bis zu 3
+Sternkristalle für je 20 Energie kaufen. Danach legt das Schiff ab und dockt mindestens 8 Module weiter weg an.
 
 ### Ablauf einer Runde
-1. **Würfeln:** Alle würfeln gleichzeitig durch Schütteln oder Tippen. Danach ziehen die Helme nacheinander, wer hinten
-   liegt, zuerst. Für Entscheidungen auf einem Feld hat man 10 Sekunden Zeit.
-2. **Wetten:** Jeder darf bis zu 5 Energie auf den Sieger der nächsten Mission setzen, auch auf sich selbst. Wer richtig
-   liegt, bekommt den doppelten Einsatz.
-3. **Mission:** Wer gerade Letzter ist, wählt aus 3 Missionen, die zur Spielerzahl passen. Jede Mission kommt erst
+1. **Würfeln:** Alle würfeln gleichzeitig mit zwei Würfeln durch Tippen (Schütteln folgt mit sensoren.js). Danach ziehen
+   die Helme nacheinander, wer hinten liegt, zuerst. Für Entscheidungen auf einem Feld hat man 10 Sekunden Zeit.
+2. **Missionswahl:** Wer gerade Letzter ist, wählt aus 3 Missionen, die zur Spielerzahl passen. Jede Mission kommt erst
    wieder dran, wenn alle anderen gespielt wurden.
-4. **Energie:**
+3. **Wetten:** Jeder darf bis zu 5 Energie auf den Sieger der gewählten Mission setzen, auch auf sich selbst. Wer richtig
+   liegt, bekommt den doppelten Einsatz. Die Wetten der anderen bleiben bis zum Ergebnis verdeckt.
+4. **Mission** und danach **Energie:**
    - Jeder gegen jeden: Platz 1 bis 7 bekommt 10, 7, 5, 4, 3, 2 und 1 Energie.
    - Teams: Das Siegerteam bekommt je 8 Energie, das andere Team je 2.
    - Einer gegen alle: Gewinnt der Einzelne, bekommt er 15 Energie. Gewinnen die anderen, bekommen sie je 6.
@@ -163,5 +163,8 @@ Die Reihenfolge geht vom Einfachen zum Schweren. Schritt 4 baut die Live-Technik
 ## 7. Festgelegt (änderbar)
 
 - Thema Raumstation, Name „Orbit“. Der erste Entwurf als Jahrmarkt „Rummel“ ist damit ersetzt.
-- Die nächste Mission wählt der Letzte.
+- Die nächste Mission wählt der Letzte, gewettet wird danach (man weiß also, worauf man wettet).
+- Zwei Würfel und bis zu 3 Kristalle pro Händlerbesuch: Mit einem Würfel kam man in Simulationen kaum am Händler vorbei.
+- Ohne Entscheidung in 10 Sekunden gilt: Kristalle kaufen, beim Piraten den Reichsten bestehlen, nicht tauschen, nicht springen.
+- Nach dem Missionsergebnis geht es nach 25 Sekunden von selbst zurück aufs Brett.
 - Figuren sind Astronautenhelme mit Farbe und Anfangsbuchstaben.

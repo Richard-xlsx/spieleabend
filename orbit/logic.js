@@ -1,8 +1,8 @@
-// Orbit: Ablauf ohne Netz und ohne Oberfläche (mit node testbar).
+// Orbit: Brett, Runden und Missionsablauf ohne Netz und ohne Oberfläche (mit node testbar).
 //
 // Der Spielleiter hält den Zustand S. Die Handys schicken Aktionen, der Spielleiter ruft RM.aktion(S, pid, m, jetzt)
 // und alle 200 ms RM.takt(S, jetzt) auf (Zeiten in Spielleiter-Millisekunden). Jedes Handy bekommt RM.sicht(S, pid),
-// darin fehlen Geheimnisse wie die Wahl der anderen.
+// darin fehlen Geheimnisse wie die Wahl oder die Wetten der anderen.
 //
 // Missionen melden sich in window.ORBIT_MISSIONEN an (siehe missionen/*.js; Oberfläche in window.ORBIT_UI). Teil für den Spielleiter:
 //   { id, name, art, ab, eingabe, kurz, anleitung: [...], besser: "hoch"|"niedrig",
@@ -11,7 +11,8 @@
 //     sicht(d, pid) → Kopie ohne Geheimnisse, bot(d, pid, rng, jetzt) → Aktion oder null }
 //   ctx = { tn: Teilnehmer, aktiv: Teilnehmer, die gerade verbunden sind (Bots immer), rng }
 //
-// Ablauf in Schritt 1: Lobby → Mission (Anleitung → Countdown → Spiel → Ergebnis) → Lobby. Die Energie zählt weiter.
+// Phasen: "lobby" → "brett" (Runde: würfeln, ziehen, Missionswahl, wetten) → "mission" → "brett" … → "ende" (Siegerehrung).
+// Aus der Lobby kann der Spielleiter auch eine einzelne Mission ohne Brett starten (zum Üben).
 (function () {
   const W = typeof window !== "undefined" ? window : globalThis;
   const MISSIONEN = W.ORBIT_MISSIONEN = W.ORBIT_MISSIONEN || {};
@@ -22,8 +23,29 @@
     { name: "Grün", f: "#7BD957" }, { name: "Violett", f: "#A57BFF" }, { name: "Himmel", f: "#4DA3FF" }, { name: "Silber", f: "#C9D1E0" }
   ];
   const ENERGIE = [10, 7, 5, 4, 3, 2, 1, 1];
-  const ZEIT = { anleitung: 30000, countdown: 3500 };
+  const ZEIT = {
+    anleitung: 30000, countdown: 3500, ergebnis: 25000,
+    wuerfeln: 20000, wuerfelPause: 1500, schritt: 280, frage: 10000, zugEnde: 1600, botDenkt: 1300, wahl: 20000, wetten: 20000
+  };
   const BOTNAMEN = ["Nova", "Kepler", "Luna", "Orion", "Vega", "Atlas", "Lyra", "Juri"];
+
+  // ---------- Das Brett: 32 Module im Ring, Modul 0 ist die Luftschleuse ----------
+  const FELDER = "LVMVBVGMWVPVAMTVBGVMPVBMWVTGVAMV";
+  const N = FELDER.length;
+  const FELD = {
+    L: { name: "Luftschleuse", text: "Start" },
+    V: { name: "Versorgungskapsel", text: "+3 Energie" },
+    M: { name: "Meteoritenschauer", text: "−3 Energie" },
+    P: { name: "Weltraumpirat", text: "Klau jemandem 5 Energie" },
+    T: { name: "Teleporter", text: "Tausche den Platz mit jemandem" },
+    B: { name: "Bordcomputer", text: "Gratiswette: richtig getippt +8" },
+    G: { name: "Gravitationsanomalie", text: "Zufall: −5 bis +10, selten ein Kristall" },
+    A: { name: "Alien-Feld", text: "Du bist das nächste Alien" },
+    W: { name: "Wurmloch", text: "Für 5 Energie auf die andere Seite" }
+  };
+  const WURMLOCH = { 8: 24, 24: 8 };
+  const START = 10, PREIS = 20, MAXKAUF = 3, WURMPREIS = 5, MAXWETTE = 5, GRATIS = 8;
+  const LAENGEN = { kurz: 5, normal: 8, lang: 12 };
 
   // Zufall mit Startwert (mulberry32): gleicher Startwert → gleiche Folge auf jedem Handy
   function zufall(seed) {
@@ -36,14 +58,21 @@
       return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
     };
   }
+  // Zufall des Spielleiters für das Brett (Würfel, Händler, Anomalie). Der Zustand S.rs bleibt geheim.
+  function zahl(S) {
+    const a = S.rs = (((S.rs == null ? S.seed : S.rs) >>> 0) + 0x6D2B79F5) >>> 0;
+    let t = Math.imul(a ^ (a >>> 15), a | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  }
   const kopie = o => JSON.parse(JSON.stringify(o));
 
   function neu(code, pid, name) {
     return {
       code, epoch: 0, host: pid, phase: "lobby",
-      spieler: { [pid]: { name: name || "?", farbe: 0, energie: 0 } },
+      spieler: { [pid]: { name: name || "?", farbe: 0, energie: 0, kristalle: 0 } },
       reihenfolge: [pid], online: [pid],
-      mission: null, missionNr: 0, gespielt: [], seed: Math.floor(Math.random() * 2 ** 31)
+      mission: null, missionNr: 0, gespielt: [], partie: null, seed: Math.floor(Math.random() * 2 ** 31)
     };
   }
 
@@ -70,7 +99,7 @@
     if (anwesend(S).length >= MAX) return false;
     let n = 1; while (S.spieler["bot" + n]) n++;
     const pid = "bot" + n;
-    S.spieler[pid] = { name: BOTNAMEN[(n - 1) % BOTNAMEN.length], farbe: freieFarbe(S), energie: 0, bot: true };
+    S.spieler[pid] = { name: BOTNAMEN[(n - 1) % BOTNAMEN.length], farbe: freieFarbe(S), energie: 0, kristalle: 0, bot: true };
     S.reihenfolge.push(pid);
     return true;
   }
@@ -86,57 +115,337 @@
 
   function ctxVon(S) {
     const b = S.mission;
-    return { tn: b.tn, aktiv: b.tn.filter(p => istDa(S, p)), rng: zufall(b.seed + (b.zug = (b.zug || 0) + 1)) };
+    return { tn: b.tn, aktiv: b.tn.filter(p => istDa(S, p)), rng: zufall(b.seed + (b.zug = (b.zug || 0) + 1)), einzelner: b.einzelner || null };
   }
 
-  function missionStarten(S, id, jetzt) {
+  function missionStarten(S, id, jetzt, tnVorgabe) {
     const B = MISSIONEN[id];
     if (!B) return "Diese Mission gibt es nicht.";
-    const tn = anwesend(S).slice(0, MAX);
+    const tn = (tnVorgabe || anwesend(S)).slice(0, MAX);
     if (tn.length < (B.ab || 1)) return `${B.name} braucht mindestens ${B.ab} Mitspieler.`;
     S.missionNr += 1;
     const seed = (S.seed + S.missionNr * 7919) >>> 0;
     S.mission = { id, nr: S.missionNr, tn, seed, schritt: "anleitung", bis: jetzt + ZEIT.anleitung, bereit: {}, d: B.neu(tn, zufall(seed)), ergebnis: null };
+    if (S.partie) Object.assign(S.mission, { partie: true, faktor: faktor(S), einzelner: S.partie.alien && tn.includes(S.partie.alien) ? S.partie.alien : null });
     S.phase = "mission";
     return null;
   }
   // Nach einer Übernahme: laufende Mission von vorn (die Geheimnisse des alten Spielleiters sind weg)
   function missionNeustart(S, jetzt) {
     if (S.phase !== "mission" || !S.mission || S.mission.schritt === "ergebnis") return;
-    const { id } = S.mission; S.missionNr -= 1;
-    if (missionStarten(S, id, jetzt)) { S.phase = "lobby"; S.mission = null; }
+    const { id, tn, partie } = S.mission; S.missionNr -= 1;
+    if (missionStarten(S, id, jetzt, partie ? tn : null)) { S.mission = null; if (S.partie) { S.phase = "brett"; rundeEnde(S, jetzt); } else S.phase = "lobby"; }
   }
 
   // Platzierung mit Gleichstand (1, 1, 3 …) und Energie je Platz
-  function werten(S) {
-    const b = S.mission, B = MISSIONEN[b.id], werte = B.wertung(b.d) || {};
+  function werten(S, jetzt) {
+    const b = S.mission, B = MISSIONEN[b.id], werte = B.wertung(b.d) || {}, f = b.faktor || 1;
     const mit = b.tn.filter(p => werte[p] !== null && werte[p] !== undefined);
     const tabelle = ENERGIE_FUER(b.tn.length);
     mit.sort((x, y) => B.besser === "niedrig" ? werte[x] - werte[y] : werte[y] - werte[x]);
     const ergebnis = [];
     mit.forEach((p, i) => {
       const platz = i > 0 && werte[p] === werte[mit[i - 1]] ? ergebnis[i - 1].platz : i + 1;
-      ergebnis.push({ pid: p, wert: werte[p], platz, energie: tabelle[platz - 1] || 1 });
+      ergebnis.push({ pid: p, wert: werte[p], platz, energie: (tabelle[platz - 1] || 1) * f });
     });
     for (const p of b.tn) if (!mit.includes(p)) ergebnis.push({ pid: p, wert: null, platz: null, energie: 0 });
-    for (const e of ergebnis) if (S.spieler[e.pid]) S.spieler[e.pid].energie += e.energie;
-    b.ergebnis = ergebnis; b.schritt = "ergebnis"; b.bis = 0;
+    for (const e of ergebnis) if (S.spieler[e.pid]) {
+      S.spieler[e.pid].energie += e.energie;
+      if (S.partie && S.partie.stat[e.pid]) S.partie.stat[e.pid].mission += e.energie;
+    }
+    b.ergebnis = ergebnis; b.schritt = "ergebnis"; b.bis = S.partie && b.partie ? jetzt + ZEIT.ergebnis : 0;
     S.gespielt.push(b.id);
+    if (S.partie && b.partie) wettenAuszahlen(S, ergebnis.filter(e => e.platz === 1).map(e => e.pid));
   }
   const ENERGIE_FUER = n => n === 2 ? [10, 5] : ENERGIE;
+
+  // ---------- Partie auf dem Brett ----------
+  const faktor = S => (S.partie && S.partie.runde >= S.partie.runden ? 2 : 1);
+  // Wer auf dem Brett mitspielt (Nachzügler warten bis zur nächsten Runde)
+  const mitspieler = S => S.partie ? S.reihenfolge.filter(p => S.spieler[p] && S.partie.pos[p] !== undefined) : [];
+  // Stand: meiste Kristalle, dann meiste Energie
+  function rangliste(S) {
+    const ps = mitspieler(S);
+    return ps.slice().sort((a, b) => (S.spieler[b].kristalle - S.spieler[a].kristalle) || (S.spieler[b].energie - S.spieler[a].energie) || (ps.indexOf(a) - ps.indexOf(b)));
+  }
+  function plaetze(S) {
+    const r = rangliste(S), out = [];
+    r.forEach((p, i) => {
+      const a = S.spieler[p], v = i && S.spieler[r[i - 1]];
+      out.push({ pid: p, platz: v && v.kristalle === a.kristalle && v.energie === a.energie ? out[i - 1].platz : i + 1 });
+    });
+    return out;
+  }
+  function log(S, text) { const P = S.partie; P.log.push(text); if (P.log.length > 8) P.log.splice(0, P.log.length - 8); }
+  const nm = (S, p) => (S.spieler[p] ? S.spieler[p].name : "?");
+
+  function partieStarten(S, runden, jetzt) {
+    const tn = anwesend(S);
+    if (tn.length < 2) return "Eine Partie braucht mindestens 2 Leute. Nimm Bots dazu.";
+    farbenPruefen(S);
+    for (const p in S.spieler) { const sp = S.spieler[p]; sp.energie = START; sp.kristalle = 0; delete sp.wartet; }
+    for (const p of S.reihenfolge) if (!tn.includes(p) && S.spieler[p]) S.spieler[p].wartet = true;
+    S.partie = { runde: 0, runden, schritt: "", bis: 0, seit: jetzt, pos: {}, haendler: 0, wurf: {}, reihe: [], zug: null, wahl: null, gewaehlt: null,
+      wetten: {}, gratis: {}, alien: null, zyklus: [], stat: {}, log: [], ehrung: null, endstand: null };
+    for (const p of tn) { S.partie.pos[p] = 0; S.partie.stat[p] = { mission: 0, kapseln: 0, weg: 0 }; }
+    S.partie.haendler = 4 + Math.floor(zahl(S) * 24);
+    S.phase = "brett"; S.mission = null; S.gespielt = []; S.letzte = null;
+    neueRunde(S, jetzt);
+    return null;
+  }
+  function nachzueglerRein(S) {
+    const P = S.partie, ps = mitspieler(S);
+    const schnitt = ps.length ? Math.round(ps.reduce((s, p) => s + S.spieler[p].energie, 0) / ps.length) : START;
+    for (const p of S.reihenfolge) {
+      const sp = S.spieler[p];
+      if (!sp || !sp.wartet || !istDa(S, p) || mitspieler(S).length >= MAX) continue;
+      delete sp.wartet; sp.energie = schnitt; sp.kristalle = 0;
+      P.pos[p] = 0; P.stat[p] = { mission: 0, kapseln: 0, weg: 0 };
+      log(S, `${sp.name} steigt mit ${schnitt} Energie ein.`);
+    }
+  }
+  function neueRunde(S, jetzt) {
+    const P = S.partie;
+    P.runde += 1;
+    nachzueglerRein(S);
+    Object.assign(P, { schritt: "wuerfeln", bis: jetzt + ZEIT.wuerfeln, seit: jetzt, wurf: {}, reihe: [], zug: null, wahl: null, gewaehlt: null, wetten: {} });
+    log(S, P.runde >= P.runden ? `Letzte Runde ${P.runde}: Felder und Mission zählen doppelt!` : `Runde ${P.runde} von ${P.runden}`);
+  }
+  // Zwei Würfel; gespeichert als [a, b] (Tests dürfen auch eine Zahl setzen)
+  function wuerfeln(S, p) { S.partie.wurf[p] = [1 + Math.floor(zahl(S) * 6), 1 + Math.floor(zahl(S) * 6)]; }
+  const summe = w => Array.isArray(w) ? w[0] + w[1] : (w | 0);
+
+  // Ein Zug: laufen → Feld (vielleicht mit Frage) → Händler (Frage) → fertig
+  function zugStarten(S, p, jetzt) {
+    const P = S.partie, w = summe(P.wurf[p]) || 2, von = P.pos[p];
+    P.zug = { pid: p, wurf: w, von, pfad: Array.from({ length: w }, (_, i) => (von + i + 1) % N), start: jetzt, stufe: "laufen", frage: null, text: "" };
+  }
+  function frage(z, art, jetzt, optionen) { z.frage = { art, seit: jetzt, bis: jetzt + ZEIT.frage, optionen: optionen || null }; }
+  function feldWirkung(S, z, jetzt) {
+    const P = S.partie, p = z.pid, sp = S.spieler[p], typ = FELDER[P.pos[p]], f = faktor(S);
+    z.stufe = "feld"; z.feld = typ;
+    const andere = mitspieler(S).filter(q => q !== p);
+    let t = "";
+    if (typ === "V") { sp.energie += 3 * f; P.stat[p].kapseln += 1; t = `+${3 * f} Energie`; }
+    else if (typ === "M") { const v = Math.min(sp.energie, 3 * f); sp.energie -= v; t = v ? `−${v} Energie` : "Nichts mehr zu verlieren"; }
+    else if (typ === "G") {
+      const r = zahl(S);
+      if (r < 0.06) { sp.kristalle += 1; t = "Ein Sternkristall!"; }
+      else {
+        const d = (r < 0.36 ? -5 : r < 0.66 ? 3 : r < 0.9 ? 6 : 10) * f;
+        if (d < 0) { const v = Math.min(sp.energie, -d); sp.energie -= v; t = `−${v} Energie`; } else { sp.energie += d; t = `+${d} Energie`; }
+      }
+    }
+    else if (typ === "B") { P.gratis[p] = true; t = "Gratiswette für die nächste Mission"; }
+    else if (typ === "A") { P.alien = p; t = "Ist in der nächsten „Einer gegen alle“-Mission das Alien"; }
+    else if (typ === "P") {
+      const opfer = andere.filter(q => S.spieler[q].energie > 0);
+      if (opfer.length) frage(z, "pirat", jetzt, opfer); else t = "Bei niemandem ist etwas zu holen";
+    }
+    else if (typ === "T") { if (andere.length) frage(z, "teleporter", jetzt, andere); }
+    else if (typ === "W") { if (sp.energie >= WURMPREIS) frage(z, "wurmloch", jetzt); else t = "Zu wenig Energie für das Wurmloch"; }
+    z.text = t;
+    if (t) log(S, `${sp.name}: ${FELD[typ].name}, ${t}`);
+    if (!z.frage) haendlerPruefen(S, z, jetzt);
+  }
+  function haendlerPruefen(S, z, jetzt) {
+    const P = S.partie, sp = S.spieler[z.pid];
+    if (!z.handel && z.pfad.includes(P.haendler)) {
+      z.handel = true;
+      const k = Math.min(MAXKAUF, Math.floor(sp.energie / PREIS));
+      if (k > 0) { z.stufe = "handel"; frage(z, "kauf", jetzt, k); return; }
+      z.text2 = `Am Händlerschiff vorbei, aber zu wenig Energie (${PREIS} nötig)`;
+    }
+    z.stufe = "fertig"; z.ende = jetzt + ZEIT.zugEnde;
+  }
+  function haendlerWeiter(S) {
+    const P = S.partie, alt = P.haendler;
+    let neu = alt;
+    for (let i = 0; i < 50; i++) {
+      neu = 1 + Math.floor(zahl(S) * (N - 1));
+      const ab = Math.min(Math.abs(neu - alt), N - Math.abs(neu - alt));
+      if (ab >= 8) break;
+    }
+    P.haendler = neu;
+  }
+  // Antwort auf eine Frage im Zug (von Spieler, Bot oder bei Zeitablauf w = undefined → Vorgabe)
+  function antworten(S, w, jetzt) {
+    const P = S.partie, z = P.zug, fr = z.frage, p = z.pid, sp = S.spieler[p], f = faktor(S);
+    if (fr.art === "pirat") {
+      const ziel = fr.optionen.includes(w) ? w : fr.optionen.slice().sort((a, b) => S.spieler[b].energie - S.spieler[a].energie)[0];
+      const v = Math.min(S.spieler[ziel].energie, 5 * f);
+      S.spieler[ziel].energie -= v; sp.energie += v;
+      z.text = `Klaut ${nm(S, ziel)} ${v} Energie`;
+    } else if (fr.art === "teleporter") {
+      if (fr.optionen.includes(w)) { const a = P.pos[p]; P.pos[p] = P.pos[w]; P.pos[w] = a; z.text = `Tauscht den Platz mit ${nm(S, w)}`; }
+      else z.text = "Bleibt an Ort und Stelle";
+    } else if (fr.art === "wurmloch") {
+      if (w === "ja" && sp.energie >= WURMPREIS) { sp.energie -= WURMPREIS; P.pos[p] = WURMLOCH[P.pos[p]]; z.text = `Springt für ${WURMPREIS} Energie durchs Wurmloch`; }
+      else z.text = "Nimmt das Wurmloch nicht";
+    } else if (fr.art === "kauf") {
+      const k = Math.min(fr.optionen, Math.floor(sp.energie / PREIS), w === undefined || w === "ja" ? MAXKAUF : Math.max(0, w | 0));
+      if (k > 0) {
+        sp.energie -= k * PREIS; sp.kristalle += k; haendlerWeiter(S);
+        z.text2 = `Kauft ${k === 1 ? "einen Sternkristall" : k + " Sternkristalle"} für ${k * PREIS} Energie. Das Händlerschiff legt ab.`;
+      } else z.text2 = "Kauft keinen Kristall";
+      log(S, `${sp.name}: ${z.text2}`);
+      z.frage = null; z.stufe = "fertig"; z.ende = jetzt + ZEIT.zugEnde;
+      return;
+    }
+    log(S, `${sp.name}: ${FELD[z.feld].name}, ${z.text}`);
+    z.frage = null;
+    haendlerPruefen(S, z, jetzt);
+  }
+  function botAntwort(S, z) {
+    const fr = z.frage;
+    if (fr.art === "kauf") return fr.optionen;
+    if (fr.art === "pirat") return fr.optionen.slice().sort((a, b) => S.spieler[b].energie - S.spieler[a].energie)[0];
+    if (fr.art === "teleporter") return zahl(S) < 0.5 ? fr.optionen[Math.floor(zahl(S) * fr.optionen.length)] : "nein";
+    if (fr.art === "wurmloch") return zahl(S) < 0.5 ? "ja" : "nein";
+    return undefined;
+  }
+
+  function wahlStarten(S, jetzt) {
+    const P = S.partie, da = mitspieler(S).filter(p => istDa(S, p));
+    let pool = passend(da.length).map(b => b.id);
+    if (!pool.length) pool = Object.keys(MISSIONEN);   // solange es wenige Missionen gibt
+    let frei = pool.filter(id => !P.zyklus.includes(id));
+    if (!frei.length) { P.zyklus = []; frei = pool; }
+    for (let i = frei.length - 1; i > 0; i--) { const j = Math.floor(zahl(S) * (i + 1)); [frei[i], frei[j]] = [frei[j], frei[i]]; }
+    const r = rangliste(S).filter(p => istDa(S, p));
+    P.schritt = "wahl"; P.seit = jetzt; P.bis = jetzt + ZEIT.wahl;
+    P.wahl = { wer: r[r.length - 1] || null, optionen: frei.slice(0, 3) };
+    if (!P.wahl.wer || !P.wahl.optionen.length) { log(S, "Keine Mission diesmal."); rundeEnde(S, jetzt); }
+  }
+  function missionWaehlen(S, id, jetzt) {
+    const P = S.partie;
+    P.gewaehlt = id; P.zyklus.push(id); P.wahl.gewaehlt = id;
+    log(S, `${nm(S, P.wahl.wer)} wählt die Mission ${MISSIONEN[id] ? MISSIONEN[id].name : id}.`);
+    P.schritt = "wetten"; P.seit = jetzt; P.bis = jetzt + ZEIT.wetten; P.wetten = {};
+  }
+  function wettenEnde(S, jetzt) {
+    const P = S.partie;
+    for (const p in P.wetten) {
+      const w = P.wetten[p], sp = S.spieler[p];
+      w.einsatz = w.auf ? Math.max(0, Math.min(w.einsatz | 0, MAXWETTE, sp ? sp.energie : 0)) : 0;
+      if (sp) sp.energie -= w.einsatz;
+      w.gratis = !!(w.auf && P.gratis[p]);            // die Gratiswette vom Bordcomputer gilt für diesen Tipp
+      if (w.gratis) delete P.gratis[p];
+    }
+    const tn = mitspieler(S).filter(p => istDa(S, p));
+    const f = missionStarten(S, P.gewaehlt, jetzt, tn);
+    if (f) { log(S, f); wettenZurueck(S); rundeEnde(S, jetzt); }
+  }
+  function wettenZurueck(S) {
+    const P = S.partie;
+    for (const p in P.wetten) {
+      const w = P.wetten[p];
+      if (S.spieler[p]) S.spieler[p].energie += w.einsatz | 0;
+      if (w.gratis) P.gratis[p] = true;
+    }
+    P.wetten = {};
+  }
+  function wettenAuszahlen(S, sieger) {
+    const P = S.partie, b = S.mission, liste = [];
+    for (const p in P.wetten) {
+      const w = P.wetten[p]; if (!w.auf || !S.spieler[p]) continue;
+      const richtig = sieger.includes(w.auf), gratis = !!w.gratis;
+      const gewinn = richtig ? 2 * (w.einsatz | 0) + (gratis ? GRATIS : 0) : 0;
+      S.spieler[p].energie += gewinn;
+      liste.push({ pid: p, auf: w.auf, einsatz: w.einsatz | 0, gratis, richtig, gewinn });
+    }
+    b.wetten = liste; P.wetten = {};
+  }
+  function rundeEnde(S, jetzt) {
+    const P = S.partie;
+    S.phase = "brett"; P.wahl = null; P.gewaehlt = null; P.zug = null;
+    if (P.runde >= P.runden) partieEnde(S); else neueRunde(S, jetzt);
+  }
+  // Siegerehrung: drei Bonus-Kristalle, dann zählen Kristalle, bei Gleichstand Energie
+  function partieEnde(S) {
+    const P = S.partie, ps = mitspieler(S);
+    const bonus = (titel, text, wert) => {
+      const max = Math.max(0, ...ps.map(wert));
+      const pids = max > 0 ? ps.filter(p => wert(p) === max) : [];
+      for (const p of pids) S.spieler[p].kristalle += 1;
+      return { titel, text, pids, wert: max };
+    };
+    P.ehrung = [
+      bonus("Missionsheld", "meiste Energie aus Missionen", p => P.stat[p].mission),
+      bonus("Glückskind", "meiste Versorgungskapseln", p => P.stat[p].kapseln),
+      bonus("Weltenbummler", "meiste gezogene Module", p => P.stat[p].weg)
+    ];
+    P.endstand = plaetze(S);
+    P.schritt = "ende"; P.zug = null; P.wahl = null;
+    S.phase = "ende"; S.mission = null;
+  }
+
+  // Zeitgesteuerter Ablauf auf dem Brett; true, wenn sich etwas geändert hat
+  function brettTakt(S, jetzt) {
+    const P = S.partie;
+    if (!P) return false;
+    let anders = false;
+    if (P.schritt === "wuerfeln") {
+      for (const p of mitspieler(S)) if (P.wurf[p] == null && istBot(S, p) && jetzt - P.seit > 700 && zahl(S) < 0.2) { wuerfeln(S, p); anders = true; }
+      const offen = mitspieler(S).filter(p => P.wurf[p] == null && istDa(S, p));
+      if (!offen.length || jetzt >= P.bis) {
+        for (const p of mitspieler(S)) if (P.wurf[p] == null) wuerfeln(S, p);
+        P.reihe = rangliste(S).reverse();          // wer hinten liegt, zieht zuerst
+        P.schritt = "ziehen"; P.zug = null; P.bis = jetzt + ZEIT.wuerfelPause; anders = true;
+      }
+    }
+    if (P.schritt === "ziehen") {
+      const z = P.zug;
+      if (!z) {
+        if (jetzt >= P.bis) {
+          const p = P.reihe.shift();
+          if (p && S.spieler[p] && P.pos[p] !== undefined) zugStarten(S, p, jetzt);
+          else if (!p) wahlStarten(S, jetzt);
+          anders = true;
+        }
+      } else if (z.stufe === "laufen") {
+        if (jetzt >= z.start + z.pfad.length * ZEIT.schritt + 250) {
+          P.pos[z.pid] = z.pfad[z.pfad.length - 1]; P.stat[z.pid].weg += z.wurf;
+          feldWirkung(S, z, jetzt); anders = true;
+        }
+      } else if (z.frage) {
+        if (istBot(S, z.pid)) { if (jetzt >= z.frage.seit + ZEIT.botDenkt) { antworten(S, botAntwort(S, z), jetzt); anders = true; } }
+        else if (!istDa(S, z.pid) || jetzt >= z.frage.bis) { antworten(S, undefined, jetzt); anders = true; }
+      } else if (z.stufe === "fertig" && jetzt >= z.ende) { P.zug = null; P.bis = jetzt; anders = true; }
+    }
+    if (P.schritt === "wahl" && P.wahl && !P.wahl.gewaehlt) {
+      const w = P.wahl.wer, opt = P.wahl.optionen;
+      const automatisch = (istBot(S, w) && jetzt >= P.seit + ZEIT.botDenkt) || !istDa(S, w) || jetzt >= P.bis || (opt.length === 1 && jetzt >= P.seit + 4000);
+      if (automatisch) { missionWaehlen(S, opt[Math.floor(zahl(S) * opt.length)], jetzt); anders = true; }
+    }
+    if (P.schritt === "wetten") {
+      const tn = mitspieler(S).filter(p => istDa(S, p));
+      for (const p of tn) if (istBot(S, p) && !P.wetten[p] && jetzt - P.seit > 1000 && zahl(S) < 0.15) {
+        const auf = zahl(S) < 0.4 ? p : tn[Math.floor(zahl(S) * tn.length)];
+        P.wetten[p] = { auf, einsatz: Math.min(S.spieler[p].energie, Math.floor(zahl(S) * 4)) };
+        anders = true;
+      }
+      if (tn.every(p => P.wetten[p]) || jetzt >= P.bis) { wettenEnde(S, jetzt); anders = true; }
+    }
+    return anders;
+  }
 
   function aktion(S, pid, m, jetzt) {
     if (!m || !m.t) return { ok: false, fehler: "?" };
     const host = pid === S.host;
-    const b = S.mission;
+    const b = S.mission, P = S.partie;
     switch (m.t) {
       case "hallo": {
         const name = String(m.name || "?").trim().slice(0, 20) || "?";
         if (!S.spieler[pid]) {
-          if (S.phase === "lobby" && anwesend(S).length >= MAX) return { ok: false, fehler: "Die Station ist voll (8 Leute)." };
-          S.spieler[pid] = { name, farbe: freieFarbe(S, pid), energie: 0 };
+          if (anwesend(S).length >= MAX) return { ok: false, fehler: "Die Station ist voll (8 Leute)." };
+          S.spieler[pid] = { name, farbe: freieFarbe(S, pid), energie: 0, kristalle: 0 };
+          if (P && S.phase !== "lobby") S.spieler[pid].wartet = true;   // Nachzügler: steigt in der nächsten Runde ein
           S.reihenfolge.push(pid);
-        } else S.spieler[pid].name = name;
+        } else {
+          S.spieler[pid].name = name;
+          if (P && S.phase !== "ende" && P.pos[pid] === undefined) S.spieler[pid].wartet = true;
+        }
         return { ok: true };
       }
       case "farbe": {
@@ -150,9 +459,48 @@
         const r = m.dazu ? botDazu(S) : botWeg(S);
         return r ? { ok: true } : { ok: false, fehler: m.dazu ? "Mehr als 8 gehen nicht." : "Kein Bot da." };
       }
+      case "partie": {
+        if (!host || S.phase !== "lobby") return { ok: false, fehler: "Nur der Spielleiter in der Lobby." };
+        const runden = LAENGEN[m.laenge] || (m.runden | 0) || LAENGEN.normal;
+        const f = partieStarten(S, Math.max(1, Math.min(20, runden)), jetzt);
+        return f ? { ok: false, fehler: f } : { ok: true };
+      }
+      case "wurf": {
+        if (S.phase !== "brett" || !P || P.schritt !== "wuerfeln" || P.pos[pid] === undefined || P.wurf[pid] != null) return { ok: false };
+        wuerfeln(S, pid); brettTakt(S, jetzt); return { ok: true };
+      }
+      case "antwort": {
+        const z = P && P.zug;
+        if (S.phase !== "brett" || !z || z.pid !== pid || !z.frage) return { ok: false };
+        antworten(S, m.w, jetzt); return { ok: true };
+      }
+      case "waehle": {
+        if (S.phase !== "brett" || !P || P.schritt !== "wahl" || !P.wahl || P.wahl.gewaehlt) return { ok: false };
+        if (P.wahl.wer !== pid) return { ok: false, fehler: "Die Mission wählt, wer gerade Letzter ist." };
+        if (!P.wahl.optionen.includes(m.id)) return { ok: false, fehler: "?" };
+        missionWaehlen(S, m.id, jetzt); return { ok: true };
+      }
+      case "wette": {
+        if (S.phase !== "brett" || !P || P.schritt !== "wetten" || P.pos[pid] === undefined) return { ok: false };
+        const tn = mitspieler(S).filter(p => istDa(S, p));
+        const auf = tn.includes(m.auf) ? m.auf : null;
+        P.wetten[pid] = { auf, einsatz: auf ? Math.max(0, Math.min(MAXWETTE, S.spieler[pid].energie, m.einsatz | 0)) : 0 };
+        brettTakt(S, jetzt); return { ok: true };
+      }
+      case "beenden": {
+        if (!host || !P || (S.phase !== "brett" && S.phase !== "mission")) return { ok: false };
+        if (S.phase === "mission" && b && b.schritt !== "ergebnis") wettenZurueck(S);
+        partieEnde(S); return { ok: true };
+      }
+      case "neuePartie": {
+        if (!host || S.phase !== "ende") return { ok: false };
+        S.phase = "lobby"; S.partie = null; S.mission = null;
+        for (const p in S.spieler) { S.spieler[p].energie = 0; S.spieler[p].kristalle = 0; delete S.spieler[p].wartet; }
+        return { ok: true };
+      }
       case "mission": {
         if (!host) return { ok: false, fehler: "Nur der Spielleiter wählt die Mission." };
-        if (S.phase !== "lobby") return { ok: false, fehler: "Es läuft schon eine Mission." };
+        if (S.phase !== "lobby") return { ok: false, fehler: "Es läuft schon etwas." };
         farbenPruefen(S);
         const f = missionStarten(S, m.id, jetzt);
         return f ? { ok: false, fehler: f } : { ok: true };
@@ -163,11 +511,14 @@
       }
       case "weiter": {
         if (!host || !b || b.schritt !== "ergebnis") return { ok: false };
-        S.phase = "lobby"; S.letzte = { id: b.id, ergebnis: b.ergebnis }; S.mission = null; return { ok: true };
+        missionZuende(S, jetzt); return { ok: true };
       }
       case "abbrechen": {
         if (!host || !b || b.schritt === "ergebnis") return { ok: false };
-        S.phase = "lobby"; S.mission = null; return { ok: true };
+        S.mission = null;
+        if (b.partie && P) { wettenZurueck(S); log(S, "Die Mission wurde abgebrochen."); rundeEnde(S, jetzt); }
+        else S.phase = "lobby";
+        return { ok: true };
       }
       case "b": {   // Eingabe in der Mission
         if (!b || b.schritt !== "spiel" || !b.tn.includes(pid)) return { ok: false };
@@ -177,15 +528,21 @@
       }
       case "punkteNull": {
         if (!host || S.phase !== "lobby") return { ok: false };
-        for (const p in S.spieler) S.spieler[p].energie = 0;
+        for (const p in S.spieler) { S.spieler[p].energie = 0; S.spieler[p].kristalle = 0; }
         S.gespielt = []; S.letzte = null; return { ok: true };
       }
     }
     return { ok: false, fehler: "?" };
   }
+  function missionZuende(S, jetzt) {
+    const b = S.mission;
+    S.letzte = { id: b.id, ergebnis: b.ergebnis }; S.mission = null;
+    if (b.partie && S.partie) rundeEnde(S, jetzt); else S.phase = "lobby";
+  }
 
   // Zeitgesteuerter Ablauf und Bots; true, wenn sich etwas geändert hat
   function takt(S, jetzt) {
+    if (S.phase === "brett") return brettTakt(S, jetzt);
     const b = S.mission;
     if (S.phase !== "mission" || !b) return false;
     const B = MISSIONEN[b.id];
@@ -208,22 +565,30 @@
         }
       }
       if (B.takt(b.d, jetzt, ctxVon(S))) anders = true;
-      if (b.d.fertig) { werten(S); anders = true; }
+      if (b.d.fertig) { werten(S, jetzt); anders = true; }
     }
+    // In der Partie geht es nach dem Ergebnis von selbst weiter
+    if (b.schritt === "ergebnis" && b.partie && b.bis && jetzt >= b.bis) { missionZuende(S, jetzt); anders = true; }
     return anders;
   }
 
   function sicht(S, pid) {
     const v = kopie(S);
     if (v.mission && MISSIONEN[v.mission.id] && MISSIONEN[v.mission.id].sicht) v.mission.d = MISSIONEN[v.mission.id].sicht(v.mission.d, pid);
-    delete v.seed;
+    // Wetten der anderen bleiben verdeckt, bis die Mission ausgewertet ist
+    if (v.partie && v.partie.wetten) for (const p in v.partie.wetten) if (p !== pid) v.partie.wetten[p] = { verdeckt: true };
+    delete v.seed; delete v.rs;
     return v;
   }
 
-  // Gesamtstand nach Energie
+  // Gesamtstand nach Energie (Lobby) bzw. nach Kristallen und Energie (Partie)
   function stand(S) {
+    if (S.partie) return rangliste(S);
     return S.reihenfolge.filter(p => S.spieler[p]).sort((a, b) => S.spieler[b].energie - S.spieler[a].energie);
   }
 
-  W.RM = { MAX, FARBEN, ENERGIE, ZEIT, MISSIONEN, zufall, neu, aktion, takt, sicht, stand, passend, anwesend, istBot, istDa, missionNeustart, kopie };
+  W.RM = {
+    MAX, FARBEN, ENERGIE, ZEIT, MISSIONEN, FELDER, FELD, WURMLOCH, N, START, PREIS, MAXKAUF, WURMPREIS, MAXWETTE, GRATIS, LAENGEN,
+    zufall, summe, neu, aktion, takt, sicht, stand, passend, anwesend, istBot, istDa, missionNeustart, kopie, mitspieler, rangliste, plaetze, faktor
+  };
 })();

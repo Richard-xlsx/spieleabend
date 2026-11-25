@@ -1,7 +1,7 @@
 // Orbit: Verbindung (Handy des Spielleiters ist der Server, PeerJS), Uhrabgleich, Bots und Bildschirme.
 // Regeln und Ablauf stehen in logic.js, die Missionen in missionen/*.js.
 (function () {
-  const R = window.RM, UI = window.ORBIT_UI || {};
+  const R = window.RM, UI = window.ORBIT_UI || {}, B = window.ORBIT_BRETT;
   const app = document.getElementById("app");
   const PREFIX = "fmwob-";
   const ZEICHEN = "ABCDEFGHJKLMNPRSTUVWXYZ23456789";
@@ -20,6 +20,7 @@
   let code = (params.get("raum") || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
   let rolle = null, S = null, peer = null, hostConn = null, verbunden = false, offlineSeit = null, fehlerText = "";
   const conns = new Map();
+  let laenge = "normal";
   let retryTimer = null, token = 0, versuch = 0, hinweis = "", hinweisTimer = null, letztesHtml = "";
 
   const hostId = ep => PREFIX + code + "-" + ep;
@@ -163,13 +164,14 @@
     else zeigeHinweis("Keine Verbindung zum Spielleiter.");
   }
   function zeigeHinweis(t) { hinweis = t; render(); clearTimeout(hinweisTimer); hinweisTimer = setTimeout(() => { hinweis = ""; render(); }, 2500); }
-  function neuesSpiel(bots, mission) {
+  function neuesSpiel(bots, mission, partie) {
     code = (window.ABEND && ABEND.neuerRaum()) || Array.from({ length: 4 }, () => ZEICHEN[Math.floor(Math.random() * ZEICHEN.length)]).join("");
     history.replaceState(null, "", "?raum=" + code + testTeil());
     const s = R.neu(code, PID, name);
     hostStarten(s);
     for (let i = 0; i < bots; i++) R.aktion(S, PID, { t: "bot", dazu: true }, Date.now());
     if (mission) R.aktion(S, PID, { t: "mission", id: mission }, Date.now());
+    else if (partie) R.aktion(S, PID, { t: "partie", laenge: R.LAENGEN[partie] ? partie : "kurz" }, Date.now());
     geaendert();
   }
   function verlassen() { ls.del("ob:host:" + code); ls.del("ob:kopie:" + code); location.href = location.pathname + (params.get("test") ? "?test=" + params.get("test") : ""); }
@@ -180,18 +182,21 @@
   const da = p => R.istBot(S, p) || online(p);
   const farbe = p => (R.FARBEN[sp(p).farbe] || R.FARBEN[0]).f;
   // Astronautenhelm in der Spielerfarbe, im Visier der Anfangsbuchstabe
-  function helmSvg(f, buchstabe, klasse) {
-    return `<svg class="helm ${klasse || ""}" viewBox="0 0 40 40" aria-hidden="true"><path d="M20 2.5v3" stroke="${f}" stroke-width="2" stroke-linecap="round"/><circle cx="20" cy="2.6" r="1.8" fill="${f}"/>
+  function helmInnen(f, buchstabe) {
+    return `<path d="M20 2.5v3" stroke="${f}" stroke-width="2" stroke-linecap="round"/><circle cx="20" cy="2.6" r="1.8" fill="${f}"/>
       <circle cx="20" cy="21" r="16" fill="${f}" stroke="#060A1C" stroke-width="2.4"/><rect x="7.5" y="13" width="25" height="15" rx="7.5" fill="#0A1030" stroke="#060A1C" stroke-width="1.6"/>
       <path d="M11 17.5q2-2.8 6-3" stroke="#FFFFFF" stroke-opacity=".55" stroke-width="1.8" fill="none" stroke-linecap="round"/>
-      <text x="20" y="25.2" text-anchor="middle" font-family="Exo 2,Inter,system-ui,sans-serif" font-weight="900" font-size="11" fill="${f}">${esc(buchstabe)}</text></svg>`;
+      <text x="20" y="25.2" text-anchor="middle" font-family="Exo 2,Inter,system-ui,sans-serif" font-weight="900" font-size="11" fill="${f}">${esc(buchstabe)}</text>`;
   }
-  const helm = (p, klasse) => helmSvg(farbe(p), (sp(p).name || "?").trim().charAt(0).toUpperCase() || "?", klasse);
+  const helmSvg = (f, buchstabe, klasse) => `<svg class="helm ${klasse || ""}" viewBox="0 0 40 40" aria-hidden="true">${helmInnen(f, buchstabe)}</svg>`;
+  const anfang = p => (sp(p).name || "?").trim().charAt(0).toUpperCase() || "?";
+  const helm = (p, klasse) => helmSvg(farbe(p), anfang(p), klasse);
   const uhr = bis => `<span class="uhr" data-bis="${bis}">${Math.max(0, Math.ceil((bis - hostJetzt()) / 1000))}</span>`;
   const ctxUI = () => {
     const m = S.mission;
     return { PID, S, esc, helm, uhr, tun, name: p => sp(p).name, dabei: !!(m && m.tn.includes(PID)) };
   };
+  const ctxBrett = () => ({ S, PID, R, esc, helm, helmInnen: p => helmInnen(farbe(p), anfang(p)), name: p => sp(p).name, farbe, uhr, jetzt: hostJetzt, tun, host: rolle === "host", da });
 
   // ---------- Bildschirme ----------
   function statusZeile() {
@@ -204,7 +209,10 @@
     let h = `<div class="status" ${st ? "" : "hidden"}><span>${esc(st)}</span>${ueb ? `<button class="klein" id="uebernehmen">Spielleitung übernehmen</button>` : ""}</div>`;
     if (!rolle) h += code ? bildschirmName() : bildschirmStart();
     else if (rolle === "pruefen" || !S) h += `<div class="mitte"><p class="leise">${window.ABEND ? ABEND.warten() : "Verbinde …"}</p></div>`;
-    else h += S.phase === "mission" && S.mission ? bildschirmMission() : bildschirmLobby();
+    else if (S.phase === "mission" && S.mission) h += bildschirmMission();
+    else if (S.phase === "brett" && S.partie && B) h += B.html(ctxBrett());
+    else if (S.phase === "ende" && S.partie && B) h += B.ende(ctxBrett());
+    else h += bildschirmLobby();
     if (hinweis) h += `<div class="toast" role="status">${esc(hinweis)}</div>`;
     if (h === letztesHtml) return;
     letztesHtml = h;
@@ -216,6 +224,7 @@
   // Uhren und Countdown ohne neues Zeichnen weiterzählen
   function zeitenAnzeigen() {
     const jetzt = hostJetzt();
+    if (B && S && S.phase === "brett") B.bewegen(ctxBrett());
     document.querySelectorAll("[data-bis]").forEach(el => {
       const r = Math.max(0, Math.ceil((+el.dataset.bis - jetzt) / 1000));
       if (el.textContent !== String(r)) el.textContent = r;
@@ -248,7 +257,7 @@
   }
   function bildschirmStart() {
     return `<header class="titel">${titelbild()}<h1>Orbit</h1><p class="leise">Eine Raumstation als Spielbrett: würfeln, durch die Module ziehen, Energie sammeln und Sternkristalle kaufen. Nach jeder Runde eine Mission für alle, mal geheim, mal live, mal im Team.</p></header>
-      <p class="baustelle">Im Aufbau: Bisher gibt es die erste Mission „Funkfrequenz“, das Spielbrett folgt.</p>
+      <p class="baustelle">Im Aufbau: Das Spielbrett steht, bisher gibt es eine Mission („Funkfrequenz“). Weitere folgen.</p>
       <label class="feld">Dein Name<input id="name" maxlength="20" value="${esc(name)}" autocomplete="nickname" placeholder="z. B. Richard"></label>
       <div class="karte-box"><h2>Neues Spiel</h2><p class="leise klein">Für 2 bis 8 Leute, jeder am eigenen Handy.</p>
         <button class="knopf" id="neu">Raum erstellen</button></div>
@@ -284,8 +293,14 @@
         ${weg.length ? `<p class="leise klein">Nicht verbunden: ${weg.map(p => esc(sp(p).name)).join(", ")}</p>` : ""}${letzte}
         ${host ? `<div class="reihe"><button class="knopf zweit" id="botDazu" ${n >= R.MAX ? "disabled" : ""}>+ Bot</button><button class="knopf zweit" id="botWeg" ${crew.some(p => R.istBot(S, p)) ? "" : "disabled"}>− Bot</button></div>` : ""}</div>
       ${farbWahl()}
-      <div class="karte-box"><h2>Missionen</h2>${missionen}
-        <p class="leise klein">${host ? "Das Spielbrett kommt im nächsten Schritt. Bis dahin startest du die Missionen hier direkt." : `${esc(sp(S.host).name)} startet die nächste Mission.`}</p></div>
+      <div class="karte-box"><h2>Partie</h2>
+        <p class="leise klein">Würfeln, durch die Station ziehen, Energie sammeln und beim Händlerschiff Sternkristalle kaufen. Nach jeder Runde eine Mission.</p>
+        ${host ? `<div class="laengen" role="group" aria-label="Länge">${[["kurz", "Kurz", "5 Runden · ca. 15 min"], ["normal", "Normal", "8 Runden · ca. 25 min"], ["lang", "Lang", "12 Runden · ca. 40 min"]].map(([k, t, u]) =>
+          `<button class="laenge ${laenge === k ? "an" : ""}" data-laenge="${k}" aria-pressed="${laenge === k}"><b>${t}</b><small>${u}</small></button>`).join("")}</div>
+          <button class="knopf" id="partie" ${n >= 2 ? "" : "disabled"}>${n >= 2 ? "Partie starten" : "Ab 2 Leuten (oder Bots dazunehmen)"}</button>`
+          : `<p class="mitte">${esc(sp(S.host).name)} startet die Partie.</p>`}</div>
+      <details class="karte-box uebung"><summary><h2>Einzelne Mission üben</h2></summary>${missionen}
+        <p class="leise klein">Ohne Brett, die Energie zählt nur zum Spaß.</p></details>
       ${host && hatEnergie ? `<button class="link" id="nullen">Energie auf 0 setzen</button>` : ""}
       <button class="link" id="verlassen">Raum verlassen</button>`;
   }
@@ -299,7 +314,8 @@
   }
   function bildschirmMission() {
     const m = S.mission, M = R.MISSIONEN[m.id], host = rolle === "host", dabei = m.tn.includes(PID);
-    const kopf = `<header class="missionstitel"><p class="etikett">Mission ${m.nr}${dabei ? "" : " · du schaust zu"}</p><h1>${esc(M ? M.name : m.id)}</h1></header>`;
+    const P = m.partie && S.partie;
+    const kopf = `<header class="missionstitel"><p class="etikett">${P ? `Runde ${P.runde} von ${P.runden} · Mission` : `Mission ${m.nr}`}${dabei ? "" : " · du schaust zu"}</p><h1>${esc(M ? M.name : m.id)}</h1>${m.faktor > 1 ? `<p class="doppeltzeile">Letzte Runde: doppelte Energie</p>` : ""}</header>`;
     const abbrechen = host && m.schritt !== "ergebnis" ? `<button class="link" id="abbrechen">Mission abbrechen</button>` : "";
     if (!M) return kopf + `<p class="leise mitte">Diese Mission kennt dein Handy noch nicht. Bitte neu laden.</p>` + abbrechen;
     if (m.schritt === "anleitung") {
@@ -320,7 +336,13 @@
     const platz = x => x.platz ? x.platz + "." : "–";
     return kopf + (ui && m.d ? `<details class="rueckblick"><summary>Letzter Durchgang</summary>${ui.html(m.d, ctxUI())}</details>` : "") +
       `<div class="karte-box"><h2>Ergebnis</h2><ol class="ergebnis">${e.map(x => `<li class="${x.platz === 1 ? "erster" : ""} ${x.pid === PID ? "ich" : ""}"><span class="pl">${platz(x)}</span>${helm(x.pid)}<span class="nm">${esc(sp(x.pid).name)}<small>${x.wert === null ? "nicht dabei" : x.wert + " " + esc(M.einheit || "")}</small></span><span class="plus">+${x.energie}<i>⚡</i></span></li>`).join("")}</ol></div>
-      ${host ? `<div class="unten"><button class="knopf" id="weiter">Zurück zur Crew</button></div>` : `<p class="leise mitte">${esc(sp(S.host).name)} geht weiter.</p>`}`;
+      ${wettErgebnis(m)}
+      ${P ? (host ? `<div class="unten"><button class="knopf" id="weiter">Zurück zur Station (${uhr(m.bis)})</button></div>` : `<p class="leise mitte">Weiter zur Station in ${uhr(m.bis)} s</p>`)
+        : host ? `<div class="unten"><button class="knopf" id="weiter">Zurück zur Crew</button></div>` : `<p class="leise mitte">${esc(sp(S.host).name)} geht weiter.</p>`}`;
+  }
+  function wettErgebnis(m) {
+    if (!m.wetten || !m.wetten.length) return "";
+    return `<div class="karte-box"><h2>Wetten</h2><ul class="wettliste">${m.wetten.map(w => `<li class="${w.richtig ? "richtig" : ""}">${helm(w.pid)}<span class="nm">${esc(sp(w.pid).name)}<small>tippt auf ${esc(sp(w.auf).name)}${w.einsatz ? `, ${w.einsatz} ⚡` : ""}${w.gratis ? ", Gratiswette" : ""}</small></span><span class="plus">${w.richtig ? `+${w.gewinn}<i>⚡</i>` : "–"}</span></li>`).join("")}</ul></div>`;
   }
 
   function binden() {
@@ -346,6 +368,9 @@
     if ($("abbrechen")) $("abbrechen").onclick = () => { if (confirm("Mission abbrechen? Es gibt keine Energie.")) tun({ t: "abbrechen" }); };
     document.querySelectorAll("[data-farbe]").forEach(b => b.onclick = () => tun({ t: "farbe", n: +b.dataset.farbe }));
     document.querySelectorAll("[data-mission]").forEach(b => b.onclick = () => tun({ t: "mission", id: b.dataset.mission }));
+    document.querySelectorAll("[data-laenge]").forEach(b => b.onclick = () => { laenge = b.dataset.laenge; letztesHtml = ""; render(); });
+    if ($("partie")) $("partie").onclick = () => tun({ t: "partie", laenge });
+    if (B && S && (S.phase === "brett" || S.phase === "ende")) B.binden(ctxBrett());
     const m = S && S.mission;
     if (m && m.schritt === "spiel" && UI[m.id] && UI[m.id].binden) UI[m.id].binden(ctxUI());
   }
@@ -362,10 +387,12 @@
     if (gespeichert) fortsetzenAlsHost(gespeichert);
     else if (name) clientStarten();
     else render();
-  } else if (params.get("bots") || params.get("mission")) {
-    // Testlinks: ?bots=3 erstellt sofort einen Raum mit Bots, ?mission=funkfrequenz startet die Mission direkt
+  } else if (params.get("bots") || params.get("mission") || params.get("partie")) {
+    // Testlinks: ?bots=3 erstellt sofort einen Raum mit Bots, ?mission=funkfrequenz startet die Mission direkt,
+    // ?partie=kurz startet gleich eine Partie auf dem Brett (mit 3 Bots, wenn nichts anderes angegeben ist)
     if (!name) { name = "Testpilot"; }
-    neuesSpiel(Math.min(7, +params.get("bots") || (params.get("mission") ? 3 : 0)), params.get("mission"));
+    const schnell = params.get("mission") || params.get("partie");
+    neuesSpiel(Math.min(7, +params.get("bots") || (schnell ? 3 : 0)), params.get("mission"), params.get("partie"));
   } else render();
   window.__ob = { get S() { return S; }, get rolle() { return rolle; }, get verbunden() { return verbunden; }, get versatz() { return versatz; }, PID, tun: params.get("test") ? tun : undefined };
 })();
