@@ -1,178 +1,168 @@
-# Rummel: Minispiel-Party (Konzept)
+# Rummel: Brettspiel mit Minispielen (Konzept und Plan)
 
-Stand 25.11.2026. Noch nicht gebaut. Arbeitstitel **„Rummel“**, Ordner `rummel/`.
+Stand 25.11.2026. Noch nicht gebaut. Ordner `rummel/`, für 2 bis 8 Leute, jeder am eigenen Handy.
 
-Idee: kurze Minispiele von 20 bis 40 Sekunden, bei denen man das Handy schüttelt, neigt, dreht, wischt oder einfach
-schnell tippt. Alle spielen gleichzeitig auf dem eigenen Handy, danach gibt es eine Punktetafel. So entsteht das
-Wii-Gefühl, nur ohne Konsole und Fernseher.
+Ein Rummelplatz ist das Spielbrett. Man würfelt, zieht über Felder voller Glück, Pech und Gemeinheiten und sammelt Lose.
+Mit Losen kauft man Teddys, und wer am Ende die meisten Teddys hat, gewinnt. Nach jeder Runde spielen alle eine Bude, also
+ein Minispiel. Dabei geht es nicht nur um flinke Finger: Man schubst sich von der Eisscholle, bietet geheim, blufft als
+Taschendieb oder rettet sich gemeinsam mit dem Team.
 
 ---
 
 ## 1. Ziele
 
-- **Sofort verstanden.** Jedes Minispiel lässt sich in einem Satz erklären. Vor dem Start gibt es eine kurze Anleitung mit Bild, mehr nicht.
-- **Kurz und knackig.** Ein Minispiel dauert höchstens 40 Sekunden. Eine ganze Partie dauert 10 bis 25 Minuten.
-- **Jeder kann gewinnen.** Es gibt eine Mischung aus Bewegung, Geschick, Reaktion, Beobachten und etwas Glück. Oma soll gegen den Neffen eine echte Chance haben.
-- **Lachen am Tisch.** Alle schütteln gleichzeitig wie wild oder halten den Atem an, wenn die Wurst gleich verbrennt.
-- **Gerecht trotz Internet.** Jedes Handy misst sein Ergebnis selbst. Eine langsame Verbindung kostet deshalb keine Punkte.
-- **Leicht erweiterbar.** Jedes Minispiel, hier „Bude“ genannt, ist eine eigene Datei. Neue Buden kommen einfach dazu.
+- **Ein ganzer Abendblock:** 15 bis 40 Minuten, je nach Länge.
+- **Jeder kann gewinnen:** Das Brett, die Wetten und das Glück gleichen aus. Wer bei Geschick schwächer ist, kann bei Bluff, Taktik und Wetten punkten.
+- **Niemand sitzt herum:** Wer ausscheidet, spielt weiter, zum Beispiel als Möwe, als Musikstopper oder als Störenfried.
+- **Sofort verstanden:** Jede Bude lässt sich in einem Satz erklären, und vor jeder Bude gibt es eine kurze Anleitung mit Bild.
+- **Gerecht trotz Internet:** Zeiten werden mit abgeglichener Uhr gemessen, und der Spielleiter hat keinen Vorteil (siehe 5).
 
----
+## 2. Thema
 
-## 2. Thema: Jahrmarkt
-
-Ein Rummelplatz in der Abenddämmerung mit Lichterketten, gestreiften Markisen, Holzschildern und Drehorgelmusik.
-Jedes Minispiel ist eine Bude. Gewinne gibt es in Form von **Losen**, und am Ende werden sie in der Preisbude eingelöst.
+Ein Jahrmarkt in der Abenddämmerung mit Lichterketten, gestreiften Markisen und Drehorgelmusik.
 
 - **Stil:** wie ein altes Jahrmarktsplakat. Farben Creme, Karminrot, Petrol und Gold, mit kräftiger Schrift.
-- **Technik:** 2D-Zeichnungen statt 3D. Das läuft auch auf älteren Handys flüssig.
-- **Ton:** ein Drehorgel-Jingle, der wie die Kart-Musik direkt im Browser erzeugt wird, dazu Geräusche je Bude.
-- **Vibration:** nur auf Android. Das iPhone erlaubt sie Webseiten nicht.
+- **Zeichnung:** 2D, damit es auch auf älteren Handys flüssig läuft.
+- **Figuren:** ein Spielkegel in der eigenen Farbe mit Anfangsbuchstaben.
+- **Ton:** Drehorgel-Jingle und Geräusche, direkt im Browser erzeugt wie bei Kerker-Kart.
 
 ---
 
-## 3. Ablauf einer Partie
+## 3. Das Spielbrett
 
-1. **Lobby:** Name und Farbe wählen. Auf dem iPhone tippt man einmal auf **„Bewegung erlauben“** und testet mit „Wackel mal kurz ✓“, ob es klappt. Der Spielleiter wählt die Länge.
-2. **Rundgang:** Eine Übersichtskarte des Rummelplatzes mit allen Buden. **Wer gerade Letzter ist, wählt aus 3 zufälligen Buden die nächste.** Das ist eine Aufholhilfe und gibt allen das Gefühl, mitzubestimmen. Nach 10 Sekunden wählt das Spiel selbst.
-3. **Anleitung:** Höchstens 15 Sekunden mit einem Satz und einem kleinen bewegten Bild, zum Beispiel einer schüttelnden Hand. Wer bereit ist, tippt auf „Bereit“. Bei Bewegungsspielen wird dabei die Neigung genullt, denn jeder hält sein Handy anders.
-4. **Countdown 3-2-1:** Er startet auf allen Handys im selben Moment (siehe 6.2).
-5. **Spiel:** 20 bis 40 Sekunden. Oben läuft die Uhr, bei Live-Buden sieht man auch die anderen.
-6. **Ergebnis:** Rangliste der Bude. Die Lose fliegen auf die Gesamttafel, und neue Rekorde werden gefeiert.
-7. Danach geht es zurück zum Rundgang. Die **letzte Bude ist das Finale** und gibt doppelte Lose.
-8. **Preisbude:** Siegerehrung wie in Kerker-Kart. Der Sieger bekommt den Riesenteddy, der Letzte einen Plastikring als Trostpreis. Dazu kommen Auszeichnungen wie „Schnellste Hand“, „Schüttelkönig“ oder „Ruhigste Hand“.
+**Aufbau:** Ein Rundweg mit 32 Feldern führt um den Platz, und in der Mitte stehen die Buden. Alle starten am Eingangstor
+mit 10 Losen. Jedes Handy zeigt das ganze Brett, die eigene Figur ist hervorgehoben.
 
-### Längen
-| Länge | Buden | Dauer |
-|---|---|---|
-| Kurz | 5 | ca. 10 min |
-| Normal | 8 | ca. 15 min |
-| Lang | 12 | ca. 25 min |
+**Teddy-Stand:** Er steht auf einem Feld des Rundwegs. Wer daran vorbeizieht oder darauf landet, darf für 20 Lose einen
+Teddy kaufen. Danach wandert der Stand an eine andere Stelle.
 
-### Lose je Bude
-| Platz | 1 | 2 | 3 | 4 | 5 | 6 | 7–8 |
-|---|---|---|---|---|---|---|---|
-| Lose | 10 | 7 | 5 | 4 | 3 | 2 | 1 |
+### Ablauf einer Runde
+1. **Würfeln:** Alle würfeln gleichzeitig durch Schütteln oder Tippen. Danach ziehen die Figuren nacheinander, wer
+   hinten liegt, zuerst. Für Entscheidungen auf einem Feld hat man 10 Sekunden Zeit.
+2. **Wetten:** Jeder darf bis zu 5 Lose auf den Sieger der nächsten Bude setzen, auch auf sich selbst. Wer richtig liegt,
+   bekommt den doppelten Einsatz.
+3. **Bude:** Wer gerade Letzter ist, wählt aus 3 Buden, die zur Spielerzahl passen. Jede Bude kommt erst wieder dran,
+   wenn alle anderen gespielt wurden.
+4. **Lose:**
+   - Jeder gegen jeden: Platz 1 bis 7 bekommt 10, 7, 5, 4, 3, 2 und 1 Lose.
+   - Teams: Das Siegerteam bekommt je 8 Lose, das andere Team je 2.
+   - Einer gegen alle: Gewinnt der Einzelne, bekommt er 15 Lose. Gewinnen die anderen, bekommen sie je 6.
 
-Bei Gleichstand gibt es die gleichen Lose. Mitmachen bringt immer mindestens 1 Los. Zu zweit gibt es 10 und 5 Lose.
+### Felder
+| Feld | Wirkung |
+|---|---|
+| Glück (blau) | +3 Lose |
+| Pech (rot) | −3 Lose |
+| Taschendieb | Klau einem Mitspieler deiner Wahl 5 Lose. |
+| Karussell | Tausche den Platz mit einem Mitspieler deiner Wahl. |
+| Wahrsagerin | Eine Gratiswette auf den Sieger der nächsten Bude. Liegt man richtig, gibt es 8 Lose. |
+| Glücksrad | Drehen: zwischen −5 und +10 Lose, selten ein Teddy. |
+| Zirkuszelt | Du bist in der nächsten „Einer gegen alle“-Bude der Einzelne. |
+| Geisterbahn | Abkürzung durch den Tunnel für 5 Lose. |
 
-### Weitere Spielweisen
-- **Allein üben:** Jede Bude ist einzeln spielbar, mit persönlichem Rekord auf dem Handy. Das ist auch zum Testen praktisch.
-- **Gemeinsamer Abend:** Rummel macht beim Abend mit (`abend.js`) wie die anderen Spiele.
-- **Später:** „Eine Bude zwischendurch“ als Pause zwischen zwei großen Spielen des Abends.
-- **Nachzügler:** Wer später kommt, schaut bei der laufenden Bude zu und spielt ab der nächsten mit.
+### Länge und Ende
+- **Länge:** Kurz 5 Runden (ca. 15 min), Normal 8 Runden (ca. 25 min), Lang 12 Runden (ca. 40 min).
+- **Letzte Runde:** Alle Felder und die Bude zählen doppelt.
+- **Preisbude:** Zum Schluss gibt es 3 Bonus-Teddys:
+  - „Budenkönig“ für die meisten Lose aus Buden
+  - „Glückspilz“ für die meisten Glücksfelder
+  - „Wandervogel“ für die meisten gezogenen Felder
 
----
-
-## 4. Die Buden
-
-Jede Bude nutzt eine andere Eingabe, damit es abwechslungsreich bleibt. Für jedes Bewegungsspiel gibt es einen
-**Ersatz zum Tippen oder Ziehen**, für Handys ohne Sensor, eine abgelehnte Erlaubnis oder den Laptop. Der Ersatz ist so
-abgestimmt, dass er etwa gleich stark ist.
-
-### Paket 1: sechs Buden zum Start
-
-| Bude | Eingabe | Dauer | Worum es geht |
-|---|---|---|---|
-| **Milchshake-Mixer** | Schütteln | 10 s | So schnell wie möglich schütteln, der Becher schäumt über. Zählt die Schüttler. |
-| **Startschuss** | Reaktion | 3 Durchgänge | Auf die Glocke warten, dann sofort tippen. Wer zu früh tippt, verliert den Durchgang. Ab Durchgang 2 gibt es Täuschungen: Eine Hupe statt der Glocke heißt „nicht tippen!“. |
-| **Entenangeln** | Neigen | 30 s | Den Haken durch Neigen über die schwimmenden Enten lenken und kurz stillhalten, dann beißt die Ente an. Unten auf den Enten stehen 1 bis 3 Punkte, die goldene Ente zählt 5. |
-| **Dosenwerfen** | Wischen | 5 Bälle | Nach oben wischen, um zu werfen. Richtung und Tempo des Wischens bestimmen Ziel und Wucht. Gezählt werden die gefallenen Dosen, wer alle abräumt, bekommt einen Bonus. |
-| **Bratwurst-Mutprobe** | Halten | 3 Würste | Finger drauflassen, dann grillt die Wurst. Loslassen nimmt sie vom Grill. Goldbraun gibt die meisten Punkte, verbrannt gibt null. Jede Wurst braucht anders lang. Hinweise sind Farbe, Zischen und Rauch. |
-| **Hütchenspiel** | Beobachten | 3 Durchgänge | Die Kugel liegt unter einem von drei Hütchen, die immer schneller getauscht werden. Dann tippt man auf das richtige Hütchen. Ganz ohne Sensor, ideal für alle Generationen. |
-
-Bei allen Buden in Paket 1 gilt: **Alle bekommen exakt dieselbe Aufgabe**, also dieselben Enten, Würste und
-Hütchen-Wechsel. Das ist gerecht und macht das Vergleichen spannend.
-
-### Paket 2: sechs weitere Buden, darunter Live-Buden und Teams
-
-| Bude | Eingabe | Worum es geht |
-|---|---|---|
-| **Schießbude** | Zielen mit dem ganzen Handy (Kreisel), Tippen zum Schießen | Das Fadenkreuz folgt dem Handy wie der Zeiger bei der Wii. Man trifft Blechsterne und Windräder, wer den Teddy trifft, bekommt Abzug. Geschossen wird mit Korken, nicht mit Waffen. |
-| **Zuckerwatte** | Handy im Kreis drehen | Dreht man gleichmäßig, wickelt sich die Watte auf. Dreht man zu schnell, reißt sie ab. Es gewinnt die größte Wolke. |
-| **Kamelrennen** (live) | Wischen | Man rollt Kugeln in Löcher mit 1, 2 oder 3 Punkten, dann läuft das eigene Kamel weiter. **Alle Kamele laufen auf jedem Handy sichtbar nebeneinander.** Wer zuerst im Ziel ist, gewinnt. |
-| **Tauziehen** (Teams, live) | Schütteln oder Tippen | Zwei Teams ziehen am Seil, wobei der Durchschnitt pro Person zählt, damit ungleiche Teams fair sind. Es geht über drei Durchgänge, und der Seilknoten wandert live. |
-| **Glücksrad** | Tippen im richtigen Moment | Das Rad dreht sich, und man tippt, um es zu bremsen. Es rollt noch nach, deshalb muss man den Moment abpassen. Es gibt 3 Versuche, ein bisschen Glück gehört dazu. |
-| **Riesenrad-Gedächtnis** | Beobachten | Gondeln mit Bildern fahren vorbei. Danach kommen Fragen wie „Welche Farbe hatte die Gondel mit dem Herz?“. |
-
-### Paket 3: die großen Brocken und Extras
-
-| Bude | Eingabe | Worum es geht |
-|---|---|---|
-| **Autoscooter** (live) | Neigen | Alle fahren in einer Arena und rempeln sich gegenseitig an. Es zählen Treffer, wer an die Bande gedrückt wird, verliert Punkte. Technik ähnlich wie bei Kerker-Kart. |
-| **Geisterbahn** | Neigen | Es ist dunkel, und man lenkt den Lichtkegel einer Taschenlampe. Darin tauchen Gespenster auf, die man antippt. Kleine Schreckmomente, aber kindgerecht. |
-| **Hau den Lukas** | Schütteln, dann Tippen | 3 Sekunden Schwung holen und im richtigen Moment zuschlagen. Erreicht man die Glocke, gibt es einen Bonus. |
-| **Sackhüpfen** | Hüpfen mit Handy in der Hand | Wer schafft die meisten Hüpfer in 15 Sekunden? Das ist albern und laut. Der Spielleiter kann es ausschalten. |
-| **Luftballon** | Pusten ins Mikrofon (Ersatz: Finger halten) | Den Ballon aufblasen, aber bevor er platzt aufhören. Die Grenze kennt niemand. Das Mikrofon braucht eine extra Erlaubnis, deshalb ist die Bude abschaltbar. |
+  Es gewinnt, wer die meisten Teddys hat, bei Gleichstand entscheiden die Lose.
+- **Nachzügler:** Wer später kommt, schaut zu und steigt in der nächsten Runde mit dem Durchschnitt an Losen ein.
 
 ---
 
-## 5. Sicherheit und für alle spielbar
+## 4. Die 14 Buden
 
-- **Kein Werfen und kein Schleudern.** Alle Bewegungen kommen aus dem Handgelenk. Vor jeder Bewegungs-Bude steht der Hinweis **„Handy gut festhalten!“**, und beim Schütteln zeigt das Bild beide Hände.
-- **Hüpfen und Pusten lassen sich abschalten.** Nicht jeder will im Wohnzimmer hüpfen.
-- **Große Tippflächen, klare Symbole** und Farben, die man auch mit Farbschwäche auseinanderhält, etwa zusätzlich Muster bei den Enten.
-- **Bildschirm bleibt an:** Während der Partie verhindert die Seite, dass der Bildschirm ausgeht (Wake Lock). Ein gesperrtes Handy würde mitten in der Bude aussteigen.
+Jede Bewegungssteuerung hat einen **Ersatz** zum Tippen oder Ziehen, für Handys ohne Sensor oder ohne Erlaubnis.
+Jedes Bewegungsspiel zeigt den Hinweis „Handy gut festhalten“, und niemand muss etwas werfen.
+
+| Bude | Art | Eingabe | ab | Worum es geht |
+|---|---|---|---|---|
+| **Versteigerung** | geheim | Tippen | 2 | Fünf Preise kommen nacheinander unter den Hammer, und jeder bietet geheim mit einem festen Budget. Bei Gleichstand bekommt keiner den Preis. |
+| **Einzelgänger-Zahl** | geheim | Tippen | 3 | Jeder wählt geheim eine Zahl von 1 bis 15. Die höchste Zahl, die nur einer gewählt hat, gewinnt, und es geht über drei Durchgänge. |
+| **Achterbahn der Gier** | geheim | Tippen | 2 | Die Punkte steigen, solange man sitzen bleibt, und man kann jederzeit abspringen. Wer beim Absturz noch sitzt, bekommt 0. Wer als Letzter vor dem Absturz abspringt, bekommt einen Bonus. |
+| **Eisscholle** | Arena | Neigen | 2 | Die Scholle schmilzt, und man schubst die anderen ins Wasser. Wer reinfällt, fliegt als Möwe weiter und lässt Fische fallen, auf denen man ausrutscht. |
+| **Farbrevier** | Arena | Neigen | 2 | Jeder färbt den Platz mit seiner Farbrolle und darf die Flächen der anderen übermalen. Farbbomben helfen, und nach 60 Sekunden gewinnt die größte Fläche. |
+| **Leuchtspur** | Arena | Tippen links/rechts | 2 | Jeder zieht eine Linie hinter sich her. Wer gegen eine Spur fährt, scheidet aus. |
+| **Reise nach Jerusalem** | Arena | Tippen | 3 | Wenn die Musik stoppt, schnell einen Stuhl antippen, es gibt immer einen zu wenig. Wer ausgeschieden ist, darf die Musik stoppen und dabei die anderen täuschen. |
+| **Taschendieb** | Einer gegen alle | Daumen | 3 | Ein Spieler versteckt sich unter 30 Besuchern und muss 3 Geldbeutel klauen. Die anderen beobachten das Gewusel und haben 2 Verdächtigungen. |
+| **Geisterbahn-Geist** | Einer gegen alle | Neigen | 3 | Der Geist bewegt sich unsichtbar durch die dunkle Bahn und sammelt Punkte. Die anderen suchen ihn mit Taschenlampen. |
+| **Eimerkette** | Teams | Wischen | 4 | Der Eimer wandert wirklich von Handy zu Handy. Wer zu hastig wischt, verschüttet Wasser. |
+| **Turmbau** | Teams | Ziehen | 4 | Die Teams setzen abwechselnd Bausteine auf einen wackelnden Turm. Das Team, bei dem der Turm umfällt, verliert. |
+| **Boule** | reihum | Wischen | 2 | Die Kugel möglichst nah an die Zielkugel bringen. Man darf die Kugeln der anderen wegschießen. |
+| **Greifautomat** | jeder für sich | Neigen und Tippen | 1 | Den Greifer steuern und die wertvollsten Preise herausholen. Der Griff hält mal besser, mal schlechter. |
+| **Kellner-Tablett** | jeder für sich | Daumen und Neigen | 1 | Ein volles Tablett durchs Lokal tragen, ohne etwas fallen zu lassen. |
+
+„ab“ ist die Mindestzahl der Spieler. Die Teams werden ausgelost, und bei ungerader Zahl zählt der Durchschnitt pro Person.
+Die Buden aus dem ersten Entwurf (Milchshake, Startschuss usw.) fallen weg. Einzelne können später als schnelle
+Zwischenrunden zurückkommen.
 
 ---
 
-## 6. Technik
+## 5. Technik
 
-### 6.1 Aufbau
+### 5.1 Dateien
 ```
 rummel/
-  index.html      Bildschirme, Stil, Skripte
-  logic.js        Ablauf ohne Netz und Oberfläche: Phasen, Rundgang, Lose, Auszeichnungen (testbar mit node)
-  app.js          Verbindung (PeerJS wie die anderen Spiele), Bildschirme, Uhrabgleich
-  sensoren.js     Erlaubnis, Nullstellung, Schüttelzähler, Neigung, Drehung, Ersatz-Eingaben
-  buden/*.js      eine Datei pro Bude, alle mit derselben Schnittstelle
+  index.html    Bildschirme und Stil
+  logic.js      Brett, Runden, Felder, Lose, Teddys, Wetten und Budenwahl, ohne Netz (mit node testbar)
+  app.js        Verbindung (PeerJS wie die anderen Spiele), Bildschirme, Brett-Zeichnung, Uhrabgleich
+  sensoren.js   Erlaubnis, Nullstellung, Neigen, Schütteln, Wischen, Daumen-Ersatz
+  live.js       gemeinsame Technik für Live-Buden: Eingaben sammeln, Takt beim Spielleiter, Zustand verteilen, glätten
+  buden/*.js    eine Datei pro Bude
 ```
+Jede Bude hat einen Teil für den Spielleiter (Regeln, Ablauf, Ergebnis) und einen Teil für jedes Handy (Anzeige und
+Eingabe). Der Teil des Spielleiters kommt ohne Oberfläche aus und lässt sich deshalb mit node testen.
 
-Jede Bude meldet sich so an: `RUMMEL.bude({ id, name, eingabe, dauer, anleitung, besser: "hoch" | "niedrig", start(ctx), stopp() })`.
-`ctx` liefert Zeichenfläche, Sensoren, Zufall mit gemeinsamem Startwert, Ton und `fertig(ergebnis)`.
+### 5.2 Wer rechnet was
+- **Geheime Buden:** Die Handys schicken ihre Wahl, und der Spielleiter wertet aus. Die Absturzzeit der Achterbahn kennt nur der Spielleiter.
+- **Live-Buden** (Arena, Geist, Turmbau, Boule):
+  - Der Spielleiter rechnet das Spielfeld 30-mal pro Sekunde und schickt 15-mal pro Sekunde den Stand.
+  - Die Handys schicken 20-mal pro Sekunde ihre Eingabe.
+  - Die eigene Figur wird auf dem Handy vorausberechnet, damit die Steuerung nicht hinterherhinkt.
+  - Die Eingabe des Spielleiters wird um die mittlere Laufzeit der anderen verzögert, damit er keinen Vorteil hat.
+- **Taschendieb:** Das Gewusel entsteht auf jedem Handy gleich aus einem gemeinsamen Startwert. Nur die Position des Diebs wird verschickt.
+- **Eimerkette:** Jedes Handy rechnet seinen Eimer selbst, und der Spielleiter reicht ihn ans nächste Handy weiter.
+- **Jeder für sich** (Greifautomat, Kellner): Jedes Handy rechnet selbst mit dem gleichen Startwert, und am Ende zählt nur das Ergebnis.
+- **Uhrabgleich und Zeitstempel:** Jedes Handy pingt den Spielleiter 5-mal und merkt sich die kürzeste Laufzeit. Bei der Reise nach Jerusalem und der Achterbahn entscheidet der Zeitstempel, nicht die Ankunft beim Spielleiter.
+- **Physik:** Eisscholle, Boule und Farbrevier bekommen eine eigene einfache Kreisphysik. Für den Turmbau wird planck.js über ein CDN geladen.
+- **Ausfall:**
+  - Verlässt der Spielleiter das Spiel, übernimmt ein anderes Handy wie bei den anderen Spielen.
+  - Eine laufende Bude wird abgebrochen und neu gestartet, der Stand auf dem Brett bleibt erhalten.
+- **Wake Lock:** Der Bildschirm bleibt während der Partie an.
 
-### 6.2 Gerecht trotz Netz
-- **Uhrabgleich:** Jedes Handy pingt den Spielleiter fünfmal und merkt sich die Antwort mit der kürzesten Laufzeit. So kennt es seinen Zeitunterschied zum Spielleiter auf wenige Millisekunden genau.
-- **Gemeinsamer Start:** Der Spielleiter sagt „Start um 18:42:07,000 Spielleiter-Zeit“, und alle Handys zählen bis dahin herunter.
-- **Jedes Handy rechnet selbst** und schickt am Ende nur sein Ergebnis. Eine Reaktionszeit wird also auf dem Handy gemessen, nicht beim Spielleiter.
-- **Gleiche Aufgabe für alle:** Der Spielleiter verteilt einen Startwert für den Zufall. Daraus berechnen alle Handys dieselben Enten, Würste und Hütchen.
-- **Plausibilitätsprüfung:** Ergebnisse jenseits des Möglichen, etwa 30 Schüttler pro Sekunde oder 50 ms Reaktionszeit, werden gekappt. Wer zu spät ist (Dauer + 5 s), bekommt 0.
-- **Live-Buden** (Kamelrennen, Tauziehen, Autoscooter) schicken 10 bis 15 Mal pro Sekunde ihren Stand an den Spielleiter, der ihn an alle verteilt, so wie bei Kerker-Kart.
-
-### 6.3 Sensoren
-- **Erlaubnis:** Auf dem iPhone wird sie einmal in der Lobby per Tipp abgefragt. Ohne Erlaubnis gelten die Ersatz-Eingaben.
-- **Schütteln:** Gezählt werden die Richtungswechsel, die über einer Schwelle liegen, nicht die rohe Stärke. Handys messen nämlich verschieden stark, und so ist es gerecht.
-- **Neigen:** Die Neigung wird bei „Bereit“ genullt, mit etwas Glättung, damit nichts zittert.
-- **Drehen und Zielen:** Über den Kreiselsensor. Das Fadenkreuz lässt sich jederzeit neu ausrichten, indem man zwei Finger auflegt.
-- **Am Laptop:** Maus und Pfeiltasten statt Sensoren, praktisch zum Testen.
-
-### 6.4 Testen
-- `?test` als eigener Raumbereich, wie bei den anderen Spielen.
-- `?bude=entenangeln&allein` startet eine Bude direkt.
-- `?bots=3` fügt drei Mitspieler mit zufälligen, aber plausiblen Ergebnissen hinzu. Damit lässt sich eine ganze Partie ohne vier Handys durchspielen.
-- Mit `node` lassen sich `logic.js` testen (Lose, Gleichstand, Rundgang, Nachzügler) und die Zähler in `sensoren.js` mit aufgezeichneten Bewegungsdaten.
-
----
-
-## 7. Pakete
-
-| Paket | Inhalt |
-|---|---|
-| **1** | Grundgerüst: Lobby, Abend, Rundgang, Anleitung, Countdown mit Uhrabgleich, Ergebnis, Preisbude, Sensoren mit Ersatz, Allein-Üben. Dazu die **6 Buden** aus Paket 1. Danach ist das Spiel fertig spielbar. |
-| **2** | 6 weitere Buden mit Live-Buden und Teams, Auszeichnungen, Rekordliste je Bude. |
-| **3** | Autoscooter, Geisterbahn, Hau den Lukas, Sackhüpfen und Luftballon, dazu „Eine Bude zwischendurch“ im gemeinsamen Abend. |
+### 5.3 Testen
+- `?test` als eigener Raumbereich.
+- `?bots=3` fügt Mitspieler hinzu, die würfeln, wetten und jede Bude plausibel spielen.
+- `?bude=eisscholle` startet eine Bude direkt.
+- **node:** Tests für logic.js (Felder, Lose, Teddys, Wetten, Budenwahl je Spielerzahl, Nachzügler) und für die Spielleiter-Teile der Buden.
+- **Playwright:** mehrere Browser-Fenster als Spieler, Bildschirmfotos auf Handygröße, keine JS-Fehler.
 
 ---
 
-## 8. Offene Entscheidungen
+## 6. Umsetzungsplan
 
-1. **Thema und Name:**
-   - **A** (Vorschlag): eigener Jahrmarkt „Rummel“.
-   - **B**: Jahrmarkt im Verlies, bei dem die Helden aus Dungeons & Disappointments als Spielfiguren mitmachen, wie in Kerker-Kart.
-2. **Wer wählt die nächste Bude:**
-   - der Letzte (Vorschlag, als Aufholhilfe),
-   - der Sieger der letzten Bude,
-   - der Zufall
-   - oder der Spielleiter.
-3. **Hüpfen und Pusten:** Sollen diese Buden standardmäßig an oder aus sein?
-4. **Spielfiguren:** Reichen Name und Farbe, oder soll jeder eine kleine Figur bekommen?
+Nach jedem Schritt wird getestet, hochgeladen und ist online spielbar.
+
+| Schritt | Inhalt | Danach |
+|---|---|---|
+| **1. Gerüst** | Ordner, Lobby (Name, Farbe, Länge), Verbindung, Uhrabgleich, Budensystem, Bots, `?bude=`. Erste Bude: **Einzelgänger-Zahl**. | Eine Bude ist mit Bots durchspielbar, aber noch ohne Brett. |
+| **2. Spielbrett** | Brett mit Feldern, Würfeln, Teddy-Stand, Wetten, Budenwahl durch den Letzten, Preisbude, Nachzügler, Übernahme. **Karte auf der Startseite** und Teilnahme am gemeinsamen Abend. | Rummel steht unter Spieleabend, mit dem Hinweis „im Aufbau“. |
+| **3. Geheime Buden** | **Versteigerung**, **Achterbahn der Gier** | Eine Partie mit 3 Buden ist komplett spielbar. |
+| **4. Live-Technik und Arena 1** | sensoren.js, live.js, **Eisscholle** mit Möwen, **Reise nach Jerusalem** mit Musikstopper | Die ersten Bewegungs-Buden laufen. |
+| **5. Arena 2** | **Farbrevier**, **Leuchtspur** | |
+| **6. Einer gegen alle** | **Taschendieb**, **Geisterbahn-Geist** | |
+| **7. Geschick** | **Boule**, **Greifautomat**, **Kellner-Tablett** | |
+| **8. Teams** | **Eimerkette**, **Turmbau** | Alle 14 Buden sind fertig, und der Hinweis „im Aufbau“ fällt weg. |
+| **9. Feinschliff** | Drehorgel und Geräusche, Abstimmung der Lose und Felder nach einem Testabend, Anleitungsbilder, LIESMICH | |
+
+Die Reihenfolge geht vom Einfachen zum Schweren. Schritt 4 baut die Live-Technik, auf der die Schritte 5 bis 8 aufsetzen.
+
+## 7. Festgelegt (änderbar)
+
+- Thema „Rummel“ statt Verlies-Jahrmarkt.
+- Die nächste Bude wählt der Letzte.
+- Figuren sind Spielkegel mit Farbe und Anfangsbuchstaben.
+- Hüpfen und Pusten entfallen.
