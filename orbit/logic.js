@@ -4,7 +4,7 @@
 // und alle 200 ms RM.takt(S, jetzt) auf (Zeiten in Spielleiter-Millisekunden). Jedes Handy bekommt RM.sicht(S, pid),
 // darin fehlen Geheimnisse wie die Wahl der anderen.
 //
-// Missionen melden sich in window.ORBIT_MISSIONEN an (siehe missionen/*.js). Teil für den Spielleiter:
+// Missionen melden sich in window.ORBIT_MISSIONEN an (siehe missionen/*.js; Oberfläche in window.ORBIT_UI). Teil für den Spielleiter:
 //   { id, name, art, ab, eingabe, kurz, anleitung: [...], besser: "hoch"|"niedrig",
 //     neu(tn, rng) → d, start(d, jetzt, ctx), aktion(d, pid, m, jetzt, ctx) → true|"Fehlertext",
 //     takt(d, jetzt, ctx) → true bei Änderung (setzt d.fertig = true am Ende), wertung(d) → { pid: Wert|null },
@@ -18,12 +18,12 @@
 
   const MAX = 8;
   const FARBEN = [
-    { name: "Karmin", f: "#C42A3A" }, { name: "Petrol", f: "#1F6F75" }, { name: "Gold", f: "#E0A526" }, { name: "Veilchen", f: "#7B52AB" },
-    { name: "Himmel", f: "#3C8FD6" }, { name: "Klee", f: "#3F9A4C" }, { name: "Orange", f: "#E5712B" }, { name: "Rosa", f: "#DE6A9E" }
+    { name: "Türkis", f: "#2EC4B6" }, { name: "Orange", f: "#FF7A2F" }, { name: "Gelb", f: "#FFD23F" }, { name: "Pink", f: "#FF5C9A" },
+    { name: "Grün", f: "#7BD957" }, { name: "Violett", f: "#A57BFF" }, { name: "Himmel", f: "#4DA3FF" }, { name: "Silber", f: "#C9D1E0" }
   ];
   const ENERGIE = [10, 7, 5, 4, 3, 2, 1, 1];
   const ZEIT = { anleitung: 30000, countdown: 3500 };
-  const BOTNAMEN = ["Lotte", "Fritz", "Greta", "Emil", "Ida", "Paul", "Hanne", "Kurt"];
+  const BOTNAMEN = ["Nova", "Kepler", "Luna", "Orion", "Vega", "Atlas", "Lyra", "Juri"];
 
   // Zufall mit Startwert (mulberry32): gleicher Startwert → gleiche Folge auf jedem Handy
   function zufall(seed) {

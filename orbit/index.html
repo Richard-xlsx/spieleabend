@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Orbit">
+<meta name="theme-color" content="#0B1026">
+<title>Orbit</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Exo+2:ital,wght@0,700;0,900;1,900&family=Inter:wght@400;500;600;700&display=swap">
+<style>
+/* Orbit: Nachtblau mit Sternen, Neon-Türkis, Signalorange, Kristallgelb */
+:root{
+  --bg:#0B1026; --flaeche:#141B3D; --flaeche2:#1C2550; --text:#EAF2FF; --leise:#9AA7D1; --linie:#2A3568;
+  --akzent:#2EC4B6; --akzent-text:#06121C; --orange:#FF7A2F; --gelb:#FFD23F; --pink:#FF5C9A; --gut:#7BD957;
+  --display:"Exo 2","Segoe UI",system-ui,sans-serif; --fliess:"Inter","Segoe UI",system-ui,sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;color:var(--text);font:16px/1.45 var(--fliess);-webkit-text-size-adjust:100%}
+html{background:var(--bg)}
+body{min-height:100vh;padding:max(12px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) max(16px,env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left));
+  background:
+    radial-gradient(1px 1px at 12% 8%,#fff8 50%,transparent 51%),radial-gradient(1px 1px at 78% 14%,#fff9 50%,transparent 51%),
+    radial-gradient(1.5px 1.5px at 40% 30%,#fff7 50%,transparent 51%),radial-gradient(1px 1px at 88% 46%,#fff8 50%,transparent 51%),
+    radial-gradient(1px 1px at 22% 62%,#fff6 50%,transparent 51%),radial-gradient(1.5px 1.5px at 64% 78%,#fff7 50%,transparent 51%),
+    radial-gradient(1px 1px at 8% 92%,#fff8 50%,transparent 51%),radial-gradient(ellipse at 100% 0%,#2EC4B61a,transparent 55%),
+    radial-gradient(ellipse at 0% 100%,#A57BFF1a,transparent 55%),var(--bg);
+  background-attachment:fixed}
+#app{max-width:520px;margin:0 auto;display:flex;flex-direction:column;gap:12px}
+h1,h2{font-family:var(--display);margin:0;letter-spacing:.02em;text-wrap:balance}
+h1{font-size:1.9rem;line-height:1.1;font-weight:900}
+h2{font-size:1rem;font-weight:700}
+.titel{display:flex;flex-direction:column;gap:6px;padding-top:6px}
+.titel h1{font-size:2.6rem;font-style:italic;letter-spacing:.06em;color:var(--akzent);text-shadow:0 0 18px #2EC4B655}
+.leise{color:var(--leise);margin:0}
+.mitte{text-align:center;margin:0}
+.klein{font-size:.86rem}
+.gross{font-size:1.1rem}
+.etikett{font-size:.72rem;text-transform:uppercase;letter-spacing:.12em;color:var(--leise);font-weight:600;margin:0}
+.baustelle{margin:0;border:1px dashed var(--orange);color:#FFC59E;border-radius:12px;padding:8px 12px;font-size:.86rem}
+.karte-box{background:color-mix(in srgb,var(--flaeche) 92%,transparent);border:1px solid var(--linie);border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:12px}
+.feld{display:flex;flex-direction:column;gap:6px;font-size:.85rem;color:var(--leise);font-weight:500}
+.feld input{font:500 1.05rem var(--fliess);color:var(--text);background:var(--flaeche2);border:1px solid var(--linie);border-radius:12px;padding:13px 14px;width:100%;outline:none}
+.feld input:focus{border-color:var(--akzent)}
+.knopf{appearance:none;border:0;border-radius:14px;padding:14px 16px;font:700 1rem var(--fliess);background:var(--akzent);color:var(--akzent-text);width:100%;cursor:pointer}
+.knopf.zweit{background:transparent;color:var(--text);border:1px solid var(--linie)}
+.knopf:disabled{opacity:.4;cursor:default}
+.klein-knopf{width:auto;padding:10px 14px;font-size:.9rem;flex:none}
+button:focus-visible,input:focus-visible,a:focus-visible,summary:focus-visible{outline:3px solid var(--gelb);outline-offset:2px}
+.reihe{display:flex;gap:10px}
+.link{background:none;border:0;color:var(--leise);text-decoration:underline;font:inherit;cursor:pointer;padding:8px;align-self:center}
+.code{font-family:var(--display);font-weight:900;font-size:3.2rem;letter-spacing:.12em;line-height:1;color:var(--gelb)}
+.qr{background:#fff;border-radius:16px;padding:10px;width:200px;max-width:60%;align-self:center}
+.qr svg{display:block;width:100%;height:auto}
+.status{position:sticky;top:0;z-index:5;background:var(--gelb);color:var(--bg);border-radius:12px;padding:10px 12px;font-weight:600;font-size:.9rem;display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.status button.klein{appearance:none;border:0;background:var(--bg);color:var(--text);border-radius:999px;padding:8px 12px;font:600 .85rem var(--fliess)}
+.unten{position:sticky;bottom:0;padding-block:10px calc(4px + env(safe-area-inset-bottom));background:linear-gradient(transparent,var(--bg) 30%);display:flex;flex-direction:column;gap:8px;z-index:3}
+.toast{position:fixed;left:50%;bottom:calc(90px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--text);color:var(--bg);font-weight:600;padding:10px 16px;border-radius:12px;z-index:20;max-width:90vw;text-align:center;box-shadow:0 8px 20px rgba(0,0,0,.4)}
+.titelbild{display:block;width:100%;height:auto;max-width:380px;align-self:center;margin:4px 0}
+.tb-puls{animation:tbpuls 2.4s infinite ease-out;transform-origin:150px 76px}
+@keyframes tbpuls{0%{transform:scale(.6);opacity:1}100%{transform:scale(1.8);opacity:0}}
+.tb-blink{animation:tbblink 1.2s infinite steps(2)}
+@keyframes tbblink{50%{opacity:.2}}
+
+.helm{width:30px;height:30px;flex:none;display:block}
+.gross .helm{display:inline-block;vertical-align:middle;width:34px;height:34px;margin-right:4px}
+.spieler{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.spieler li{display:flex;align-items:center;gap:10px;font-weight:600}
+.spieler .nm{flex:1;min-width:0}
+.spieler small{color:var(--leise);font-weight:500}
+.energie{font:700 1rem var(--display);color:var(--gelb)}
+.energie i,.plus i{font-style:normal;font-size:.8em;margin-left:2px}
+.farbwahl{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.farbknopf{appearance:none;border:2px solid var(--linie);background:var(--flaeche2);color:var(--text);border-radius:14px;padding:8px 2px 6px;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;font:600 .72rem var(--fliess);min-width:0}
+.farbknopf .helm{width:38px;height:38px}
+.farbknopf small{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.farbknopf.an{border-color:var(--akzent);box-shadow:0 0 0 3px #2EC4B633}
+.farbknopf:disabled{opacity:.4;cursor:default}
+.mission{display:flex;gap:12px;align-items:center;justify-content:space-between;border-top:1px solid var(--linie);padding-top:12px}
+.mission:first-of-type{border-top:0;padding-top:0}
+.mission b{font-family:var(--display);font-size:.95rem;display:block}
+.mission small{color:var(--leise);font-size:.75rem;text-transform:uppercase;letter-spacing:.06em}
+.mission p{margin:4px 0 0}
+
+.missionstitel{display:flex;flex-direction:column;gap:4px;text-align:center;padding-top:4px}
+.missionstitel h1{font-size:1.6rem;color:var(--akzent)}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chips span{border:1px solid var(--linie);border-radius:999px;padding:3px 10px;font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;color:var(--leise)}
+.regeln{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px;color:var(--leise)}
+.regeln b{color:var(--text)}
+.helmreihe{display:flex;gap:6px;justify-content:center;flex-wrap:wrap}
+.helmreihe .helm{width:34px;height:34px}
+.helmreihe .blass{opacity:.3}
+.countdown{font:900 6rem/1 var(--display);text-align:center;color:var(--gelb);min-height:1.2em;padding:30px 0;text-shadow:0 0 30px #FFD23F66}
+.countdown.puls{animation:cd .9s ease-out}
+@keyframes cd{0%{transform:scale(1.6);opacity:0}30%{opacity:1}100%{transform:scale(1)}}
+.missionskopf{display:flex;justify-content:space-between;align-items:center}
+.uhr{font:900 1.3rem var(--display);color:var(--akzent);min-width:2.2em;text-align:right}
+.uhr.knapp{color:var(--orange)}
+.missionsfeld{display:flex;flex-direction:column;gap:12px}
+
+/* Funkfrequenz */
+.frequenzen{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.frequenz{appearance:none;aspect-ratio:1;border:2px solid var(--linie);border-radius:50%;background:radial-gradient(circle at 50% 40%,var(--flaeche2),var(--flaeche));color:var(--text);font:900 1.25rem var(--display);cursor:pointer;display:grid;place-items:center;position:relative;touch-action:manipulation}
+.frequenz:disabled{opacity:.5;cursor:default}
+.frequenz.an{border-color:var(--akzent);background:var(--akzent);color:var(--akzent-text);box-shadow:0 0 0 4px #2EC4B633,0 0 22px #2EC4B688}
+.frequenz.an::after{content:"";position:absolute;inset:-9px;border-radius:50%;border:2px solid var(--akzent);opacity:0;animation:welle 1.6s infinite ease-out}
+@keyframes welle{0%{transform:scale(.85);opacity:.9}100%{transform:scale(1.25);opacity:0}}
+.punkteleiste{display:flex;gap:6px;justify-content:center;flex-wrap:wrap}
+.punkteleiste span{display:flex;align-items:center;gap:4px;background:var(--flaeche);border:1px solid var(--linie);border-radius:999px;padding:3px 10px 3px 4px}
+.punkteleiste .helm{width:24px;height:24px}
+.punkteleiste b{font-family:var(--display);font-size:.9rem}
+.punkteleiste .ich{border-color:var(--akzent)}
+.aufloesung{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.aufloesung li{display:flex;align-items:center;gap:10px;background:var(--flaeche);border:1px solid var(--linie);border-radius:14px;padding:8px 12px}
+.aufloesung .fnr{font:900 1.3rem var(--display);width:2em;text-align:center}
+.aufloesung .wer{flex:1;display:flex;flex-wrap:wrap;gap:4px 10px;align-items:center}
+.aufloesung .wer .helm{width:26px;height:26px}
+.aufloesung .wer small{font-weight:600;margin-left:-6px}
+.aufloesung .was{font-weight:700;font-size:.85rem;color:var(--leise)}
+.aufloesung .sieg{border-color:var(--gelb);background:#FFD23F1a}
+.aufloesung .sieg .was{color:var(--gelb);font:900 1.1rem var(--display)}
+.aufloesung .gestoert{opacity:.7}
+.aufloesung .gestoert .fnr{text-decoration:line-through;color:var(--orange)}
+
+.ergebnis{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.ergebnis li{display:flex;align-items:center;gap:10px;font-weight:600}
+.ergebnis .pl{font:900 1rem var(--display);width:1.8em;color:var(--leise)}
+.ergebnis .nm{flex:1;display:flex;flex-direction:column}
+.ergebnis .nm small{color:var(--leise);font-weight:500}
+.ergebnis .plus{font:900 1.1rem var(--display);color:var(--gelb)}
+.ergebnis .erster .pl{color:var(--gelb)}
+.ergebnis .ich .nm{color:var(--akzent)}
+.rueckblick summary{cursor:pointer;color:var(--leise);text-align:center;padding:4px}
+.rueckblick[open]{display:flex;flex-direction:column;gap:10px}
+@media (prefers-reduced-motion:reduce){.tb-puls,.tb-blink,.countdown.puls,.frequenz.an::after{animation:none}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+<script src="../netz.js?v=2026-11-25a"></script>
+<script src="../abend.js?v=2026-11-20b" data-spiel="orbit"></script>
+<script src="logic.js?v=2026-11-25a"></script>
+<script src="missionen/funkfrequenz.js?v=2026-11-25a"></script>
+<script src="app.js?v=2026-11-25a"></script>
+</body>
+</html>
