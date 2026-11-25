@@ -7,6 +7,7 @@ if (!window.RM) {
   require(__dirname + '/../missionen/reaktor.js');
 }
 if (!window.ORBIT_MISSIONEN.asteroid) { require(__dirname + '/../missionen/asteroid.js'); require(__dirname + '/../missionen/kapseln.js'); }
+if (!window.ORBIT_MISSIONEN.terraforming) { require(__dirname + '/../missionen/terraforming.js'); require(__dirname + '/../missionen/ionenspur.js'); }
 if (!window.ORBIT_LIVE) require(__dirname + '/../live.js');
 const R = window.RM, assert = require('assert');
 const ctx = (tn, aktiv) => ({ tn, aktiv: aktiv || tn, rng: Math.random });
@@ -253,4 +254,113 @@ const ctx = (tn, aktiv) => ({ tn, aktiv: aktiv || tn, rng: Math.random });
     test += e.verlauf.reduce((n, v) => n + v.falle.length, 0);
   }
   console.log(`Rettungskapseln ok (${auf} Spiele, ${test}× auf Testalarm hereingefallen)`);
+}
+
+// Live-Mission mit Bots über R.liveSchritt zu Ende spielen (h ist ein Mensch, der nichts tut)
+function liveLauf(id, bots, ein) {
+  const S = R.neu('L' + id, 'h', 'Host'); S.online = ['h'];
+  for (let i = 0; i < bots; i++) R.aktion(S, 'h', { t: 'bot', dazu: true }, 0);
+  assert(R.aktion(S, 'h', { t: 'mission', id }, 0).ok);
+  let t = 0; R.aktion(S, 'h', { t: 'bereit' }, t); R.takt(S, t); t += 3600; R.takt(S, t);
+  assert.strictEqual(S.mission.schritt, 'spiel');
+  let i = 0;
+  while (S.mission.schritt === 'spiel' && i++ < 6000) { t += 33; R.liveSchritt(S, t, { h: ein || { x: 0, y: 0, k: 0 } }); if (i % 6 === 0) R.takt(S, t); }
+  assert.strictEqual(S.mission.schritt, 'ergebnis', id + ' endet');
+  return S;
+}
+
+// ---------- Terraforming ----------
+{
+  const T = R.MISSIONEN.terraforming, tn = ['a', 'b'], rng = R.zufall(3), c = { tn, rng };
+  const d = T.neu(tn, rng), { N, GUELTIG, anteile } = T.raster;
+  const a0 = anteile(d.g, 2);
+  assert(a0[1] > 2 && Math.abs(a0[1] - a0[2]) < 0.5, 'beide starten mit etwa gleich viel Fläche');
+  // a fährt nach rechts und malt dabei
+  d.sp.a.x = -0.5; d.sp.a.y = 0; d.sp.b.x = 0.5; d.sp.b.y = 0.6;
+  for (let i = 0; i < 20; i++) T.schritt(d, 0.033, { a: { x: 1, y: 0, k: 0 }, b: { x: 0, y: 0, k: 0 } }, 0, c);
+  assert(d.sp.a.x > -0.4, 'a bewegt sich');
+  const a1 = anteile(d.g, 2); assert(a1[1] > a0[1], 'a hat mehr Fläche');
+  // Übermalen: b fährt über a's Fläche
+  d.sp.b.x = d.sp.a.x - 0.15; d.sp.b.y = 0; d.sp.b.vx = d.sp.b.vy = 0;
+  T.schritt(d, 0.033, { a: { x: 0, y: -1, k: 0 }, b: { x: 0, y: 0, k: 0 } }, 0, c);
+  assert(anteile(d.g, 2)[1] < a1[1], 'b übermalt a');
+  // Rand: Rover bleibt auf dem Planeten
+  d.sp.a.x = 0.9; d.sp.a.y = 0; d.sp.a.vx = 2;
+  for (let i = 0; i < 10; i++) T.schritt(d, 0.033, { a: { x: 1, y: 0, k: 0 } }, 0, c);
+  assert(Math.hypot(d.sp.a.x, d.sp.a.y) <= 1, 'Rover bleibt auf dem Planeten');
+  // Saatkapsel aufsammeln und zünden
+  d.kapseln = [{ x: 0, y: -0.5, id: 99 }]; d.sp.a.x = 0; d.sp.a.y = -0.5; d.sp.a.vx = d.sp.a.vy = 0;
+  assert(T.schritt(d, 0.033, { a: { x: 0, y: 0, k: 0 } }, 0, c), 'Aufsammeln ist ein Ereignis');
+  assert.strictEqual(d.sp.a.bomben, 1); assert.strictEqual(d.kapseln.length, 0);
+  const vor = anteile(d.g, 2)[1];
+  T.schritt(d, 0.033, { a: { x: 0, y: 0, k: 1 } }, 0, c);
+  assert.strictEqual(d.sp.a.bomben, 0); assert(anteile(d.g, 2)[1] - vor > 3, 'Saatbombe begrünt viel');
+  T.schritt(d, 0.033, { a: { x: 0, y: 0, k: 2 } }, 0, c);
+  assert.strictEqual(d.knall.length, 1, 'ohne Bombe kein Knall');
+  // Bild und Sicht
+  const b = T.bild(d); assert.strictEqual(b.g.length, N * N); assert(JSON.stringify(b).length < 1500);
+  T.botEingabe(d, 'b', rng); assert(d.botZiel); assert(!('botZiel' in T.sicht(d)));
+  const w = T.wertung(d); assert(w.a + w.b <= 100.01 && w.a > 0 && w.b > 0);
+  // Mit Bots: endet nach 60 s, Bots begrünen viel
+  const S = liveLauf('terraforming', 3);
+  assert(Math.abs(S.mission.d.t - 60000) < 100);
+  const e = S.mission.ergebnis, summe = e.reduce((n, x) => n + x.wert, 0);
+  assert(summe > 60 && summe <= 100.01, 'Planet ist zum Großteil begrünt: ' + summe);
+  assert.strictEqual(e[e.length - 1].pid, 'h', 'wer still steht, verliert');
+  console.log('Terraforming ok:', e.map(x => `${x.pid} ${x.wert} %`).join(', '));
+}
+
+// ---------- Ionenspur ----------
+{
+  const I = R.MISSIONEN.ionenspur, tn = ['a', 'b'], rng = R.zufall(4), c = { tn, rng };
+  const setze = (d, p, x, y, w) => Object.assign(d.sp[p], { x, y, w, spur: [[x, y]], luecke: 1e9, offen: false });
+  // Geradeaus gegen die Wand
+  let d = I.neu(tn, rng);
+  setze(d, 'a', 0.8, 0, 0); setze(d, 'b', -0.5, -0.5, Math.PI / 2);
+  let i = 0; while (d.sp.a.drin && i++ < 100) I.schritt(d, 0.033, {}, 0, c);
+  assert(!d.sp.a.drin && d.sp.b.drin, 'a fliegt gegen die Wand'); assert(d.sp.a.fiel > 500 && d.sp.a.fiel < 1500, 'Wand nach ' + d.sp.a.fiel);
+  assert(d.endeBei !== null, 'nur noch einer übrig');
+  while (!d.fertig) I.schritt(d, 0.033, {}, 0, c);
+  assert(d.t - d.endeBei < 50, 'Nachlauf');
+  let w = I.wertung(d); assert(w.b > w.a);
+  // Quer durch eine fremde Spur
+  d = I.neu(tn, rng);
+  setze(d, 'b', -0.6, 0, 0); setze(d, 'a', 0, -0.75, Math.PI / 2);
+  for (let k = 0; k < 200 && d.sp.a.drin; k++) I.schritt(d, 0.033, {}, 0, c);
+  assert(!d.sp.a.drin, 'a stößt gegen b\'s Spur'); assert(Math.abs(d.sp.a.y) < 0.05, 'genau an der Spur: ' + d.sp.a.y);
+  // … mit Lücke kommt man durch
+  d = I.neu(tn, rng);
+  setze(d, 'b', -0.6, 0, 0); setze(d, 'a', 0, -0.75, Math.PI / 2);
+  for (let k = 0; k < 200 && d.sp.a.drin && d.sp.a.y < 0.5; k++) {
+    if (d.sp.b.luecke > 1e8 && d.sp.b.x > -0.04) d.sp.b.luecke = d.t;   // Lücke genau dort, wo a kreuzt
+    I.schritt(d, 0.033, {}, 0, c);
+  }
+  assert(d.sp.a.drin, 'durch die Lücke geschlüpft'); assert(d.sp.b.spur.includes(null), 'Lücke steht in der Spur');
+  // Eigene Spur: im Kreis fliegen
+  d = I.neu(tn, rng);
+  setze(d, 'a', 0, 0, 0); setze(d, 'b', -0.8, -0.8, Math.PI / 2);
+  for (let k = 0; k < 200 && d.sp.a.drin; k++) I.schritt(d, 0.033, { a: { x: 1 } }, 0, c);
+  assert(!d.sp.a.drin, 'gegen die eigene Spur'); assert(d.sp.a.fiel > 1500 && d.sp.a.fiel < 4500, 'nach ein, zwei Runden: ' + d.sp.a.fiel);
+  // Frontal
+  d = I.neu(tn, rng);
+  setze(d, 'a', -0.3, 0, 0); setze(d, 'b', 0.3, 0, Math.PI);
+  for (let k = 0; k < 60 && d.sp.a.drin; k++) I.schritt(d, 0.033, {}, 0, c);
+  assert(!d.sp.a.drin && !d.sp.b.drin && d.sp.a.fiel === d.sp.b.fiel, 'beide gleichzeitig raus');
+  assert(d.fertig || d.endeBei === d.t);
+  // Bild: nur das Ende der Spur; Sicht ohne Raster
+  d = I.neu(tn, rng);
+  for (let k = 0; k < 90; k++) I.schritt(d, 0.033, { a: { x: 0.3 }, b: { x: -0.3 } }, 0, c);
+  const b = I.bild(d);
+  assert(b.s[0][1].length <= 30 && b.s[0][0] + b.s[0][1].length === d.sp.a.spur.length);
+  const v = I.sicht(d); assert(!v.belegt && !v.zeit && v.sp.a.spur.length);
+  assert(I.botEingabe(d, 'b', rng).x !== undefined); assert(!('botLenk' in I.sicht(d)));
+  // Mit Bots: endet, Bots halten länger durch als einer, der nur geradeaus fliegt
+  const dauer = [];
+  for (const nb of [1, 3, 5]) {
+    const S = liveLauf('ionenspur', nb);
+    const e = S.mission.ergebnis; dauer.push(S.mission.d.t);
+    assert.strictEqual(e[e.length - 1].pid, 'h', 'geradeaus fliegen reicht nicht');
+    assert(JSON.stringify(R.sicht(S, 'h')).length < 40000);
+  }
+  console.log('Ionenspur ok, Runden', dauer.map(x => Math.round(x / 1000) + ' s').join(', '));
 }

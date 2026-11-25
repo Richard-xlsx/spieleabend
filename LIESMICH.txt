@@ -35,11 +35,11 @@ Aufbau
                                   auf dem Brett mit Würfeln, Feldern, Händlerschiff, Missionswahl durch den Letzten, Wetten, Siegerehrung,
                                   Nachzügler; Mission mit Anleitung → Countdown → Spiel → Ergebnis, Energie je Platz, Bots), brett.js (Zeichnung
                                   der Station und Rundenschritte am Handy), app.js (Verbindung, Uhrabgleich per Ping, Bildschirme), sensoren.js (Neigen,
-                                  Schütteln, Daumen-Joystick), live.js (Eingaben sammeln, Bilder verteilen und glätten),
+                                  Schütteln, Daumen-Joystick, Lenkknöpfe), live.js (Eingaben sammeln, Bilder verteilen und glätten),
                                   missionen/*.js (je Mission ein Teil für den Spielleiter und einer fürs Handy), tests/logik.js und
-                                  tests/missionen.js (node). Fertig: Schritt 1 bis 4, Missionen Funkfrequenz, Schrotthändler, Reaktor-Countdown,
-                                  Zerfallender Asteroid, Rettungskapseln.
-                                  Testlinks: …/orbit/?partie=kurz (sofort Partie mit 3 Bots), …/orbit/?bots=3, …/orbit/?mission=funkfrequenz (auch schrotthaendler, reaktor, asteroid, kapseln)
+                                  tests/missionen.js (node). Fertig: Schritt 1 bis 5, Missionen Funkfrequenz, Schrotthändler, Reaktor-Countdown,
+                                  Zerfallender Asteroid, Rettungskapseln, Terraforming, Ionenspur.
+                                  Testlinks: …/orbit/?partie=kurz (sofort Partie mit 3 Bots), …/orbit/?bots=3, …/orbit/?mission=funkfrequenz (auch schrotthaendler, reaktor, asteroid, kapseln, terraforming, ionenspur)
   _entwurf/                       Kartenentwürfe, wird nicht hochgeladen
 
 

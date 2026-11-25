@@ -7,6 +7,7 @@
 //   ORBIT_SENSOR.beiSchuetteln(fn) → Abmelden-Funktion
 //   ORBIT_SENSOR.daumen(el)      macht el zum Joystick
 //   ORBIT_SENSOR.wischen(el, fn) fn({ dx, dy, v }) nach einem Wisch
+//   ORBIT_SENSOR.lenkknopf(el, −1|1), knopfRichtung() → { x, y: 0 } nur aus Lenkknöpfen und Pfeiltasten
 (function () {
   const W = window;
   const MAXGRAD = 22, TOT = 0.08;
@@ -55,6 +56,22 @@
     if (aktuellerModus() === "neigen" && hatNeigung()) return neigung();
     return begrenzen(daumenWert);
   }
+  // Lenkknöpfe (links/rechts gedrückt halten), am Rechner auch Pfeiltasten. Ohne Neigung und Joystick.
+  const knoepfe = new Map();   // pointerId → −1 | 1
+  function knopfRichtung() {
+    let x = tasten.r - tasten.l;
+    for (const v of knoepfe.values()) x += v;
+    return { x: Math.max(-1, Math.min(1, x)), y: 0 };
+  }
+  function lenkknopf(el, v) {
+    if (!el || el.dataset.lenkknopf) return;
+    el.dataset.lenkknopf = "1";
+    el.addEventListener("pointerdown", e => { knoepfe.set(e.pointerId, v); el.classList.add("gedrueckt"); e.preventDefault(); });
+    el.addEventListener("contextmenu", e => e.preventDefault());
+  }
+  function knopfLos(e) { if (knoepfe.delete(e.pointerId)) document.querySelectorAll(".lenkknopf.gedrueckt").forEach(k => k.classList.remove("gedrueckt")); }
+  W.addEventListener("pointerup", knopfLos); W.addEventListener("pointercancel", knopfLos);
+  W.addEventListener("blur", () => { knoepfe.clear(); });
   function setzeModus(m) { modus = m; try { localStorage.setItem("ob:steuerung", m); } catch (e) {} if (m === "neigen") nullen(); }
 
   // Pfeiltasten und WASD am Rechner
@@ -116,7 +133,7 @@
   }
 
   W.ORBIT_SENSOR = {
-    erlauben, brauchtErlaubnis, nullen, neigung, richtung, hatNeigung, beiSchuetteln, daumen, wischen, setzeModus,
+    erlauben, brauchtErlaubnis, nullen, neigung, richtung, knopfRichtung, lenkknopf, hatNeigung, beiSchuetteln, daumen, wischen, setzeModus,
     get modus() { return aktuellerModus(); }, get erlaubt() { return erlaubt; }
   };
 })();

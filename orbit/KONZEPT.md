@@ -1,6 +1,6 @@
 # Orbit: Brettspiel mit Minispielen auf einer Raumstation (Konzept und Plan)
 
-Stand 25.11.2026. Schritt 1 bis 4 sind gebaut (Brett, drei geheime Missionen, Live-Technik, Asteroid und Rettungskapseln). Ordner `orbit/`, für 2 bis 8 Leute, jeder am eigenen Handy.
+Stand 25.11.2026. Schritt 1 bis 5 sind gebaut (Brett, drei geheime Missionen, Live-Technik, Asteroid, Rettungskapseln, Terraforming und Ionenspur). Ordner `orbit/`, für 2 bis 8 Leute, jeder am eigenen Handy.
 
 Eine Raumstation ist das Spielbrett. Man würfelt, zieht durch die Module des Rings und sammelt **Energiezellen**. Mit
 Energie kauft man beim Händlerschiff **Sternkristalle**, und wer am Ende die meisten Kristalle hat, gewinnt. Nach jeder
@@ -175,3 +175,5 @@ Die Reihenfolge geht vom Einfachen zum Schweren. Schritt 4 baut die Live-Technik
 - Live-Übertragung: Das Handy zeigt die anderen 0,1 Sekunden in der Vergangenheit, glatt zwischen zwei Bildern. Die eigene Figur wird nach vorn gerechnet.
 - Der Startwert einer Mission bleibt beim Spielleiter, damit niemand die Explosion vorausberechnen kann. Missionen, die ihn auf allen Handys brauchen (z. B. Gestaltwandler), geben ihn ausdrücklich frei.
 - Figuren sind Astronautenhelme mit Farbe und Anfangsbuchstaben.
+- Terraforming: Der Planet ist ein Raster aus etwa 530 Feldern. Saatkapseln erscheinen alle 5 Sekunden (höchstens 2 liegen herum), man hat höchstens eine Saatbombe auf Vorrat. Es zählt der Anteil am Planeten in Prozent.
+- Ionenspur: Lenken mit zwei Knöpfen (gedrückt halten), Neigen lenkt hier nicht. Alle starten nahe der Mitte und fliegen nach außen; in den ersten 2,5 Sekunden langsamer, danach langsam schneller. Alle 2 bis 5 Sekunden hat die Spur eine kurze Lücke. Die eigene Spur wird nach 0,3 Sekunden gefährlich. Es zählt die Zeit im Flug; mit Bots dauert eine Runde etwa 10 bis 25 Sekunden.
