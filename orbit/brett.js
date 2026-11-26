@@ -227,6 +227,19 @@
     return `<div class="vorwahlbox"><p class="klein mitte">${gew ? `Du ziehst <b>${gew}</b> Module, sobald du dran bist. Ändern geht noch.` : `Wie weit willst du ziehen? Du kannst schon jetzt wählen.`}</p><div class="vorwahlen">${knoepfe}</div></div>`;
   }
 
+  // Erste Partie: Beim ersten Mal auf einem Feldtyp (auf diesem Handy) erklärt ein Satz, was das Feld macht
+  const erklaert = {};
+  function feldNeu(z) {
+    const k = z.feld, zk = z.pid + ":" + z.start;
+    if (erklaert[k]) return erklaert[k] === zk;
+    let gesehen = {};
+    try { gesehen = JSON.parse(localStorage.getItem("ob:felder") || "{}") || {}; } catch (e) {}
+    if (gesehen[k]) { erklaert[k] = "alt"; return false; }
+    gesehen[k] = 1; erklaert[k] = zk;
+    try { localStorage.setItem("ob:felder", JSON.stringify(gesehen)); } catch (e) {}
+    return true;
+  }
+
   // ---------- Panels unter dem Brett ----------
   let tipp = null, einsatz = 0, wettMerker = "";
   function panel(c) {
@@ -249,7 +262,7 @@
       const feld = z.feld ? R.FELD[z.feld] : null, meins = z.pid === c.PID;
       const w = P.wurf[z.pid], titel = z.wurf == null ? `${meins ? "Du hast" : esc(c.name(z.pid)) + " hat"} ${Array.isArray(w) ? w.join(" und ") : w} gewürfelt` : `${meins ? "Du ziehst" : esc(c.name(z.pid)) + " zieht"} ${z.wurf} Module`;
       let h = `<div class="zugkarte">${c.helm(z.pid)}<div><b>${titel}</b>
-        ${feld ? `<p class="feldzeile">${feldIcon(z.feld, 20)}<span><b>${esc(feld.name)}</b>${z.text ? ": " + esc(z.text) : ""}</span></p>` : `<p class="leise klein">${z.wurf == null ? "wählt: ein Würfel oder beide" : "unterwegs …"}</p>`}
+        ${feld ? `<p class="feldzeile">${feldIcon(z.feld, 20)}<span><b>${esc(feld.name)}</b>${z.text ? ": " + esc(z.text) : ""}</span></p>${feldNeu(z) ? `<p class="feldneu">Neu: ${esc(feld.text)}</p>` : ""}` : `<p class="leise klein">${z.wurf == null ? "wählt: ein Würfel oder beide" : "unterwegs …"}</p>`}
         ${z.text2 ? `<p class="feldzeile">${kristall()}<span>${esc(z.text2)}</span></p>` : ""}</div></div>`;
       const fr = z.frage;
       if (fr && meins) {

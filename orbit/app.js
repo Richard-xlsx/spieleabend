@@ -404,8 +404,11 @@
     if (!M) return kopf + `<p class="leise mitte">Diese Mission kennt dein Handy noch nicht. Bitte neu laden.</p>` + abbrechen;
     if (m.schritt === "anleitung") {
       const offen = m.tn.filter(p => !m.bereit[p] && da(p));
-      return kopf + `<div class="karte-box"><div class="anleitungskopf">${gestenBild(M.eingabe)}<div class="chips"><span>${esc(M.art)}</span><span>${esc(M.eingabe)}</span></div></div>
-          <ul class="regeln">${M.anleitung.map(z => `<li>${z}</li>`).join("")}</ul></div>
+      // Erst ein Satz (das Ziel), die Regeln darunter: beim ersten Mal offen, danach zugeklappt
+      const gelesen = !!ls.get("ob:gelesen:" + m.id), PR = window.ORBIT_PROBIER;
+      return kopf + `<div class="karte-box"><div class="anleitungskopf">${gestenBild(M.eingabe)}<div><p class="kurzregel">${esc(M.kurz)}</p><div class="chips"><span>${esc(M.art)}</span><span>${esc(M.eingabe)}</span></div></div></div>
+          <details class="regelbox" ${gelesen ? "" : "open"}><summary>${gelesen ? "Regeln noch mal lesen" : "So geht's"}</summary><ul class="regeln">${M.anleitung.map(z => `<li>${z}</li>`).join("")}</ul></details>
+          ${dabei && PR ? PR.html(M.eingabe) : ""}</div>
         ${m.teams ? teamZeilen(m) : `<div class="helmreihe">${m.tn.map(p => `<span class="${m.bereit[p] ? "" : "blass"}" title="${esc(sp(p).name)}">${helm(p)}</span>`).join("")}</div>`}
         <p class="leise mitte klein">${offen.length ? `Warte auf ${offen.map(p => esc(sp(p).name)).join(", ")} · Start spätestens in ${uhr(m.bis)} s` : "Alle bereit."}</p>
         ${dabei && !m.bereit[PID] ? `<div class="unten"><button class="knopf" id="bereit">Bereit</button></div>` : ""}${abbrechen}`;
@@ -484,6 +487,7 @@
     if ($("bereit")) $("bereit").onclick = () => {
       const M = S && S.mission && R.MISSIONEN[S.mission.id];
       if (SN && M && /Neigen/.test(M.eingabe || "") && SN.brauchtErlaubnis()) SN.erlauben();   // iOS fragt nur nach einem Tippen
+      if (M) ls.set("ob:gelesen:" + M.id, 1);
       tun({ t: "bereit" });
     };
     if ($("weiter")) $("weiter").onclick = () => tun({ t: "weiter" });
@@ -495,6 +499,7 @@
     if (B && S && (S.phase === "brett" || S.phase === "ende")) B.binden(ctxBrett());
     const m = S && S.mission;
     if (m && m.schritt === "spiel" && UI[m.id] && UI[m.id].binden) UI[m.id].binden(ctxUI());
+    if (m && m.schritt === "anleitung" && window.ORBIT_PROBIER && R.MISSIONEN[m.id]) window.ORBIT_PROBIER.binden(R.MISSIONEN[m.id].eingabe, () => { letztesHtml = ""; render(); });
   }
   function kopieren() {
     const b = document.getElementById("kopieren");
