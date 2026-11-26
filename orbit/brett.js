@@ -64,11 +64,79 @@
     const [x, y] = punkt(modul, RING);
     return [x, y, 1];
   }
-  const figur = (c, p, o) => {
+  // Übergänge über das Neuzeichnen hinweg: Jedes Element merkt sich sein letztes Ziel.
+  // Ändert sich das Ziel, wird es am alten Ort gezeichnet und gleitet (per CSS-Übergang) zum neuen.
+  const bahn = {};
+  function gleiten(key, nach, dauer) {
+    const jetzt = performance.now(), b = bahn[key];
+    if (!b || dauer === 0) { bahn[key] = { von: nach, nach, t0: 0, dauer: 0 }; return `transform:${nach}`; }
+    if (b.nach !== nach) Object.assign(b, { von: b.nach, nach, t0: jetzt, dauer });
+    const alt = jetzt - b.t0;
+    if (alt >= b.dauer) return `transform:${nach}`;
+    return `transform:${b.von};transition:transform ${b.dauer}ms ease-in-out ${-Math.round(alt)}ms" data-nach="${nach}`;
+  }
+  // Einmalige Effekte (Energie schwebt hoch, Kristalle fliegen): Startzeit merken, beim Neuzeichnen weiterlaufen lassen
+  const zuerst = {};
+  function effekt(key, dauer) {
+    const jetzt = performance.now();
+    if (!(key in zuerst)) zuerst[key] = jetzt;
+    const alt = jetzt - zuerst[key];
+    return alt < dauer ? `animation-delay:${-Math.round(alt)}ms` : null;
+  }
+  const figur = (c, p, o, fest) => {
     const gross = o[2], s = gross ? 0.8 : 0.66, h = 20 * s;
-    return `<g class="figur ${p === c.PID ? "ich" : ""} ${gross ? "zieht" : ""}" data-fig="${p}" style="transform:translate(${f1(o[0])}px,${f1(o[1])}px)">
+    const t = `translate(${f1(o[0])}px,${f1(o[1])}px)`, alt = bahn["f:" + p];
+    const weit = alt ? Math.hypot(...(alt.nach.match(/-?[\d.]+/g) || [0, 0]).map((v, i) => +v - o[i])) : 0;
+    return `<g class="figur ${p === c.PID ? "ich" : ""} ${gross ? "zieht" : ""}" data-fig="${p}" style="${gleiten("f:" + p, t, fest ? 0 : weit > 110 ? 950 : 480)}">
       ${p === c.PID ? `<circle r="${h + 3}" class="meinring"/>` : ""}<g transform="translate(${-h} ${-h - 1}) scale(${s})">${c.helmInnen(p)}</g></g>`;
   };
+
+  // Zoom: beim Ziehen folgt das Brett dem Helm, bei der eigenen Schrittwahl zeigt es die möglichen Ziele
+  function zoomZiel(c) {
+    const P = c.S.partie, z = P.zug;
+    if (P.schritt !== "ziehen" || !z) return null;
+    const fr = z.frage;
+    if (fr && fr.art === "schritte") {
+      const n = Math.max(...fr.optionen), span = n * 2 * Math.PI / R.N, sehne = 2 * RING * Math.sin(Math.min(span, Math.PI) / 2);
+      const sk = Math.min(1.55, 330 / (sehne + 90));
+      return sk < 1.15 ? null : [punkt(z.von + n / 2, RING - 10), sk];
+    }
+    if (fr && fr.art !== "kauf") return null;          // Pirat, Teleporter, Wurmloch: ganzes Brett zeigen
+    if (z.stufe === "laufen") return [zugOrt(c), 1.7];
+    return [punkt(c.S.partie.pos[z.pid], RING - 20), 1.45];
+  }
+  function zoomText(c) {
+    const zz = zoomZiel(c);
+    if (!zz) return `translate(${CX}px,${CY}px) scale(1) translate(${-CX}px,${-CY}px)`;
+    const [[x, y], sk] = zz, rand = CX - CX / sk;      // nicht über den Rand hinaus schieben
+    const kx = Math.max(CX - rand, Math.min(CX + rand, x)), ky = Math.max(CY - rand, Math.min(CY + rand, y));
+    return `translate(${CX}px,${CY}px) scale(${f1(sk)}) translate(${f1(-kx)}px,${f1(-ky)}px)`;
+  }
+  // Was im Zug passiert, direkt am Helm: Energie schwebt hoch, der Pirat zieht Energie ab, Kristalle fliegen vom Schiff
+  function effekte(c, orte) {
+    const P = c.S.partie, z = P.zug;
+    if (!z || !z.feld || !orte[z.pid]) return "";
+    const [x, y] = orte[z.pid], k = P.runde + ":" + z.pid + ":" + z.start, teile = [];
+    const schwebe = (key, tx, ty, text, farbe) => { const st = effekt(key, 1900); if (st) teile.push(`<g transform="translate(${f1(tx)} ${f1(ty)})"><g class="schwebe" style="${st}"><text y="-26" fill="${farbe}">${text}</text></g></g>`); };
+    const flug = (key, vx, vy, inhalt, verz) => { const st = effekt(key, 1300 + verz); if (st) teile.push(`<g transform="translate(${f1(x)} ${f1(y)})"><g class="flug" style="--dx:${f1(vx - x)}px;--dy:${f1(vy - y)}px;${st.replace(/(-?\d+)ms/, (m, n) => (+n + verz) + "ms")}">${inhalt}</g></g>`); };
+    const m = /([+−-])(\d+) Energie/.exec(z.text || "");
+    if (m && !z.opfer) schwebe(k + ":e", x, y, `${m[1] === "+" ? "+" : "−"}${m[2]} ⚡`, m[1] === "+" ? "#7BD957" : "#FF7A2F");
+    else if (/Sternkristall!/.test(z.text || "")) schwebe(k + ":k", x, y, "+1 ◆", "#FFD23F");
+    else if (z.feld === "B" && P.gratis[z.pid]) schwebe(k + ":b", x, y, "Gratiswette", "#4DA3FF");
+    else if (z.feld === "A" && P.alien === z.pid) schwebe(k + ":a", x, y, "Alien!", "#7BD957");
+    if (z.opfer && orte[z.opfer]) {
+      const [ox, oy] = orte[z.opfer];
+      flug(k + ":p", ox, oy, `<circle r="9" fill="#FF5C9A" stroke="#060A1C" stroke-width="1.5"/><text y="4" class="flugtext">⚡</text>`, 0);
+      schwebe(k + ":p1", ox, oy, `−${z.beute} ⚡`, "#FF7A2F");
+      schwebe(k + ":p2", x, y, `+${z.beute} ⚡`, "#7BD957");
+    }
+    if (z.kauf) {
+      const h = z.pfad.find(m => R.schiffe(P).includes(m)), q = punkt(h == null ? P.pos[z.pid] : h, RING + 27);
+      for (let i = 0; i < z.kauf; i++) flug(k + ":c" + i, q[0], q[1], `<path d="M0-9l7 6-7 11-7-11z" fill="#FFD23F" stroke="#060A1C" stroke-width="1.4"/>`, i * 220);
+      schwebe(k + ":c", x, y, `+${z.kauf} ◆`, "#FFD23F");
+    }
+    return teile.join("");
+  }
 
   function brettSvg(c) {
     const S = c.S, P = S.partie;
@@ -79,15 +147,20 @@
     const [wa, wb] = [punkt(8, RING - 14), punkt(24, RING - 14)];
     const speichen = [4, 12, 20, 28].map(i => { const [a, b] = punkt(i, 58), [x, y] = punkt(i, RING - 16); return `<path d="M${f1(a)} ${f1(b)}L${f1(x)} ${f1(y)}"/>`; }).join("");
     // Händlerschiff außen am Ring, quer zur Laufrichtung
-    const schiff = R.schiffe(P).map(hm => { const [sx, sy] = punkt(hm, RING + 27), grad = winkel(hm) * 180 / Math.PI + 90; return `<g class="schiff" transform="translate(${f1(sx)} ${f1(sy)}) rotate(${f1(grad)})"><path d="M-15 2l5-7h20l5 7-5 4h-20z" fill="#FFD23F" stroke="#060A1C" stroke-width="1.8" stroke-linejoin="round"/><path d="M-5-5l2-5h6l2 5" fill="#9AA7D1" stroke="#060A1C" stroke-width="1.6"/><circle cx="-6" cy="1" r="1.6" fill="#060A1C"/><circle cx="0" cy="1" r="1.6" fill="#060A1C"/><circle cx="6" cy="1" r="1.6" fill="#060A1C"/></g>`; }).join("");
+    // Die Schiffe kreisen beim Weiterfliegen um die Station (immer vorwärts)
+    const schiff = R.schiffe(P).map((hm, k) => { const b = bahn["s:" + k]; let grad = hm * 360 / R.N;
+      if (b) { const alt = +b.nach.match(/-?[\d.]+/)[0]; while (grad < alt - 0.01) grad += 360; if (grad - alt >= 360) grad -= 360; }
+      return `<g class="schiffbahn" style="${gleiten("s:" + k, `rotate(${f1(grad)}deg)`, 1800)}"><g class="schiff" transform="translate(${CX} ${CY - RING - 27})"><path d="M-15 2l5-7h20l5 7-5 4h-20z" fill="#FFD23F" stroke="#060A1C" stroke-width="1.8" stroke-linejoin="round"/><path d="M-5-5l2-5h6l2 5" fill="#9AA7D1" stroke="#060A1C" stroke-width="1.6"/><circle cx="-6" cy="1" r="1.6" fill="#060A1C"/><circle cx="0" cy="1" r="1.6" fill="#060A1C"/><circle cx="6" cy="1" r="1.6" fill="#060A1C"/></g></g>`; }).join("");
     // Wählt jemand gerade die Schrittzahl, sind die möglichen Ziele markiert
     const zw = P.zug && P.zug.frage && P.zug.frage.art === "schritte" ? P.zug : null;
     const ziele = zw ? zw.frage.optionen.map(n => { const [x, y] = punkt((zw.von + n) % R.N, RING); return `<g class="zielmarke" transform="translate(${f1(x)} ${f1(y)})"><circle r="18"/><text y="-22">${n}</text></g>`; }).join("") : "";
     const orte = figurOrte(c);
     const reihenfolge = Object.keys(orte).sort((a, b) => (orte[a][2] - orte[b][2]) || ((a === c.PID) - (b === c.PID)));
+    const z = P.zug, laeuft = z && z.stufe === "laufen";
     const final = P.runde >= P.runden;
     const schritt = { wuerfeln: "Würfeln", ziehen: "Ziehen", wahl: "Missionswahl", wetten: "Wetten" }[P.schritt] || "";
     return `<svg class="brett" viewBox="0 0 360 360" role="img" aria-label="Raumstation mit ${R.N} Modulen, Runde ${P.runde} von ${P.runden}">${symbole()}
+      <g class="welt" style="${laeuft ? (bahn.zoom = { von: zoomText(c), nach: zoomText(c), t0: 0, dauer: 0 }, `transform:${zoomText(c)}`) : gleiten("zoom", zoomText(c), 700)}">
       <circle cx="${CX}" cy="${CY}" r="${RING}" fill="none" stroke="#1C2550" stroke-width="36"/>
       <circle cx="${CX}" cy="${CY}" r="${RING}" fill="none" stroke="#2A3568" stroke-width="1.5" stroke-dasharray="3 5"/>
       <path d="M${f1(wa[0])} ${f1(wa[1])}L${f1(wb[0])} ${f1(wb[1])}" stroke="#7E63E0" stroke-width="2" stroke-dasharray="2 6" stroke-linecap="round" opacity=".8"/>
@@ -99,8 +172,9 @@
       <text x="${CX}" y="${CY + 12}" class="hubgross">${P.runde}<tspan class="hubvon">/${P.runden}</tspan></text>
       <text x="${CX}" y="${CY + 32}" class="hubklein ${final ? "doppelt" : ""}">${final ? "DOPPELT" : schritt.toUpperCase()}</text>`}
       ${kacheln}${schiff}${ziele}
-      ${reihenfolge.map(p => figur(c, p, orte[p])).join("")}
-    </svg>`;
+      ${reihenfolge.map(p => figur(c, p, orte[p], laeuft && p === z.pid)).join("")}
+      ${effekte(c, orte)}
+    </g></svg>`;
   }
 
   // ---------- Würfel in der Stationsmitte (CSS-3D) ----------
@@ -132,7 +206,7 @@
     const alt = jetzt - gesehen[key], rollt = alt < ROLLZEIT;
     const z = P.zug, gew = z && z.pid === h.pid && z.wurf != null && z.wurf !== h.w[0] + h.w[1] ? (z.wurf === h.w[0] ? 1 : 0) : -1;   // nicht benutzter Würfel
     const fremd = h.pid !== c.PID;
-    return `<div class="wurfbuehne ${fremd ? "fremd" : ""}" style="--farbe:${c.farbe(h.pid)}" aria-label="Wurf ${h.w.join(" und ")}" role="img">
+    return `<div class="wurfbuehne ${fremd ? "fremd" : ""} ${zoomZiel(c) ? "ecke" : ""}" style="--farbe:${c.farbe(h.pid)}" aria-label="Wurf ${h.w.join(" und ")}" role="img">
       ${h.w.map((n, k) => `<span class="w3bahn ${rollt ? "rollt" : ""} ${k === gew ? "blass" : ""}" ${rollt ? `style="animation-delay:${-Math.round(alt) + k * 60}ms"` : ""}>${wuerfel3d(n, k)}</span>`).join("")}</div>`;
   }
 
@@ -169,7 +243,7 @@
           for (const n of fr.optionen) {
             const ziel = (z.von + n) % R.N, typ = R.FELDER[ziel], vorbei = Array.from({ length: n }, (_, i) => (z.von + i + 1) % R.N).some(m => R.schiffe(P).includes(m));
             const art = n === summe && fr.optionen.length > 1 ? "beide Würfel" : wurf[0] === wurf[1] && n === wurf[0] ? "ein Würfel" : `Würfel ${n}`;
-            k.push(`<button class="knopf zweit wahlknopf schrittknopf" data-antwort="${n}">${feldIcon(typ, 26)}<span><b>${n} Module</b> · ${art}</span><small>${esc(R.FELD[typ].name)}${vorbei ? " · am Händler vorbei" : ""}</small></button>`);
+            k.push(`<button class="knopf zweit wahlknopf schrittknopf" data-antwort="${n}">${feldIcon(typ, 26)}<span><b>${n} ${n === 1 ? "Modul" : "Module"}</b> · ${art}<small>${esc(R.FELD[typ].name)}${vorbei ? " · am Händler vorbei" : ""}</small></span></button>`);
           }
           return kopf("Wie weit ziehst du?", fr.bis) + h + `<div class="knoepfe">${k.join("")}</div>`;
         }
@@ -276,6 +350,8 @@
 
   function binden(c) {
     const $ = id => document.getElementById(id);
+    const gleitend = document.querySelectorAll("[data-nach]");
+    if (gleitend.length) { gleitend.forEach(el => el.getBoundingClientRect()); requestAnimationFrame(() => gleitend.forEach(el => { el.style.transform = el.dataset.nach; })); }
     if ($("schuettelnErlauben")) $("schuettelnErlauben").onclick = async () => { await SN.erlauben(); const b = $("schuettelnErlauben"); if (b) b.remove(); };
     const wirf = () => {
       if ($("wurf")) { $("wurf").disabled = true; $("wurf").classList.add("rollt"); }
@@ -312,7 +388,9 @@
     const el = document.querySelector(`[data-fig="${z.pid}"]`);
     if (!el) return;
     const o = zugOrt(c), t = `translate(${f1(o[0])}px,${f1(o[1])}px)`;
-    if (el.style.transform !== t) el.style.transform = t;
+    if (el.style.transform !== t) { el.style.transform = t; bahn["f:" + z.pid] = { von: t, nach: t, t0: 0, dauer: 0 }; }
+    const w = document.querySelector(".brett .welt"), zt = zoomText(c);
+    if (w && w.style.transform !== zt) { w.style.transform = zt; bahn.zoom = { von: zt, nach: zt, t0: 0, dauer: 0 }; }
   }
 
   W.ORBIT_BRETT = { html, ende, binden, bewegen, wuerfel, kristall, feldIcon };

@@ -235,6 +235,16 @@ button:focus-visible,input:focus-visible,a:focus-visible,summary:focus-visible{o
 .brett .haendlerring{fill:none;stroke:var(--gelb);stroke-width:2.5;stroke-dasharray:4 4;animation:drehen 6s linear infinite;transform-box:fill-box;transform-origin:center}
 @keyframes drehen{to{transform:rotate(360deg)}}
 .brett .schiff{filter:drop-shadow(0 0 5px #FFD23F88)}
+.brett .schiffbahn{transform-origin:180px 180px}
+.brett .welt{transition:transform .3s ease-out}
+.brett .schwebe{animation:schwebe 1.9s ease-out both}
+.brett .schwebe text{font:900 15px var(--display);text-anchor:middle;paint-order:stroke;stroke:#060A1C;stroke-width:4px;stroke-linejoin:round}
+@keyframes schwebe{0%{transform:translateY(6px) scale(.5);opacity:0}14%{transform:translateY(0) scale(1.15);opacity:1}24%{transform:scale(1)}75%{opacity:1;transform:translateY(-16px)}100%{opacity:0;transform:translateY(-24px)}}
+.brett .flug{animation:flug 1.3s cubic-bezier(.5,0,.3,1) both}
+.brett .flugtext{font:900 11px var(--fliess);text-anchor:middle;fill:#060A1C}
+@keyframes flug{0%{transform:translate(var(--dx),var(--dy)) scale(.4);opacity:0}15%{opacity:1;transform:translate(var(--dx),var(--dy)) scale(1.2)}80%{opacity:1;transform:translate(0,0) scale(1)}100%{opacity:0;transform:translate(0,-6px) scale(.6)}}
+.wurfbuehne.ecke{left:auto;top:auto;right:2px;bottom:2px;transform:scale(.8);transform-origin:100% 100%}
+@media (prefers-reduced-motion:reduce){.brett .welt{transition:none}}
 .brett .hubklein{font:700 10px var(--fliess);letter-spacing:.14em;fill:var(--leise);text-anchor:middle}
 .brett .hubklein.doppelt{fill:var(--orange)}
 .brett .hubgross{font:900 34px var(--display);fill:var(--text);text-anchor:middle}
@@ -262,6 +272,8 @@ button:focus-visible,input:focus-visible,a:focus-visible,summary:focus-visible{o
 .wahlknopf{display:flex;align-items:center;gap:10px;text-align:left}
 .wahlknopf span{flex:1}
 .wahlknopf small{color:var(--leise);font-weight:500}
+.schrittknopf small{display:block;font-size:.8rem}
+.brettseite .schrittknopf{padding:9px 14px}
 .missionskarte{display:flex;gap:12px;align-items:center;justify-content:space-between;background:var(--flaeche2);border-radius:14px;padding:12px}
 .missionskarte b{font-family:var(--display);font-size:1rem;display:block}
 .missionskarte small{color:var(--leise);font-size:.72rem;text-transform:uppercase;letter-spacing:.06em}
@@ -455,27 +467,27 @@ button:focus-visible,input:focus-visible,a:focus-visible,summary:focus-visible{o
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <script src="../netz.js?v=2026-11-25a"></script>
 <script src="../abend.js?v=2026-11-25a" data-spiel="orbit"></script>
-<script src="sensoren.js?v=2026-11-26b"></script>
-<script src="live.js?v=2026-11-26b"></script>
-<script src="klang.js?v=2026-11-26b"></script>
-<script src="logic.js?v=2026-11-26b"></script>
-<script src="missionen/funkfrequenz.js?v=2026-11-26b"></script>
-<script src="missionen/schrotthaendler.js?v=2026-11-26b"></script>
-<script src="missionen/reaktor.js?v=2026-11-26b"></script>
-<script src="missionen/asteroid.js?v=2026-11-26b"></script>
-<script src="missionen/kapseln.js?v=2026-11-26b"></script>
-<script src="missionen/terraforming.js?v=2026-11-26b"></script>
-<script src="missionen/ionenspur.js?v=2026-11-26b"></script>
-<script src="missionen/gestaltwandler.js?v=2026-11-26b"></script>
-<script src="missionen/frachtraum.js?v=2026-11-26b"></script>
-<script src="missionen/solo.js?v=2026-11-26b"></script>
-<script src="missionen/greifarm.js?v=2026-11-26b"></script>
-<script src="missionen/bordkueche.js?v=2026-11-26b"></script>
-<script src="missionen/boule.js?v=2026-11-26b"></script>
+<script src="sensoren.js?v=2026-11-26c"></script>
+<script src="live.js?v=2026-11-26c"></script>
+<script src="klang.js?v=2026-11-26c"></script>
+<script src="logic.js?v=2026-11-26c"></script>
+<script src="missionen/funkfrequenz.js?v=2026-11-26c"></script>
+<script src="missionen/schrotthaendler.js?v=2026-11-26c"></script>
+<script src="missionen/reaktor.js?v=2026-11-26c"></script>
+<script src="missionen/asteroid.js?v=2026-11-26c"></script>
+<script src="missionen/kapseln.js?v=2026-11-26c"></script>
+<script src="missionen/terraforming.js?v=2026-11-26c"></script>
+<script src="missionen/ionenspur.js?v=2026-11-26c"></script>
+<script src="missionen/gestaltwandler.js?v=2026-11-26c"></script>
+<script src="missionen/frachtraum.js?v=2026-11-26c"></script>
+<script src="missionen/solo.js?v=2026-11-26c"></script>
+<script src="missionen/greifarm.js?v=2026-11-26c"></script>
+<script src="missionen/bordkueche.js?v=2026-11-26c"></script>
+<script src="missionen/boule.js?v=2026-11-26c"></script>
 <script src="https://cdn.jsdelivr.net/npm/planck@1.4.2/dist/planck.min.js"></script>
-<script src="missionen/treibstoff.js?v=2026-11-26b"></script>
-<script src="missionen/mondbasis.js?v=2026-11-26b"></script>
-<script src="brett.js?v=2026-11-26b"></script>
-<script src="app.js?v=2026-11-26b"></script>
+<script src="missionen/treibstoff.js?v=2026-11-26c"></script>
+<script src="missionen/mondbasis.js?v=2026-11-26c"></script>
+<script src="brett.js?v=2026-11-26c"></script>
+<script src="app.js?v=2026-11-26c"></script>
 </body>
 </html>

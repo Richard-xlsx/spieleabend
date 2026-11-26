@@ -349,7 +349,7 @@
     if (fr.art === "pirat") {
       const ziel = fr.optionen.includes(w) ? w : fr.optionen.slice().sort((a, b) => S.spieler[b].energie - S.spieler[a].energie)[0];
       const v = Math.min(S.spieler[ziel].energie, 5 * f);
-      S.spieler[ziel].energie -= v; sp.energie += v;
+      S.spieler[ziel].energie -= v; sp.energie += v; z.opfer = ziel; z.beute = v;
       z.text = `Klaut ${nm(S, ziel)} ${v} Energie`;
     } else if (fr.art === "teleporter") {
       if (fr.optionen.includes(w)) { const a = P.pos[p]; P.pos[p] = P.pos[w]; P.pos[w] = a; z.text = `Tauscht den Platz mit ${nm(S, w)}`; }
@@ -360,7 +360,7 @@
     } else if (fr.art === "kauf") {
       const k = Math.min(fr.optionen, Math.floor(sp.energie / PREIS), w === undefined || w === "ja" ? MAXKAUF : Math.max(0, w | 0));
       if (k > 0) {
-        sp.energie -= k * PREIS; sp.kristalle += k;
+        sp.energie -= k * PREIS; sp.kristalle += k; z.kauf = k;
         z.text2 = `Kauft ${k === 1 ? "einen Sternkristall" : k + " Sternkristalle"} für ${k * PREIS} Energie.`;
       } else z.text2 = "Kauft keinen Kristall";
       log(S, `${sp.name}: ${z.text2}`);
