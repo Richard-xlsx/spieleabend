@@ -178,9 +178,32 @@ button:focus-visible,input:focus-visible,a:focus-visible,summary:focus-visible{o
 .uebung summary::after{content:"+";font:900 1.3rem var(--display);color:var(--leise)}
 .uebung[open] summary::after{content:"−"}
 
-/* Spielbrett */
+/* Spielbrett: Brett und Entscheidung füllen zusammen den Bildschirm, das Brett nimmt den Rest */
 .brettrahmen{margin:0 -6px}
 .brett{display:block;width:100%;height:auto;max-width:440px;margin:0 auto}
+.brettseite{display:flex;flex-direction:column;gap:8px;height:calc(100vh - 28px);height:calc(100dvh - max(12px,env(safe-area-inset-top)) - max(16px,env(safe-area-inset-bottom)));min-height:440px}
+.brettseite .brettrahmen{flex:1 1 0;min-height:140px;position:relative;container-type:size}
+.brettseite .brett{position:absolute;inset:0;width:100%;height:100%;max-width:none}
+.brettseite .panel{flex:none;max-height:74%;overflow-y:auto;overscroll-behavior:contain;padding:12px 14px}
+.blickzeile{display:flex;align-items:center;gap:10px;font-size:.84rem;color:var(--leise);min-height:24px;padding:0 4px}
+.blickzeile .ichwert{font:800 .9rem var(--display);color:var(--text);white-space:nowrap;display:flex;align-items:center;gap:3px}
+.blickzeile .ichwert i{font-style:normal;color:var(--gelb)}
+.blickzeile .logzeile{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.blickzeile .link{padding:2px 4px;font-size:.84rem;white-space:nowrap}
+.reiter{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;background:var(--flaeche);border:1px solid var(--linie);border-radius:14px;padding:4px;scroll-margin-top:12px}
+.reiterknopf{appearance:none;border:0;background:none;color:var(--leise);font:600 .9rem var(--fliess);padding:9px 4px;border-radius:10px;cursor:pointer}
+.reiterknopf.an{background:var(--flaeche2);color:var(--text)}
+.wurfchips{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:1fr 1fr;gap:6px 10px}
+.wurfchips li{display:flex;align-items:center;gap:6px;font-weight:600;font-size:.86rem;min-width:0}
+.wurfchips .helm{width:24px;height:24px}
+.wurfchips .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wurfchips .wuerfel{width:20px;height:20px}
+.wurfchips .wuerfelpaar{gap:2px}
+.missionskarte.kompakt{padding:8px 12px}
+.brettseite .tippknopf{width:58px;padding:4px 2px 3px}
+.brettseite .tippknopf .helm{width:28px;height:28px}
+.brettseite .einsatz{width:38px;height:38px;font-size:.95rem}
+.brettseite .panel .knopf{padding:12px 14px}
 .brett .figur{transition:transform .26s ease-in-out}
 .brett .figur.zieht{filter:drop-shadow(0 0 6px #fff8)}
 .brett .meinring{fill:none;stroke:var(--akzent);stroke-width:2.5;animation:meinring 1.6s infinite ease-in-out}
@@ -196,6 +219,7 @@ button:focus-visible,input:focus-visible,a:focus-visible,summary:focus-visible{o
 .panel{gap:10px}
 .panelkopf{display:flex;justify-content:space-between;align-items:center;gap:10px}
 .wuerfel{width:26px;height:26px;display:inline-block;vertical-align:middle}
+.panel p>.wuerfel{width:22px;height:22px;vertical-align:-5px}
 .wuerfelpaar{display:flex;gap:4px}
 .wuerfelknopf{display:flex;align-items:center;justify-content:center;gap:8px;font-size:1.15rem;padding:16px}
 .wuerfelknopf .wuerfel{width:30px;height:30px}
@@ -229,7 +253,7 @@ button:focus-visible,input:focus-visible,a:focus-visible,summary:focus-visible{o
 .einsatz:disabled{opacity:.3;cursor:default}
 .gratis{display:inline-block;margin-top:4px;background:#4DA3FF26;border:1px solid #4DA3FF;color:#BFDcff;border-radius:999px;padding:2px 10px;font-size:.82rem}
 .logbuch{list-style:none;margin:0;padding:0 4px;display:flex;flex-direction:column;gap:3px;font-size:.84rem;color:var(--leise)}
-.logbuch li:last-child{color:var(--text)}
+.logbuch li:first-child{color:var(--text)}
 .logbuch li::before{content:"› ";color:var(--akzent)}
 .kristall{width:13px;height:15px;display:inline-block;vertical-align:-2px}
 .stand{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
@@ -241,8 +265,7 @@ button:focus-visible,input:focus-visible,a:focus-visible,summary:focus-visible{o
 .stand .energie{min-width:3em;text-align:right}
 .stand .ich .nm{color:var(--akzent)}
 .stand .erster .pl{color:var(--gelb)}
-.legende{background:var(--flaeche);border:1px solid var(--linie);border-radius:18px;padding:12px 16px}
-.legende summary{cursor:pointer;font-weight:600}
+.legende{background:var(--flaeche);border:1px solid var(--linie);border-radius:18px;padding:14px 16px}
 .legende ul{list-style:none;margin:10px 0;padding:0;display:flex;flex-direction:column;gap:8px;font-size:.88rem}
 .legende li{display:flex;gap:10px;align-items:flex-start}
 .legende li b{display:block}
@@ -408,27 +431,27 @@ button:focus-visible,input:focus-visible,a:focus-visible,summary:focus-visible{o
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <script src="../netz.js?v=2026-11-25a"></script>
 <script src="../abend.js?v=2026-11-25a" data-spiel="orbit"></script>
-<script src="sensoren.js?v=2026-11-25j"></script>
-<script src="live.js?v=2026-11-25j"></script>
-<script src="klang.js?v=2026-11-25j"></script>
-<script src="logic.js?v=2026-11-25j"></script>
-<script src="missionen/funkfrequenz.js?v=2026-11-25j"></script>
-<script src="missionen/schrotthaendler.js?v=2026-11-25j"></script>
-<script src="missionen/reaktor.js?v=2026-11-25j"></script>
-<script src="missionen/asteroid.js?v=2026-11-25j"></script>
-<script src="missionen/kapseln.js?v=2026-11-25j"></script>
-<script src="missionen/terraforming.js?v=2026-11-25j"></script>
-<script src="missionen/ionenspur.js?v=2026-11-25j"></script>
-<script src="missionen/gestaltwandler.js?v=2026-11-25j"></script>
-<script src="missionen/frachtraum.js?v=2026-11-25j"></script>
-<script src="missionen/solo.js?v=2026-11-25j"></script>
-<script src="missionen/greifarm.js?v=2026-11-25j"></script>
-<script src="missionen/bordkueche.js?v=2026-11-25j"></script>
-<script src="missionen/boule.js?v=2026-11-25j"></script>
+<script src="sensoren.js?v=2026-11-26a"></script>
+<script src="live.js?v=2026-11-26a"></script>
+<script src="klang.js?v=2026-11-26a"></script>
+<script src="logic.js?v=2026-11-26a"></script>
+<script src="missionen/funkfrequenz.js?v=2026-11-26a"></script>
+<script src="missionen/schrotthaendler.js?v=2026-11-26a"></script>
+<script src="missionen/reaktor.js?v=2026-11-26a"></script>
+<script src="missionen/asteroid.js?v=2026-11-26a"></script>
+<script src="missionen/kapseln.js?v=2026-11-26a"></script>
+<script src="missionen/terraforming.js?v=2026-11-26a"></script>
+<script src="missionen/ionenspur.js?v=2026-11-26a"></script>
+<script src="missionen/gestaltwandler.js?v=2026-11-26a"></script>
+<script src="missionen/frachtraum.js?v=2026-11-26a"></script>
+<script src="missionen/solo.js?v=2026-11-26a"></script>
+<script src="missionen/greifarm.js?v=2026-11-26a"></script>
+<script src="missionen/bordkueche.js?v=2026-11-26a"></script>
+<script src="missionen/boule.js?v=2026-11-26a"></script>
 <script src="https://cdn.jsdelivr.net/npm/planck@1.4.2/dist/planck.min.js"></script>
-<script src="missionen/treibstoff.js?v=2026-11-25j"></script>
-<script src="missionen/mondbasis.js?v=2026-11-25j"></script>
-<script src="brett.js?v=2026-11-25j"></script>
-<script src="app.js?v=2026-11-25j"></script>
+<script src="missionen/treibstoff.js?v=2026-11-26a"></script>
+<script src="missionen/mondbasis.js?v=2026-11-26a"></script>
+<script src="brett.js?v=2026-11-26a"></script>
+<script src="app.js?v=2026-11-26a"></script>
 </body>
 </html>

@@ -232,6 +232,11 @@
   }
   // Klänge: aus dem Unterschied zwischen altem und neuem Stand (gilt für Spielleiter und Mitspieler gleich)
   let vorher = null;
+  // Vibration (auch bei ausgeschaltetem Ton): wenn man dran ist, beim Würfeln, bei Verlust, bei Missionsstart
+  let beruehrt = false;   // Browser erlauben Vibration erst nach einer Berührung
+  window.addEventListener("pointerdown", () => { beruehrt = true; }, { passive: true, once: true });
+  const brumm = muster => { try { if (beruehrt && navigator.vibrate && document.visibilityState === "visible") navigator.vibrate(muster); } catch (e) {} };
+  const nachOben = () => { try { if (window.scrollY > 40) window.scrollTo({ top: 0, behavior: "smooth" }); } catch (e) {} };
   function klaenge() {
     if (!S) return;
     const P = S.partie, m = S.mission, ich = S.spieler[PID] || {}, z = P && P.zug;
@@ -251,11 +256,13 @@
     if (jetzt.kristalle > v.kristalle) K.spiel("kristall");
     else if (jetzt.energie > v.energie && jetzt.phase === v.phase && jetzt.ms === v.ms) K.spiel("energie");
     else if (jetzt.energie < v.energie && jetzt.phase === v.phase && jetzt.phase === "brett") K.spiel("verlust");
-    if ((jetzt.wahl && !v.wahl) || (jetzt.frage && !v.frage)) K.spiel("dran");
-    else if (jetzt.ps !== v.ps && (jetzt.ps === "wahl" || jetzt.ps === "wetten")) K.spiel("glocke");
+    if ((jetzt.wahl && !v.wahl) || (jetzt.frage && !v.frage)) { K.spiel("dran"); brumm([70, 60, 140]); nachOben(); }
+    else if (jetzt.ps !== v.ps && (jetzt.ps === "wahl" || jetzt.ps === "wetten")) { K.spiel("glocke"); if (jetzt.ps === "wetten" && P.pos[PID] !== undefined) { brumm(60); nachOben(); } }
+    if (jetzt.ps === "wuerfeln" && v.ps !== "wuerfeln" && P.pos[PID] !== undefined) { brumm(90); nachOben(); }
+    if (jetzt.energie < v.energie && jetzt.phase === "brett" && v.phase === "brett") brumm([40, 40, 40, 40, 90]);
     if (jetzt.phase === "ende" && v.phase !== "ende") K.spiel("fanfare");
     if (jetzt.ms !== v.ms && m) {
-      if (m.schritt === "anleitung") K.spiel("auftakt");
+      if (m.schritt === "anleitung") { K.spiel("auftakt"); if (m.tn.includes(PID)) { brumm(120); nachOben(); } }
       else if (m.schritt === "ergebnis" && m.tn.includes(PID)) {
         const e = (m.ergebnis || []).find(x => x.pid === PID);
         K.spiel(e && e.platz === 1 ? "sieg" : "ende");

@@ -109,13 +109,13 @@
     const kopf = (titel, bis) => `<div class="panelkopf"><h2>${titel}</h2>${bis ? c.uhr(bis) : ""}</div>`;
     if (P.schritt === "wuerfeln") {
       const mein = P.wurf[c.PID];
-      const reihe = R.mitspieler(S).map(p => `<li>${c.helm(p)}<span class="nm">${esc(c.name(p))}</span>${P.wurf[p] ? `<span class="wuerfelpaar">${wuerfel(P.wurf[p][0])}${wuerfel(P.wurf[p][1])}</span>` : `<span class="leise klein">${c.da(p) ? "würfelt …" : "offline"}</span>`}</li>`).join("");
+      const reihe = R.mitspieler(S).filter(p => p !== c.PID || !ich).map(p => `<li>${c.helm(p)}<span class="nm">${esc(c.name(p))}</span>${P.wurf[p] ? `<span class="wuerfelpaar">${wuerfel(P.wurf[p][0])}${wuerfel(P.wurf[p][1])}</span>` : `<span class="leise klein">${c.da(p) ? "…" : "offline"}</span>`}</li>`).join("");
       return kopf("Alle würfeln", P.bis) +
         (ich && !mein ? `<button class="knopf wuerfelknopf" id="wurf">${wuerfel(5)}${wuerfel(2)}<span>Würfeln</span></button>
           <p class="leise klein mitte">Tippen oder Handy schütteln${SN && SN.brauchtErlaubnis() ? ` · <button class="link" id="schuettelnErlauben">Schütteln erlauben</button>` : ""}</p>` : "") +
         (ich && mein ? `<p class="mitte gross">Du hast <b>${wurfSumme(mein)}</b> gewürfelt.</p>` : "") +
         (!ich ? `<p class="mitte leise">${sp(c.PID).wartet ? "Du steigst in der nächsten Runde ein." : "Du schaust zu."}</p>` : "") +
-        `<ul class="liste">${reihe}</ul>`;
+        `<ul class="wurfchips">${reihe}</ul>`;
     }
     if (P.schritt === "ziehen") {
       const z = P.zug;
@@ -130,8 +130,8 @@
       if (fr && meins) {
         const k = [];
         if (fr.art === "schritte") {
-          h += `<p class="mitte">Ziehst du mit <b>einem Würfel</b> oder mit <b>beiden</b>?</p>`;
-          const wurf = P.wurf[c.PID] || [], summe = fr.optionen[fr.optionen.length - 1];
+          const wurf = Array.isArray(P.wurf[c.PID]) ? P.wurf[c.PID] : [], summe = fr.optionen[fr.optionen.length - 1];
+          h = `<p class="mitte">Du hast ${wurf.map(n => wuerfel(n)).join(" ")} gewürfelt. Mit <b>einem Würfel</b> oder mit <b>beiden</b>?</p>`;
           for (const n of fr.optionen) {
             const ziel = (z.von + n) % R.N, typ = R.FELDER[ziel], vorbei = Array.from({ length: n }, (_, i) => (z.von + i + 1) % R.N).some(m => R.schiffe(P).includes(m));
             const art = n === summe && fr.optionen.length > 1 ? "beide Würfel" : wurf[0] === wurf[1] && n === wurf[0] ? "ein Würfel" : `Würfel ${n}`;
@@ -173,10 +173,10 @@
       if (wettMerker !== merk) { wettMerker = merk; tipp = null; einsatz = 0; }
       if (tipp === null && mein && mein.auf && !mein.verdeckt) { tipp = mein.auf; einsatz = mein.einsatz; }
       const abgegeben = tn.filter(p => P.wetten[p]).length;
-      let h = kopf("Wetten", P.bis) + `<div class="missionskarte"><div><small>Nächste Mission</small><b>${esc(M.name)}</b><p class="leise klein">${esc(M.kurz)}</p></div></div>`;
+      let h = kopf("Wetten", P.bis) + `<div class="missionskarte kompakt"><div><b>${esc(M.name)}</b><p class="leise klein">${esc(M.kurz)}</p></div></div>`;
       if (!ich) return h + `<p class="mitte leise">Die anderen wetten.</p>`;
       const maxE = Math.min(R.MAXWETTE, sp(c.PID).energie), q = R.wettQuote(P.gewaehlt);
-      h += `<p class="mitte">Wer gewinnt? Richtig getippt gibt <b>${q.text}</b>${q.leicht ? " (hier gewinnt ein ganzes Team)" : ""}.${gratis ? ` <span class="gratis">Gratiswette: richtig getippt +${q.gratis} ⚡</span>` : ""}</p>
+      h += `<p class="mitte klein">Wer gewinnt? Richtig getippt gibt <b>${q.text}</b>${q.leicht ? " (hier gewinnt ein ganzes Team)" : ""}.${gratis ? ` <span class="gratis">Gratiswette: richtig getippt +${q.gratis} ⚡</span>` : ""}</p>
         <div class="tipps" role="group" aria-label="Tipp">${tn.map(p => `<button class="tippknopf ${tipp === p ? "an" : ""}" data-tipp="${esc(p)}" aria-pressed="${tipp === p}">${c.helm(p)}<small>${p === c.PID ? "ich" : esc(c.name(p))}</small></button>`).join("")}</div>
         <div class="einsaetze" role="group" aria-label="Einsatz">${Array.from({ length: R.MAXWETTE + 1 }, (_, n) => `<button class="einsatz ${einsatz === n ? "an" : ""}" data-einsatz="${n}" ${n > maxE ? "disabled" : ""} aria-pressed="${einsatz === n}">${n}</button>`).join("")}<span class="leise klein">⚡ Einsatz</span></div>
         <div class="reihe"><button class="knopf" id="wetteab" ${tipp ? "" : "disabled"}>${mein && mein.auf ? "Wette ändern" : "Wette abgeben"}</button><button class="knopf zweit" id="ohnewette">Ohne Wette</button></div>
@@ -199,20 +199,31 @@
     }).join("")}</ol>${wartend.length ? `<p class="leise klein">Steigen nächste Runde ein: ${wartend.map(p => esc(S.spieler[p].name)).join(", ")}</p>` : ""}</div>`;
   }
   function legende() {
-    return `<details class="legende"><summary>Was die Module machen</summary><ul>${Object.keys(R.FELD).map(k => `<li>${feldIcon(k)}<span><b>${R.FELD[k].name}</b> ${k === "L" ? "Hier starten alle." : R.FELD[k].text}</span></li>`).join("")}
+    return `<div class="legende"><h2>Was die Module machen</h2><ul>${Object.keys(R.FELD).map(k => `<li>${feldIcon(k)}<span><b>${R.FELD[k].name}</b> ${k === "L" ? "Hier starten alle." : R.FELD[k].text}</span></li>`).join("")}
       <li>${kristall()}<span><b>Händlerschiffe</b> Zwei Schiffe docken an. Wer an einem vorbeizieht oder darauf landet, kauft bis zu ${R.MAXKAUF} Sternkristalle für je ${R.PREIS} Energie. Sie bleiben eine Runde und fliegen dann weiter.</span></li></ul>
       <p class="leise klein">Nach dem Würfeln ziehst du mit einem Würfel oder mit beiden. In der letzten Runde zählen Felder und Mission doppelt.
         Am Ende gibt es drei Bonus-Kristalle: Missionsheld (meiste Energie aus Missionen), Bester Tipper (meiste Energie aus Wetten) und Comeback (die meisten Plätze aufgeholt).
-        Es gewinnt, wer die meisten Kristalle hat, bei Gleichstand entscheidet die Energie.</p></details>`;
+        Es gewinnt, wer die meisten Kristalle hat, bei Gleichstand entscheidet die Energie.</p></div>`;
   }
 
+  // Aufbau: Brett und Entscheidung passen zusammen auf den Bildschirm, darunter Reiter für Stand, Logbuch und Module
+  let reiter = "stand";
   function html(c) {
-    const P = c.S.partie;
-    const log = P.log.slice(-4).map(t => `<li>${c.esc(t)}</li>`).join("");
-    return `<div class="brettrahmen">${brettSvg(c)}</div>
-      <div class="karte-box panel">${panel(c)}</div>
-      ${log ? `<ul class="logbuch" aria-live="polite">${log}</ul>` : ""}
-      ${standListe(c)}${legende()}
+    const S = c.S, P = S.partie, esc = c.esc;
+    const log = P.log.slice(-12).reverse().map(t => `<li>${esc(t)}</li>`).join("");
+    const ich = S.spieler[c.PID], pl = R.plaetze(S).find(e => e.pid === c.PID);
+    const werte = ich && pl ? `<span class="ichwert">${pl.platz}. · ${ich.energie}<i>⚡</i> · ${ich.kristalle}${kristall()}</span>` : "";
+    const zuletzt = P.log.length ? `<span class="logzeile" aria-live="polite">${esc(P.log[P.log.length - 1])}</span>` : `<span class="logzeile"></span>`;
+    const tab = (k, t) => `<button role="tab" class="reiterknopf ${reiter === k ? "an" : ""}" data-reiter="${k}" aria-selected="${reiter === k}">${t}</button>`;
+    return `<div class="brettseite">
+        <div class="brettrahmen">${brettSvg(c)}</div>
+        <div class="blickzeile">${werte}${zuletzt}<button class="link" id="zumStand" aria-label="Zum Stand">Stand ▾</button></div>
+        <div class="karte-box panel">${panel(c)}</div>
+      </div>
+      <div class="reiter" id="reiter" role="tablist">${tab("stand", "Stand")}${tab("log", "Logbuch")}${tab("module", "Module")}</div>
+      <div data-flaeche="stand" ${reiter === "stand" ? "" : "hidden"}>${standListe(c)}</div>
+      <div data-flaeche="log" ${reiter === "log" ? "" : "hidden"}><div class="karte-box"><ul class="logbuch">${log}</ul></div></div>
+      <div data-flaeche="module" ${reiter === "module" ? "" : "hidden"}>${legende()}</div>
       ${c.host ? `<button class="link" id="beenden">Partie vorzeitig beenden</button>` : ""}`;
   }
 
@@ -244,6 +255,12 @@
     document.querySelectorAll("[data-einsatz]").forEach(b => b.onclick = () => { einsatz = +b.dataset.einsatz; wettAnzeige(); });
     if ($("wetteab")) $("wetteab").onclick = () => { if (tipp) c.tun({ t: "wette", auf: tipp, einsatz }); };
     if ($("ohnewette")) $("ohnewette").onclick = () => { tipp = null; einsatz = 0; c.tun({ t: "wette", auf: null, einsatz: 0 }); };
+    document.querySelectorAll("[data-reiter]").forEach(b => b.onclick = () => {
+      reiter = b.dataset.reiter;
+      document.querySelectorAll("[data-reiter]").forEach(x => { x.classList.toggle("an", x === b); x.setAttribute("aria-selected", x === b); });
+      document.querySelectorAll("[data-flaeche]").forEach(x => { x.hidden = x.dataset.flaeche !== reiter; });
+    });
+    if ($("zumStand")) $("zumStand").onclick = () => { const r = $("reiter"); if (r) r.scrollIntoView({ behavior: "smooth", block: "start" }); };
     if ($("beenden")) $("beenden").onclick = () => { if (confirm("Partie jetzt beenden und zur Siegerehrung?")) c.tun({ t: "beenden" }); };
     if ($("neuePartie")) $("neuePartie").onclick = () => c.tun({ t: "neuePartie" });
   }
