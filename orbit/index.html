@@ -193,6 +193,30 @@ button:focus-visible,input:focus-visible,a:focus-visible,summary:focus-visible{o
 .reiter{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;background:var(--flaeche);border:1px solid var(--linie);border-radius:14px;padding:4px;scroll-margin-top:12px}
 .reiterknopf{appearance:none;border:0;background:none;color:var(--leise);font:600 .9rem var(--fliess);padding:9px 4px;border-radius:10px;cursor:pointer}
 .reiterknopf.an{background:var(--flaeche2);color:var(--text)}
+/* Würfel in der Stationsmitte: echte 3D-Würfel aus CSS, rollen herein und bleiben auf der Zahl liegen */
+.wurfbuehne{--u:1px;--u:calc(min(100cqw,100cqh) / 360);--s:calc(var(--u) * 31);position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display:flex;gap:calc(var(--u) * 9);perspective:calc(var(--u) * 500);pointer-events:none;padding:0;margin:0;background:none;border:0}
+.wurfbuehne.hubwurf{pointer-events:auto;cursor:pointer;border-radius:50%;padding:calc(var(--u) * 14) calc(var(--u) * 8)}
+.w3bahn{display:block;width:var(--s);height:var(--s);transform-style:preserve-3d}
+.w3{position:relative;width:100%;height:100%;transform-style:preserve-3d}
+.w3>i{position:absolute;inset:0;backface-visibility:hidden;display:block;border-radius:22%;background:#EAF2FF;box-shadow:inset 0 0 0 1px #060A1C55,inset 0 0 calc(var(--s) * .18) #9AA7D166}
+.w3>i .wuerfel{width:100%;height:100%;display:block}
+.w3>i .wuerfel rect{stroke:none;fill:none}
+.wurfbuehne.fremd .w3bahn{filter:drop-shadow(0 0 calc(var(--u) * 5) var(--farbe))}
+.w3bahn.blass{opacity:.35;transition:opacity .3s}
+.w3bahn.rollt{animation:w3roll 1.1s cubic-bezier(.2,.7,.3,1) both}
+.w3bahn.rollt+.w3bahn.rollt{animation-name:w3roll2}
+@keyframes w3roll{0%{transform:translate3d(calc(var(--u) * -90),calc(var(--u) * -70),0) rotateX(720deg) rotateY(-540deg) rotateZ(120deg) scale(.6);opacity:0}
+  12%{opacity:1}60%{transform:translate3d(calc(var(--u) * 4),calc(var(--u) * 3),0) rotateX(60deg) rotateY(-40deg) rotateZ(10deg)}
+  80%{transform:translate3d(0,calc(var(--u) * -4),0) rotateX(-12deg) rotateY(8deg)}100%{transform:none}}
+@keyframes w3roll2{0%{transform:translate3d(calc(var(--u) * 90),calc(var(--u) * -80),0) rotateX(-630deg) rotateY(450deg) rotateZ(-100deg) scale(.6);opacity:0}
+  12%{opacity:1}60%{transform:translate3d(calc(var(--u) * -4),calc(var(--u) * 3),0) rotateX(-50deg) rotateY(30deg)}
+  80%{transform:translate3d(0,calc(var(--u) * -4),0) rotateX(10deg) rotateY(-6deg)}100%{transform:none}}
+.hubwurf .w3bahn{animation:w3warten 2.2s ease-in-out infinite}
+.hubwurf .w3bahn+.w3bahn{animation-delay:-1.1s}
+.hubwurf.schuettelt .w3bahn{animation:w3schuetteln .22s linear infinite}
+@keyframes w3warten{0%,100%{transform:rotateZ(-6deg) translateY(0)}50%{transform:rotateZ(6deg) translateY(calc(var(--u) * -3))}}
+@keyframes w3schuetteln{0%{transform:rotateX(0) rotateZ(0)}50%{transform:rotateX(180deg) rotateZ(20deg) translateY(calc(var(--u) * -4))}100%{transform:rotateX(360deg) rotateZ(0)}}
+@media (prefers-reduced-motion:reduce){.w3bahn.rollt,.hubwurf .w3bahn,.hubwurf.schuettelt .w3bahn{animation:none}}
 .wurfchips{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:1fr 1fr;gap:6px 10px}
 .wurfchips li{display:flex;align-items:center;gap:6px;font-weight:600;font-size:.86rem;min-width:0}
 .wurfchips .helm{width:24px;height:24px}
@@ -431,27 +455,27 @@ button:focus-visible,input:focus-visible,a:focus-visible,summary:focus-visible{o
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <script src="../netz.js?v=2026-11-25a"></script>
 <script src="../abend.js?v=2026-11-25a" data-spiel="orbit"></script>
-<script src="sensoren.js?v=2026-11-26a"></script>
-<script src="live.js?v=2026-11-26a"></script>
-<script src="klang.js?v=2026-11-26a"></script>
-<script src="logic.js?v=2026-11-26a"></script>
-<script src="missionen/funkfrequenz.js?v=2026-11-26a"></script>
-<script src="missionen/schrotthaendler.js?v=2026-11-26a"></script>
-<script src="missionen/reaktor.js?v=2026-11-26a"></script>
-<script src="missionen/asteroid.js?v=2026-11-26a"></script>
-<script src="missionen/kapseln.js?v=2026-11-26a"></script>
-<script src="missionen/terraforming.js?v=2026-11-26a"></script>
-<script src="missionen/ionenspur.js?v=2026-11-26a"></script>
-<script src="missionen/gestaltwandler.js?v=2026-11-26a"></script>
-<script src="missionen/frachtraum.js?v=2026-11-26a"></script>
-<script src="missionen/solo.js?v=2026-11-26a"></script>
-<script src="missionen/greifarm.js?v=2026-11-26a"></script>
-<script src="missionen/bordkueche.js?v=2026-11-26a"></script>
-<script src="missionen/boule.js?v=2026-11-26a"></script>
+<script src="sensoren.js?v=2026-11-26b"></script>
+<script src="live.js?v=2026-11-26b"></script>
+<script src="klang.js?v=2026-11-26b"></script>
+<script src="logic.js?v=2026-11-26b"></script>
+<script src="missionen/funkfrequenz.js?v=2026-11-26b"></script>
+<script src="missionen/schrotthaendler.js?v=2026-11-26b"></script>
+<script src="missionen/reaktor.js?v=2026-11-26b"></script>
+<script src="missionen/asteroid.js?v=2026-11-26b"></script>
+<script src="missionen/kapseln.js?v=2026-11-26b"></script>
+<script src="missionen/terraforming.js?v=2026-11-26b"></script>
+<script src="missionen/ionenspur.js?v=2026-11-26b"></script>
+<script src="missionen/gestaltwandler.js?v=2026-11-26b"></script>
+<script src="missionen/frachtraum.js?v=2026-11-26b"></script>
+<script src="missionen/solo.js?v=2026-11-26b"></script>
+<script src="missionen/greifarm.js?v=2026-11-26b"></script>
+<script src="missionen/bordkueche.js?v=2026-11-26b"></script>
+<script src="missionen/boule.js?v=2026-11-26b"></script>
 <script src="https://cdn.jsdelivr.net/npm/planck@1.4.2/dist/planck.min.js"></script>
-<script src="missionen/treibstoff.js?v=2026-11-26a"></script>
-<script src="missionen/mondbasis.js?v=2026-11-26a"></script>
-<script src="brett.js?v=2026-11-26a"></script>
-<script src="app.js?v=2026-11-26a"></script>
+<script src="missionen/treibstoff.js?v=2026-11-26b"></script>
+<script src="missionen/mondbasis.js?v=2026-11-26b"></script>
+<script src="brett.js?v=2026-11-26b"></script>
+<script src="app.js?v=2026-11-26b"></script>
 </body>
 </html>

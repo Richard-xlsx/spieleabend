@@ -94,12 +94,46 @@
       <g stroke="#2A3568" stroke-width="5" stroke-linecap="round">${speichen}</g>
       <circle cx="${CX}" cy="${CY}" r="58" fill="#141B3D" stroke="#2A3568" stroke-width="2"/>
       <circle cx="${CX}" cy="${CY}" r="48" fill="none" stroke="${final ? "#FF7A2F" : "#2EC4B6"}" stroke-width="1.5" opacity=".5" class="hubpuls"/>
-      <text x="${CX}" y="${CY - 18}" class="hubklein">RUNDE</text>
+      ${hubWurf(c) ? `<text x="${CX}" y="${CY - 30}" class="hubklein">RUNDE ${P.runde}/${P.runden}</text>
+      <text x="${CX}" y="${CY + 42}" class="hubklein ${final ? "doppelt" : ""}">${final ? "DOPPELT" : schritt.toUpperCase()}</text>` : `<text x="${CX}" y="${CY - 18}" class="hubklein">RUNDE</text>
       <text x="${CX}" y="${CY + 12}" class="hubgross">${P.runde}<tspan class="hubvon">/${P.runden}</tspan></text>
-      <text x="${CX}" y="${CY + 32}" class="hubklein ${final ? "doppelt" : ""}">${final ? "DOPPELT" : schritt.toUpperCase()}</text>
+      <text x="${CX}" y="${CY + 32}" class="hubklein ${final ? "doppelt" : ""}">${final ? "DOPPELT" : schritt.toUpperCase()}</text>`}
       ${kacheln}${schiff}${ziele}
       ${reihenfolge.map(p => figur(c, p, orte[p])).join("")}
     </svg>`;
+  }
+
+  // ---------- Würfel in der Stationsmitte (CSS-3D) ----------
+  // Welcher Wurf liegt in der Mitte? Beim Würfeln der eigene, beim Ziehen der des Ziehenden.
+  function hubWurf(c) {
+    const S = c.S, P = S.partie, ich = P.pos[c.PID] !== undefined;
+    if (P.schritt === "wuerfeln" && ich) return { pid: c.PID, w: P.wurf[c.PID] || null };
+    if (P.schritt === "ziehen" && P.zug && Array.isArray(P.wurf[P.zug.pid])) return { pid: P.zug.pid, w: P.wurf[P.zug.pid] };
+    if (P.schritt === "ziehen" && !P.zug && ich && Array.isArray(P.wurf[c.PID])) return { pid: c.PID, w: P.wurf[c.PID] };
+    return null;
+  }
+  // Augen 1–6 auf die Seiten eines Würfels, gedreht so, dass die Zahl n vorn liegt
+  const SEITE = { 1: "", 6: "rotateY(180deg)", 2: "rotateY(90deg)", 5: "rotateY(-90deg)", 3: "rotateX(-90deg)", 4: "rotateX(90deg)" };
+  const ZEIGT = { 1: "", 6: "rotateY(180deg)", 2: "rotateY(-90deg)", 5: "rotateY(90deg)", 3: "rotateX(90deg)", 4: "rotateX(-90deg)" };
+  const wuerfel3d = (n, k) => `<div class="w3" style="transform:rotateX(-16deg) rotateY(${k ? -20 : 20}deg) ${ZEIGT[n] || ""}">${[1, 2, 3, 4, 5, 6].map(f => `<i style="transform:${SEITE[f]} translateZ(calc(var(--s) / 2))">${wuerfel(f)}</i>`).join("")}</div>`;
+  const ROLLZEIT = 1150, gesehen = {};
+  let gedrueckt = null;
+  function wurfBuehne(c) {
+    const h = hubWurf(c), P = c.S.partie;
+    if (!h) return "";
+    if (!h.w) {
+      // Noch nicht gewürfelt: zwei Würfel wackeln in der Mitte, Tippen würfelt
+      const schuettelt = gedrueckt === P.runde;
+      return `<button class="wurfbuehne hubwurf ${schuettelt ? "schuettelt" : ""}" id="hubwurf" aria-label="Würfeln">
+        <span class="w3bahn">${wuerfel3d(5, 0)}</span><span class="w3bahn">${wuerfel3d(2, 1)}</span></button>`;
+    }
+    const key = P.runde + ":" + h.pid, jetzt = performance.now();
+    if (!(key in gesehen)) gesehen[key] = jetzt;
+    const alt = jetzt - gesehen[key], rollt = alt < ROLLZEIT;
+    const z = P.zug, gew = z && z.pid === h.pid && z.wurf != null && z.wurf !== h.w[0] + h.w[1] ? (z.wurf === h.w[0] ? 1 : 0) : -1;   // nicht benutzter Würfel
+    const fremd = h.pid !== c.PID;
+    return `<div class="wurfbuehne ${fremd ? "fremd" : ""}" style="--farbe:${c.farbe(h.pid)}" aria-label="Wurf ${h.w.join(" und ")}" role="img">
+      ${h.w.map((n, k) => `<span class="w3bahn ${rollt ? "rollt" : ""} ${k === gew ? "blass" : ""}" ${rollt ? `style="animation-delay:${-Math.round(alt) + k * 60}ms"` : ""}>${wuerfel3d(n, k)}</span>`).join("")}</div>`;
   }
 
   // ---------- Panels unter dem Brett ----------
@@ -216,7 +250,7 @@
     const zuletzt = P.log.length ? `<span class="logzeile" aria-live="polite">${esc(P.log[P.log.length - 1])}</span>` : `<span class="logzeile"></span>`;
     const tab = (k, t) => `<button role="tab" class="reiterknopf ${reiter === k ? "an" : ""}" data-reiter="${k}" aria-selected="${reiter === k}">${t}</button>`;
     return `<div class="brettseite">
-        <div class="brettrahmen">${brettSvg(c)}</div>
+        <div class="brettrahmen">${brettSvg(c)}${wurfBuehne(c)}</div>
         <div class="blickzeile">${werte}${zuletzt}<button class="link" id="zumStand" aria-label="Zum Stand">Stand ▾</button></div>
         <div class="karte-box panel">${panel(c)}</div>
       </div>
@@ -243,7 +277,13 @@
   function binden(c) {
     const $ = id => document.getElementById(id);
     if ($("schuettelnErlauben")) $("schuettelnErlauben").onclick = async () => { await SN.erlauben(); const b = $("schuettelnErlauben"); if (b) b.remove(); };
-    if ($("wurf")) $("wurf").onclick = () => { $("wurf").disabled = true; $("wurf").classList.add("rollt"); c.tun({ t: "wurf" }); };
+    const wirf = () => {
+      if ($("wurf")) { $("wurf").disabled = true; $("wurf").classList.add("rollt"); }
+      if ($("hubwurf")) $("hubwurf").classList.add("schuettelt");
+      gedrueckt = c.S.partie.runde; c.tun({ t: "wurf" });
+    };
+    if ($("wurf")) $("wurf").onclick = wirf;
+    if ($("hubwurf")) $("hubwurf").onclick = () => { if (!$("wurf") || !$("wurf").disabled) wirf(); };
     document.querySelectorAll("[data-antwort]").forEach(b => b.onclick = () => { const w = b.dataset.antwort; c.tun({ t: "antwort", w: /^\d+$/.test(w) ? +w : w }); });
     document.querySelectorAll("[data-waehle]").forEach(b => b.onclick = () => c.tun({ t: "waehle", id: b.dataset.waehle }));
     const wettAnzeige = () => {
