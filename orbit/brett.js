@@ -153,7 +153,10 @@
       return `<g class="schiffbahn" style="${gleiten("s:" + k, `rotate(${f1(grad)}deg)`, 1800)}"><g class="schiff" transform="translate(${CX} ${CY - RING - 27})"><path d="M-15 2l5-7h20l5 7-5 4h-20z" fill="#FFD23F" stroke="#060A1C" stroke-width="1.8" stroke-linejoin="round"/><path d="M-5-5l2-5h6l2 5" fill="#9AA7D1" stroke="#060A1C" stroke-width="1.6"/><circle cx="-6" cy="1" r="1.6" fill="#060A1C"/><circle cx="0" cy="1" r="1.6" fill="#060A1C"/><circle cx="6" cy="1" r="1.6" fill="#060A1C"/></g></g>`; }).join("");
     // Wählt jemand gerade die Schrittzahl, sind die möglichen Ziele markiert
     const zw = P.zug && P.zug.frage && P.zug.frage.art === "schritte" ? P.zug : null;
-    const ziele = zw ? zw.frage.optionen.map(n => { const [x, y] = punkt((zw.von + n) % R.N, RING); return `<g class="zielmarke" transform="translate(${f1(x)} ${f1(y)})"><circle r="18"/><text y="-22">${n}</text></g>`; }).join("") : "";
+    // … ebenso die eigenen, solange man beim Würfeln vorab wählt
+    const meinW = P.wurf[c.PID], vor = !zw && Array.isArray(meinW) && P.pos[c.PID] !== undefined && (P.schritt === "wuerfeln" || (P.schritt === "ziehen" && !P.zug && P.reihe.includes(c.PID)));
+    const marken = zw ? { von: zw.von, opt: zw.frage.optionen, gew: null } : vor ? { von: P.pos[c.PID], opt: R.schrittOptionen(meinW), gew: P.schritte && P.schritte[c.PID] } : null;
+    const ziele = marken ? marken.opt.map(n => { const [x, y] = punkt((marken.von + n) % R.N, RING); return `<g class="zielmarke ${marken.gew === n ? "gewaehlt" : ""}" transform="translate(${f1(x)} ${f1(y)})"><circle r="18"/><text y="-22">${n}</text></g>`; }).join("") : "";
     const orte = figurOrte(c);
     const reihenfolge = Object.keys(orte).sort((a, b) => (orte[a][2] - orte[b][2]) || ((a === c.PID) - (b === c.PID)));
     const z = P.zug, laeuft = z && z.stufe === "laufen";
@@ -210,6 +213,20 @@
       ${h.w.map((n, k) => `<span class="w3bahn ${rollt ? "rollt" : ""} ${k === gew ? "blass" : ""}" ${rollt ? `style="animation-delay:${-Math.round(alt) + k * 60}ms"` : ""}>${wuerfel3d(n, k)}</span>`).join("")}</div>`;
   }
 
+  // Schrittwahl gleich nach dem Würfeln: drei Knöpfe nebeneinander, bis zum eigenen Zug änderbar
+  function vorwahl(c) {
+    const P = c.S.partie, w = P.wurf[c.PID];
+    if (!Array.isArray(w) || P.pos[c.PID] === undefined) return "";
+    if (P.schritt === "ziehen" && (!P.reihe.includes(c.PID) || (P.zug && P.zug.pid === c.PID))) return "";
+    const opt = R.schrittOptionen(w), summe = w[0] + w[1], gew = P.schritte && P.schritte[c.PID], von = P.pos[c.PID];
+    const knoepfe = opt.map(n => {
+      const ziel = (von + n) % R.N, typ = R.FELDER[ziel], vorbei = Array.from({ length: n }, (_, i) => (von + i + 1) % R.N).some(m => R.schiffe(P).includes(m));
+      const art = n === summe && opt.length > 1 ? "beide" : "1 Würfel";
+      return `<button class="vorwahl ${gew === n ? "an" : ""}" data-schritte="${n}" aria-pressed="${gew === n}">${feldIcon(typ, 24)}<b>${n}</b><small>${art}${vorbei ? " · " + kristall() : ""}</small><small class="fn">${c.esc(R.FELD[typ].name)}</small></button>`;
+    }).join("");
+    return `<div class="vorwahlbox"><p class="klein mitte">${gew ? `Du ziehst <b>${gew}</b> Module, sobald du dran bist. Ändern geht noch.` : `Wie weit willst du ziehen? Du kannst schon jetzt wählen.`}</p><div class="vorwahlen">${knoepfe}</div></div>`;
+  }
+
   // ---------- Panels unter dem Brett ----------
   let tipp = null, einsatz = 0, wettMerker = "";
   function panel(c) {
@@ -221,14 +238,14 @@
       return kopf("Alle würfeln", P.bis) +
         (ich && !mein ? `<button class="knopf wuerfelknopf" id="wurf">${wuerfel(5)}${wuerfel(2)}<span>Würfeln</span></button>
           <p class="leise klein mitte">Tippen oder Handy schütteln${SN && SN.brauchtErlaubnis() ? ` · <button class="link" id="schuettelnErlauben">Schütteln erlauben</button>` : ""}</p>` : "") +
-        (ich && mein ? `<p class="mitte gross">Du hast <b>${wurfSumme(mein)}</b> gewürfelt.</p>` : "") +
+        (ich && mein ? vorwahl(c) : "") +
         (!ich ? `<p class="mitte leise">${sp(c.PID).wartet ? "Du steigst in der nächsten Runde ein." : "Du schaust zu."}</p>` : "") +
         `<ul class="wurfchips">${reihe}</ul>`;
     }
     if (P.schritt === "ziehen") {
       const z = P.zug;
       const danach = P.reihe.length ? `<p class="leise klein mitte">Danach: ${P.reihe.map(p => esc(c.name(p))).join(", ")}</p>` : "";
-      if (!z) return kopf("Ziehen") + `<p class="mitte leise">Wer hinten liegt, zieht zuerst.</p>` + danach;
+      if (!z) return kopf("Ziehen") + `<p class="mitte leise">Wer hinten liegt, zieht zuerst.</p>` + danach + vorwahl(c);
       const feld = z.feld ? R.FELD[z.feld] : null, meins = z.pid === c.PID;
       const w = P.wurf[z.pid], titel = z.wurf == null ? `${meins ? "Du hast" : esc(c.name(z.pid)) + " hat"} ${Array.isArray(w) ? w.join(" und ") : w} gewürfelt` : `${meins ? "Du ziehst" : esc(c.name(z.pid)) + " zieht"} ${z.wurf} Module`;
       let h = `<div class="zugkarte">${c.helm(z.pid)}<div><b>${titel}</b>
@@ -262,7 +279,7 @@
         return kopf("Deine Entscheidung", fr.bis) + h + `<div class="knoepfe">${k.join("")}</div>`;
       }
       if (fr) h += `<p class="mitte leise">${esc(c.name(z.pid))} entscheidet … ${c.uhr(fr.bis)}</p>`;
-      return kopf("Ziehen") + h + danach;
+      return kopf("Ziehen") + h + danach + vorwahl(c);
     }
     if (P.schritt === "wahl" && P.wahl) {
       const w = P.wahl, meins = w.wer === c.PID;
@@ -309,7 +326,7 @@
   function legende() {
     return `<div class="legende"><h2>Was die Module machen</h2><ul>${Object.keys(R.FELD).map(k => `<li>${feldIcon(k)}<span><b>${R.FELD[k].name}</b> ${k === "L" ? "Hier starten alle." : R.FELD[k].text}</span></li>`).join("")}
       <li>${kristall()}<span><b>Händlerschiffe</b> Zwei Schiffe docken an. Wer an einem vorbeizieht oder darauf landet, kauft bis zu ${R.MAXKAUF} Sternkristalle für je ${R.PREIS} Energie. Sie bleiben eine Runde und fliegen dann weiter.</span></li></ul>
-      <p class="leise klein">Nach dem Würfeln ziehst du mit einem Würfel oder mit beiden. In der letzten Runde zählen Felder und Mission doppelt.
+      <p class="leise klein">Nach dem Würfeln ziehst du mit einem Würfel oder mit beiden; wählen kannst du gleich nach dem Wurf. In der letzten Runde zählen Felder und Mission doppelt.
         Am Ende gibt es drei Bonus-Kristalle: Missionsheld (meiste Energie aus Missionen), Bester Tipper (meiste Energie aus Wetten) und Comeback (die meisten Plätze aufgeholt).
         Es gewinnt, wer die meisten Kristalle hat, bei Gleichstand entscheidet die Energie.</p></div>`;
   }
@@ -361,6 +378,10 @@
     if ($("wurf")) $("wurf").onclick = wirf;
     if ($("hubwurf")) $("hubwurf").onclick = () => { if (!$("wurf") || !$("wurf").disabled) wirf(); };
     document.querySelectorAll("[data-antwort]").forEach(b => b.onclick = () => { const w = b.dataset.antwort; c.tun({ t: "antwort", w: /^\d+$/.test(w) ? +w : w }); });
+    document.querySelectorAll("[data-schritte]").forEach(b => b.onclick = () => {
+      document.querySelectorAll("[data-schritte]").forEach(x => { x.classList.toggle("an", x === b); x.setAttribute("aria-pressed", x === b); });
+      c.tun({ t: "schritte", n: +b.dataset.schritte });
+    });
     document.querySelectorAll("[data-waehle]").forEach(b => b.onclick = () => c.tun({ t: "waehle", id: b.dataset.waehle }));
     const wettAnzeige = () => {
       document.querySelectorAll("[data-tipp]").forEach(x => { x.classList.toggle("an", x.dataset.tipp === tipp); x.setAttribute("aria-pressed", x.dataset.tipp === tipp); });

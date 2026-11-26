@@ -127,6 +127,19 @@ assert.strictEqual(k.mission.schritt, 'anleitung'); assert.strictEqual(k.mission
   S.partie.reihe = ['c']; S.partie.wurf.c = [1, 3]; S.partie.pos.c = 0; S.partie.haendler = 30;
   t += 10; R.takt(S, t); t += 10001; R.takt(S, t);
   assert.strictEqual(S.partie.zug.wurf, 4); t += 4 * 280 + 300; R.takt(S, t); assert.strictEqual(S.partie.pos.c, 4);
+  // Vorab gewählt (gleich nach dem Würfeln): der Zug läuft ohne Frage los
+  t += 2000; for (let i = 0; i < 20 && S.partie.zug; i++) { t += 2000; R.takt(S, t); }
+  S.partie.reihe = ['c']; S.partie.wurf.c = [3, 6]; S.partie.pos.c = 0;
+  assert(!R.aktion(S, 'c', { t: 'schritte', n: 5 }, t).ok, 'nur Würfel oder Summe');
+  assert(R.aktion(S, 'c', { t: 'schritte', n: 6 }, t).ok);
+  assert(!R.sicht(S, 'h').partie.schritte || !('c' in R.sicht(S, 'h').partie.schritte), 'Wahl der anderen bleibt verdeckt');
+  t += 10; R.takt(S, t);
+  assert.strictEqual(S.partie.zug.stufe, 'laufen'); assert.strictEqual(S.partie.zug.wurf, 6);
+  t += 6 * 280 + 300; R.takt(S, t); assert.strictEqual(S.partie.pos.c, 6);
+  assert(!R.aktion(S, 'c', { t: 'schritte', n: 3 }, t).ok, 'nach dem Zug nicht mehr');
+  // Reaktionen: eine pro Sekunde
+  assert(R.aktion(S, 'c', { t: 'reaktion', e: 1 }, t).ok); assert(!R.aktion(S, 'c', { t: 'reaktion', e: 2 }, t + 100).ok);
+  assert(R.aktion(S, 'c', { t: 'reaktion', e: 2 }, t + 1000).ok); assert(!R.aktion(S, 'c', { t: 'reaktion', e: 9 }, t + 3000).ok);
   S.partie.haendler = 3; S.partie.pos.c = 3; S.spieler.c.energie = 28;   // zurück auf den Stand vor der Würfelwahl
   // Pirat: Host landet auf 10, Zeit läuft ab → klaut dem Reichsten
   t += 2000; R.takt(S, t); assert.strictEqual(S.partie.zug, null);

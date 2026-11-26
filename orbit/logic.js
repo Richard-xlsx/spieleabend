@@ -32,6 +32,7 @@
   // Energie je Platz, nach Zahl der Teilnehmer gestaffelt: Der Abstand zwischen Erstem und Letztem bleibt groß,
   // auch wenn nur zwei oder drei mitspielen
   const ENERGIE = { 2: [10, 3], 3: [10, 6, 2], 4: [10, 7, 4, 2], 5: [10, 7, 5, 3, 1], 6: [10, 7, 5, 3, 2, 1], 7: [10, 7, 5, 4, 3, 2, 1], 8: [10, 7, 5, 4, 3, 2, 1, 1] };
+  const REAKTIONEN = ["👏", "😂", "😱", "😤", "🚀"];
   const ZEIT = {
     anleitung: 30000, countdown: 3500, ergebnis: 25000,
     wuerfeln: 20000, wuerfelPause: 1500, schritt: 280, frage: 10000, zugEnde: 1600, botDenkt: 1300, wahl: 20000, wetten: 20000
@@ -262,7 +263,7 @@
     P.runde += 1;
     if (P.runde > 1) haendlerWeiter(S);   // die Händlerschiffe bleiben eine Runde und fliegen dann weiter
     nachzueglerRein(S);
-    Object.assign(P, { schritt: "wuerfeln", bis: jetzt + ZEIT.wuerfeln, seit: jetzt, wurf: {}, reihe: [], zug: null, wahl: null, gewaehlt: null, wetten: {} });
+    Object.assign(P, { schritt: "wuerfeln", bis: jetzt + ZEIT.wuerfeln, seit: jetzt, wurf: {}, schritte: {}, reihe: [], zug: null, wahl: null, gewaehlt: null, wetten: {} });
     log(S, P.runde >= P.runden ? `Letzte Runde ${P.runde}: Felder und Mission zählen doppelt!` : `Runde ${P.runde} von ${P.runden}`);
   }
   // Zwei Würfel; gespeichert als [a, b] (Tests dürfen auch eine Zahl setzen)
@@ -274,7 +275,12 @@
   function zugStarten(S, p, jetzt) {
     const P = S.partie, w = P.wurf[p], von = P.pos[p];
     P.zug = { pid: p, wurf: null, von, pfad: [], start: jetzt, stufe: "wahl", frage: null, text: "" };
-    if (Array.isArray(w)) frage(P.zug, "schritte", jetzt, schrittOptionen(w));
+    const vorab = P.schritte && P.schritte[p];
+    if (Array.isArray(w) && vorab && schrittOptionen(w).includes(vorab)) {   // schon beim Würfeln gewählt
+      log(S, `${nm(S, p)} zieht ${vorab} Module${vorab !== w[0] + w[1] ? " (nur ein Würfel)" : ""}.`);
+      losLaufen(P.zug, vorab, jetzt);
+    }
+    else if (Array.isArray(w)) frage(P.zug, "schritte", jetzt, schrittOptionen(w));
     else losLaufen(P.zug, summe(w) || 2, jetzt);
   }
   const schrittOptionen = w => [...new Set([w[0], w[1], w[0] + w[1]])].sort((a, b) => a - b);
@@ -566,6 +572,25 @@
         if (S.phase !== "brett" || !P || P.schritt !== "wuerfeln" || P.pos[pid] === undefined || P.wurf[pid] != null) return { ok: false };
         wuerfeln(S, pid); brettTakt(S, jetzt); return { ok: true };
       }
+      // Schrittwahl gleich nach dem Würfeln (gilt, wenn der eigene Zug beginnt; bis dahin änderbar)
+      case "schritte": {
+        if (S.phase !== "brett" || !P || (P.schritt !== "wuerfeln" && P.schritt !== "ziehen") || !Array.isArray(P.wurf[pid])) return { ok: false };
+        const n = m.n | 0;
+        if (!schrittOptionen(P.wurf[pid]).includes(n)) return { ok: false };
+        const z = P.zug;
+        if (z && z.pid === pid) { if (z.frage && z.frage.art === "schritte") { antworten(S, n, jetzt); return { ok: true }; } return { ok: false }; }
+        if (P.schritt === "ziehen" && !P.reihe.includes(pid)) return { ok: false, fehler: "Du bist schon gezogen." };
+        (P.schritte = P.schritte || {})[pid] = n; return { ok: true };
+      }
+      // Reaktionen: kurze Emojis für alle, höchstens eine pro Sekunde
+      case "reaktion": {
+        const e = m.e | 0;
+        if (e < 0 || e >= REAKTIONEN.length || !S.spieler[pid]) return { ok: false };
+        const r = S.reaktionen = (S.reaktionen || []).filter(x => jetzt - x.t < 6000);
+        if (r.some(x => x.pid === pid && jetzt - x.t < 900)) return { ok: false };
+        r.push({ pid, e, t: jetzt }); if (r.length > 16) r.shift();
+        return { ok: true };
+      }
       case "antwort": {
         const z = P && P.zug;
         if (S.phase !== "brett" || !z || z.pid !== pid || !z.frage) return { ok: false };
@@ -700,6 +725,7 @@
     // Der Startwert der Mission bleibt beim Spielleiter, außer die Mission braucht ihn auf allen Handys
     if (v.mission && !(MISSIONEN[v.mission.id] && MISSIONEN[v.mission.id].seedFuerAlle)) delete v.mission.seed;
     // Wetten der anderen bleiben verdeckt, bis die Mission ausgewertet ist
+    if (v.partie && v.partie.schritte) for (const p in v.partie.schritte) if (p !== pid) delete v.partie.schritte[p];
     if (v.partie && v.partie.wetten) for (const p in v.partie.wetten) if (p !== pid) v.partie.wetten[p] = { verdeckt: true };
     delete v.seed; delete v.rs;
     return v;
@@ -712,7 +738,7 @@
   }
 
   W.RM = {
-    MAX, FARBEN, ENERGIE, ENERGIE_FUER, wettQuote, schrittOptionen, ZEIT, MISSIONEN, TEAMNAMEN, teamsLosen, FELDER, FELD, WURMLOCH, N, START, PREIS, MAXKAUF, WURMPREIS, MAXWETTE, GRATIS, GRATIS_LEICHT, LAENGEN,
+    MAX, FARBEN, REAKTIONEN, ENERGIE, ENERGIE_FUER, wettQuote, schrittOptionen, ZEIT, MISSIONEN, TEAMNAMEN, teamsLosen, FELDER, FELD, WURMLOCH, N, START, PREIS, MAXKAUF, WURMPREIS, MAXWETTE, GRATIS, GRATIS_LEICHT, LAENGEN,
     zufall, summe, schiffe, neu, aktion, takt, sicht, liveSchritt, liveBild, liveBildFuer, stand, passend, anwesend, istBot, istDa, missionNeustart, kopie, mitspieler, rangliste, plaetze, faktor
   };
 })();

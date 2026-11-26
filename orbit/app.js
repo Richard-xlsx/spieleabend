@@ -271,6 +271,7 @@
   }
   function render() {
     klaenge();
+    if (typeof reakt === "function") reakt();
     const st = statusZeile(), ueb = rolle === "client" && S && offlineSeit && Date.now() - offlineSeit > 20000;
     let h = `<div class="status" ${st ? "" : "hidden"}><span>${esc(st)}</span>${ueb ? `<button class="klein" id="uebernehmen">Spielleitung übernehmen</button>` : ""}</div>`;
     if (!rolle) h += code ? bildschirmName() : bildschirmStart();
@@ -497,6 +498,35 @@
     const zeigen = () => { b.textContent = K.an ? "🔊" : "🔇"; b.setAttribute("aria-label", K.an ? "Ton ausschalten" : "Ton einschalten"); b.setAttribute("aria-pressed", String(!K.an)); };
     b.onclick = () => { K.umschalten(); zeigen(); };
     zeigen(); document.body.appendChild(b);
+  })();
+
+  // Reaktionen: Knopf oben links klappt fünf Emojis auf; was jemand schickt, steigt bei allen über den Bildschirm
+  var reakt = (function () {
+    const knopf = document.createElement("button"), leiste = document.createElement("div"), ebene = document.createElement("div");
+    knopf.className = "reaktknopf"; knopf.type = "button"; knopf.textContent = "😀"; knopf.setAttribute("aria-label", "Reaktion schicken"); knopf.hidden = true;
+    leiste.className = "reaktleiste"; leiste.hidden = true;
+    ebene.className = "reaktebene"; ebene.setAttribute("aria-hidden", "true");
+    leiste.innerHTML = R.REAKTIONEN.map((e, i) => `<button type="button" data-reakt="${i}">${e}</button>`).join("");
+    knopf.onclick = () => { leiste.hidden = !leiste.hidden; knopf.setAttribute("aria-expanded", String(!leiste.hidden)); };
+    leiste.onclick = e => { const b = e.target.closest("[data-reakt]"); if (!b) return; tun({ t: "reaktion", e: +b.dataset.reakt }); leiste.hidden = true; };
+    document.body.append(ebene, leiste, knopf);
+    const gezeigt = new Set();
+    return function () {
+      knopf.hidden = !(S && S.spieler[PID] && (S.phase === "brett" || S.phase === "mission" || S.phase === "ende"));
+      if (knopf.hidden) leiste.hidden = true;
+      if (!S || !S.reaktionen) return;
+      for (const r of S.reaktionen) {
+        const k = r.pid + ":" + r.t;
+        if (gezeigt.has(k)) continue;
+        gezeigt.add(k);
+        if (hostJetzt() - r.t > 2500) continue;
+        const el = document.createElement("div");
+        el.className = "reaktion"; el.style.left = (8 + Math.random() * 72) + "%";
+        el.innerHTML = `<span class="re">${R.REAKTIONEN[r.e] || ""}</span>${helm(r.pid)}`;
+        ebene.appendChild(el); setTimeout(() => el.remove(), 2800);
+        if (r.pid !== PID) K.spiel("plopp");
+      }
+    };
   })();
 
   // ---------- Start ----------
