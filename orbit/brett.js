@@ -340,7 +340,9 @@
     const werte = ich && pl ? `<span class="ichwert">${pl.platz}. · ${ich.energie}<i>⚡</i> · ${ich.kristalle}${kristall()}</span>` : "";
     const zuletzt = P.log.length ? `<span class="logzeile" aria-live="polite">${esc(P.log[P.log.length - 1])}</span>` : `<span class="logzeile"></span>`;
     const tab = (k, t) => `<button role="tab" class="reiterknopf ${reiter === k ? "an" : ""}" data-reiter="${k}" aria-selected="${reiter === k}">${t}</button>`;
-    return `<div class="brettseite">
+    const final = P.runde >= P.runden, bst = P.schritt === "wuerfeln" ? effekt("runde:" + P.runde, 2600) : null;
+    const banner = bst ? `<div class="rundenbanner ${final ? "final" : ""}" style="${bst}" aria-hidden="true"><b>${final ? "Letzte Runde!" : "Runde " + P.runde}</b><small>${final ? "Felder und Mission zählen doppelt" : P.runde === 1 ? "Alle würfeln" : "Die Händlerschiffe sind weitergeflogen"}</small></div>` : "";
+    return banner + `<div class="brettseite">
         <div class="brettrahmen">${brettSvg(c)}${wurfBuehne(c)}</div>
         <div class="blickzeile">${werte}${zuletzt}<button class="link" id="zumStand" aria-label="Zum Stand">Stand ▾</button></div>
         <div class="karte-box panel">${panel(c)}</div>
@@ -352,17 +354,39 @@
       ${c.host ? `<button class="link" id="beenden">Partie vorzeitig beenden</button>` : ""}`;
   }
 
-  // Siegerehrung
+  // Siegerehrung als kleine Show: Bonus-Kristalle werden einzeln aufgedeckt, dann fährt das Podest hoch (mit Konfetti).
+  // Die Zeiten laufen über das Neuzeichnen hinweg weiter (negative animation-delay).
+  const EHRUNG = { start: 1.2, schritt: 2.4 };
+  EHRUNG.sieg = n => EHRUNG.start + n * EHRUNG.schritt + 0.4;
   function ende(c) {
-    const S = c.S, P = S.partie, esc = c.esc, es = P.endstand || [];
+    const S = c.S, P = S.partie, esc = c.esc, es = P.endstand || [], eh = P.ehrung || [];
     const sieger = es.filter(e => e.platz === 1).map(e => e.pid);
-    const bonus = (P.ehrung || []).map(b => `<li><div><b>${esc(b.titel)}</b><small>${esc(b.text)}${b.pids.length ? ` (${b.wert})` : ""}</small></div><span class="helme">${b.pids.length ? b.pids.map(p => c.helm(p)).join("") : `<span class="leise klein">niemand</span>`}</span><span class="kr">+1${kristall()}</span></li>`).join("");
-    return `<header class="missionstitel"><p class="etikett">Orbit · Siegerehrung</p><h1>${sieger.length > 1 ? "Gleichstand!" : esc(c.name(sieger[0])) + " gewinnt!"}</h1></header>
-      <div class="podest">${sieger.map(p => `<span>${c.helm(p, "riesig")}<b>${esc(c.name(p))}</b></span>`).join("")}</div>
+    const key = "ende:" + es.map(e => e.pid).join(",");
+    if (!(key in zuerst)) zuerst[key] = performance.now();
+    const alt = (performance.now() - zuerst[key]) / 1000, d = t => `animation-delay:${(t - alt).toFixed(2)}s`;
+    const SIEG = EHRUNG.sieg(eh.length);
+    const bonus = eh.map((b, i) => { const t = EHRUNG.start + i * EHRUNG.schritt; return `<li class="aufdecken" style="${d(t)}"><div><b>${esc(b.titel)}</b><small>${esc(b.text)}${b.pids.length ? ` (${b.wert})` : ""}</small></div><span class="helme plopp" style="${d(t + 1.1)}">${b.pids.length ? b.pids.map(p => c.helm(p)).join("") : `<span class="leise klein">niemand</span>`}</span>${b.pids.length ? `<span class="kr plopp" style="${d(t + 1.3)}">+1${kristall()}</span>` : ""}</li>`; }).join("");
+    const titel = (P.titel || []).map((t, i) => `<li class="aufdecken" style="${d(SIEG + 2 + i * 0.3)}"><div><b>${esc(t.titel)}</b><small>${esc(t.text)} (${t.wert})</small></div><span class="helme">${t.pids.map(p => c.helm(p)).join("")}</span></li>`).join("");
+    const farben = ["#2EC4B6", "#FF7A2F", "#FFD23F", "#FF5C9A", "#A57BFF", "#4DA3FF", "#7BD957"];
+    const konfetti = Array.from({ length: 34 }, (_, i) => `<span style="left:${(i * 37) % 100}%;background:${farben[i % farben.length]};${d(SIEG + (i % 9) * 0.12)};animation-duration:${(2.6 + (i % 5) * 0.35).toFixed(2)}s;--dreh:${(i % 2 ? 1 : -1) * (360 + (i % 4) * 180)}deg"></span>`).join("");
+    return `<div class="ehrungsshow" id="ehrungsshow">
+      <header class="missionstitel"><p class="etikett">Orbit · Siegerehrung</p><div class="ehrkopf"><h1 class="vorher" style="${d(SIEG)}">Und gewonnen hat …</h1><h1 class="nachher" style="${d(SIEG)}">${sieger.length > 1 ? "Gleichstand!" : esc(c.name(sieger[0])) + " gewinnt!"}</h1></div></header>
+      <div class="podest aufsteigen" style="${d(SIEG)}">${sieger.map(p => `<span>${c.helm(p, "riesig")}<b>${esc(c.name(p))}</b></span>`).join("")}</div>
       <div class="karte-box"><h2>Bonus-Kristalle</h2><ul class="bonus">${bonus}</ul></div>
-      <div class="karte-box"><h2>Endstand</h2><ol class="stand">${es.map(e => { const sp = S.spieler[e.pid] || { name: "?", kristalle: 0, energie: 0 }; return `<li class="${e.platz === 1 ? "erster" : ""} ${e.pid === c.PID ? "ich" : ""}"><span class="pl">${e.platz}.</span>${c.helm(e.pid)}<span class="nm">${esc(sp.name)}</span><span class="kr">${sp.kristalle}${kristall()}</span><span class="energie">${sp.energie}<i>⚡</i></span></li>`; }).join("")}</ol></div>
+      <div class="karte-box aufdecken" style="${d(SIEG + 1)}"><h2>Endstand</h2><ol class="stand">${es.map(e => { const sp = S.spieler[e.pid] || { name: "?", kristalle: 0, energie: 0 }; return `<li class="${e.platz === 1 ? "erster" : ""} ${e.pid === c.PID ? "ich" : ""}"><span class="pl">${e.platz}.</span>${c.helm(e.pid)}<span class="nm">${esc(sp.name)}</span><span class="kr">${sp.kristalle}${kristall()}</span><span class="energie">${sp.energie}<i>⚡</i></span></li>`; }).join("")}</ol></div>
+      ${titel ? `<div class="karte-box aufdecken" style="${d(SIEG + 1.8)}"><h2>Ehrentitel</h2><ul class="bonus">${titel}</ul></div>` : ""}
+      ${alt < SIEG ? `<button class="link" id="ueberspringen">Überspringen</button>` : ""}
+      <div class="konfetti" aria-hidden="true">${konfetti}</div>
+      </div>
       ${c.host ? `<div class="unten"><button class="knopf" id="neuePartie">Neue Partie</button></div>` : `<p class="leise mitte">${esc(c.name(S.host))} startet die nächste Partie.</p>`}
       <button class="link" id="verlassen">Raum verlassen</button>`;
+  }
+  // Überspringen: Startzeit weit zurücksetzen, dann stehen alle Animationen am Ende
+  function ehrungUeberspringen() {
+    for (const k in zuerst) if (k.startsWith("ende:")) zuerst[k] = -1e9;
+    const el = document.getElementById("ehrungsshow");
+    if (el) el.querySelectorAll("[style*=animation-delay]").forEach(x => { x.style.animationDelay = "-60s"; });
+    const u = document.getElementById("ueberspringen"); if (u) u.remove();
   }
 
   function binden(c) {
@@ -399,6 +423,7 @@
     });
     if ($("zumStand")) $("zumStand").onclick = () => { const r = $("reiter"); if (r) r.scrollIntoView({ behavior: "smooth", block: "start" }); };
     if ($("beenden")) $("beenden").onclick = () => { if (confirm("Partie jetzt beenden und zur Siegerehrung?")) c.tun({ t: "beenden" }); };
+    if ($("ueberspringen")) $("ueberspringen").onclick = () => { ehrungUeberspringen(); if (c.ueberspringen) c.ueberspringen(); };
     if ($("neuePartie")) $("neuePartie").onclick = () => c.tun({ t: "neuePartie" });
   }
 
@@ -414,5 +439,5 @@
     if (w && w.style.transform !== zt) { w.style.transform = zt; bahn.zoom = { von: zt, nach: zt, t0: 0, dauer: 0 }; }
   }
 
-  W.ORBIT_BRETT = { html, ende, binden, bewegen, wuerfel, kristall, feldIcon };
+  W.ORBIT_BRETT = { EHRUNG, html, ende, binden, bewegen, wuerfel, kristall, feldIcon };
 })();

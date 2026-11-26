@@ -222,7 +222,7 @@
     return { PID, S, esc, helm, uhr, tun, name: p => sp(p).name, dabei: !!(m && m.tn.includes(PID)), jetzt: hostJetzt, neu: () => { letztesHtml = ""; render(); },
       nr: m && m.nr, farbe, anfang, klang: K.spiel, laufzeit: rolle === "host" ? 0 : (isFinite(besteLaufzeit) ? besteLaufzeit : 100), host: rolle === "host" };
   };
-  const ctxBrett = () => ({ S, PID, R, esc, helm, helmInnen: p => helmInnen(farbe(p), anfang(p)), name: p => sp(p).name, farbe, uhr, jetzt: hostJetzt, tun, host: rolle === "host", da });
+  const ctxBrett = () => ({ S, PID, R, esc, helm, ueberspringen: ehrungStumm, helmInnen: p => helmInnen(farbe(p), anfang(p)), name: p => sp(p).name, farbe, uhr, jetzt: hostJetzt, tun, host: rolle === "host", da });
 
   // ---------- Bildschirme ----------
   function statusZeile() {
@@ -237,6 +237,9 @@
   window.addEventListener("pointerdown", () => { beruehrt = true; }, { passive: true, once: true });
   const brumm = muster => { try { if (beruehrt && navigator.vibrate && document.visibilityState === "visible") navigator.vibrate(muster); } catch (e) {} };
   const nachOben = () => { try { if (window.scrollY > 40) window.scrollTo({ top: 0, behavior: "smooth" }); } catch (e) {} };
+  let ehrungsTimer = [];
+  const ehrungsTon = (sek, name) => ehrungsTimer.push(setTimeout(() => K.spiel(name), sek * 1000));
+  const ehrungStumm = () => { ehrungsTimer.forEach(clearTimeout); ehrungsTimer = []; K.spiel("fanfare"); };
   function klaenge() {
     if (!S) return;
     const P = S.partie, m = S.mission, ich = S.spieler[PID] || {}, z = P && P.zug;
@@ -260,7 +263,12 @@
     else if (jetzt.ps !== v.ps && (jetzt.ps === "wahl" || jetzt.ps === "wetten")) { K.spiel("glocke"); if (jetzt.ps === "wetten" && P.pos[PID] !== undefined) { brumm(60); nachOben(); } }
     if (jetzt.ps === "wuerfeln" && v.ps !== "wuerfeln" && P.pos[PID] !== undefined) { brumm(90); nachOben(); }
     if (jetzt.energie < v.energie && jetzt.phase === "brett" && v.phase === "brett") brumm([40, 40, 40, 40, 90]);
-    if (jetzt.phase === "ende" && v.phase !== "ende") K.spiel("fanfare");
+    if (jetzt.phase === "ende" && v.phase !== "ende" && B && B.EHRUNG) {
+      // Siegerehrung: zu jedem Bonus eine Glocke und ein Kristallklang, zum Sieger die Fanfare
+      const E = B.EHRUNG, n = (P && P.ehrung || []).length;
+      for (let i = 0; i < n; i++) { ehrungsTon(E.start + i * E.schritt, "glocke"); ehrungsTon(E.start + i * E.schritt + 1.1, "kristall"); }
+      ehrungsTon(E.sieg(n), "fanfare"); setTimeout(() => brumm([80, 60, 80, 60, 200]), E.sieg(n) * 1000);
+    }
     if (jetzt.ms !== v.ms && m) {
       if (m.schritt === "anleitung") { K.spiel("auftakt"); if (m.tn.includes(PID)) { brumm(120); nachOben(); } }
       else if (m.schritt === "ergebnis" && m.tn.includes(PID)) {
@@ -411,7 +419,7 @@
     const ui = UI[m.id], e = m.ergebnis || [];
     const platz = x => x.platz ? x.platz + "." : "–";
     return kopf + (ui && m.d ? `<details class="rueckblick"><summary>Letzter Durchgang</summary>${ui.html(m.d, ctxUI())}</details>` : "") +
-      `<div class="karte-box"><h2>Ergebnis</h2>${einerSatz(e)}${teamSatz(m)}<ol class="ergebnis">${e.map(x => `<li class="${x.platz === 1 ? "erster" : ""} ${x.pid === PID ? "ich" : ""}"><span class="pl">${platz(x)}</span>${helm(x.pid)}<span class="nm">${esc(sp(x.pid).name)}<small>${x.wert === null ? "nicht dabei" : x.text ? esc(x.text) : String(x.wert).replace(".", ",") + " " + esc(M.einheit || "")}</small></span><span class="plus">+${x.energie}<i>⚡</i></span></li>`).join("")}</ol></div>
+      `<div class="karte-box"><h2>Ergebnis</h2>${einerSatz(e)}${teamSatz(m)}<ol class="ergebnis">${e.map((x, i) => `<li class="aufdecken ${x.platz === 1 ? "erster" : ""} ${x.pid === PID ? "ich" : ""}" style="${verz("e" + m.nr, 0.3 + (e.length - 1 - i) * 0.35)}"><span class="pl">${platz(x)}</span>${helm(x.pid)}<span class="nm">${esc(sp(x.pid).name)}<small>${x.wert === null ? "nicht dabei" : x.text ? esc(x.text) : String(x.wert).replace(".", ",") + " " + esc(M.einheit || "")}</small></span><span class="plus">+${x.energie}<i>⚡</i></span></li>`).join("")}</ol></div>
       ${wettErgebnis(m)}
       ${P ? (host ? `<div class="unten"><button class="knopf" id="weiter">Zurück zur Station (${uhr(m.bis)})</button></div>` : `<p class="leise mitte">Weiter zur Station in ${uhr(m.bis)} s</p>`)
         : host ? `<div class="unten"><button class="knopf" id="weiter">Zurück zur Crew</button></div>` : `<p class="leise mitte">${esc(sp(S.host).name)} geht weiter.</p>`}`;
@@ -446,9 +454,13 @@
     if (!ein) return "";
     return `<p class="einersatz ${ein.platz === 1 ? "alien" : "crew"}">${ein.platz === 1 ? `${esc(sp(ein.pid).name)} gewinnt als Alien!` : "Die Crew gewinnt!"}</p>`;
   }
+  // Gestaffeltes Aufdecken (Ergebnis von hinten nach vorn, dann die Wetten); läuft über das Neuzeichnen hinweg weiter
+  const showStart = {};
+  const verz = (key, sek) => { if (!(key in showStart)) showStart[key] = performance.now(); return `animation-delay:${(sek - (performance.now() - showStart[key]) / 1000).toFixed(2)}s`; };
   function wettErgebnis(m) {
     if (!m.wetten || !m.wetten.length) return "";
-    return `<div class="karte-box"><h2>Wetten</h2><ul class="wettliste">${m.wetten.map(w => `<li class="${w.richtig ? "richtig" : ""}">${helm(w.pid)}<span class="nm">${esc(sp(w.pid).name)}<small>tippt auf ${esc(sp(w.auf).name)}${w.einsatz ? `, ${w.einsatz} ⚡` : ""}${w.gratis ? ", Gratiswette" : ""}</small></span><span class="plus">${w.richtig ? `+${w.gewinn}<i>⚡</i>` : "–"}</span></li>`).join("")}</ul></div>`;
+    const ab = 0.6 + (m.ergebnis || []).length * 0.35;
+    return `<div class="karte-box aufdecken" style="${verz("w" + m.nr, ab)}"><h2>Wetten</h2><ul class="wettliste">${m.wetten.map((w, i) => `<li class="aufdecken ${w.richtig ? "richtig" : ""}" style="${verz("w" + m.nr, ab + 0.4 + i * 0.45)}">${helm(w.pid)}<span class="nm">${esc(sp(w.pid).name)}<small>tippt auf ${esc(sp(w.auf).name)}${w.einsatz ? `, ${w.einsatz} ⚡` : ""}${w.gratis ? ", Gratiswette" : ""}</small></span><span class="plus">${w.richtig ? `+${w.gewinn}<i>⚡</i>` : "–"}</span></li>`).join("")}</ul></div>`;
   }
 
   function binden() {

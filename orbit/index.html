@@ -334,6 +334,27 @@ button:focus-visible,input:focus-visible,a:focus-visible,summary:focus-visible{o
 .wettliste .richtig .plus{color:var(--gelb)}
 
 /* Siegerehrung */
+.aufdecken{animation:aufdecken .6s cubic-bezier(.2,.8,.3,1.25) both}
+@keyframes aufdecken{from{opacity:0;transform:translateY(14px) scale(.96)}to{opacity:1;transform:none}}
+.plopp{animation:plopp .5s cubic-bezier(.3,1.6,.5,1) both}
+@keyframes plopp{from{opacity:0;transform:scale(0)}to{opacity:1;transform:none}}
+.ehrkopf{display:grid}
+.ehrkopf h1{grid-area:1/1}
+.ehrkopf .vorher{color:var(--leise);animation:wegblenden .4s both}
+.ehrkopf .nachher{animation:aufdecken .8s cubic-bezier(.2,.8,.3,1.4) both}
+@keyframes wegblenden{to{opacity:0;transform:scale(.9)}}
+.podest.aufsteigen{animation:aufsteigen 1s cubic-bezier(.2,.9,.3,1.25) both}
+@keyframes aufsteigen{from{opacity:0;transform:translateY(50px) scale(.5)}to{opacity:1;transform:none}}
+.konfetti{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:35}
+.konfetti span{position:absolute;top:-24px;width:8px;height:14px;border-radius:2px;animation:konfetti 3s cubic-bezier(.3,.1,.6,1) both}
+@keyframes konfetti{from{transform:translateY(0) rotate(0)}to{transform:translateY(110vh) translateX(20px) rotate(var(--dreh))}}
+.rundenbanner{position:fixed;left:50%;top:38%;z-index:36;pointer-events:none;display:flex;flex-direction:column;align-items:center;gap:2px;background:var(--flaeche);border:2px solid var(--akzent);border-radius:20px;padding:14px 26px;box-shadow:0 12px 40px #000a,0 0 30px #2EC4B644;text-align:center;animation:banner 2.6s ease-in-out both;max-width:86vw}
+.rundenbanner b{font:900 2rem/1.1 var(--display);color:var(--akzent)}
+.rundenbanner small{color:var(--leise);font-size:.9rem}
+.rundenbanner.final{border-color:var(--orange);box-shadow:0 12px 40px #000a,0 0 40px #FF7A2F66}
+.rundenbanner.final b{color:var(--orange);font-size:2.4rem}
+@keyframes banner{0%{opacity:0;transform:translate(-50%,-50%) scale(.6)}12%{opacity:1;transform:translate(-50%,-50%) scale(1.06)}20%{transform:translate(-50%,-50%) scale(1)}80%{opacity:1;transform:translate(-50%,-50%) scale(1)}100%{opacity:0;transform:translate(-50%,-50%) scale(.92)}}
+@media (prefers-reduced-motion:reduce){.konfetti{display:none}.aufdecken,.plopp,.podest.aufsteigen,.ehrkopf .nachher{animation-name:einblenden}@keyframes einblenden{from{opacity:0}to{opacity:1}}}
 .podest{display:flex;justify-content:center;gap:18px;flex-wrap:wrap}
 .podest span{display:flex;flex-direction:column;align-items:center;gap:6px;font:900 1.1rem var(--display)}
 .helm.riesig{width:96px;height:96px;filter:drop-shadow(0 0 18px #FFD23F66);animation:schweben 3s ease-in-out infinite}
@@ -485,27 +506,27 @@ button:focus-visible,input:focus-visible,a:focus-visible,summary:focus-visible{o
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <script src="../netz.js?v=2026-11-25a"></script>
 <script src="../abend.js?v=2026-11-25a" data-spiel="orbit"></script>
-<script src="sensoren.js?v=2026-11-26e"></script>
-<script src="live.js?v=2026-11-26e"></script>
-<script src="klang.js?v=2026-11-26e"></script>
-<script src="logic.js?v=2026-11-26e"></script>
-<script src="missionen/funkfrequenz.js?v=2026-11-26e"></script>
-<script src="missionen/schrotthaendler.js?v=2026-11-26e"></script>
-<script src="missionen/reaktor.js?v=2026-11-26e"></script>
-<script src="missionen/asteroid.js?v=2026-11-26e"></script>
-<script src="missionen/kapseln.js?v=2026-11-26e"></script>
-<script src="missionen/terraforming.js?v=2026-11-26e"></script>
-<script src="missionen/ionenspur.js?v=2026-11-26e"></script>
-<script src="missionen/gestaltwandler.js?v=2026-11-26e"></script>
-<script src="missionen/frachtraum.js?v=2026-11-26e"></script>
-<script src="missionen/solo.js?v=2026-11-26e"></script>
-<script src="missionen/greifarm.js?v=2026-11-26e"></script>
-<script src="missionen/bordkueche.js?v=2026-11-26e"></script>
-<script src="missionen/boule.js?v=2026-11-26e"></script>
+<script src="sensoren.js?v=2026-11-26f"></script>
+<script src="live.js?v=2026-11-26f"></script>
+<script src="klang.js?v=2026-11-26f"></script>
+<script src="logic.js?v=2026-11-26f"></script>
+<script src="missionen/funkfrequenz.js?v=2026-11-26f"></script>
+<script src="missionen/schrotthaendler.js?v=2026-11-26f"></script>
+<script src="missionen/reaktor.js?v=2026-11-26f"></script>
+<script src="missionen/asteroid.js?v=2026-11-26f"></script>
+<script src="missionen/kapseln.js?v=2026-11-26f"></script>
+<script src="missionen/terraforming.js?v=2026-11-26f"></script>
+<script src="missionen/ionenspur.js?v=2026-11-26f"></script>
+<script src="missionen/gestaltwandler.js?v=2026-11-26f"></script>
+<script src="missionen/frachtraum.js?v=2026-11-26f"></script>
+<script src="missionen/solo.js?v=2026-11-26f"></script>
+<script src="missionen/greifarm.js?v=2026-11-26f"></script>
+<script src="missionen/bordkueche.js?v=2026-11-26f"></script>
+<script src="missionen/boule.js?v=2026-11-26f"></script>
 <script src="https://cdn.jsdelivr.net/npm/planck@1.4.2/dist/planck.min.js"></script>
-<script src="missionen/treibstoff.js?v=2026-11-26e"></script>
-<script src="missionen/mondbasis.js?v=2026-11-26e"></script>
-<script src="brett.js?v=2026-11-26e"></script>
-<script src="app.js?v=2026-11-26e"></script>
+<script src="missionen/treibstoff.js?v=2026-11-26f"></script>
+<script src="missionen/mondbasis.js?v=2026-11-26f"></script>
+<script src="brett.js?v=2026-11-26f"></script>
+<script src="app.js?v=2026-11-26f"></script>
 </body>
 </html>

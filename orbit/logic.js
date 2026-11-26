@@ -232,7 +232,7 @@
   const nm = (S, p) => (S.spieler[p] ? S.spieler[p].name : "?");
 
   // Statistik für die Bonus-Kristalle: tief = schlechtester Platz nach einer Runde (für „Comeback“)
-  const neueStat = () => ({ mission: 0, wette: 0, tief: 0, kapseln: 0, weg: 0 });
+  const neueStat = () => ({ mission: 0, wette: 0, tief: 0, kapseln: 0, weg: 0, meteor: 0, beute: 0, kauf: 0 });
   function partieStarten(S, runden, jetzt) {
     const tn = anwesend(S);
     if (tn.length < 2) return "Eine Partie braucht mindestens 2 Leute. Nimm Bots dazu.";
@@ -294,7 +294,7 @@
     const andere = mitspieler(S).filter(q => q !== p);
     let t = "";
     if (typ === "V") { sp.energie += 3 * f; P.stat[p].kapseln += 1; t = `+${3 * f} Energie`; }
-    else if (typ === "M") { const v = Math.min(sp.energie, 3 * f); sp.energie -= v; t = v ? `−${v} Energie` : "Nichts mehr zu verlieren"; }
+    else if (typ === "M") { P.stat[p].meteor = (P.stat[p].meteor || 0) + 1; const v = Math.min(sp.energie, 3 * f); sp.energie -= v; t = v ? `−${v} Energie` : "Nichts mehr zu verlieren"; }
     else if (typ === "G") {
       const r = zahl(S);
       if (r < 0.06) { sp.kristalle += 1; t = "Ein Sternkristall!"; }
@@ -355,7 +355,7 @@
     if (fr.art === "pirat") {
       const ziel = fr.optionen.includes(w) ? w : fr.optionen.slice().sort((a, b) => S.spieler[b].energie - S.spieler[a].energie)[0];
       const v = Math.min(S.spieler[ziel].energie, 5 * f);
-      S.spieler[ziel].energie -= v; sp.energie += v; z.opfer = ziel; z.beute = v;
+      S.spieler[ziel].energie -= v; sp.energie += v; z.opfer = ziel; z.beute = v; if (P.stat[p]) P.stat[p].beute = (P.stat[p].beute || 0) + v;
       z.text = `Klaut ${nm(S, ziel)} ${v} Energie`;
     } else if (fr.art === "teleporter") {
       if (fr.optionen.includes(w)) { const a = P.pos[p]; P.pos[p] = P.pos[w]; P.pos[w] = a; z.text = `Tauscht den Platz mit ${nm(S, w)}`; }
@@ -366,7 +366,7 @@
     } else if (fr.art === "kauf") {
       const k = Math.min(fr.optionen, Math.floor(sp.energie / PREIS), w === undefined || w === "ja" ? MAXKAUF : Math.max(0, w | 0));
       if (k > 0) {
-        sp.energie -= k * PREIS; sp.kristalle += k; z.kauf = k;
+        sp.energie -= k * PREIS; sp.kristalle += k; z.kauf = k; if (P.stat[p]) P.stat[p].kauf = (P.stat[p].kauf || 0) + k;
         z.text2 = `Kauft ${k === 1 ? "einen Sternkristall" : k + " Sternkristalle"} für ${k * PREIS} Energie.`;
       } else z.text2 = "Kauft keinen Kristall";
       log(S, `${sp.name}: ${z.text2}`);
@@ -478,6 +478,18 @@
       bonus("Bester Tipper", "meiste Energie aus Wetten", p => P.stat[p].wette),
       bonus("Comeback", "Plätze aufgeholt", p => (P.stat[p].tief || 0) - vorher[p])
     ];
+    // Ehrentitel ohne Kristall: kleine Geschichten der Partie
+    const titel = (name, text, wert, min) => {
+      const max = Math.max(0, ...ps.map(p => wert(P.stat[p] || {}) || 0));
+      return max >= (min || 1) ? { titel: name, text, wert: max, pids: ps.filter(p => (wert(P.stat[p] || {}) || 0) === max) } : null;
+    };
+    P.titel = [
+      titel("Pechvogel", "am öftesten im Meteoritenschauer", st => st.meteor, 2),
+      titel("Weltenbummler", "die meisten Module gelaufen", st => st.weg),
+      titel("Pirat der Partie", "am meisten Energie geklaut", st => st.beute),
+      titel("Stammkunde", "die meisten Kristalle beim Händler gekauft", st => st.kauf, 2),
+      titel("Kapselsammler", "am öftesten auf Versorgungskapseln", st => st.kapseln, 2)
+    ].filter(Boolean);
     P.endstand = plaetze(S);
     P.schritt = "ende"; P.zug = null; P.wahl = null;
     S.phase = "ende"; S.mission = null;

@@ -213,6 +213,7 @@ if (letzter === 'h' || letzter === 'c') assert(R.aktion(S, letzter, { t: 'waehle
   assert.strictEqual(S.partie.ehrung.length, 3);
   assert.deepStrictEqual(S.partie.ehrung.map(e => e.titel), ['Missionsheld', 'Bester Tipper', 'Comeback']);
   assert(S.partie.ehrung[0].pids.length >= 1);
+  assert(Array.isArray(S.partie.titel) && S.partie.titel.every(x => x.pids.length && x.wert > 0), 'Ehrentitel');
   for (const e of S.partie.ehrung) assert(e.pids.length === 0 || e.wert > 0, 'Bonus nur für mehr als 0');
   const es = S.partie.endstand;
   assert.strictEqual(es[0].platz, 1);
