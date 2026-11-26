@@ -17,6 +17,9 @@
   const esc = s => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
   let PID = ls.get("slf:pid"); if (!PID) { PID = Math.random().toString(36).slice(2, 10); ls.set("slf:pid", PID); }
+  // Gemeinsamer Bildschirm (?tv=1): eigener Schlüssel, damit ein Laptop zugleich Anzeige und Mitspieler sein kann
+  const TV = params.get("tv") === "1";
+  if (TV) { PID = ls.get("ob:tvpid"); if (!PID) { PID = "tv" + Math.random().toString(36).slice(2, 9); ls.set("ob:tvpid", PID); } document.body.classList.add("tv"); }
   let name = ls.get("slf:name") || "";
   let code = (params.get("raum") || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
   let rolle = null, S = null, peer = null, hostConn = null, verbunden = false, offlineSeit = null, fehlerText = "";
@@ -138,7 +141,7 @@
     c.on("open", () => {
       if (t !== token) { try { c.close(); } catch (e) {} return; }
       hostConn = c; versuch = 0; verbunden = true; offlineSeit = null; fehlerText = "";
-      c.send({ t: "hallo", pid: PID, name }); besteLaufzeit = Infinity; pingen(5); render();
+      c.send({ t: "hallo", pid: PID, name, zuschauer: TV }); besteLaufzeit = Infinity; pingen(5); render();
     });
     c.on("data", m => {
       if (!m) return;
@@ -222,7 +225,7 @@
     return { PID, S, esc, helm, uhr, tun, name: p => sp(p).name, dabei: !!(m && m.tn.includes(PID)), jetzt: hostJetzt, neu: () => { letztesHtml = ""; render(); },
       nr: m && m.nr, farbe, anfang, klang: K.spiel, laufzeit: rolle === "host" ? 0 : (isFinite(besteLaufzeit) ? besteLaufzeit : 100), host: rolle === "host" };
   };
-  const ctxBrett = () => ({ S, PID, R, esc, helm, ueberspringen: ehrungStumm, helmInnen: p => helmInnen(farbe(p), anfang(p)), name: p => sp(p).name, farbe, uhr, jetzt: hostJetzt, tun, host: rolle === "host", da });
+  const ctxBrett = () => ({ S, PID, R, esc, helm, tv: TV, code, neu: () => { letztesHtml = ""; render(); }, ueberspringen: ehrungStumm, helmInnen: p => helmInnen(farbe(p), anfang(p)), name: p => sp(p).name, farbe, uhr, jetzt: hostJetzt, tun, host: rolle === "host", da });
 
   // ---------- Bildschirme ----------
   function statusZeile() {
@@ -285,6 +288,8 @@
     if (!rolle) h += code ? bildschirmName() : bildschirmStart();
     else if (rolle === "pruefen" || !S) h += `<div class="mitte"><p class="leise">${window.ABEND ? ABEND.warten() : "Verbinde …"}</p></div>`;
     else if (S.phase === "mission" && S.mission) h += bildschirmMission();
+    else if (TV && S.phase === "brett" && S.partie && B) h += B.tv(ctxBrett());
+    else if (TV && S.phase === "lobby") h += bildschirmTvLobby();
     else if (S.phase === "brett" && S.partie && B) h += B.html(ctxBrett());
     else if (S.phase === "ende" && S.partie && B) h += B.ende(ctxBrett());
     else h += bildschirmLobby();
@@ -292,6 +297,7 @@
     if (h === letztesHtml) return;
     letztesHtml = h;
     app.innerHTML = h;
+    if (TV && B && B.nachRender) B.nachRender(S && S.phase === "brett" && S.partie ? ctxBrett() : null);
     binden();
     zeitenAnzeigen();
   }
@@ -347,7 +353,8 @@
         <button class="knopf" id="neu">Raum erstellen</button></div>
       <div class="karte-box"><h2>Mitspielen</h2>
         <label class="feld">Raumcode<input id="code" maxlength="6" autocapitalize="characters" placeholder="z. B. K7M2"></label>
-        <button class="knopf zweit" id="beitreten">Beitreten</button></div>
+        <button class="knopf zweit" id="beitreten">Beitreten</button>
+        <button class="link" id="alsAnzeige">Diesen Bildschirm als Anzeige für alle nutzen (Fernseher, Laptop)</button></div>
       <div class="karte-box"><h2>Üben</h2><p class="leise klein">Mit drei Bots als Crew, ganz ohne Mitspieler.</p>
         <button class="knopf zweit" id="allein">Mit Bots üben</button></div>
       <a class="link" href="../">Alle Spiele</a>`;
@@ -377,6 +384,8 @@
         ${weg.length ? `<p class="leise klein">Nicht verbunden: ${weg.map(p => esc(sp(p).name)).join(", ")}</p>` : ""}${letzte}
         ${host ? `<div class="reihe"><button class="knopf zweit" id="botDazu" ${n >= R.MAX ? "disabled" : ""}>+ Bot</button><button class="knopf zweit" id="botWeg" ${crew.some(p => R.istBot(S, p)) ? "" : "disabled"}>− Bot</button></div>` : ""}</div>
       ${farbWahl()}
+      <details class="karte-box uebung"><summary><h2>Gemeinsamer Bildschirm</h2></summary><p class="leise klein">Öffne auf einem Laptop oder Fernseher diesen Link. Dort laufen dann Brett, Missionen und Siegerehrung groß für alle (mit 3D-Brett und Ton):</p>
+        <p class="tvlink">${esc(link())}&amp;tv=1</p><button class="knopf zweit" id="tvKopieren">Anzeige-Link kopieren</button></details>
       <div class="karte-box"><h2>Partie</h2>
         <p class="leise klein">Würfeln, durch die Station ziehen, Energie sammeln und beim Händlerschiff Sternkristalle kaufen. Nach jeder Runde eine Mission.</p>
         ${host ? `<div class="laengen" role="group" aria-label="Länge">${[["kurz", "Kurz", "5 Runden · ca. 15 min"], ["normal", "Normal", "8 Runden · ca. 25 min"], ["lang", "Lang", "12 Runden · ca. 40 min"]].map(([k, t, u]) =>
@@ -387,6 +396,15 @@
         <p class="leise klein">Ohne Brett, die Energie zählt nur zum Spaß.</p></details>
       ${host && hatEnergie ? `<button class="link" id="nullen">Energie auf 0 setzen</button>` : ""}
       <button class="link" id="verlassen">Raum verlassen</button>`;
+  }
+  // Anzeige auf dem Fernseher: Raumcode und QR groß, die Crew daneben
+  function bildschirmTvLobby() {
+    const crew = S.reihenfolge.filter(p => S.spieler[p] && da(p));
+    let qr = "";
+    try { if (window.qrcode) { const q = qrcode(0, "M"); q.addData(link()); q.make(); qr = q.createSvgTag({ cellSize: 6, margin: 2, scalable: true }); } } catch (e) {}
+    return `<div class="tvlobby"><div class="tvlobby-links">${titelbild()}<h1 class="tvtitel">Orbit</h1><p class="etikett">Mitspielen: QR scannen oder Raumcode eingeben</p><div class="code">${esc(code)}</div>${qr ? `<div class="qr">${qr}</div>` : ""}</div>
+      <div class="karte-box tvlobby-rechts"><h2>Crew (${crew.length})</h2><ul class="spieler tvcrew">${crew.map(p => `<li>${helm(p)}<span class="nm">${esc(sp(p).name)}</span></li>`).join("") || `<li class="leise">Noch niemand da …</li>`}</ul>
+        <p class="leise">${esc(sp(S.host).name)} startet die Partie am Handy. Dieser Bildschirm zeigt das Brett, die Missionen und die Siegerehrung für alle.</p></div></div>`;
   }
   function farbWahl() {
     const mein = sp(PID).farbe;
@@ -477,9 +495,14 @@
       const c = ($("code").value || "").toUpperCase().replace(/[^A-Z0-9]/g, ""); if (c.length < 4) { $("code").focus(); return; }
       code = c; location.replace("?raum=" + code + testTeil());
     };
+    if ($("alsAnzeige")) $("alsAnzeige").onclick = () => {
+      const c = ($("code").value || "").toUpperCase().replace(/[^A-Z0-9]/g, ""); if (c.length < 4) { $("code").focus(); zeigeHinweis("Erst den Raumcode eingeben."); return; }
+      location.replace("?raum=" + c + "&tv=1" + testTeil());
+    };
     if ($("mitspielen")) $("mitspielen").onclick = () => { if (nameAus()) clientStarten(); };
     if ($("teilen")) $("teilen").onclick = () => { if (navigator.share) navigator.share({ title: "Orbit", text: "Spiel mit! Raum " + code, url: link() }).catch(() => {}); else kopieren(); };
     if ($("kopieren")) $("kopieren").onclick = kopieren;
+    if ($("tvKopieren")) $("tvKopieren").onclick = () => { try { navigator.clipboard.writeText(link() + "&tv=1").then(() => zeigeHinweis("Link kopiert"), () => prompt("Link kopieren:", link() + "&tv=1")); } catch (e) { prompt("Link kopieren:", link() + "&tv=1"); } };
     if ($("botDazu")) $("botDazu").onclick = () => tun({ t: "bot", dazu: true });
     if ($("botWeg")) $("botWeg").onclick = () => tun({ t: "bot", dazu: false });
     if ($("nullen")) $("nullen").onclick = () => { if (confirm("Energie aller Spieler auf 0 setzen?")) tun({ t: "punkteNull" }); };
@@ -546,12 +569,21 @@
     };
   })();
 
+  // Anzeige: Browser spielen Ton erst nach einem Klick
+  if (TV) {
+    const t = document.createElement("button");
+    t.className = "tvton"; t.type = "button"; t.textContent = "🔊 Einmal klicken, dann gibt es Ton";
+    t.onclick = () => t.remove();
+    window.addEventListener("pointerdown", () => setTimeout(() => t.remove(), 50), { once: true });
+    document.body.appendChild(t);
+  }
+
   // ---------- Start ----------
   if (typeof Peer === "undefined") { app.innerHTML = `<div class="mitte"><p>Die Verbindungsbibliothek konnte nicht geladen werden. Bitte Internetverbindung prüfen und neu laden.</p></div>`; return; }
   if (code) {
     const gespeichert = ls.get("ob:host:" + code);
-    if (gespeichert) fortsetzenAlsHost(gespeichert);
-    else if (name) clientStarten();
+    if (gespeichert && !TV) fortsetzenAlsHost(gespeichert);
+    else if (name || TV) clientStarten();
     else render();
   } else if (params.get("bots") || params.get("mission") || params.get("partie")) {
     // Testlinks: ?bots=3 erstellt sofort einen Raum mit Bots, ?mission=funkfrequenz startet die Mission direkt,

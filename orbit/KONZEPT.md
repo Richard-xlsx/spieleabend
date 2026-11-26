@@ -119,6 +119,11 @@ orbit/
   sensoren.js     Erlaubnis, Nullstellung, Neigen, Schütteln, Wischen, Daumen-Ersatz
   live.js         gemeinsame Technik für Live-Missionen: Eingaben sammeln, Takt beim Spielleiter, Zustand verteilen, glätten
   klang.js        Synthesizer-Klänge (Web Audio, keine Tondateien), Ton an/aus wird im Handy gespeichert
+  brett.js        Brett am Handy (Brett und Entscheidung passen ohne Scrollen auf den Bildschirm, Reiter Stand/Logbuch/Module),
+                  CSS-3D-Würfel in der Mitte, Zoom beim Ziehen, Effekte (Energie, Pirat, Kristallflug, kreisende Schiffe),
+                  Siegerehrung als Show, Anzeige für den gemeinsamen Bildschirm
+  brett3d.js      3D-Brett (three.js) nur für den gemeinsamen Bildschirm (?tv=1), wird erst dort nachgeladen
+  probier.js      Probierfeld in der Anleitung: Steuerung der Mission vorab testen
   missionen/*.js  eine Datei pro Mission
 ```
 Jede Mission hat einen Teil für den Spielleiter (Regeln, Ablauf, Ergebnis) und einen Teil für jedes Handy (Anzeige und
@@ -202,3 +207,17 @@ Die Reihenfolge geht vom Einfachen zum Schweren. Schritt 4 baut die Live-Technik
 - Überarbeitung nach der Durchsicht (Bot-Simulation, 70 Partien): Die Bonus-Kristalle haben vorher in 30 bis 50 % der Partien den Sieger bestimmt, zwei davon waren Würfelglück; am Ende blieben 32 bis 42 Energie pro Person ungenutzt, weil man selten am einen Händlerschiff vorbeikam. Neu: Boni für Wetten und Comeback, zwei Händlerschiffe, die eine Runde bleiben (danach 15 bis 30 % und 26 bis 34 Energie übrig, 1,1 bis 3 gekaufte Kristalle pro Person statt 0,7 bis 1,9), Würfelwahl, Energie je Platz nach Spielerzahl, niedrigere Quote für Gruppenwetten.
 - Funkfrequenz: Jede Frequenz darf man nur einmal benutzen; wer welche verbraucht hat, sehen alle.
 - Ionenspur: 3 Läufe mit je 3,5 Sekunden Pause (Zwischenstand), die Flugzeiten werden addiert.
+
+## 8. Überarbeitung für echte Abende (nach den Verbesserungsvorschlägen)
+
+1. Brett und Entscheidung passen zusammen auf den Bildschirm; Stand, Logbuch und Module in Reitern; Vibration, wenn man dran ist.
+2. Würfel: zwei CSS-3D-Würfel rollen in die Stationsmitte (Tippen auf die Würfel würfelt).
+3. Brett: Zoom auf den ziehenden Helm und auf die möglichen Ziele, Energie schwebt hoch, Pirat, fliegende Kristalle,
+   Händlerschiffe kreisen zum neuen Platz, Helme gleiten bei Tausch und Wurmloch.
+4. Würfelwahl gleich nach dem Wurf (alle gleichzeitig, bis zum eigenen Zug änderbar); Reaktionen (fünf Emojis).
+5. Siegerehrung als Show (Boni einzeln, Podest, Konfetti), Ehrentitel ohne Kristall (Pechvogel, Weltenbummler, Pirat der
+   Partie, Stammkunde, Kapselsammler), Ergebnis und Wetten nacheinander aufgedeckt, Rundenbanner.
+6. Anleitung: Ziel in einem Satz, Regeln nach dem ersten Mal zugeklappt, Probierfeld für die Steuerung; beim ersten Landen
+   auf einem Feldtyp ein erklärender Satz.
+7. Gemeinsamer Bildschirm: `?raum=CODE&tv=1` (oder auf der Startseite „als Anzeige nutzen“) tritt als Zuschauer bei,
+   zeigt Lobby mit QR, Brett in 3D (umschaltbar auf 2D), Missionen, Siegerehrung, Reaktionen und spielt den Ton.

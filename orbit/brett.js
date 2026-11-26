@@ -252,7 +252,8 @@
         (ich && !mein ? `<button class="knopf wuerfelknopf" id="wurf">${wuerfel(5)}${wuerfel(2)}<span>Würfeln</span></button>
           <p class="leise klein mitte">Tippen oder Handy schütteln${SN && SN.brauchtErlaubnis() ? ` · <button class="link" id="schuettelnErlauben">Schütteln erlauben</button>` : ""}</p>` : "") +
         (ich && mein ? vorwahl(c) : "") +
-        (!ich ? `<p class="mitte leise">${sp(c.PID).wartet ? "Du steigst in der nächsten Runde ein." : "Du schaust zu."}</p>` : "") +
+        (!ich && !c.tv ? `<p class="mitte leise">${sp(c.PID).wartet ? "Du steigst in der nächsten Runde ein." : "Du schaust zu."}</p>` : "") +
+        (c.tv ? `<p class="mitte">Alle würfeln jetzt am Handy: tippen oder schütteln.</p>` : "") +
         `<ul class="wurfchips">${reihe}</ul>`;
     }
     if (P.schritt === "ziehen") {
@@ -312,7 +313,7 @@
       if (tipp === null && mein && mein.auf && !mein.verdeckt) { tipp = mein.auf; einsatz = mein.einsatz; }
       const abgegeben = tn.filter(p => P.wetten[p]).length;
       let h = kopf("Wetten", P.bis) + `<div class="missionskarte kompakt"><div><b>${esc(M.name)}</b><p class="leise klein">${esc(M.kurz)}</p></div></div>`;
-      if (!ich) return h + `<p class="mitte leise">Die anderen wetten.</p>`;
+      if (!ich) return h + `<p class="mitte ${c.tv ? "" : "leise"}">${c.tv ? `Alle wetten jetzt am Handy: Wer gewinnt die Mission? Abgegeben: <b>${abgegeben} von ${tn.length}</b>` : "Die anderen wetten."}</p>`;
       const maxE = Math.min(R.MAXWETTE, sp(c.PID).energie), q = R.wettQuote(P.gewaehlt);
       h += `<p class="mitte klein">Wer gewinnt? Richtig getippt gibt <b>${q.text}</b>${q.leicht ? " (hier gewinnt ein ganzes Team)" : ""}.${gratis ? ` <span class="gratis">Gratiswette: richtig getippt +${q.gratis} ⚡</span>` : ""}</p>
         <div class="tipps" role="group" aria-label="Tipp">${tn.map(p => `<button class="tippknopf ${tipp === p ? "an" : ""}" data-tipp="${esc(p)}" aria-pressed="${tipp === p}">${c.helm(p)}<small>${p === c.PID ? "ich" : esc(c.name(p))}</small></button>`).join("")}</div>
@@ -344,6 +345,34 @@
         Es gewinnt, wer die meisten Kristalle hat, bei Gleichstand entscheidet die Energie.</p></div>`;
   }
 
+  function rundenBanner(c) {
+    const P = c.S.partie, final = P.runde >= P.runden, bst = P.schritt === "wuerfeln" ? effekt("runde:" + P.runde, 2600) : null;
+    return bst ? `<div class="rundenbanner ${final ? "final" : ""}" style="${bst}" aria-hidden="true"><b>${final ? "Letzte Runde!" : "Runde " + P.runde}</b><small>${final ? "Felder und Mission zählen doppelt" : P.runde === 1 ? "Alle würfeln" : "Die Händlerschiffe sind weitergeflogen"}</small></div>` : "";
+  }
+
+  // ---------- Gemeinsamer Bildschirm (Fernseher, Laptop): Brett groß links (3D oder 2D), rechts Geschehen, Stand und Logbuch ----------
+  let dreiD = true;
+  try { dreiD = localStorage.getItem("ob:tv3d") !== "aus"; } catch (e) {}
+  let drei = null, dreiLaedt = null;
+  const laden3d = () => dreiLaedt || (dreiLaedt = import("./brett3d.js?v=2026-11-26h").then(m => (drei = m.default || m), e => { console.warn("3D nicht verfügbar", e); return null; }));
+  function tv(c) {
+    const S = c.S, P = S.partie, esc = c.esc, final = P.runde >= P.runden;
+    const log = P.log.slice(-8).reverse().map(t => `<li>${esc(t)}</li>`).join("");
+    const mit3d = dreiD && W.ORBIT_3D_OK !== false;
+    return rundenBanner(c) + `<div class="tvbrett">
+      <div class="tvlinks"><div class="brettrahmen tvrahmen ${mit3d ? "drei" : ""}">${mit3d ? `<div id="brett3dplatz" class="brett3dplatz"></div>` : brettSvg(c)}${wurfBuehne(c)}</div>
+        <div class="tvleiste"><span class="etikett">Raum ${esc(c.code)} · Runde ${P.runde} von ${P.runden}${final ? " · alles zählt doppelt" : ""}</span><button class="link" id="tv3d">${mit3d ? "2D-Ansicht" : "3D-Ansicht"}</button></div></div>
+      <div class="tvrechts"><div class="karte-box panel">${panel(c)}</div>${standListe(c)}<div class="karte-box"><h2>Logbuch</h2><ul class="logbuch">${log}</ul></div></div></div>`;
+  }
+  // Nach dem Einsetzen: die 3D-Ansicht (bleibt bestehen) in ihren Platz hängen
+  function nachRender(c) {
+    const platz = c && document.getElementById("brett3dplatz");
+    if (!platz) { if (drei) drei.verstecken(); return; }
+    laden3d().then(m => {
+      if (!m || !m.zeigen(platz, c, { FARBE, ICON, figurOrte })) { W.ORBIT_3D_OK = false; if (c.neu) c.neu(); }
+    });
+  }
+
   // Aufbau: Brett und Entscheidung passen zusammen auf den Bildschirm, darunter Reiter für Stand, Logbuch und Module
   let reiter = "stand";
   function html(c) {
@@ -353,9 +382,7 @@
     const werte = ich && pl ? `<span class="ichwert">${pl.platz}. · ${ich.energie}<i>⚡</i> · ${ich.kristalle}${kristall()}</span>` : "";
     const zuletzt = P.log.length ? `<span class="logzeile" aria-live="polite">${esc(P.log[P.log.length - 1])}</span>` : `<span class="logzeile"></span>`;
     const tab = (k, t) => `<button role="tab" class="reiterknopf ${reiter === k ? "an" : ""}" data-reiter="${k}" aria-selected="${reiter === k}">${t}</button>`;
-    const final = P.runde >= P.runden, bst = P.schritt === "wuerfeln" ? effekt("runde:" + P.runde, 2600) : null;
-    const banner = bst ? `<div class="rundenbanner ${final ? "final" : ""}" style="${bst}" aria-hidden="true"><b>${final ? "Letzte Runde!" : "Runde " + P.runde}</b><small>${final ? "Felder und Mission zählen doppelt" : P.runde === 1 ? "Alle würfeln" : "Die Händlerschiffe sind weitergeflogen"}</small></div>` : "";
-    return banner + `<div class="brettseite">
+    return rundenBanner(c) + `<div class="brettseite">
         <div class="brettrahmen">${brettSvg(c)}${wurfBuehne(c)}</div>
         <div class="blickzeile">${werte}${zuletzt}<button class="link" id="zumStand" aria-label="Zum Stand">Stand ▾</button></div>
         <div class="karte-box panel">${panel(c)}</div>
@@ -435,6 +462,7 @@
       document.querySelectorAll("[data-flaeche]").forEach(x => { x.hidden = x.dataset.flaeche !== reiter; });
     });
     if ($("zumStand")) $("zumStand").onclick = () => { const r = $("reiter"); if (r) r.scrollIntoView({ behavior: "smooth", block: "start" }); };
+    if ($("tv3d")) $("tv3d").onclick = () => { dreiD = !(dreiD && W.ORBIT_3D_OK !== false); W.ORBIT_3D_OK = undefined; try { localStorage.setItem("ob:tv3d", dreiD ? "an" : "aus"); } catch (e) {} if (c.neu) c.neu(); };
     if ($("beenden")) $("beenden").onclick = () => { if (confirm("Partie jetzt beenden und zur Siegerehrung?")) c.tun({ t: "beenden" }); };
     if ($("ueberspringen")) $("ueberspringen").onclick = () => { ehrungUeberspringen(); if (c.ueberspringen) c.ueberspringen(); };
     if ($("neuePartie")) $("neuePartie").onclick = () => c.tun({ t: "neuePartie" });
@@ -452,5 +480,5 @@
     if (w && w.style.transform !== zt) { w.style.transform = zt; bahn.zoom = { von: zt, nach: zt, t0: 0, dauer: 0 }; }
   }
 
-  W.ORBIT_BRETT = { EHRUNG, html, ende, binden, bewegen, wuerfel, kristall, feldIcon };
+  W.ORBIT_BRETT = { EHRUNG, tv, nachRender, html, ende, binden, bewegen, wuerfel, kristall, feldIcon };
 })();

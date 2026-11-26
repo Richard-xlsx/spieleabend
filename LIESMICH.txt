@@ -34,7 +34,8 @@ Aufbau
                                   KONZEPT.md (Brett, 14 Missionen, Technik, Umsetzungsplan in 9 Schritten), logic.js (Ablauf: Lobby, Partie
                                   auf dem Brett mit Würfeln, Feldern, Händlerschiff, Missionswahl durch den Letzten, Wetten, Siegerehrung,
                                   Nachzügler; Mission mit Anleitung → Countdown → Spiel → Ergebnis, Energie je Platz, Bots), brett.js (Zeichnung
-                                  der Station und Rundenschritte am Handy), app.js (Verbindung, Uhrabgleich per Ping, Bildschirme, Klänge aus dem Spielstand, Anleitungsbilder),
+                                  der Station und Rundenschritte am Handy, 3D-Würfel, Effekte, Siegerehrung als Show), brett3d.js (3D-Brett für den gemeinsamen
+                                  Bildschirm ?raum=CODE&tv=1), probier.js (Steuerung in der Anleitung ausprobieren), app.js (Verbindung, Uhrabgleich per Ping, Bildschirme, Klänge aus dem Spielstand, Anleitungsbilder),
                                   klang.js (Synthesizer-Klänge, Knopf oben rechts schaltet den Ton aus), sensoren.js (Neigen,
                                   Schütteln, Daumen-Joystick, Lenkknöpfe), live.js (Eingaben sammeln, Bilder verteilen und glätten),
                                   missionen/*.js (je Mission ein Teil für den Spielleiter und einer fürs Handy; solo.js: gemeinsamer Teil für

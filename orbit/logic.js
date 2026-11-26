@@ -551,6 +551,7 @@
     const b = S.mission, P = S.partie;
     switch (m.t) {
       case "hallo": {
+        if (m.zuschauer) return { ok: true };   // gemeinsamer Bildschirm (Fernseher): schaut nur zu
         const name = String(m.name || "?").trim().slice(0, 20) || "?";
         if (!S.spieler[pid]) {
           if (anwesend(S).length >= MAX) return { ok: false, fehler: "Die Station ist voll (8 Leute)." };
