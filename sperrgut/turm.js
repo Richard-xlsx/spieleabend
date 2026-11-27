@@ -50,7 +50,7 @@
       const reib = eig && eig.nass ? 0.06 : T.reibung;
       const fx = { density: T.dichte, friction: reib, restitution: T.federung || 0 };
       if (T.kreis) b.createFixture(P.Circle(T.kreis), fx);
-      else for (const [rx, ry, rw, rh] of T.rects) b.createFixture(P.Box(rw / 2 - 0.005, rh / 2 - 0.005, P.Vec2(rx + rw / 2, -(ry + rh / 2))), fx);
+      else for (const [rx, ry, rw, rh] of T.rects) b.createFixture(P.Box(rw / 2 - 0.03, rh / 2 - 0.03, P.Vec2(rx + rw / 2, -(ry + rh / 2))), fx);
       return b;
     }
 
@@ -100,18 +100,31 @@
       if (t.aktiv !== e) return;
       const b = e.b;
       b.setGravityScale(1); b.setFixedRotation(false); b.setBullet(false);
+      for (let ce = b.getContactList(); ce; ce = ce.next) ce.contact.resetFriction();   // Reibung beim Gleiten war 0
       const v = b.getLinearVelocity();
       b.setLinearVelocity(P.Vec2(0, Math.max(v.y, -3)));
       t.aktiv = null; t.gesetzt++; t.pause = 0.4;
       t.ereignisse.push({ art: "plumps", typ: e.typ, staerke: Math.min(1, Math.abs(v.y) / 8 + 0.3) });
     }
-    w.on("begin-contact", c => {
-      const fa = c.getFixtureA(), fb = c.getFixtureB(), a = fa.getBody(), b = fb.getBody();
+    // Das fallende Teil gleitet an Nachbarn seitlich entlang (ohne Reibung, ohne loszulassen);
+    // losgelassen wird erst, wenn es von unten gestützt wird (Kontakt mit Normale nach unten).
+    w.on("pre-solve", c => {
       const e = t.aktiv;
-      if (!e) return;
-      if (fa.getUserData() === "wand" || fb.getUserData() === "wand") return;   // an Wand oder Dach entlang: weiter steuern
-      if (a === e.b || b === e.b) e.beruehrt = true;    // erst nach dem Schritt loslassen (nicht mitten im Rechnen)
+      if (e && (c.getFixtureA().getBody() === e.b || c.getFixtureB().getBody() === e.b)) c.setFriction(0);
     });
+    function gestuetzt(e) {
+      for (let ce = e.b.getContactList(); ce; ce = ce.next) {
+        const c = ce.contact;
+        if (!c.isTouching()) continue;
+        const fa = c.getFixtureA(), fb = c.getFixtureB();
+        if (fa.getUserData() === "wand" || fb.getUserData() === "wand") continue;
+        const wm = c.getWorldManifold(null);
+        if (!wm) continue;
+        const ny = fa.getBody() === e.b ? wm.normal.y : -wm.normal.y;   // Normale vom fallenden Teil zum anderen
+        if (ny < -0.45) return true;
+      }
+      return false;
+    }
 
     // ---------- Steuerung ----------
     t.schieben = function (r) {
@@ -195,7 +208,7 @@
         if (t.zeit - k.seit > 4.5 || k.b.getPosition().y < -3) { w.destroyBody(k.b); t.katzeK = null; }
       }
       w.step(DT, 10, 8);
-      if (e && e.beruehrt) loslassen(e);
+      if (e && t.aktiv === e && gestuetzt(e)) loslassen(e);
       if (e && t.aktiv === e && e.b.getPosition().y < -4) loslassen(e);
       pruefen();
     }
