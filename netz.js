@@ -32,7 +32,7 @@ window.SPIELEABEND_WARTEN = 12000;
 // sofort alle anderen Räume freigeben.
 (function () {
   try {
-    const RAUM = /^(sp|kr|wv|mm|slf|vl|vk|wp|ob):[a-z]+:([A-Z0-9]{4})(-.*)?$/, ZEIT = "spieleabend:raumzeit", ALT = 12 * 3600 * 1000;
+    const RAUM = /^(sp|kr|wv|mm|slf|vl|vk|wp|ob|sg):[a-z]+:([A-Z0-9]{4})(-.*)?$/, ZEIT = "spieleabend:raumzeit", ALT = 12 * 3600 * 1000;
     const LS = window.localStorage, setzen = Storage.prototype.setItem;
     let zeiten = {}; try { zeiten = JSON.parse(LS.getItem(ZEIT)) || {}; } catch (e) {}
     let timer = null;

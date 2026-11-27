@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Sperrgut">
+<meta name="theme-color" content="#F3E7D2">
+<title>Sperrgut</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Permanent+Marker&family=Inter:wght@400;500;600;700;800&display=swap">
+<style>
+/* Sperrgut: Altbau-Putz, Pappe, Paketband, Umzugsblau und Signalrot */
+:root{
+  --bg:#F3E7D2; --flaeche:#FFF9EE; --flaeche2:#EFE0C6; --text:#2A1D14; --leise:#7A6553; --linie:#D9C4A2;
+  --pappe:#C8965A; --rot:#D9542B; --blau:#2E6FB0; --gruen:#3B8F5A; --gelb:#F3B700;
+  --display:"Permanent Marker","Marker Felt","Comic Sans MS",cursive; --fliess:"Inter","Segoe UI",system-ui,sans-serif;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;color:var(--text);font:16px/1.45 var(--fliess);-webkit-text-size-adjust:100%}
+html{background:var(--bg)}
+body{min-height:100vh;padding:max(12px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) max(16px,env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left));
+  background:repeating-linear-gradient(0deg,#0000 0 46px,#00000008 46px 48px),var(--bg)}
+#app{max-width:520px;margin:0 auto;display:flex;flex-direction:column;gap:12px}
+h1,h2{margin:0;text-wrap:balance}
+h1{font:400 2rem/1.1 var(--display)}
+h2{font-size:1rem;font-weight:800}
+.titel{display:flex;flex-direction:column;gap:6px;padding-top:4px}
+.titel h1{font-size:2.7rem;color:var(--rot);transform:rotate(-2deg);text-shadow:2px 2px 0 #2A1D1422}
+.titelbild{width:100%;height:auto;border-radius:16px;border:2.5px solid var(--text);background:#F1E3C8}
+.tb-wackel{transform-origin:146px 46px;animation:wackel 2.4s ease-in-out infinite}
+@keyframes wackel{0%,100%{transform:rotate(-3deg)}50%{transform:rotate(4deg)}}
+.etikett{margin:0;font-size:.78rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--leise)}
+.leise{color:var(--leise);margin:0}
+.mitte{text-align:center;margin:0}
+.klein{font-size:.86rem}
+.gross{font:400 1.6rem var(--display);margin:0;color:var(--blau)}
+.code{font:400 3rem/1 var(--display);letter-spacing:.12em;color:var(--blau)}
+.karte-box{background:var(--flaeche);border:2px solid var(--text);border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:10px;box-shadow:3px 3px 0 #2A1D1418}
+.einladen{flex-direction:row;align-items:center}
+.qr{width:120px;flex:none}.qr svg{width:100%;height:auto;display:block}
+.feld{display:flex;flex-direction:column;gap:4px;font-weight:700;font-size:.9rem}
+input{font:inherit;padding:12px;border-radius:12px;border:2px solid var(--text);background:#fff;color:var(--text)}
+.knopf{appearance:none;font:800 1.05rem var(--fliess);padding:14px 16px;border-radius:14px;border:2.5px solid var(--text);background:var(--rot);color:#fff;cursor:pointer;box-shadow:3px 3px 0 var(--text)}
+.knopf:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--text)}
+.knopf.zweit{background:var(--flaeche2);color:var(--text)}
+.klein-knopf{padding:9px 12px;font-size:.9rem}
+.knopf:disabled{opacity:.45}
+.link{appearance:none;background:none;border:0;color:var(--blau);font:600 .95rem var(--fliess);text-decoration:underline;cursor:pointer;padding:8px;text-align:center}
+.reihe{display:flex;gap:8px}.reihe.umbruch{flex-wrap:wrap}
+.liste{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.liste li{display:flex;align-items:center;gap:10px;font-weight:600}
+.liste .nm{flex:1;min-width:0;display:flex;flex-direction:column}
+.liste small{color:var(--leise);font-weight:500}
+.liste .punkte{font:400 1.25rem var(--display)}
+.liste .platz{width:1.8em;font:400 1.2rem var(--display);color:var(--leise)}
+.liste li.ich{background:#FFE9B8;border-radius:10px;padding:2px 6px}
+.marke{display:inline-grid;place-items:center;width:30px;height:30px;flex:none;border-radius:7px;background:var(--pappe);border:2px solid var(--text);
+  font:800 .9rem var(--fliess);color:var(--text);position:relative;overflow:hidden;
+  background-image:linear-gradient(90deg,#0000 38%,var(--f) 38% 62%,#0000 62%)}
+.farben{display:grid;grid-template-columns:repeat(8,1fr);gap:6px}
+.farbe{appearance:none;aspect-ratio:1;border-radius:10px;border:2px solid var(--text);background:linear-gradient(90deg,var(--pappe) 30%,var(--f) 30% 70%,var(--pappe) 70%);cursor:pointer}
+.farbe.an{outline:3px solid var(--text);outline-offset:2px}.farbe:disabled{opacity:.25}
+.laengen{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.wahl{appearance:none;border:2px solid var(--text);background:var(--flaeche2);border-radius:12px;padding:8px;display:flex;flex-direction:column;align-items:center;font:inherit;color:var(--text);cursor:pointer}
+.wahl.an{background:var(--blau);color:#fff}.wahl small{font-size:.75rem}
+.arten{display:flex;flex-direction:column;gap:6px}
+.art{appearance:none;border:2px solid var(--linie);background:#fff;border-radius:12px;padding:8px 10px;display:flex;gap:10px;align-items:flex-start;text-align:left;font:inherit;color:var(--text);cursor:pointer}
+.art.an{border-color:var(--text)}.art small{display:block;color:var(--leise);font-size:.8rem;line-height:1.3}
+.art .haken{flex:none;width:22px;height:22px;border:2px solid var(--text);border-radius:6px;display:grid;place-items:center;font-weight:900;background:#fff}
+.art.an .haken{background:var(--gruen);color:#fff}
+.regeln{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px}
+.schalter{display:flex;gap:8px;align-items:center;font-weight:600}
+.status{background:var(--gelb);border:2px solid var(--text);border-radius:12px;padding:8px 12px;display:flex;gap:8px;align-items:center;justify-content:space-between;font-weight:600}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--text);color:#fff;padding:10px 16px;border-radius:12px;z-index:50;max-width:90vw;font-weight:600}
+.tonknopf{position:fixed;top:max(8px,env(safe-area-inset-top));right:max(8px,env(safe-area-inset-right));z-index:40;appearance:none;border:2px solid var(--text);background:var(--flaeche);border-radius:10px;width:38px;height:38px;font-size:1.1rem;cursor:pointer}
+
+/* ---------- Auftrag: ganzer Bildschirm ---------- */
+body.im-auftrag{padding:0;overflow:hidden;overscroll-behavior:none}
+body.im-auftrag #app{max-width:none}
+body.im-auftrag .tonknopf{top:auto;bottom:calc(84px + env(safe-area-inset-bottom));right:8px;width:32px;height:32px;font-size:.9rem;opacity:.8}
+.auftrag{position:fixed;inset:0;display:flex;flex-direction:column;background:#E9DCC4;touch-action:none;user-select:none;-webkit-user-select:none}
+.kopf{flex:none;display:flex;flex-direction:column;gap:4px;padding:max(6px,env(safe-area-inset-top)) 8px 4px;background:var(--flaeche);border-bottom:2px solid var(--text)}
+.info{display:flex;gap:8px;align-items:baseline;justify-content:space-between;font-size:.9rem}
+.info b{font:400 1.05rem var(--display);color:var(--rot);white-space:nowrap}
+.info span{color:var(--leise);font-weight:600;text-align:right}
+.minis{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none}
+.mini{appearance:none;flex:1 0 54px;max-width:96px;height:66px;border:2px solid var(--linie);border-radius:10px;background:#F7EEDC;padding:0;position:relative;cursor:pointer;overflow:hidden}
+.mini canvas{position:absolute;inset:0;width:100%;height:100%}
+.mini .mname{position:absolute;left:2px;top:2px;display:flex;align-items:center;gap:3px;font-size:.7rem;font-weight:800}
+.mini .marke{width:18px;height:18px;font-size:.62rem;border-width:1.5px;border-radius:5px}
+.mini i{font-style:normal;background:#fffc;border-radius:4px;padding:0 3px}
+.mini.zielbar{border-color:var(--rot);box-shadow:0 0 0 3px #D9542B66;animation:blinken .7s ease-in-out infinite alternate}
+.mini.fertig{border-color:var(--gruen)}.mini.raus{opacity:.5}.mini.dran{border-color:var(--blau);box-shadow:0 0 0 3px #2E6FB066}
+.auftrag[data-modus="wg"] .mini{height:34px}
+@keyframes blinken{to{box-shadow:0 0 0 6px #D9542B22}}
+.buehne{flex:1;position:relative;min-height:0}
+.buehne canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.meldungen{position:absolute;left:8px;right:8px;top:8px;display:flex;flex-direction:column;gap:4px;align-items:center;pointer-events:none}
+.meldung{background:#FFF9EEee;border:2px solid var(--text);border-radius:10px;padding:4px 10px;font-weight:600;font-size:.88rem;animation:rein .25s ease-out}
+.meldung.wichtig{background:var(--gelb);font-size:1rem}
+@keyframes rein{from{transform:translateY(-10px);opacity:0}}
+.countdown{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none;font:400 5rem var(--display);color:var(--rot);text-shadow:3px 3px 0 #fff}
+.countdown.text{font:700 1.1rem/1.4 var(--fliess);color:var(--text);text-shadow:none;padding:0 28px;text-align:center}
+.countdown.text::before{content:"";position:absolute;inset:30% 16px;background:#FFF9EEf0;border:2px solid var(--text);border-radius:16px;z-index:-1}
+.countdown.puls{animation:puls .9s ease-out}
+@keyframes puls{from{transform:scale(1.6);opacity:.3}}
+.ueber{position:absolute;left:50%;top:40%;transform:translate(-50%,-50%) rotate(-3deg);background:var(--flaeche);border:3px solid var(--text);border-radius:14px;padding:10px 18px;font:400 1.6rem var(--display);color:var(--blau);pointer-events:none;box-shadow:4px 4px 0 var(--text);white-space:nowrap}
+.fuss{flex:none;display:flex;gap:8px;align-items:center;justify-content:space-between;padding:6px 8px max(8px,env(safe-area-inset-bottom));background:var(--flaeche);border-top:2px solid var(--text);min-height:78px}
+.karten{display:flex;gap:6px;flex:1;min-width:0}
+.karte{appearance:none;flex:1;max-width:120px;height:60px;border-radius:10px;border:2px solid var(--text);display:flex;flex-direction:column;justify-content:center;align-items:center;padding:2px 4px;font:inherit;color:var(--text);cursor:pointer;text-align:center;line-height:1.1}
+.karte b{font-size:.82rem}.karte small{font-size:.66rem;opacity:.8}
+.karte.leer{border-style:dashed;border-color:var(--linie);color:var(--leise);cursor:default}
+.karte.gemein{background:#F7B9A6}.karte.hilfe{background:#B9E3C6}
+.karte.zielt{outline:3px solid var(--rot);animation:blinken .7s infinite alternate}
+.vorschau{display:flex;flex-direction:column;align-items:center;font-size:.66rem;color:var(--leise);flex:none}
+.vorschau canvas{width:72px;height:52px}
+.knopfteil{appearance:none;border:2px solid var(--text);border-radius:10px;background:#fff;padding:2px 6px;cursor:pointer}
+.wunsch{display:flex;gap:6px;align-items:center;justify-content:center;flex:1}
+.knopfleiste{display:flex;gap:6px;flex:none}
+.knopfleiste button{appearance:none;width:46px;height:52px;border-radius:12px;border:2px solid var(--text);background:var(--flaeche2);font-size:1.4rem;color:var(--text);touch-action:none}
+.knopfleiste button:active{background:var(--gelb)}
+.auftrag[data-modus="wg"] .fuss{justify-content:center}
+.auftrag[data-modus="wg"] .knopfleiste button{width:64px}
+
+/* ---------- Siegerehrung ---------- */
+.podest{display:flex;align-items:flex-end;justify-content:center;gap:6px;margin-top:10px}
+.stufe{flex:1;max-width:130px;display:flex;flex-direction:column;align-items:center;gap:4px}
+.stufe .block{width:100%;background:var(--pappe);border:2.5px solid var(--text);border-radius:8px 8px 0 0;display:grid;place-items:center;font:400 1.8rem var(--display);
+  background-image:linear-gradient(90deg,#0000 42%,var(--rot) 42% 58%,#0000 58%);animation:hoch .8s ease-out both}
+.s1 .block{height:120px;animation-delay:.6s}.s2 .block{height:84px;animation-delay:.3s}.s3 .block{height:60px}
+@keyframes hoch{from{transform:scaleY(0);transform-origin:bottom}}
+.sieger{display:flex;flex-direction:column;align-items:center;text-align:center;animation:rein .4s 1.2s both}
+.sieger small{color:var(--leise)}
+.titelliste{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.titelliste li{display:grid;grid-template-columns:auto 1fr;gap:0 10px}
+.titelliste b{font:400 1.05rem var(--display);color:var(--rot)}
+.titelliste small{grid-column:1/-1;color:var(--leise)}
+.konfetti{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:30}
+.konfetti i{position:absolute;top:-20px;left:var(--x);width:9px;height:14px;background:var(--f);border:1px solid #2A1D1455;animation:fallen 3.2s var(--d) ease-in 2 both}
+@keyframes fallen{to{transform:translateY(110vh) rotate(720deg)}}
+@media (prefers-reduced-motion:reduce){.tb-wackel,.konfetti i,.stufe .block,.sieger,.mini.zielbar{animation:none}}
+@media (min-width:760px){body.im-auftrag .kopf{padding-left:24px;padding-right:24px}.mini{flex-basis:80px;height:90px}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/planck@1.4.2/dist/planck.min.js"></script>
+<script src="../netz.js?v=2026-11-27a"></script>
+<script src="../abend.js?v=2026-11-27a" data-spiel="sperrgut"></script>
+<script src="teile.js?v=2026-11-27a"></script>
+<script src="turm.js?v=2026-11-27a"></script>
+<script src="bot.js?v=2026-11-27a"></script>
+<script src="zeichnen.js?v=2026-11-27a"></script>
+<script src="klang.js?v=2026-11-27a"></script>
+<script src="spiel.js?v=2026-11-27a"></script>
+<script src="logic.js?v=2026-11-27a"></script>
+<script src="app.js?v=2026-11-27a"></script>
+</body>
+</html>

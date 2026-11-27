@@ -44,8 +44,14 @@ Aufbau
                                   Schrotthändler, Reaktor-Countdown, Zerfallender Asteroid, Rettungskapseln, Terraforming, Ionenspur, Gestaltwandler,
                                   Alien im Frachtraum, Planeten-Boule, Greifarm, Bordküche, Treibstoffkette, Mondbasis (planck.js vom CDN; für node-Tests npm install planck@1.4.2).
                                   Testlinks: …/orbit/?partie=kurz (sofort Partie mit 3 Bots), …/orbit/?bots=3, …/orbit/?mission=funkfrequenz (auch schrotthaendler, reaktor, asteroid, kapseln, terraforming, ionenspur, gestaltwandler, frachtraum, boule, greifarm, bordkueche, treibstoff, mondbasis; mit &alien=ich ist man selbst das Alien)
-  sperrgut/                       „Sperrgut“, Stapelspiel am Umzugstag (noch nicht gebaut): KONZEPT.md (Kartons und Möbel mit Physik stapeln,
-                                  Gemeinheiten und Hilfen, vier Aufträge, Umzugstag als Turnier, Technik, Plan in 5 Schritten)
+  sperrgut/                       „Sperrgut“, Stapelspiel am Umzugstag (Karte auf der Startseite, macht im gemeinsamen Abend mit): KONZEPT.md (Plan),
+                                  teile.js (Kartons und Möbel, Reihenfolge aus Startwert), turm.js (Physik eines Turms mit planck.js 1.4.2 vom CDN:
+                                  gesteuertes Fallen, Höhe, Bruch, Karten-Wirkungen), bot.js (Bots), spiel.js (Ansicht und Steuerung), zeichnen.js
+                                  (Altbau, Wagen, Kartons, Möbel, Effekte), klang.js (Synthesizer-Klänge), logic.js (Lobby, Umzugstag, vier Aufträge
+                                  Hoch hinaus/Bloß nichts kaputt/Wagen beladen/WG-Umzug, Punkte, Karten je Platz, Siegerehrung), app.js (Verbindung,
+                                  Bildschirme, kleine Türme, Bots und WG-Turm beim Spielleiter). Jedes Handy rechnet seinen Turm selbst.
+                                  Tests: tests/logik.js (node, mit NODE_PATH zu planck@1.4.2 auch die Physik).
+                                  Testlinks: …/sperrgut/?allein (sofort üben), ?allein=lobby&bots=3, ?allein&auftrag=wagen (auch kaputt, wg), ?bots=3
   _entwurf/                       Kartenentwürfe, wird nicht hochgeladen
 
 

@@ -1,6 +1,7 @@
 # Sperrgut: Stapelspiel am Umzugstag (Konzept und Plan)
 
-Stand 27.11.2026. Noch nichts gebaut. Ordner `sperrgut/`, für 1 bis 8 Leute, jeder am eigenen Handy, dazu Bots.
+Stand 27.11.2026. Alle 5 Schritte sind gebaut und online (`…/sperrgut/`). Offen ist die Abstimmung von Physik, Fallgeschwindigkeit,
+Fensterhöhen und Bots nach einem Test mit echten Händen. Ordner `sperrgut/`, für 1 bis 8 Leute, jeder am eigenen Handy, dazu Bots.
 
 Umzugstag in der Altstadt. Der Möbelaufzug ist kaputt, also stapelt jeder seinen Hausrat vor dem Haus so hoch, dass er
 durchs Fenster der neuen Wohnung passt. Jeder baut auf seinem Handy einen eigenen Turm aus Kartons und Möbeln mit
@@ -104,7 +105,7 @@ die Karten liegen unten links.
 
 | Auftrag | Worum es geht | Ende und Wertung |
 |---|---|---|
-| **Hoch hinaus** (Wettrennen) | Stapeln bis zum offenen Fenster der neuen Wohnung (je nach Länge 1., 2. oder 3. Stock). | Wer zuerst über dem Fensterbrett ist und dort 3 Sekunden ruhig stehen bleibt, ist durch. Die Reihenfolge entscheidet, spätestens nach 3 Minuten zählt die Höhe. |
+| **Hoch hinaus** (Wettrennen) | Stapeln bis zum offenen Fenster der neuen Wohnung (je nach Länge 12, 16 oder 20 Felder hoch). | Wer zuerst über dem Fensterbrett ist und dort 3 Sekunden ruhig stehen bleibt, ist durch. Danach haben die anderen noch 20 Sekunden. Wer es nicht schafft, wird nach Höhe gewertet; spätestens nach 3 Minuten ist Schluss. |
 | **Bloß nichts kaputt** (Überleben) | 30 Teile für alle, jedes Teil, das herunterfällt, ist ein Bruch. Nach drei Bruch ist man raus. Die Teile fallen immer schneller. | Platz nach übrigen Leben, dann nach verbauten Teilen, dann nach Höhe. |
 | **Wagen beladen** (Packen) | Der Laderaum des Umzugswagens hat ein Dach und eine Rückwand, die Ladeklappe ist offen. So viele Teile wie möglich unter das Dach packen, ohne dass etwas hinten herausfällt. | Berührt ein ruhendes Teil das Dach, ist der Wagen voll. Es zählt die Zahl der Teile im Wagen, nach 2 Minuten ist Schluss. |
 | **WG-Umzug** (ein Turm für alle) | Alle bauen reihum an einem gemeinsamen Turm und sehen auf dem Handy live zu. 10 Sekunden pro Teil. | Fällt etwas herunter, während man dran ist oder in den 3 Sekunden danach, ist man raus und zahlt die Pizza. Wer zuletzt übrig ist, gewinnt. |
@@ -155,7 +156,9 @@ sperrgut/
   zeichnen.js    Altbau, Gehweg, Wagen, Kartons mit Beschriftung, Möbel, Tageszeit
   app.js         Verbindung (PeerJS wie die anderen Spiele), Uhrabgleich, Bildschirme, Eingabe, kleine Türme
   klang.js       Synthesizer-Klänge
-  tests/         logik.js und turm.js (node)
+  spiel.js       Turmansicht (Kamera, Lot, Effekte) und Steuerung per Finger, Tasten und Knopfleiste
+  teile.js       Formen und Eigenschaften der Teile, Reihenfolge aus dem Startwert
+  tests/logik.js Ablauf, Wertung, Karten, WG-Umzug, Teile-Folge und (mit planck) Physik (node)
 ```
 
 ### 8.2 Physik
@@ -219,7 +222,8 @@ es dort eine Testpause, bevor es weitergeht.
 ## 10. Festgelegt (änderbar, wird im Prototyp eingestellt)
 
 - **Palette:** 6 Felder breit, sichtbar sind etwa 12 Felder.
-- **Fenster:** im 1., 2. oder 3. Stock, etwa 10, 16 oder 22 Felder hoch.
+- **Fenster:** 12, 16 oder 20 Felder hoch (Kurz, Normal, Lang). Laderaum des Wagens 9 Felder breit und 10 hoch.
+- **Finale:** Der letzte Auftrag eines Umzugstags ist immer „Hoch hinaus“.
 - **Fallen:** Start mit 1,5 Feldern pro Sekunde, schneller nach jedem zehnten Teil. Das nächste Teil kommt 0,4 Sekunden nach der Berührung.
 - **Häufigkeiten:** Möbel etwa jedes fünfte Teil, Pizza-Karton etwa jedes siebte, Zerbrechlich-Karton etwa jedes zwölfte.
 - **Zeiten:** 3 Sekunden über dem Fensterbrett halten. Schonfrist nach einer Gemeinheit 5 Sekunden. Zielwahl für eine Gemeinheit 4 Sekunden. WG-Umzug 10 Sekunden pro Teil und 3 Sekunden Nachwackeln.
