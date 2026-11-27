@@ -44,6 +44,8 @@ Aufbau
                                   Schrotthändler, Reaktor-Countdown, Zerfallender Asteroid, Rettungskapseln, Terraforming, Ionenspur, Gestaltwandler,
                                   Alien im Frachtraum, Planeten-Boule, Greifarm, Bordküche, Treibstoffkette, Mondbasis (planck.js vom CDN; für node-Tests npm install planck@1.4.2).
                                   Testlinks: …/orbit/?partie=kurz (sofort Partie mit 3 Bots), …/orbit/?bots=3, …/orbit/?mission=funkfrequenz (auch schrotthaendler, reaktor, asteroid, kapseln, terraforming, ionenspur, gestaltwandler, frachtraum, boule, greifarm, bordkueche, treibstoff, mondbasis; mit &alien=ich ist man selbst das Alien)
+  sperrgut/                       „Sperrgut“, Stapelspiel am Umzugstag (noch nicht gebaut): KONZEPT.md (Kartons und Möbel mit Physik stapeln,
+                                  Gemeinheiten und Hilfen, vier Aufträge, Umzugstag als Turnier, Technik, Plan in 5 Schritten)
   _entwurf/                       Kartenentwürfe, wird nicht hochgeladen
 
 
