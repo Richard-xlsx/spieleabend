@@ -31,7 +31,7 @@ export function versteckenStarten(W, ui, opt) {
     kl.setzen(t ? t.point : new THREE.Vector3(q.x, 0, q.y), new THREE.Vector3(0, 1, 0), Math.random() * 6.28);
   }
   ziel.copy(kl.mitteWelt());
-  yaw = Math.atan2(kam.position.x - ziel.x, kam.position.z - ziel.z) || 0.6;
+  const rm = Z.raum; yaw = Math.atan2((rm.x0 + rm.x1) / 2 - ziel.x, (rm.z0 + rm.z1) / 2 - ziel.z) || 0.6;
 
   // ---------- Oberfläche ----------
   ui.innerHTML = `
@@ -197,7 +197,7 @@ export function versteckenStarten(W, ui, opt) {
     kam.lookAt(ziel);
   }
   kam.fov = 62; kam.updateProjectionMatrix();
-  kam.position.copy(ziel).add(new THREE.Vector3(1.2, 0.8, 1.2));
+  kam.position.copy(ziel).add(new THREE.Vector3(Math.sin(yaw) * 1.2, 0.7, Math.cos(yaw) * 1.2));
 
   return {
     klecks: kl,

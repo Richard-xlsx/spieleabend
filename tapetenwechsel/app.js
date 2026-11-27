@@ -306,7 +306,7 @@ function rundeAktualisieren() {
       const reihe = (r.rundflug || r.verstecker).filter(p => rn.kleckse.has(p)).map(p => {
         const f = r.funde[p];
         return { pid: p, klecks: rn.kleckse.get(p).klecks, name: esc(sp(p).name), farbe: f ? farbe(f.von) : farbe(p),
-          text: f ? `gefunden von ${esc(sp(f.von).name)} nach ${uhr(f.ms)}` : "nie gefunden! 🎉" };
+          text: f ? `gefunden von ${esc(sp(f.von).name)} nach ${uhr(f.t != null ? f.t : f.ms)}` : "nie gefunden! 🎉" };
       });
       rn.af = aufloesungStarten(W, ui, { reihe, start, intro: 2000, pro: R.ZEIT.proVersteck * n / Math.max(1, reihe.length), jetzt: hostJetzt, K });
     }
@@ -480,7 +480,7 @@ function anzeigen(jetzt) {
     else if (!rn.ss || istSucher(PID)) it = `noch ${offen} versteckt`;
     if (r.art === "alle" && r.funde[PID]) it += " · du bist entdeckt";
   } else if (r.teil === "aufloesung") {
-    zt = "Auflösung";
+    zt = "Auflösung"; it = "";
     const n = r.verstecker.length, start = r.aufloesungEnde - R.ZEIT.aufloesung - R.ZEIT.proVersteck * n;
     if (jetzt > start + 2000 + R.ZEIT.proVersteck * n && r.punkte) groß = zwischenstand();
   }

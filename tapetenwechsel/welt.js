@@ -17,7 +17,7 @@ export function neueWelt(canvas) {
 
   W.laden = (art, seed) => {
     if (W.Z && W.art === art && W.seed === seed) return W.Z;
-    if (W.Z) { szene.remove(W.Z.gruppe); W.Z.gruppe.traverse(o => { if (o.geometry) o.geometry.dispose(); }); }
+    if (W.Z) { szene.remove(W.Z.gruppe); try { W.Z.entsorgen ? W.Z.entsorgen() : W.Z.gruppe.traverse(o => { if (o.geometry) o.geometry.dispose(); }); } catch (e) {} }
     W.Z = baue(art, seed); W.art = art; W.seed = seed;
     szene.add(W.Z.gruppe);
     W.kaesten = W.Z.kaesten.filter(k => k.min.y < 1.0 && k.max.y > 0.05);

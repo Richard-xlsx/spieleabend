@@ -1,6 +1,7 @@
 # Tapetenwechsel: Versteckspiel mit Farbe in 3D (Konzept und Plan)
 
-Stand 27.11.2026. Noch nichts gebaut. Ordner `tapetenwechsel/`, für 2 bis 8 Leute, jeder am eigenen Handy, dazu Bots.
+Stand 27.11.2026. Alle 5 Schritte sind gebaut und online (`…/tapetenwechsel/`). Offen sind die Abstimmung nach einem Test an echten Handys
+(Zeiten, Pinselgrößen, Stärke der Bots, Herzklopfen) und die späteren Zimmer. Ordner `tapetenwechsel/`, für 2 bis 8 Leute, jeder am eigenen Handy, dazu Bots.
 
 Seit dem Umzug wohnen im Altbau kleine weiße **Kleckse**: weiche Knetwesen, ungefähr so groß wie eine Katze.
 Am liebsten spielen sie Verstecken. Jeder sucht sich in einem 3D-Zimmer einen Platz, knetet sich in Form und malt sich so an,
