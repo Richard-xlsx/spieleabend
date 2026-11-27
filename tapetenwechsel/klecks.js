@@ -168,8 +168,8 @@ export class Klecks {
   }
   farben() {                                  // wie viele deutlich verschiedene Farben (grob gezählt)
     const d = this.bild.data, s = new Map();
-    for (let i = 0; i < N * N; i += 7) { const o = i * 4, k = (d[o] >> 4) << 8 | (d[o + 1] >> 4) << 4 | (d[o + 2] >> 4); s.set(k, (s.get(k) || 0) + 1); }
-    let n = 0; for (const v of s.values()) if (v > 8) n++;
+    for (let i = 0; i < N * N; i += 7) { const o = i * 4, k = (d[o] >> 5) << 6 | (d[o + 1] >> 5) << 3 | (d[o + 2] >> 5); s.set(k, (s.get(k) || 0) + 1); }
+    let n = 0; for (const v of s.values()) if (v > 60) n++;
     return n;
   }
   // ---------- Austausch ----------

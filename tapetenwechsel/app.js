@@ -507,24 +507,29 @@ function ausstellung() {
   const holz = new THREE.MeshLambertMaterial({ color: 0xB07A45 }), wand = new THREE.MeshLambertMaterial({ color: 0xF1E3C8 });
   const w0 = new THREE.Mesh(new THREE.PlaneGeometry(30, 10), wand); w0.position.set(0, 2, -0.4); sz.add(w0);
   const reihe = S.reihe.filter(p => S.spieler[p] && galerie[p] && galerie[p].length);
-  const kl = [];
+  const kl = [], meist = Math.max(1, ...reihe.map(p => galerie[p].length)), L = meist * 0.62 + 1.1;
   reihe.forEach((p, i) => {
-    const y = i * 0.75, brett = new THREE.Mesh(new THREE.BoxGeometry(6, 0.05, 0.6), holz); brett.position.set(0, y - 0.03, 0); sz.add(brett);
-    const schild = namensSchild(sp(p).name, farbe(p)); schild.position.set(-2.4, y + 0.2, 0.15); sz.add(schild);
+    const y = (reihe.length - 1 - i) * 0.75, brett = new THREE.Mesh(new THREE.BoxGeometry(L + 0.3, 0.05, 0.6), holz); brett.position.set(0, y - 0.03, 0); sz.add(brett);
+    const schild = namensSchild(sp(p).name, farbe(p)); schild.position.set(-L / 2 + 0.45, y + 0.2, 0.15); sz.add(schild);
     galerie[p].forEach((g, j) => {
-      const k = new Klecks(); k.form(g.h, g.k); k.ladeBild(g.bild); k.setzen(new THREE.Vector3(-1.6 + j * 0.62, y, 0), new THREE.Vector3(0, 1, 0), 0);
+      const k = new Klecks(); k.form(g.h, g.k); k.ladeBild(g.bild); k.setzen(new THREE.Vector3(-L / 2 + 1.25 + j * 0.62, y, 0), new THREE.Vector3(0, 1, 0), 0);
       k.augen.visible = true; sz.add(k.gruppe); kl.push(k);
     });
   });
   const h = Math.max(1, reihe.length) * 0.75;
   aus = {
     schritt(dt) {
-      const t = performance.now() / 1000;
-      W2.kamera.fov = 50; W2.kamera.updateProjectionMatrix();
-      W2.kamera.position.set(Math.sin(t / 4) * 1.2, h / 2 + 0.2, 2.2 + h * 0.9); W2.kamera.lookAt(0, h / 2 - 0.2, 0);
+      const t = performance.now() / 1000, cv = W2.renderer.domElement, Wd = cv.clientWidth || innerWidth, Hd = cv.clientHeight || innerHeight;
+      const hoch = Wd < Hd, et = document.querySelector(".ende-text"), P = et ? (hoch ? et.offsetHeight : et.offsetWidth) : (hoch ? Hd * 0.62 : 400);
+      const vw = hoch ? Wd : Wd - P, vh = hoch ? Hd - P : Hd;
+      W2.kamera.fov = 45; W2.kamera.aspect = Wd / Hd;
+      W2.kamera.setViewOffset(Wd, Hd, hoch ? 0 : P / 2, hoch ? P / 2 : 0, Wd, Hd);
+      const tn = Math.tan(22.5 * Math.PI / 180);
+      const d = Math.max((h / 2 + 0.25) / (tn * vh / Hd), (L / 2 + 0.2) / (tn * vw / Hd)) * 1.05 + 0.3;
+      W2.kamera.position.set(Math.sin(t / 5) * 0.25, h / 2 + 0.15, d); W2.kamera.lookAt(0, h / 2 - 0.15, 0);
       kl.forEach((k, i) => { k.gruppe.rotation.y = Math.sin(t * 1.3 + i) * 0.35; });
     },
-    weg() { W2.szene.remove(sz); kl.forEach(k => k.entsorgen()); if (W2.Z) W2.Z.gruppe.visible = true; aus = null; }
+    weg() { W2.kamera.clearViewOffset(); W2.szene.remove(sz); kl.forEach(k => k.entsorgen()); if (W2.Z) W2.Z.gruppe.visible = true; aus = null; }
   };
 }
 function namensSchild(text, f) {
