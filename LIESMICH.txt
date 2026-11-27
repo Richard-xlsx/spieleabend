@@ -52,6 +52,14 @@ Aufbau
                                   Bildschirme, kleine Türme, Bots und WG-Turm beim Spielleiter). Jedes Handy rechnet seinen Turm selbst.
                                   Tests: tests/logik.js (node, mit NODE_PATH zu planck@1.4.2 auch die Physik).
                                   Testlinks: …/sperrgut/?allein (sofort üben), ?allein=lobby&bots=3, ?allein&auftrag=wagen (auch kaputt, wg), ?bots=3
+  tapetenwechsel/                 „Tapetenwechsel“, Versteckspiel in 3D (three.js 0.160 vom CDN; Karte auf der Startseite, macht im gemeinsamen
+                                  Abend mit): KONZEPT.md (Plan), zimmer.js (Omas Wohnzimmer, Kinderzimmer, Küche aus Startwert, Muster, Farbe an
+                                  einer Stelle), klecks.js (knetbare Form, Malfläche, Pinsel, Eimer, Abpausen), welt.js (Szene, Strahlen, Sichtprüfung,
+                                  Laufen), verstecken.js, suchen.js (Ich-Sicht, Joystick, Fernglas, Niesen, Zuschauen), aufloesung.js (Rundflug),
+                                  bot.js (Bots verstecken und suchen), klang.js, logic.js (Lobby, Hausbesuch, Phasen, Funde, Punkte, Ehrentitel),
+                                  app.js (Verbindung, Austausch der Verstecke und Blicke, Herzklopfen, Ausstellung). Tests: tests/logik.js (node),
+                                  tests/zimmer.html (Zimmer ansehen). Testlinks: …/tapetenwechsel/?allein (Übungs-Lobby mit 3 Bots),
+                                  ?allein&art=einer&los, ?allein&zimmer=kueche&zeit=60&los
   _entwurf/                       Kartenentwürfe, wird nicht hochgeladen
 
 
